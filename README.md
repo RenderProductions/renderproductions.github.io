@@ -16,19 +16,19 @@ Play the latest game released by Render Productions!.
  
 Listen to the current score of Varandia: Retold now!
  
-**[→ Open the OST Player](./varandia_ost.html)**
+**[→ Open the OST Player NOW!!](./varandia_ost.html)**
  
 ---
  
-## 📣 Teaser
+## 📣 Teasers!
  
-Get a first look at what's been built so far.
+Get a good look at our next project! **Varandia: Retold!**
  
 **[→ View the Teaser Page](./varandia_teaser.html)**
  
 ## Links
  
-- 💬 [Join the Discord](https://discord.gg/yyg2RRRpKU)
+- 💬 [Join the Discord!!](https://discord.gg/yyg2RRRpKU)
 ---
  
 *© Render Productions · All rights reserved*
