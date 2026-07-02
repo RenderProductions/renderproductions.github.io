@@ -278,7 +278,7 @@
   var input = document.getElementById('codeinput');
   var btn = document.getElementById('tunebtn');
   var errormsg = document.getElementById('errormsg');
-  var history = document.getElementById('history');
+  const signalHistory = document.getElementById('history');
   var signaltext = document.getElementById('signaltext');
   var staticOverlay = document.getElementById('static');
   var foundCount = 0;
@@ -302,7 +302,7 @@
         '<div class="' + fragClass + '">' + entry.fragment + '</div>' +
         '<div class="timestamp">' + entry.timestamp + '</div>';
 
-      history.appendChild(block);
+      signalHistory.appendChild(block);;
       requestAnimationFrame(function() {
         block.classList.add('show');
       });
