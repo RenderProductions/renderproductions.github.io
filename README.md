@@ -8,7 +8,7 @@ A dark fantasy RPG built from scratch. Turn-based combat, a persistent world, an
  
 ---
 
-## 🎵 Latest Game!
+## 🎮 Latest Game!
  
 Play the latest (And first) game released by Render Productions!.
  
