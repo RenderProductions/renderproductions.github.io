@@ -1,4 +1,5 @@
-<link rel="icon" href="RenderProductions.ico">
+<link rel="icon" type="image/x-icon" href="/RenderProductions.ico">
+
 # Varandia: Retold
  
 > *"Death is part of life — for without it, life would be meaningless."*
