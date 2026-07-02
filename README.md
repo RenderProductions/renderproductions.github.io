@@ -11,7 +11,7 @@ A dark fantasy RPG built from scratch. Turn-based combat, a persistent world, an
  
 Play the latest (And first) game released by Render Productions!.
  
-**[→ Play Render's File Tycoon NOW!](./Render's%20File%20Tycoon.html)**
+**[→ Play Render's File Tycoon NOW!](./RendersFileTycoon.html)**
  
 ---
  
