@@ -64,4 +64,4 @@ Varandia: Retold is an indie RPG in active development, playable as a **Discord 
 - 💬 [Join the Discord](https://discord.gg/yyg2RRRpKU)
 ---
  
-*© Varandia: Retold · ChefGaming7540 · All rights reserved*
+*© Varandia: Retold · LowRenderGaming · All rights reserved*
