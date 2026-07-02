@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Varandia: Retold — Coming Soon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cinzel+Decorative:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #040302;
+    --bg2:       #080604;
+    --gold:      #d4a030;
+    --gold-dim:  #8a6418;
+    --gold-faint:#2a1e08;
+    --red:       #8a1818;
+    --red-lit:   #c02020;
+    --text:      #e8dcc8;
+    --text-dim:  #9a8a70;
+    --text-faint:#3a3020;
+    --border:    rgba(212,160,48,0.18);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── Noise grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* ── Scroll-reveal ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ══════════════════════════════════════════
+     HERO
+  ══════════════════════════════════════════ */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 24px;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  /* Vignette radial */
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 80% at 50% 50%, transparent 20%, rgba(4,3,2,0.92) 100%);
+    pointer-events: none;
+  }
+
+  /* Ambient glow behind title */
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 300px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -60%);
+    background: radial-gradient(ellipse, rgba(212,160,48,0.07) 0%, transparent 70%);
+    animation: pulseGlow 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 0.6; transform: translate(-50%, -60%) scale(1); }
+    50%       { opacity: 1;   transform: translate(-50%, -60%) scale(1.08); }
+  }
+
+  /* Sigil ornament — pure CSS */
+  .sigil {
+    position: relative;
+    width: 56px; height: 56px;
+    margin: 0 auto 36px;
+    animation: rotateSigil 20s linear infinite;
+  }
+  .sigil svg { width: 100%; height: 100%; }
+
+  @keyframes rotateSigil {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .hero-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 8px;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    position: relative; z-index: 1;
+  }
+
+  .hero-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(52px, 9vw, 110px);
+    font-weight: 700;
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    color: var(--gold);
+    text-shadow:
+      0 0 80px rgba(212,160,48,0.3),
+      0 0 200px rgba(212,160,48,0.1);
+    position: relative; z-index: 1;
+    margin-bottom: 8px;
+  }
+
+  .hero-subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(16px, 2.5vw, 26px);
+    font-weight: 400;
+    letter-spacing: 10px;
+    color: var(--text-dim);
+    position: relative; z-index: 1;
+    margin-bottom: 40px;
+  }
+
+  /* Horizontal rule with diamond */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 auto 40px;
+    width: 100%;
+    max-width: 480px;
+    position: relative; z-index: 1;
+  }
+  .divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .divider-diamond {
+    width: 8px; height: 8px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(212,160,48,0.6);
+  }
+
+  .hero-tagline {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--text-dim);
+    font-style: italic;
+    max-width: 520px;
+    position: relative; z-index: 1;
+    margin-bottom: 48px;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 22px;
+    border: 1px solid var(--border);
+    background: rgba(212,160,48,0.04);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold-dim);
+    position: relative; z-index: 1;
+  }
+  .hero-badge span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--gold);
+    border-radius: 50%;
+    animation: blinkDot 2s ease-in-out infinite;
+  }
+  @keyframes blinkDot {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
+  }
+
+  /* scroll hint */
+  .scroll-hint {
+    position: absolute;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 1;
+    animation: fadeHint 3s ease-in-out 2s both;
+  }
+  @keyframes fadeHint {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .scroll-hint-text {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: 6px;
+    color: var(--text-faint);
+  }
+  .scroll-hint-arrow {
+    width: 1px; height: 40px;
+    background: linear-gradient(to bottom, var(--gold-dim), transparent);
+    animation: scrollArrow 2s ease-in-out infinite;
+  }
+  @keyframes scrollArrow {
+    0%   { transform: scaleY(0); transform-origin: top; }
+    50%  { transform: scaleY(1); transform-origin: top; }
+    51%  { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+
+  /* ══════════════════════════════════════════
+     SECTIONS
+  ══════════════════════════════════════════ */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 100px 24px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  .section-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 6px;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(26px, 4vw, 44px);
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 32px;
+  }
+  .section-title em {
+    color: var(--gold);
+    font-style: normal;
+  }
+
+  /* ── Progress list ── */
+  .progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2px;
+    margin-top: 40px;
+  }
+
+  .progress-item {
+    padding: 24px 28px;
+    background: rgba(212,160,48,0.03);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  .progress-item:hover {
+    background: rgba(212,160,48,0.06);
+    border-color: rgba(212,160,48,0.35);
+  }
+
+  /* status bar at top */
+  .progress-item::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .progress-item.done::before    { background: var(--gold); }
+  .progress-item.wip::before     { background: linear-gradient(90deg, var(--gold) var(--pct, 60%), var(--text-faint) var(--pct, 60%)); }
+  .progress-item.planned::before { background: var(--text-faint); }
+
+  .progress-status {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+  }
+  .done    .progress-status { color: var(--gold); }
+  .wip     .progress-status { color: #c0a030; }
+  .planned .progress-status { color: var(--text-faint); }
+
+  .progress-name {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .progress-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  /* ── Feature blocks ── */
+  .features {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 40px;
+    border: 1px solid var(--border);
+  }
+
+  .feature-row {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    align-items: start;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .feature-row:last-child { border-bottom: none; }
+  .feature-row:hover { background: rgba(212,160,48,0.03); }
+
+  .feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+    border-right: 1px solid var(--border);
+    font-size: 18px;
+  }
+
+  .feature-body {
+    padding: 22px 28px;
+  }
+
+  .feature-title {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+  }
+
+  .feature-desc {
+    font-size: 15px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+
+  /* ── Lore pull-quote ── */
+  .lore-block {
+    position: relative;
+    padding: 56px 48px;
+    border-left: 2px solid var(--gold-dim);
+    margin: 80px 0;
+    background: linear-gradient(90deg, rgba(212,160,48,0.04), transparent);
+  }
+
+  .lore-quote {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(18px, 3vw, 32px);
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.5;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+  }
+
+  .lore-source {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--gold-dim);
+  }
+
+  /* ── Stat row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  .stat {
+    padding: 32px 24px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    background: rgba(212,160,48,0.02);
+  }
+  .stat:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+    text-shadow: 0 0 40px rgba(212,160,48,0.25);
+  }
+
+  .stat-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text-faint);
+  }
+
+  /* ── CTA ── */
+  .cta-section {
+    text-align: center;
+    padding: 120px 24px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+  }
+
+  .cta-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(28px, 5vw, 56px);
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 16px;
+    text-shadow: 0 0 60px rgba(212,160,48,0.2);
+  }
+
+  .cta-sub {
+    font-size: 18px;
+    color: var(--text-dim);
+    font-style: italic;
+    max-width: 440px;
+    margin: 0 auto 40px;
+  }
+
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 40px;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 4px;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-button::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--gold);
+    transform: translateX(-101%);
+    transition: transform 0.3s ease;
+    z-index: 0;
+  }
+  .cta-button:hover::before { transform: translateX(0); }
+  .cta-button:hover { color: var(--bg); box-shadow: 0 0 40px rgba(212,160,48,0.3); }
+  .cta-button span { position: relative; z-index: 1; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--text-faint);
+    padding: 32px 24px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text-faint);
+    position: relative; z-index: 1;
+  }
+
+  /* ── Horizontal rule ── */
+  hr.fancy {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 60px 0;
+  }
+
+  @media (max-width: 600px) {
+    .lore-block { padding: 36px 24px; }
+    .stats-row  { grid-template-columns: repeat(2, 1fr); }
+    section     { padding: 64px 20px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal      { transition: none; opacity: 1; transform: none; }
+    .sigil       { animation: none; }
+    .hero-glow   { animation: none; }
+    .scroll-hint { animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HERO ══════════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="sigil reveal">
+    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="28" cy="28" r="26" stroke="rgba(212,160,48,0.25)" stroke-width="1"/>
+      <circle cx="28" cy="28" r="20" stroke="rgba(212,160,48,0.15)" stroke-width="1"/>
+      <!-- compass points -->
+      <line x1="28" y1="2"  x2="28" y2="12" stroke="#d4a030" stroke-width="1.2"/>
+      <line x1="28" y1="44" x2="28" y2="54" stroke="#d4a030" stroke-width="1.2"/>
+      <line x1="2"  y1="28" x2="12" y2="28" stroke="#d4a030" stroke-width="1.2"/>
+      <line x1="44" y1="28" x2="54" y2="28" stroke="#d4a030" stroke-width="1.2"/>
+      <!-- sword -->
+      <line x1="28" y1="10" x2="28" y2="42" stroke="#d4a030" stroke-width="1.5"/>
+      <line x1="20" y1="32" x2="36" y2="32" stroke="#d4a030" stroke-width="1.5"/>
+      <circle cx="28" cy="28" r="3" fill="none" stroke="#d4a030" stroke-width="1"/>
+      <circle cx="28" cy="28" r="1.5" fill="#d4a030"/>
+      <!-- corner diamonds -->
+      <rect x="26.5" y="2" width="3" height="3" fill="#d4a030" transform="rotate(45 28 3.5)"/>
+    </svg>
+  </div>
+
+  <p class="hero-eyebrow reveal">In Development · v0.6</p>
+
+  <h1 class="hero-title reveal">Varandia</h1>
+  <p class="hero-subtitle reveal">R E T O L D</p>
+
+  <div class="divider reveal">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <p class="hero-tagline reveal">
+    A dark fantasy RPG built from scratch — turn-based combat, persistent world, and a story that remembers everything you do.
+  </p>
+
+  <div class="hero-badge reveal">
+    <span></span>
+    Active Development
+  </div>
+
+  <div class="scroll-hint">
+    <p class="scroll-hint-text">Scroll</p>
+    <div class="scroll-hint-arrow"></div>
+  </div>
+</div>
+
+<!-- ══ STATS ═════════════════════════════════════════════════════════════════ -->
+<section>
+  <div class="stats-row reveal">
+    <div class="stat">
+      <div class="stat-num">7</div>
+      <div class="stat-label">JSX Files</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">49</div>
+      <div class="stat-label">Total Assets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">11</div>
+      <div class="stat-label">Combat Scenes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">60+</div>
+      <div class="stat-label">Achievements</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">15</div>
+      <div class="stat-label">Bosses</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PROGRESS ══════════════════════════════════════════════════════════════ -->
+<section>
+  <p class="section-eyebrow reveal">Build Progress</p>
+  <h2 class="section-title reveal">What's been <em>built</em></h2>
+  <p class="reveal" style="color:var(--text-dim); max-width:580px;">
+    Every system below was designed from the ground up. No engines, no templates — just code and craft.
+  </p>
+
+  <div class="progress-grid">
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Character Creation</p>
+      <p class="progress-desc">Race selection, stat allocation, difficulty, persistent save data with three save slots.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Chapter 1 — Tutorial</p>
+      <p class="progress-desc">Intro cutscenes, Tutorial Guy combat, merchant trading mission, and the Who Are You? secret.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Combat Engine</p>
+      <p class="progress-desc">Turn-based system with 18 status effects, parry/brace/dodge, heavy attack telegraphing, and stun handling.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Boss System</p>
+      <p class="progress-desc">15 unique bosses with custom mechanics, difficulty scaling, and a separate vertical layout with scene-specific backdrops.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">World Map</p>
+      <p class="progress-desc">Isometric tile-based overworld with entity rendering, minimap, and camera tracking.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Achievement System</p>
+      <p class="progress-desc">60+ achievements tied to flags and trackers, with toast notifications and unlock rewards.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">XP & Levelling</p>
+      <p class="progress-desc">Level 0–20 with a 1.8× XP multiplier curve, stat point allocation per level.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Item & Weapon Data</p>
+      <p class="progress-desc">Full database — swords, daggers, axes, hammers, bows, gauntlets, shields, foods, armor, and utility items.</p>
+    </div>
+
+    <div class="progress-item done reveal">
+      <p class="progress-status">Complete</p>
+      <p class="progress-name">Discord Activity</p>
+      <p class="progress-desc">Embedded App SDK integration — Rich Presence, participant panel, and live activity state across every screen.</p>
+    </div>
+
+    <div class="progress-item wip reveal" style="--pct:65%">
+      <p class="progress-status">In Progress · 65%</p>
+      <p class="progress-name">Art Assets</p>
+      <p class="progress-desc">Character sprites for 7 races, 15 enemies, 6 NPCs, and 11 combat scene backdrops. All hand-drawn SVG.</p>
+    </div>
+
+    <div class="progress-item wip reveal" style="--pct:20%">
+      <p class="progress-status">In Progress · 20%</p>
+      <p class="progress-name">Chapters 2–7</p>
+      <p class="progress-desc">Story missions, secret missions, and branching endings across all six remaining chapters.</p>
+    </div>
+
+    <div class="progress-item planned reveal">
+      <p class="progress-status">Planned</p>
+      <p class="progress-name">Location Tracking</p>
+      <p class="progress-desc">Dynamic combat scene selection based on where you are in the world — so every fight feels placed.</p>
+    </div>
+
+    <div class="progress-item planned reveal">
+      <p class="progress-status">Planned</p>
+      <p class="progress-name">NPC Memory System</p>
+      <p class="progress-desc">Telltale-style persistent NPC reactions. They remember what you did last run.</p>
+    </div>
+
+    <div class="progress-item planned reveal">
+      <p class="progress-status">Planned</p>
+      <p class="progress-name">Wonderland</p>
+      <p class="progress-desc">The afterlife you visit every time you die. Ghosts, secrets, and a god you might be able to kill.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ LORE PULL QUOTE ═══════════════════════════════════════════════════════ -->
+<div style="max-width:960px; margin:0 auto; padding:0 24px; position:relative; z-index:1;">
+  <div class="lore-block reveal">
+    <p class="lore-quote">"Death is part of life — for without it, life would be meaningless."</p>
+    <p class="lore-source">Achievement Description · IS THAT THE GRIM REAPER?!!?!?</p>
+  </div>
+</div>
+
+<!-- ══ FEATURES ══════════════════════════════════════════════════════════════ -->
+<section>
+  <p class="section-eyebrow reveal">What makes it different</p>
+  <h2 class="section-title reveal">Built with <em>intention</em></h2>
+
+  <div class="features reveal">
+
+    <div class="feature-row">
+      <div class="feature-icon">⚔</div>
+      <div class="feature-body">
+        <p class="feature-title">Real consequences in combat</p>
+        <p class="feature-desc">Every action costs turns. Heavy attacks telegraph before they land. Stun, bleed, poison, paralysis, corrode — 18 status effects that interact and stack. A bad fight can spiral. A clever one can end in two moves.</p>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon">📖</div>
+      <div class="feature-body">
+        <p class="feature-title">A story that tracks everything</p>
+        <p class="feature-desc">NPCs remember. Flags persist across deaths. Take too long to find James Alfrey and you miss him forever. Save Chuck before the chain, or watch it play out. The world does not reset to wait for you.</p>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon">💀</div>
+      <div class="feature-body">
+        <p class="feature-title">Death is not the end</p>
+        <p class="feature-desc">When you die, Azrael shows you your stats and what killed you — then sends you to Wonderland. A place you can explore, speak to the ghosts of characters from previous runs, and maybe find a way back.</p>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon">🏆</div>
+      <div class="feature-body">
+        <p class="feature-title">Achievements that mean something</p>
+        <p class="feature-desc">Most unlock unique weapons, cosmetics, or secret content. The Trifecta of Saviors requires 100% completion on Chaotic difficulty without dying once. The rewards are worth it.</p>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-icon">🎮</div>
+      <div class="feature-body">
+        <p class="feature-title">Playable in Discord</p>
+        <p class="feature-desc">Built as a Discord Embedded Activity. Play directly in a voice channel — your friends can see who's in the session, and your status updates as you fight, explore, and die.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ SECOND LORE QUOTE ═════════════════════════════════════════════════════ -->
+<div style="max-width:960px; margin:0 auto; padding:0 24px; position:relative; z-index:1;">
+  <div class="lore-block reveal" style="border-left-color: var(--red); background: linear-gradient(90deg, rgba(138,24,24,0.06), transparent);">
+    <p class="lore-quote">"Beaten by some random brat twice?! The Villains league won't like this…"</p>
+    <p class="lore-source">Chaos · Your True Savior Achievement</p>
+  </div>
+</div>
+
+<!-- ══ CTA ════════════════════════════════════════════════════════════════════ -->
+<div class="cta-section reveal">
+  <h2 class="cta-title">The story isn't over.</h2>
+  <p class="cta-sub">More chapters, more secrets, more ways to die. Follow along for updates.</p>
+  <a href="#" class="cta-button">
+    <span>Follow Development</span>
+  </a>
+</div>
+
+<!-- ══ FOOTER ════════════════════════════════════════════════════════════════ -->
+<footer>
+  © Varandia: Retold · ChefGaming7540 · All rights reserved · v0.6 Pre-Alpha
+</footer>
+
+<script>
+  // Scroll-reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Stagger children in grids
+  document.querySelectorAll('.progress-grid, .features').forEach(grid => {
+    const items = grid.querySelectorAll('.reveal');
+    items.forEach((item, i) => {
+      item.style.transitionDelay = `${i * 60}ms`;
+    });
+  });
+</script>
+</body>
+</html>
