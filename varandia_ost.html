@@ -36,7 +36,6 @@
     overflow-x: hidden;
   }
 
-  /* Grain */
   body::before {
     content: '';
     position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -45,7 +44,6 @@
     opacity: 0.7;
   }
 
-  /* ══ Layout shell ══ */
   .page {
     position: relative; z-index: 1;
     min-height: 100vh;
@@ -53,13 +51,11 @@
     grid-template-rows: auto auto auto;
   }
 
-  /* ══ Header ══ */
   header {
     text-align: center;
     padding: 64px 24px 48px;
     border-bottom: 1px solid var(--border);
   }
-
   .header-eyebrow {
     font-family: 'Cinzel', serif;
     font-size: 9px;
@@ -67,7 +63,6 @@
     color: var(--gold-dim);
     margin-bottom: 18px;
   }
-
   .header-title {
     font-family: 'Cinzel Decorative', serif;
     font-size: clamp(28px, 6vw, 64px);
@@ -78,7 +73,6 @@
     text-shadow: 0 0 60px rgba(212,160,48,0.2);
     margin-bottom: 6px;
   }
-
   .header-sub {
     font-family: 'Cinzel', serif;
     font-size: clamp(11px, 1.8vw, 15px);
@@ -86,7 +80,6 @@
     color: var(--text-dim);
     margin-bottom: 28px;
   }
-
   .header-divider {
     display: flex;
     align-items: center;
@@ -105,7 +98,6 @@
     box-shadow: 0 0 10px rgba(212,160,48,0.5);
   }
 
-  /* ══ Main content ══ */
   main {
     display: grid;
     grid-template-columns: 420px 1fr;
@@ -117,7 +109,6 @@
     min-height: 100vh;
   }
 
-  /* ══ Record side ══ */
   .record-side {
     display: flex;
     flex-direction: column;
@@ -131,11 +122,10 @@
     height: 100vh;
   }
 
-  /* The record */
   .record-wrap {
     position: relative;
-    width: clamp(200px, 28vw, 320px);
-    height: clamp(200px, 28vw, 320px);
+    width: clamp(200px, 28vw, 300px);
+    height: clamp(200px, 28vw, 300px);
     margin-bottom: 40px;
   }
 
@@ -143,16 +133,13 @@
     width: 100%; height: 100%;
     border-radius: 50%;
     background:
-      /* label */
       radial-gradient(circle at 50% 50%, #1a1208 0%, #1a1208 28%, transparent 28.5%),
-      /* grooves — conic sweep */
       conic-gradient(
         from 0deg,
         #0a0806 0deg, #1a1408 2deg, #0a0806 4deg, #141008 6deg,
         #0a0806 8deg, #1a1408 10deg, #0a0806 12deg, #141008 14deg,
         #0a0806 16deg, #1a1408 18deg, #0a0806 20deg
       ),
-      /* base vinyl */
       radial-gradient(circle, #141008 0%, #080602 100%);
     box-shadow:
       0 0 0 1px rgba(212,160,48,0.1),
@@ -162,35 +149,25 @@
     animation-play-state: paused;
     will-change: transform;
   }
-
-  .record.playing {
-    animation-play-state: running;
-  }
-
-  /* Shimmer ring */
+  .record.playing { animation-play-state: running; }
   .record::after {
     content: '';
     position: absolute; inset: 4px;
     border-radius: 50%;
     background: conic-gradient(
-      rgba(212,160,48,0.04) 0deg,
-      rgba(212,160,48,0.12) 60deg,
-      rgba(212,160,48,0.04) 120deg,
-      rgba(212,160,48,0.08) 180deg,
-      rgba(212,160,48,0.04) 240deg,
-      rgba(212,160,48,0.1)  300deg,
+      rgba(212,160,48,0.04) 0deg, rgba(212,160,48,0.12) 60deg,
+      rgba(212,160,48,0.04) 120deg, rgba(212,160,48,0.08) 180deg,
+      rgba(212,160,48,0.04) 240deg, rgba(212,160,48,0.1) 300deg,
       rgba(212,160,48,0.04) 360deg
     );
     pointer-events: none;
   }
 
-  /* Label in center */
   .record-label {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 54%;
-    height: 54%;
+    width: 54%; height: 54%;
     border-radius: 50%;
     background: radial-gradient(circle, #1e1608 0%, #0e0a04 100%);
     border: 1px solid rgba(212,160,48,0.2);
@@ -200,19 +177,10 @@
     justify-content: center;
     gap: 3px;
     pointer-events: none;
-    /* counter-rotate so label text stays upright */
     animation: counterSpin 8s linear infinite;
     animation-play-state: paused;
   }
-
-  .record.playing + .record-label {
-    animation-play-state: running;
-  }
-
-  /* Since label is a sibling not child, handle with JS class on wrapper */
-  .record-wrap.playing .record-label {
-    animation-play-state: running;
-  }
+  .record-wrap.playing .record-label { animation-play-state: running; }
 
   .record-label-title {
     font-family: 'Cinzel', serif;
@@ -223,14 +191,12 @@
     padding: 0 8px;
     line-height: 1.4;
   }
-
   .record-label-sub {
     font-family: 'Cinzel', serif;
     font-size: clamp(4px, 0.9vw, 6px);
     letter-spacing: 1.5px;
     color: var(--gold-dim);
   }
-
   .record-label-dot {
     width: 5px; height: 5px;
     border-radius: 50%;
@@ -238,12 +204,10 @@
     box-shadow: 0 0 6px var(--gold);
   }
 
-  /* Tonearm */
   .tonearm {
     position: absolute;
     top: -8px; right: -16px;
-    width: 56%;
-    height: 4px;
+    width: 56%; height: 4px;
     background: linear-gradient(90deg, var(--gold-dim), #4a3010);
     transform-origin: right center;
     transform: rotate(-28deg);
@@ -270,9 +234,7 @@
     border-radius: 50%;
     background: #c08020;
   }
-  .tonearm.playing {
-    transform: rotate(-18deg);
-  }
+  .tonearm.playing { transform: rotate(-18deg); }
 
   @keyframes spin {
     from { transform: rotate(0deg); }
@@ -283,11 +245,7 @@
     to   { transform: translate(-50%, -50%) rotate(-360deg); }
   }
 
-  /* Now playing info */
-  .now-playing {
-    width: 100%;
-    text-align: center;
-  }
+  .now-playing { width: 100%; text-align: center; }
 
   .now-playing-eyebrow {
     font-family: 'Cinzel', serif;
@@ -317,16 +275,10 @@
     margin-bottom: 16px;
   }
 
-  /* Progress bar */
-  .progress-wrap {
-    width: 100%;
-    margin-bottom: 12px;
-    cursor: pointer;
-  }
+  .progress-wrap { width: 100%; margin-bottom: 12px; cursor: pointer; }
   .progress-track {
     height: 3px;
     background: var(--text-faint);
-    position: relative;
     border-radius: 2px;
     overflow: hidden;
   }
@@ -346,28 +298,20 @@
     color: var(--text-faint);
   }
 
-  /* Controls */
   .controls {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 20px;
   }
-
   .ctrl-btn {
-    background: none;
-    border: none;
+    background: none; border: none;
     color: var(--text-dim);
-    cursor: pointer;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    cursor: pointer; padding: 8px;
+    display: flex; align-items: center; justify-content: center;
     transition: color 0.15s;
-    font-size: 16px;
   }
   .ctrl-btn:hover { color: var(--gold); }
-
   .ctrl-play {
     width: 48px; height: 48px;
     border-radius: 50%;
@@ -375,27 +319,19 @@
     border: 1px solid var(--border-lit);
     color: var(--gold);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     transition: background 0.2s, box-shadow 0.2s;
-    font-size: 18px;
   }
   .ctrl-play:hover {
     background: rgba(212,160,48,0.12);
     box-shadow: 0 0 20px rgba(212,160,48,0.2);
   }
 
-  /* ══ Tracklist side ══ */
   .tracklist-side {
     padding: 64px 48px;
-    overflow-y: auto;
+    min-width: 0;
   }
-
-  .tracklist-header {
-    margin-bottom: 36px;
-  }
-
+  .tracklist-header { margin-bottom: 36px; }
   .tracklist-eyebrow {
     font-family: 'Cinzel', serif;
     font-size: 8px;
@@ -403,7 +339,6 @@
     color: var(--gold-dim);
     margin-bottom: 10px;
   }
-
   .tracklist-title {
     font-family: 'Cinzel', serif;
     font-size: clamp(16px, 2.2vw, 24px);
@@ -412,11 +347,10 @@
     letter-spacing: 0.5px;
   }
 
-  /* Track row */
   .track {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) auto;
-    align-items: start;
+    grid-template-columns: 36px 1fr 48px;
+    align-items: center;
     gap: 16px;
     padding: 18px 20px;
     border: 1px solid transparent;
@@ -449,11 +383,9 @@
     text-align: center;
     letter-spacing: 1px;
     transition: color 0.2s;
-    padding-top: 2px;
   }
   .track.active .track-num { color: var(--gold); }
 
-  /* Waveform bars on active track */
   .waveform {
     display: none;
     align-items: flex-end;
@@ -461,8 +393,8 @@
     gap: 2px;
     height: 16px;
   }
-  .track.active.playing .track-num { display: none; }
-  .track.active.playing .waveform  { display: flex; }
+  .track.active.playing .num-display { display: none; }
+  .track.active.playing .waveform    { display: flex; }
 
   .waveform-bar {
     width: 3px;
@@ -480,14 +412,19 @@
     50%       { transform: scaleY(1); }
   }
 
-  .track-info { min-width: 0; }
-
+  .track-info {
+    min-width: 0;
+    overflow: hidden;
+  }
   .track-name {
     font-family: 'Cinzel', serif;
     font-size: clamp(11px, 1.4vw, 14px);
     font-weight: 600;
     color: var(--text);
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     margin-bottom: 3px;
     transition: color 0.2s;
   }
@@ -498,6 +435,8 @@
     color: var(--text-dim);
     font-style: italic;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .track-duration {
@@ -505,10 +444,10 @@
     font-size: 11px;
     color: var(--text-faint);
     white-space: nowrap;
+    text-align: right;
   }
   .track.active .track-duration { color: var(--gold-dim); }
 
-  /* ══ Footer ══ */
   footer {
     border-top: 1px solid var(--text-faint);
     padding: 24px;
@@ -520,11 +459,8 @@
     position: relative; z-index: 1;
   }
 
-  /* ══ Responsive ══ */
   @media (max-width: 720px) {
-    main {
-      grid-template-columns: 1fr;
-    }
+    main { grid-template-columns: 1fr; }
     .record-side {
       position: relative;
       height: auto;
@@ -532,9 +468,7 @@
       border-right: none;
       border-bottom: 1px solid var(--border);
     }
-    .tracklist-side {
-      padding: 32px 20px;
-    }
+    .tracklist-side { padding: 32px 20px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -546,7 +480,6 @@
 <body>
 <div class="page">
 
-  <!-- ══ HEADER ══ -->
   <header>
     <p class="header-eyebrow">OFFICIAL SOUNDTRACK</p>
     <h1 class="header-title">Varandia: Retold</h1>
@@ -558,10 +491,7 @@
     </div>
   </header>
 
-  <!-- ══ MAIN ══ -->
   <main>
-
-    <!-- Record + player -->
     <div class="record-side">
       <div class="record-wrap" id="recordWrap">
         <div class="record" id="record"></div>
@@ -572,11 +502,9 @@
         </div>
         <div class="tonearm" id="tonearm"></div>
       </div>
-
       <div class="now-playing">
         <p class="now-playing-eyebrow" id="npStatus">SELECT A TRACK</p>
         <p class="now-playing-title"   id="npTitle">—</p>
-
         <div class="progress-wrap" id="progressWrap">
           <div class="progress-track">
             <div class="progress-fill" id="progressFill"></div>
@@ -586,9 +514,8 @@
             <span id="timeTotal">0:00</span>
           </div>
         </div>
-
         <div class="controls">
-          <button class="ctrl-btn" id="btnPrev" title="Previous" aria-label="Previous track">
+          <button class="ctrl-btn" id="btnPrev" aria-label="Previous track">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <polygon points="19 20 9 12 19 4 19 20"></polygon>
               <line x1="5" y1="19" x2="5" y2="5"></line>
@@ -603,7 +530,7 @@
               <rect x="14" y="4" width="4" height="16"></rect>
             </svg>
           </button>
-          <button class="ctrl-btn" id="btnNext" title="Next" aria-label="Next track">
+          <button class="ctrl-btn" id="btnNext" aria-label="Next track">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <polygon points="5 4 15 12 5 20 5 4"></polygon>
               <line x1="19" y1="5" x2="19" y2="19"></line>
@@ -613,17 +540,14 @@
       </div>
     </div>
 
-    <!-- Tracklist -->
     <div class="tracklist-side">
       <div class="tracklist-header">
         <p class="tracklist-eyebrow">TRACKLIST</p>
         <h2 class="tracklist-title">The Score of Varandia</h2>
       </div>
-
       <div id="tracklist">
-        <!-- Track 1 -->
-        <div class="track" data-index="0" role="button" tabindex="0"
-          aria-label="Play Baby Steps & Learn the Ropes">
+
+        <div class="track" data-index="0" role="button" tabindex="0" aria-label="Play Baby Steps & Learn the Ropes">
           <div class="track-num">
             <span class="num-display">I</span>
             <div class="waveform">
@@ -639,8 +563,8 @@
           </div>
           <span class="track-duration" id="dur-0">—:——</span>
         </div>
- <div class="track" data-index="1" role="button" tabindex="1"
-          aria-label="Baby Steps &amp; Learn the Ropes">
+
+        <div class="track" data-index="1" role="button" tabindex="0" aria-label="Play CUT YOUR NUTS OFF!!">
           <div class="track-num">
             <span class="num-display">II</span>
             <div class="waveform">
@@ -651,62 +575,57 @@
             </div>
           </div>
           <div class="track-info">
-            <p class="track-name">Baby Steps &amp; Learn the Ropes</p>
-            <p class="track-meta">Extraz! Vol. 1</p>
-          </div>
-  
-          <span class="track-duration" id="dur-0">—:——</span>
-            <p class="track-name">NUTS!!</p>
+            <p class="track-name">CUT YOUR NUTS OFF!!</p>
             <p class="track-meta">Extraz! Vol. 1</p>
           </div>
           <span class="track-duration" id="dur-1">—:——</span>
         </div>
+
+        <!--
+          TO ADD MORE TRACKS:
+          1. Add an entry to the TRACKS array in the script below
+          2. Copy the block above, increment data-index and the Roman numeral
+          3. Update track-name, track-meta, and the dur-N id
+          4. Place the audio file in the same folder as this HTML
+        -->
+
       </div>
     </div>
-
   </main>
 
-  <footer>© Varandia: Retold · LowRenderGaming & GeorgeKnowsNothing · All rights reserved</footer>
+  <footer>© Varandia: Retold · LowRenderGaming &amp; GeorgeKnowsNothing · All rights reserved</footer>
 </div>
 
-<!-- Hidden audio element -->
 <audio id="audioPlayer" preload="metadata"></audio>
 
 <script>
-// ─── Track definitions ────────────────────────────────────────────────────────
-// To add a track:
-//  1. Add an entry to this array.
-//  2. Copy a <div class="track"> block in the HTML above and increment data-index.
-//  3. Place the audio file next to this HTML file (or update the src path).
-//
 const TRACKS = [
   {
-    title:    "Baby Steps & Learn the Ropes",
-    meta:     "Chapter 1 — Tutorial",
-    src:      "01_baby_steps_learn_the_ropes.mp3",
+    title: "Baby Steps & Learn the Ropes",
+    meta:  "Chapter 1 — Tutorial",
+    src:   "01_baby_steps_learn_the_ropes.mp3",
   },
   {
     title: "CUT YOUR NUTS OFF!!",
-    meta:  "Extraz! VOL. 1",
+    meta:  "Extraz! Vol. 1",
     src:   "nuts.ogg",
   },
 ];
 
-// ─── Player state ─────────────────────────────────────────────────────────────
-const audio       = document.getElementById('audioPlayer');
-const record      = document.getElementById('record');
-const recordWrap  = document.getElementById('recordWrap');
-const tonearm     = document.getElementById('tonearm');
-const labelTitle  = document.getElementById('labelTitle');
-const npStatus    = document.getElementById('npStatus');
-const npTitle     = document.getElementById('npTitle');
+const audio        = document.getElementById('audioPlayer');
+const record       = document.getElementById('record');
+const recordWrap   = document.getElementById('recordWrap');
+const tonearm      = document.getElementById('tonearm');
+const labelTitle   = document.getElementById('labelTitle');
+const npStatus     = document.getElementById('npStatus');
+const npTitle      = document.getElementById('npTitle');
 const progressFill = document.getElementById('progressFill');
-const timeElapsed = document.getElementById('timeElapsed');
-const timeTotal   = document.getElementById('timeTotal');
-const btnPlay     = document.getElementById('btnPlay');
-const iconPlay    = document.getElementById('iconPlay');
-const iconPause   = document.getElementById('iconPause');
-const trackEls    = document.querySelectorAll('.track');
+const timeElapsed  = document.getElementById('timeElapsed');
+const timeTotal    = document.getElementById('timeTotal');
+const btnPlay      = document.getElementById('btnPlay');
+const iconPlay     = document.getElementById('iconPlay');
+const iconPause    = document.getElementById('iconPause');
+const trackEls     = document.querySelectorAll('.track');
 
 let currentIndex = -1;
 let isPlaying    = false;
@@ -727,29 +646,23 @@ function setPlaying(val) {
   iconPause.style.display = val ? 'block' : 'none';
   npStatus.textContent    = val ? '▶  NOW PLAYING' : 'PAUSED';
   npStatus.className      = 'now-playing-eyebrow' + (val ? ' active' : '');
-  // Update waveform on track rows
   trackEls.forEach(el => el.classList.toggle('playing', val && el.classList.contains('active')));
 }
 
 function loadTrack(index) {
   if (index < 0 || index >= TRACKS.length) return;
   const t = TRACKS[index];
-
-  // Update active track row
   trackEls.forEach((el, i) => {
     el.classList.toggle('active', i === index);
     el.classList.remove('playing');
   });
-
   currentIndex = index;
   audio.src    = t.src;
   audio.load();
-
   npTitle.textContent = t.title;
-  labelTitle.innerHTML = t.title.toUpperCase().replace(' & ', '<br>&amp;<br>').split(' ').slice(0,3).join('<br>');
-
-  npStatus.textContent = 'LOADING...';
-  npStatus.className   = 'now-playing-eyebrow';
+  labelTitle.innerHTML = t.title.toUpperCase().split(' ').slice(0,3).join('<br>');
+  npStatus.textContent     = 'LOADING...';
+  npStatus.className       = 'now-playing-eyebrow';
   progressFill.style.width = '0%';
   timeElapsed.textContent  = '0:00';
   timeTotal.textContent    = '—:——';
@@ -766,32 +679,21 @@ function playTrack(index) {
   });
 }
 
-// Controls
-btnPlay.addEventListener('click', () => {
+document.getElementById('btnPlay').addEventListener('click', () => {
   if (currentIndex < 0) { playTrack(0); return; }
-  if (isPlaying) {
-    audio.pause();
-    setPlaying(false);
-  } else {
-    audio.play().then(() => {
-      setPlaying(true);
-      trackEls[currentIndex]?.classList.add('playing');
-    });
-  }
+  if (isPlaying) { audio.pause(); setPlaying(false); }
+  else { audio.play().then(() => { setPlaying(true); trackEls[currentIndex]?.classList.add('playing'); }); }
 });
 
 document.getElementById('btnPrev').addEventListener('click', () => {
   if (audio.currentTime > 3) { audio.currentTime = 0; return; }
-  const prev = (currentIndex - 1 + TRACKS.length) % TRACKS.length;
-  playTrack(prev);
+  playTrack((currentIndex - 1 + TRACKS.length) % TRACKS.length);
 });
 
 document.getElementById('btnNext').addEventListener('click', () => {
-  const next = (currentIndex + 1) % TRACKS.length;
-  playTrack(next);
+  playTrack((currentIndex + 1) % TRACKS.length);
 });
 
-// Track rows
 trackEls.forEach((el, i) => {
   el.addEventListener('click', () => playTrack(i));
   el.addEventListener('keydown', e => {
@@ -799,35 +701,29 @@ trackEls.forEach((el, i) => {
   });
 });
 
-// Audio events
 audio.addEventListener('timeupdate', () => {
   if (!audio.duration) return;
-  const pct = (audio.currentTime / audio.duration) * 100;
-  progressFill.style.width   = pct + '%';
-  timeElapsed.textContent    = fmt(audio.currentTime);
+  progressFill.style.width  = (audio.currentTime / audio.duration * 100) + '%';
+  timeElapsed.textContent   = fmt(audio.currentTime);
 });
 
 audio.addEventListener('loadedmetadata', () => {
   timeTotal.textContent = fmt(audio.duration);
-  // Update duration display on track row
   const durEl = document.getElementById(`dur-${currentIndex}`);
   if (durEl) durEl.textContent = fmt(audio.duration);
 });
 
 audio.addEventListener('ended', () => {
   setPlaying(false);
-  const next = (currentIndex + 1) % TRACKS.length;
-  if (TRACKS.length > 1) playTrack(next);
+  if (TRACKS.length > 1) playTrack((currentIndex + 1) % TRACKS.length);
 });
 
 audio.addEventListener('pause', () => setPlaying(false));
 
-// Progress seek
 document.getElementById('progressWrap').addEventListener('click', e => {
   if (!audio.duration || currentIndex < 0) return;
   const rect = e.currentTarget.getBoundingClientRect();
-  const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  audio.currentTime = pct * audio.duration;
+  audio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * audio.duration;
 });
 </script>
 </body>
