@@ -340,6 +340,42 @@
     letter-spacing: 0.5px;
   }
 
+  .track-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .tab-btn {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    padding: 8px 12px;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .tab-btn:hover {
+    color: var(--gold);
+    border-color: var(--border-lit);
+  }
+  .tab-btn.active {
+    background: rgba(212,160,48,0.08);
+    color: var(--gold);
+    border-color: var(--border-lit);
+  }
+
+  .track-group {
+    display: none;
+  }
+  .track-group.active {
+    display: block;
+  }
+
   .track {
     display: grid;
     grid-template-columns: 36px 1fr 48px;
@@ -537,100 +573,104 @@
         <p class="tracklist-eyebrow">TRACKLIST</p>
         <h2 class="tracklist-title">The Score of Varandia</h2>
       </div>
+
+      <div class="track-tabs" role="tablist" aria-label="Album selection">
+        <button class="tab-btn active" type="button" data-tab="chapter1" role="tab" aria-selected="true">Chapter 1</button>
+        <button class="tab-btn" type="button" data-tab="wonderland" role="tab" aria-selected="false">Wonderland</button>
+        <button class="tab-btn" type="button" data-tab="extraz" role="tab" aria-selected="false">Extraz</button>
+      </div>
+
       <div id="tracklist">
-
-        <div class="track" data-index="0" role="button" tabindex="0" aria-label="Play Baby Steps & Learn the Ropes">
-          <div class="track-num">
-            <span class="num-display">I</span>
-            <div class="waveform">
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
+        <div class="track-group active" id="chapter1" role="tabpanel">
+          <div class="track" data-index="0" role="button" tabindex="0" aria-label="Play Baby Steps & Learn the Ropes">
+            <div class="track-num">
+              <span class="num-display">I</span>
+              <div class="waveform">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
             </div>
+            <div class="track-info">
+              <p class="track-name">Baby Steps &amp; Learn the Ropes</p>
+              <p class="track-meta">Chapter 1 — Tutorial</p>
+            </div>
+            <span class="track-duration" id="dur-0">—:——</span>
           </div>
-          <div class="track-info">
-            <p class="track-name">Baby Steps &amp; Learn the Ropes</p>
-            <p class="track-meta">Chapter 1 — Tutorial</p>
-          </div>
-          <span class="track-duration" id="dur-0">—:——</span>
         </div>
 
-       <div class="track" data-index="1" role="button" tabindex="0" aria-label="Play Afterlife">
-          <div class="track-num">
-            <span class="num-display">II</span>
-            <div class="waveform">
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
+        <div class="track-group" id="wonderland" role="tabpanel">
+          <div class="track" data-index="1" role="button" tabindex="0" aria-label="Play Afterlife">
+            <div class="track-num">
+              <span class="num-display">I</span>
+              <div class="waveform">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
             </div>
+            <div class="track-info">
+              <p class="track-name">Afterlife</p>
+              <p class="track-meta">Wonderland</p>
+            </div>
+            <span class="track-duration" id="dur-1">—:——</span>
           </div>
-          <div class="track-info">
-            <p class="track-name">Afterlife</p>
-            <p class="track-meta">Wonderland</p>
+
+          <div class="track" data-index="2" role="button" tabindex="0" aria-label="Play Head In The Clouds">
+            <div class="track-num">
+              <span class="num-display">II</span>
+              <div class="waveform">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
+            </div>
+            <div class="track-info">
+              <p class="track-name">Head In The Clouds</p>
+              <p class="track-meta">Wonderland</p>
+            </div>
+            <span class="track-duration" id="dur-2">—:——</span>
           </div>
-          <span class="track-duration" id="dur-1">—:——</span>
+
+          <div class="track" data-index="3" role="button" tabindex="0" aria-label="Play POSTMORTAL">
+            <div class="track-num">
+              <span class="num-display">III</span>
+              <div class="waveform">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
+            </div>
+            <div class="track-info">
+              <p class="track-name">POSTMORTAL</p>
+              <p class="track-meta">Wonderland</p>
+            </div>
+            <span class="track-duration" id="dur-3">—:——</span>
+          </div>
         </div>
 
-<div class="track" data-index="2" role="button" tabindex="0" aria-label="Play Head In The Clouds">
-          <div class="track-num">
-            <span class="num-display">III</span>
-            <div class="waveform">
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
+        <div class="track-group" id="extraz" role="tabpanel">
+          <div class="track" data-index="4" role="button" tabindex="0" aria-label="Play CUT YOUR NUTS OFF!!">
+            <div class="track-num">
+              <span class="num-display">I</span>
+              <div class="waveform">
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+                <div class="waveform-bar"></div>
+              </div>
             </div>
-          </div>
-          <div class="track-info">
-            <p class="track-name">Head In The Clouds</p>
-            <p class="track-meta">Wonderland</p>
-          </div>
-          <span class="track-duration" id="dur-2">—:——</span>
-        </div>
-
-       <div class="track" data-index="3" role="button" tabindex="0" aria-label="Play Postmortal">
-          <div class="track-num">
-            <span class="num-display">III</span>
-            <div class="waveform">
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
+            <div class="track-info">
+              <p class="track-name">CUT YOUR NUTS OFF!!</p>
+              <p class="track-meta">Extraz! Vol. 1</p>
             </div>
+            <span class="track-duration" id="dur-4">—:——</span>
           </div>
-          <div class="track-info">
-            <p class="track-name">Postmortal</p>
-            <p class="track-meta">Wonderland</p>
-          </div>
-          <span class="track-duration" id="dur-3">—:——</span>
         </div>
-
-       <div class="track" data-index="0" role="button" tabindex="1" aria-label="Play CUT YOUR NUTS OFF!!">
-          <div class="track-num">
-            <span class="num-display">I</span>
-            <div class="waveform">
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-              <div class="waveform-bar"></div>
-            </div>
-          </div>
-          <div class="track-info">
-            <p class="track-name">CUT YOUR NUTS OFF!!</p>
-            <p class="track-meta">Extraz! Vol. 1</p>
-          </div>
-          <span class="track-duration" id="dur-4">—:——</span>
-        </div>
-        <!--
-          TO ADD MORE TRACKS:
-          1. Add an entry to the TRACKS array in the script below
-          2. Copy the block above, increment data-index and the Roman numeral
-          3. Update track-name, track-meta, and the dur-N id
-          4. Place the audio file in the same folder as this HTML
-        -->
-
       </div>
     </div>
   </main>
@@ -648,12 +688,6 @@ const TRACKS = [
     author: "Georg (GeorgKnowsNothin)",
     src:    "01_baby_steps_learn_the_ropes.mp3",
   },
-  {
-    title:  "CUT YOUR NUTS OFF!!",
-    meta:   "Extraz! Vol. 1",
-    author: "Render (LowRenderGaming)",
-    src:    "nuts.ogg",
-  },
  {
    title: "Afterlife",
    meta: "Wonderland",
@@ -666,6 +700,18 @@ const TRACKS = [
    author: "Zoey (abbiisamazing)",
    src: "Head_In_The_Clouds.mp3",
  },
+  {
+   title: "POSTMORTAL",
+   meta: "Wonderland",
+   author: "Zoey (abbiisamazing)",
+   src: "Postmortal.mp3",
+ },
+  {
+    title:  "CUT YOUR NUTS OFF!!",
+    meta:   "Extraz! Vol. 1",
+    author: "Render (LowRenderGaming)",
+    src:    "nuts.ogg",
+  },
 ];
 
 const audio        = document.getElementById('audioPlayer');
@@ -682,9 +728,29 @@ const btnPlay      = document.getElementById('btnPlay');
 const iconPlay     = document.getElementById('iconPlay');
 const iconPause    = document.getElementById('iconPause');
 const trackEls     = document.querySelectorAll('.track');
+const tabButtons   = document.querySelectorAll('.tab-btn');
+const trackGroups  = document.querySelectorAll('.track-group');
 
 let currentIndex = -1;
 let isPlaying    = false;
+
+function showTab(tabId) {
+  trackGroups.forEach(group => {
+    const isActive = group.id === tabId;
+    group.classList.toggle('active', isActive);
+    group.hidden = !isActive;
+  });
+
+  tabButtons.forEach(btn => {
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+}
+
+function getTrackEl(index) {
+  return document.querySelector(`.track[data-index="${index}"]`);
+}
 
 function fmt(s) {
   if (isNaN(s) || !isFinite(s)) return '0:00';
@@ -708,8 +774,9 @@ function setPlaying(val) {
 function loadTrack(index) {
   if (index < 0 || index >= TRACKS.length) return;
   const t = TRACKS[index];
-  trackEls.forEach((el, i) => {
-    el.classList.toggle('active', i === index);
+  trackEls.forEach(el => {
+    const elIndex = Number(el.dataset.index);
+    el.classList.toggle('active', elIndex === index);
     el.classList.remove('playing');
   });
   currentIndex = index;
@@ -728,7 +795,7 @@ function playTrack(index) {
   loadTrack(index);
   audio.play().then(() => {
     setPlaying(true);
-    trackEls[index]?.classList.add('playing');
+    getTrackEl(index)?.classList.add('playing');
   }).catch(() => {
     npStatus.textContent = 'COULD NOT PLAY — CHECK FILE PATH';
     npStatus.className   = 'now-playing-eyebrow';
@@ -738,7 +805,7 @@ function playTrack(index) {
 document.getElementById('btnPlay').addEventListener('click', () => {
   if (currentIndex < 0) { playTrack(0); return; }
   if (isPlaying) { audio.pause(); setPlaying(false); }
-  else { audio.play().then(() => { setPlaying(true); trackEls[currentIndex]?.classList.add('playing'); }); }
+  else { audio.play().then(() => { setPlaying(true); getTrackEl(currentIndex)?.classList.add('playing'); }); }
 });
 
 document.getElementById('btnPrev').addEventListener('click', () => {
@@ -750,12 +817,19 @@ document.getElementById('btnNext').addEventListener('click', () => {
   playTrack((currentIndex + 1) % TRACKS.length);
 });
 
-trackEls.forEach((el, i) => {
-  el.addEventListener('click', () => playTrack(i));
+trackEls.forEach(el => {
+  const index = Number(el.dataset.index);
+  el.addEventListener('click', () => playTrack(index));
   el.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playTrack(i); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); playTrack(index); }
   });
 });
+
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => showTab(btn.dataset.tab));
+});
+
+showTab('chapter1');
 
 audio.addEventListener('timeupdate', () => {
   if (!audio.duration) return;
