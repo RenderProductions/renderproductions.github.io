@@ -69,12 +69,21 @@ html,body{height:100%;background:var(--bg0)}
 #svg-layer{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
 #node-layer{position:absolute;top:0;left:0}
 #temp-wire{position:absolute;top:0;left:0;pointer-events:none;z-index:15;overflow:visible}
-#toolbar{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:20}
+#toolbar{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:20;flex-wrap:wrap;justify-content:flex-end;max-width:calc(100% - 120px)}
 #zoom-hud{position:absolute;bottom:84px;right:12px;z-index:20;font-size:10px;font-weight:600;color:var(--t2);background:rgba(20,25,32,.8);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;backdrop-filter:blur(6px);pointer-events:none;letter-spacing:.03em}
 .tbtn{padding:5px 12px;border-radius:7px;border:1px solid var(--border2);background:rgba(26,33,48,.85);color:var(--t1);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s;backdrop-filter:blur(6px)}
 .tbtn:hover{background:var(--bg3);border-color:var(--border3);color:var(--t0)}
 .tbtn.danger{color:var(--red);border-color:rgba(240,82,82,.25)}
 .tbtn.danger:hover{background:rgba(240,82,82,.1);border-color:var(--red)}
+.tbtn.success{color:var(--green);border-color:rgba(61,214,140,.2)}
+.tbtn.success:hover{background:rgba(61,214,140,.1);border-color:var(--green)}
+#goal-card{margin:8px 10px 6px;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:linear-gradient(135deg,rgba(79,158,255,.08),rgba(61,214,140,.06));}
+#goal-card .goal-top{display:flex;justify-content:space-between;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2)}
+#goal-card .goal-name{font-size:11px;font-weight:600;color:var(--t0);margin-top:5px}
+#goal-card .goal-desc{font-size:9px;color:var(--t2);margin-top:2px;line-height:1.4}
+#goal-card .goal-bar{height:5px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+#goal-card .goal-bar > div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .2s}
+#goal-card .goal-foot{display:flex;justify-content:space-between;font-size:8.5px;color:var(--t2);margin-top:5px}
 #log-bar{position:absolute;bottom:0;left:0;right:0;height:76px;background:rgba(14,17,23,.92);border-top:1px solid var(--border);padding:5px 10px;overflow-y:auto;z-index:10;backdrop-filter:blur(8px)}
 .log-line{font-size:9.5px;color:var(--t2);padding:1px 0;line-height:1.5}
 .log-line.ok{color:var(--green-dim)}.log-line.err{color:var(--red)}.log-line.info{color:var(--accent)}
@@ -365,6 +374,20 @@ body.connecting .port[data-type="in"]:hover{background:var(--accent);transform:s
    <i class="ti ti-cpu"></i> Hardware Upgrades
   </button>
 
+  <div id="goal-card">
+   <div class="goal-top">
+    <span>Next objective</span>
+    <span id="goal-reward">+$100</span>
+   </div>
+   <div class="goal-name" id="goal-name">Sell your first file</div>
+   <div class="goal-desc" id="goal-desc">Send a file through the market and collect your first profit.</div>
+   <div class="goal-bar"><div id="goal-bar-fill"></div></div>
+   <div class="goal-foot">
+    <span id="goal-progress">0 / 1</span>
+    <span id="goal-status">In progress</span>
+   </div>
+  </div>
+
   <div id="module-list"></div>
  </div>
 
@@ -376,6 +399,7 @@ body.connecting .port[data-type="in"]:hover{background:var(--accent);transform:s
    <svg id="temp-wire" overflow="visible"></svg>
   </div>
   <div id="toolbar">
+   <button class="tbtn success" onclick="buildStarterChain()">Starter build</button>
    <button class="tbtn" onclick="autoLayout()">Auto-arrange</button>
    <button class="tbtn" onclick="resetView()">Reset view</button>
    <button class="tbtn danger" onclick="clearAll()">Clear all</button>
@@ -730,7 +754,7 @@ const MODULE_DEFS=[
 
 let G={money:300,totalEarned:0,soldCount:0,nodes:{},wires:[],nextId:1,
   draggingNode:null,draggingOffset:{x:0,y:0},connectingPort:null,recentIncome:[],
-  incomePs:0,upgModal:null};
+  incomePs:0,upgModal:null,goals:[]};
 
 const canvasWrap=document.getElementById('canvas-wrap');
 const nodeLayer=document.getElementById('node-layer');
@@ -886,6 +910,88 @@ function buyHardware(key,tierIdx){
 
 function closeHardware(){document.getElementById('hw-modal').classList.remove('open');}
 
+function renderGoals(){
+  if(!G.goals.length){
+    G.goals=[
+      {id:'first-sale', label:'Sell your first file', desc:'Send a file through the market and collect your first profit.', target:1, type:'sale', reward:100, progress:0, completed:false},
+      {id:'money-1000', label:'Reach $1,000', desc:'Build momentum and grow your market presence.', target:1000, type:'money', reward:250, progress:0, completed:false},
+      {id:'six-nodes', label:'Build a six-node setup', desc:'Expand your operation beyond the starter chain.', target:6, type:'nodes', reward:300, progress:0, completed:false},
+    ];
+  }
+
+  const active=G.goals.find(g=>!g.completed) || G.goals[G.goals.length-1];
+  const progress=Math.min(active.target, active.progress||0);
+  const pct=Math.round((progress/active.target)*100);
+  document.getElementById('goal-name').textContent=active.label;
+  document.getElementById('goal-desc').textContent=active.desc;
+  document.getElementById('goal-reward').textContent=`+$${active.reward}`;
+  document.getElementById('goal-progress').textContent=`${progress} / ${active.target}`;
+  document.getElementById('goal-status').textContent=active.completed?'Completed':'In progress';
+  document.getElementById('goal-bar-fill').style.width=`${Math.max(4, pct)}%`;
+}
+
+function checkGoals(){
+  if(!G.goals.length){ renderGoals(); return; }
+  let updated=false;
+  G.goals.forEach(goal=>{
+    if(goal.completed) return;
+    if(goal.type==='sale') goal.progress=G.soldCount;
+    else if(goal.type==='money') goal.progress=G.money;
+    else if(goal.type==='nodes') goal.progress=Object.keys(G.nodes).length;
+
+    if(goal.progress>=goal.target){
+      goal.completed=true;
+      G.money+=goal.reward;
+      showToast(`Goal complete: ${goal.label} (+$${goal.reward})`,'ok');
+      updated=true;
+    }
+  });
+  renderGoals();
+  if(updated) updateStats();
+}
+
+function connectNodes(fromId,toId,fromPort,toPort){
+  G.wires.push({fromNode:fromId,toNode:toId,fromPort,toPort});
+  renderAllWires();
+}
+
+function placeNode(defId,x,y,skipCost=false){
+  const def=MODULE_DEFS.find(d=>d.id===defId);
+  if(!def)return null;
+  if(!skipCost&&def.cost>0&&G.money<def.cost){log('Not enough money for '+def.name,'err');return null;}
+  if(!skipCost&&def.cost>0)G.money-=def.cost;
+  const id='n'+(G.nextId++);
+  const sx=Math.round(x/CELL)*CELL,sy=Math.round(y/CELL)*CELL;
+  G.nodes[id]={id,defId,x:sx,y:sy,progress:0,queue:[],state:'idle',upgLevels:{},_sellTimer:0,_slots:[],_bwOut:0};
+  renderNode(id);
+  return id;
+}
+
+function buildStarterChain(){
+  if(Object.keys(G.nodes).length){
+    if(!confirm('Replace the current layout with a starter chain?')) return;
+    Object.keys(G.nodes).forEach(id=>document.getElementById('node_'+id)?.remove());
+    G.nodes={};G.wires=[];svgLayer.innerHTML='';
+  }
+
+  const startX=180, startY=180;
+  const wifi=placeNode('wifi_onboard', startX, startY, true);
+  const dl=placeNode('dl_document', startX+220, startY, true);
+  const binder=placeNode('network_binder', startX+440, startY, true);
+  const uploader=placeNode('uploader', startX+660, startY, true);
+  const market=placeNode('market_basic', startX+880, startY, true);
+
+  if(wifi&&dl) connectNodes(wifi, dl, 0, 0);
+  if(dl&&binder) connectNodes(dl, binder, 0, 0);
+  if(binder&&uploader) connectNodes(binder, uploader, 0, 0);
+  if(uploader&&market) connectNodes(uploader, market, 0, 0);
+
+  renderAllWires();
+  autoLayout();
+  log('Starter build placed — a basic download → sell chain.','info');
+  checkGoals();
+}
+
 /* ── Node stat helpers ── */
 function nodeStat(n,stat){
   const def=MODULE_DEFS.find(d=>d.id===n.defId);
@@ -899,15 +1005,11 @@ function nodeStat(n,stat){
 function spawnNode(defId,x,y){
   const def=MODULE_DEFS.find(d=>d.id===defId);
   if(!def)return;
-  if(def.cost>0&&G.money<def.cost){log('Not enough money for '+def.name,'err');return;}
-  if(def.cost>0)G.money-=def.cost;
-  const id='n'+(G.nextId++);
-  const sx=Math.round(x/CELL)*CELL,sy=Math.round(y/CELL)*CELL;
-  G.nodes[id]={id,defId,x:sx,y:sy,progress:0,queue:[],state:'idle',
-    upgLevels:{},_sellTimer:0,_slots:[],_bwOut:0};
-  renderNode(id);
+  const id=placeNode(defId,x,y,false);
+  if(!id)return;
   log('Placed '+def.name+(def.cost>0?' (-$'+def.cost.toLocaleString()+')':''),'info');
   updateStats();
+  checkGoals();
 }
 
 function getAggregatorPorts(n){
@@ -1880,6 +1982,7 @@ function updateStats(){
   document.getElementById('st-ips').textContent=fmtMoney(G.incomePs)+'/s';
   document.getElementById('st-sold').textContent=G.soldCount;
   document.getElementById('st-total').textContent=fmtMoney(G.totalEarned);
+  checkGoals();
 }
 
 const logEl=document.getElementById('log-bar');
@@ -2202,7 +2305,7 @@ document.addEventListener('keydown',ev=>{
 });
 
 /* ── INIT ── */
-initCanvas();renderSidebar();
+initCanvas();renderSidebar();renderGoals();
 spawnMenuBlobs();
 // Check if there's any save to continue
 if(hasAnySave()){
