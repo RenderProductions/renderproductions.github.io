@@ -16,7 +16,7 @@ Play the latest game released by Render Productions!.
  
 Listen to the current score of Varandia: Retold now!
  
-**[→ Open the OST Player NOW!!](./varandia_ost.html)**
+**[→ Open the OST Player NOW!!](./OST/varandia_ost.html)**
  
 ---
  
