@@ -525,10 +525,69 @@
     margin: 60px 0;
   }
 
+  /* ── Discord Community Section ── */
+  .discord-section {
+    text-align: center;
+    padding: 120px 24px;
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+  }
+
+  .discord-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(28px, 5vw, 56px);
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 12px;
+    text-shadow: 0 0 60px rgba(212,160,48,0.2);
+  }
+
+  .discord-subtitle {
+    font-size: 18px;
+    color: var(--text-dim);
+    font-style: italic;
+    max-width: 520px;
+    margin: 0 auto 48px;
+  }
+
+  .discord-widget-container {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .discord-widget-container iframe {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: rgba(212,160,48,0.02);
+    box-shadow: 
+      0 0 40px rgba(212,160,48,0.1),
+      inset 0 0 60px rgba(212,160,48,0.03);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .discord-widget-container:hover iframe {
+    border-color: rgba(212,160,48,0.35);
+    box-shadow: 
+      0 0 60px rgba(212,160,48,0.2),
+      inset 0 0 80px rgba(212,160,48,0.06);
+  }
+
+  .discord-cta {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-top: 32px;
+    font-style: italic;
+  }
+
   @media (max-width: 600px) {
     .lore-block { padding: 36px 24px; }
     .stats-row  { grid-template-columns: repeat(2, 1fr); }
     section     { padding: 64px 20px; }
+    .discord-section { padding: 80px 20px; }
+    .discord-widget-container iframe { width: 100% !important; max-width: 350px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -786,16 +845,21 @@
   <a href="#" class="cta-button">
     <span>Follow Development</span>
   </a>
-  <br>
-  <br>
- <a href="varandia_credits.html" class="cta-button">
-    <span>View Credits</span>
- </a>
+  <a href="varandia_credits.html" class="credits-link">View Credits</a>
 </div>
 
- <br>
-
- <iframe src="https://discord.com/widget?id=1518248472342429829&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+<!-- ══ DISCORD COMMUNITY ═════════════════════════════════════════════════════ -->
+<div class="discord-section reveal">
+  <p class="section-eyebrow">Join the fellowship</p>
+  <h2 class="discord-title">Rise in <em style="color: var(--gold);">Discord</em></h2>
+  <p class="discord-subtitle">Connect with fellow adventurers, share stories, and experience Varandia together.</p>
+  
+  <div class="discord-widget-container">
+    <iframe src="https://discord.com/widget?id=1518248472342429829&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+  </div>
+  
+  <p class="discord-cta">A place for theorycrafting, updates, and the occasional existential crisis about dying for the 47th time.</p>
+</div>
 
 <!-- ══ FOOTER ════════════════════════════════════════════════════════════════ -->
 <footer>
