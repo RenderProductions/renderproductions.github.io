@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RENDER PRODUCTIONS // CENTRAL COMMAND</title>
+<link rel="icon" type="image/x-icon" href="/RenderProductions.ico">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bright: #ffe600;
+    --lime: #d4bc00;
+    --dim: #998700;
+    --amber: #cc9900;
+    --grey: #737c94;
+    --line: rgba(255,230,0,0.2);
+    --bg-dark: #050810;
+    --bg-panel: #090e1a;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-dark);
+    color: var(--lime);
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    padding: 1.5rem 1.25rem 4rem;
+  }
+  a { color: var(--bright); text-decoration: none; }
+  a:hover { background: rgba(255,230,0,0.15); }
+  :focus-visible { outline: 2px solid var(--bright); outline-offset: 3px; }
+
+  #static {
+    position: fixed; inset: 0;
+    background: linear-gradient(rgba(255,230,0,0.01) 50%, rgba(0,0,0,0.2) 50%),
+                repeating-linear-gradient(0deg, rgba(5,8,16,0.5) 0px, rgba(5,8,16,0.5) 1px, transparent 1px, transparent 3px);
+    pointer-events: none; z-index: 10;
+  }
+  #noisecanvas {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: 1; opacity: 0.04; pointer-events: none;
+  }
+
+  .wrap { position: relative; z-index: 5; max-width: 900px; margin: 0 auto; }
+
+  .topbar { 
+    display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    font-size: 11px; letter-spacing: 2px; color: var(--grey); padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line); margin-bottom: 2rem;
+  }
+
+  /* Hero Section */
+  .hero { text-align: center; padding: 2rem 0 2.5rem; border: 1px solid var(--line); background: var(--bg-panel); margin-bottom: 1.5rem; position: relative; }
+  .hero::before, .hero::after {
+    content: ''; position: absolute; width: 10px; height: 10px; border-color: var(--bright); border-style: solid;
+  }
+  .hero::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+  .hero::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+  h1 {
+    font-size: clamp(28px, 6vw, 46px);
+    letter-spacing: 6px;
+    color: var(--bright);
+    text-shadow: 0 0 10px rgba(255,230,0,0.4);
+    margin-bottom: 0.75rem;
+  }
+  .subtitle { font-size: 12px; letter-spacing: 3px; color: var(--dim); margin-bottom: 1.5rem; }
+  #boot { font-size: 13px; letter-spacing: 1px; color: var(--lime); max-width: 600px; margin: 0 auto 1.5rem; background: #04060b; padding: 1rem; border: 1px solid var(--line); text-align: left; }
+  #boot .ok { color: var(--bright); font-weight: bold; }
+  .cursor::after { content: "_"; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .btn {
+    display: inline-block; background: #0d1322;
+    border: 1px solid rgba(255,230,0,0.4); color: var(--bright);
+    font-family: inherit; font-size: 12px; letter-spacing: 2px;
+    padding: 10px 18px; text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn:hover { background: rgba(255,230,0,0.15); border-color: var(--bright); }
+
+  /* Modules Grid */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+  .module { border: 1px solid var(--line); background: var(--bg-panel); padding: 1.5rem; }
+  .module > h2 {
+    font-size: 11px; letter-spacing: 3px; color: var(--dim); font-weight: normal;
+    margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--line);
+  }
+  .module h3 { font-size: 16px; letter-spacing: 2px; color: var(--bright); margin-bottom: 0.75rem; }
+  .module p { margin-bottom: 1rem; font-size: 14px; }
+  
+  .link-list { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
+  .link-list a { 
+    display: block; padding: 8px 12px; background: #060912; border: 1px solid var(--line); 
+    font-size: 13px; letter-spacing: 1px; transition: all 0.2s; 
+  }
+  .link-list a:hover { border-color: var(--bright); background: rgba(255,230,0,0.05); }
+
+  footer { font-size: 11px; letter-spacing: 2px; color: var(--grey); border-top: 1px solid var(--line); padding-top: 1rem; text-align: center; }
+</style>
+</head>
+<body>
+
+<canvas id="noisecanvas"></canvas>
+<div id="static"></div>
+
+<div class="wrap">
+  <div class="topbar">
+    <span>SYSTEM: CENTRAL COMMAND</span>
+    <span>STATUS: OPERATIONAL</span>
+  </div>
+
+  <header class="hero">
+    <h1>RENDER PRODUCTIONS</h1>
+    <div class="subtitle">INDIE DEVELOPMENT HUB // DISCORD ECOSYSTEM & PROJECTS</div>
+    <div id="boot" aria-live="polite"></div>
+    <div class="btns">
+      <a class="btn" href="https://discord.gg/yyg2RRRpKU">JOIN THE RENDER ROOM</a>
+      <a class="btn" href="/economy/">ACCESS REND-CONOMY</a>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="module">
+      <h2>MODULE 01 // DISCORD BOT & ECONOMY</h2>
+      <h3>THE RENDER ROOM HUB</h3>
+      <p>Operated by friends who may or may not know what they're doing. Manage polygons, trade in limited-stock markets, and track seasonal community currencies.</p>
+      <div class="link-list">
+        <a href="/economy/">→ Rend-Conomy Subsystem</a>
+        <a href="https://discord.gg/yyg2RRRpKU">→ Join Discord Server</a>
+      </div>
+    </section>
+
+    <section class="module">
+      <h2>MODULE 02 // ACTIVE DEVELOPMENT</h2>
+      <h3>VARANDIA: RETOLD</h3>
+      <p>Explore upcoming project teasers, visual data feeds, and audio logs directly from our primary indie development line.</p>
+      <div class="link-list">
+        <a href="/signal/">→ Signal Scanner [freq.html]</a>
+        <a href="./varandia_teaser.html">→ View Teaser Data</a>
+        <a href="./OST/varandia_ost.html">→ Official Soundtrack Player</a>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    © RENDER PRODUCTIONS · ALL RIGHTS RESERVED
+  </footer>
+</div>
+
+<script>
+  var canvas = document.getElementById('noisecanvas');
+  var ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth || 800; canvas.height = window.innerHeight || 600; }
+  resize();
+  window.addEventListener('resize', resize);
+  function drawNoise() {
+    var w = canvas.width, h = canvas.height;
+    if (!w || !h) return;
+    var img = ctx.createImageData(w, h), b = img.data;
+    for (var i = 0; i < b.length; i += 4) { var v = Math.random() * 255; b[i] = v; b[i+1] = v; b[i+2] = v; b[i+3] = 255; }
+    ctx.putImageData(img, 0, 0);
+  }
+  setInterval(drawNoise, 100);
+  drawNoise();
+
+  var lines = [
+    'INITIALIZING RENDER PRODUCTIONS PROTOCOL ........ <span class="ok">OK</span>',
+    'INDIE DEV CREW: UNQUALIFIED BUT ENTHUSIASTIC .... <span class="ok">CONFIRMED</span>',
+    'DISCORD BOT SUBSYSTEM (REND-CONOMY) ............ <span class="ok">ONLINE</span>',
+    'PROJECT ARCHIVES & SOUNDTRACKS ................. <span class="ok">READY</span>'
+  ];
+  var boot = document.getElementById('boot');
+  var li = 0;
+  function nextLine() {
+    if (li >= lines.length) { boot.lastChild.className = 'cursor'; return; }
+    var d = document.createElement('div');
+    d.innerHTML = lines[li++];
+    boot.appendChild(d);
+    setTimeout(nextLine, 250);
+  }
+  nextLine();
+</script>
+</body>
+</html>
