@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+  (function () {
+    try {
+      if (sessionStorage.getItem('passedRedirect')) return;
+      sessionStorage.setItem('probe', '1'); sessionStorage.removeItem('probe');
+    } catch (e) { return; }  // storage blocked: skip, so nobody gets stuck in a loop
+    location.replace('/redirect/?to=' + encodeURIComponent(location.pathname + location.search + location.hash));
+  })();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rend-Conomy | Render Productions</title>

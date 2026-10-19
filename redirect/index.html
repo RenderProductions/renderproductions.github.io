@@ -1,13 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/">
-  <link rel="canonical" href="https://renderproductions.github.io/">
-  <meta name="robots" content="noindex">
-  <title>Redirecting...</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Redirecting...</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<noscript><meta http-equiv="refresh" content="0; url=/"></noscript>
+<style>
+  /* Inline and minimal so there is no white flash while redirecting */
+  html { background: #050810; color: #d4bc00; font: 15px/1.6 'Courier New', monospace; }
+  body { margin: 0; padding: 2rem 1.25rem; }
+  a { color: #ffe600; }
+</style>
 </head>
 <body>
-  <p>Redirecting to the <a href="/">Render Productions homepage</a>.</p>
+<p>Redirecting...</p>
+<p>If nothing happens, <a href="/">continue to the homepage</a>.</p>
+
+<script>
+  (function () {
+    var ODDS = 50;          // 1 in 50 chance of the secret page. Set to 1 to test it.
+    var SECRET = '/secret/';
+    var dest = '/';
+
+    // Other pages send visitors here as /redirect/?to=/page-they-wanted/
+    // Only same-site paths are accepted, so this can't be used to bounce people elsewhere.
+    var to = new URLSearchParams(location.search).get('to');
+    if (to && /^\/(?![\/\\])/.test(to) && to.indexOf('/redirect') !== 0) dest = to;
+
+    // Remember that this visitor has already passed through, so pages don't send them back here.
+    try { sessionStorage.setItem('passedRedirect', '1'); } catch (e) {}
+
+    if (Math.floor(Math.random() * ODDS) === 0) dest = SECRET;
+
+    location.replace(dest);
+  })();
+</script>
 </body>
 </html>
