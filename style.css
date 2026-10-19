@@ -1,0 +1,252 @@
+/* ==========================================================
+   RENDER PRODUCTIONS — shared site stylesheet
+   Link this from every page:  <link rel="stylesheet" href="/style.css">
+   Reusable pieces: .nav, .hero, .panel, .btn, .tag, .projects,
+   .page-title, .prose, .footer
+   ========================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bright: #ffe600;
+  --lime:   #d4bc00;
+  --dim:    #a08c00;
+  --grey:   #8a93ab;
+  --line:   rgba(255, 230, 0, 0.2);
+  --line-strong: rgba(255, 230, 0, 0.45);
+  --bg:     #050810;
+  --panel:  #090e1a;
+  --panel-2:#0d1322;
+  --mono:    'IBM Plex Mono', 'Courier New', monospace;
+  --display: 'VT323', 'Courier New', monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 230, 0, 0.06), transparent 60%),
+    var(--bg);
+  color: var(--lime);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: 1.25rem 1.25rem 4rem;
+}
+
+/* CRT atmosphere: static grain + scanlines, pure CSS (no canvas, no CPU cost) */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 10; pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+
+a { color: var(--bright); text-decoration: none; }
+a:hover { background: rgba(255, 230, 0, 0.14); }
+:focus-visible { outline: 2px solid var(--bright); outline-offset: 3px; }
+
+.wrap { position: relative; z-index: 5; max-width: 920px; margin: 0 auto; }
+
+/* ---------- Navigation (same on every page) ---------- */
+.nav {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1rem; flex-wrap: wrap;
+  padding-bottom: 0.75rem; margin-bottom: 2rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.nav .brand { color: var(--bright); font-weight: 600; letter-spacing: 2px; }
+.nav ul { display: flex; gap: 1.25rem; list-style: none; }
+.nav ul a { color: var(--grey); padding: 2px 4px; }
+.nav ul a:hover { color: var(--bright); }
+.nav ul a[aria-current="page"] { color: var(--bright); border-bottom: 1px solid var(--bright); }
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  padding: 2.5rem 2rem 2rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  margin-bottom: 2.5rem;
+}
+.hero::before, .hero::after {
+  content: ''; position: absolute; width: 12px; height: 12px;
+  border: 0 solid var(--bright);
+}
+.hero::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.hero::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+h1, .page-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(48px, 11vw, 92px);
+  line-height: 0.95;
+  letter-spacing: 3px;
+  color: var(--bright);
+  text-shadow: 0 0 14px rgba(255, 230, 0, 0.45);
+}
+.tagline { margin: 1rem 0 1.75rem; max-width: 52ch; color: var(--lime); }
+
+/* Boot log: the one animated moment on the home page */
+.boot {
+  background: #04060b; border: 1px solid var(--line);
+  padding: 1rem 1.1rem; margin-bottom: 1.75rem;
+  font-size: 13px; color: var(--dim); min-height: 7.5em;
+}
+.boot .ok { color: var(--bright); font-weight: 600; }
+.boot .row { display: flex; justify-content: space-between; gap: 1rem; }
+.boot .row span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cursor::after { content: '_'; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ---------- Buttons ---------- */
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  display: inline-block;
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  color: var(--bright);
+  font: 500 13px/1 var(--mono);
+  padding: 12px 18px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn:hover { background: rgba(255, 230, 0, 0.14); border-color: var(--bright); }
+.btn.primary { background: var(--bright); color: #050810; border-color: var(--bright); font-weight: 600; }
+.btn.primary:hover { background: #fff27a; }
+
+/* ---------- Panels & section headings ---------- */
+.section-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; color: var(--grey);
+  padding-bottom: 0.5rem; margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.section-head h2 { font-size: 13px; font-weight: 500; color: var(--bright); }
+
+.panel { border: 1px solid var(--line); background: var(--panel); padding: 1.5rem; }
+
+/* ---------- Project directory (one list instead of repeated cards) ---------- */
+.projects { list-style: none; border: 1px solid var(--line); background: var(--panel); }
+.projects li + li { border-top: 1px solid var(--line); }
+.project {
+  display: grid; grid-template-columns: 14rem 1fr auto;
+  gap: 0.5rem 1.5rem; align-items: baseline;
+  padding: 1.1rem 1.25rem; color: inherit;
+}
+a.project:hover { background: rgba(255, 230, 0, 0.07); }
+.project h3 { font-size: 15px; font-weight: 600; color: var(--bright); }
+.project p  { font-size: 14px; color: var(--lime); }
+.project.is-cancelled h3 { color: var(--grey); text-decoration: line-through; text-decoration-thickness: 1px; }
+.project.is-cancelled p  { color: var(--grey); }
+
+.tag {
+  font-size: 11px; letter-spacing: 1px; padding: 2px 8px;
+  border: 1px solid var(--line-strong); color: var(--bright); white-space: nowrap;
+}
+.tag.live::before { content: '● '; animation: blink 2s steps(2) infinite; }
+.tag.off { color: var(--grey); border-color: rgba(138, 147, 171, 0.4); }
+
+/* ---------- Generic content pages ---------- */
+.page-title { font-size: clamp(40px, 8vw, 64px); margin-bottom: 1.5rem; }
+.prose { max-width: 68ch; }
+.prose p, .prose ul { margin-bottom: 1rem; }
+.prose h2 { font-size: 16px; color: var(--bright); margin: 2rem 0 0.75rem; }
+
+/* ---------- Footer ---------- */
+.footer {
+  margin-top: 3rem; padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--grey);
+  display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+
+/* ---------- Small screens ---------- */
+@media (max-width: 640px) {
+  .hero { padding: 1.75rem 1.25rem 1.5rem; }
+  .project { grid-template-columns: 1fr auto; }
+  .project p { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .cursor::after, .tag.live::before { animation: none; }
+}
+
+/* ==========================================================
+   Forms & log entries (used by the secret pages)
+   ========================================================== */
+.tuner { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.tuner label { font-size: 13px; color: var(--grey); }
+.input {
+  background: #04060b;
+  border: 1px solid var(--line-strong);
+  color: var(--bright);
+  font: 500 15px/1 var(--mono);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 12px 14px;
+  width: min(280px, 100%);
+  border-radius: 0;
+}
+.input::placeholder { color: var(--dim); text-transform: none; letter-spacing: 1px; }
+.input:focus { outline: none; border-color: var(--bright); box-shadow: 0 0 10px rgba(255, 230, 0, 0.25); }
+button.btn { cursor: pointer; }
+
+.error { min-height: 1.6em; margin-top: 0.9rem; font-size: 13px; color: #ff6b6b; }
+.empty { color: var(--grey); font-size: 14px; padding: 1rem 0; }
+
+.log {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--bright);
+  background: #060912;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.log .label { font-size: 12px; color: var(--grey); margin-bottom: 0.5rem; }
+.log .fragment { color: var(--bright); word-break: break-word; max-width: 68ch; }
+.log .stamp {
+  margin-top: 1rem; padding-top: 0.5rem;
+  border-top: 1px dotted var(--line);
+  font-size: 11px; color: var(--grey);
+}
+.log.is-decoy { border-left-color: var(--dim); }
+.log.is-decoy .fragment { color: var(--lime); }
+.log.is-rare { border-left-color: #ff6b6b; }
+.log.is-rare .stamp { color: #ff6b6b; }
+.log.is-new { animation: fadein 0.35s ease; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .log.is-new { animation: none; } }
+
+/* ==========================================================
+   Market board (Rend-Conomy)
+   ========================================================== */
+.board { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); }
+.board th, .board td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.board tbody tr:last-child td { border-bottom: 0; }
+.board th { font-size: 12px; font-weight: 500; color: var(--grey); background: rgba(255, 230, 0, 0.03); }
+.board .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.board .name { color: var(--bright); font-weight: 600; font-size: 15px; }
+.board .tkr { margin-left: 0.5rem; font-size: 12px; font-weight: 500; color: var(--grey); }
+.board .desc { font-size: 13px; color: var(--lime); margin-top: 2px; }
+.board .price { font-size: 17px; color: var(--bright); }
+.board .up { color: var(--bright); }
+.board .down { color: #ff6b6b; }
+.spark { display: block; width: 96px; height: 28px; margin-left: auto; color: var(--bright); }
+.spark.down { color: #ff6b6b; }
+.spark polyline { fill: none; stroke: currentColor; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+@media (max-width: 640px) {
+  .board .hide-sm { display: none; }
+  .board th, .board td { padding: 0.8rem 0.75rem; }
+}
