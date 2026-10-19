@@ -32,10 +32,10 @@
   <section id="market" aria-labelledby="market-title">
     <div class="section-head">
       <h2 id="market-title">Listed companies</h2>
-      <span class="tag live">SIMULATED PREVIEW</span>
+      <span class="tag" id="mode-tag">LOADING</span>
     </div>
 
-    <table class="board" aria-label="Sample market board">
+    <table class="board" aria-label="Market board">
       <thead>
         <tr>
           <th scope="col">Company</th>
@@ -46,7 +46,7 @@
       </thead>
       <tbody id="board-body"></tbody>
     </table>
-    <p class="empty">Preview prices are randomly generated for this page and are not the live bot's prices.</p>
+    <p class="empty" id="board-note">Loading prices...</p>
   </section>
 
   <section aria-labelledby="trade-title" style="margin-top: 2.5rem;">
@@ -68,75 +68,123 @@
 
 <script>
   (function () {
-    var companies = [
-      { name: 'Render Room',             tkr: 'RRM',  start: 120.00, desc: 'The server itself, publicly traded.' },
-      { name: 'De Nacho',                tkr: 'NACH', start: 45.50,  desc: 'Nachos, at scale.' },
-      { name: "Builder's League United", tkr: 'BLU',  start: 78.25,  desc: 'Building things together, allegedly.' },
-      { name: 'Business Numbers Working', tkr: 'BNW',  start: 12.80,  desc: 'Numbers. Business. Working, mostly.' }
-    ];
-    var POINTS = 24;
+    // Prices come from /prices.json, which a scheduled GitHub Action updates.
+    // If that file can't be loaded, the board falls back to a random preview.
+    var DATA_URL = '../prices.json';
+    var REFRESH_MS = 60 * 1000;
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var body = document.getElementById('board-body');
 
-    function step(p) {
-      return Math.max(1, p * (1 + (Math.random() - 0.5) * 0.06));
+    var body = document.getElementById('board-body');
+    var tagEl = document.getElementById('mode-tag');
+    var noteEl = document.getElementById('board-note');
+    var rows = [];
+
+    var FALLBACK = [
+      { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00 },
+      { id: 'NACH', name: 'De Nacho',                 description: 'Nachos, at scale.',                     start: 45.50 },
+      { id: 'BLU',  name: "Builder's League United",  description: 'Building things together, allegedly.',  start: 78.25 },
+      { id: 'BNW',  name: 'Business Numbers Working', description: 'Numbers. Business. Working, mostly.',   start: 12.80 }
+    ];
+
+    function step(p) { return Math.max(1, p * (1 + (Math.random() - 0.5) * 0.06)); }
+
+    function build(list) {
+      body.innerHTML = '';
+      rows = list.map(function (c) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><div class="name"></div><div class="desc"></div></td>' +
+          '<td class="num price"></td>' +
+          '<td class="num change"></td>' +
+          '<td class="num hide-sm"><svg class="spark" viewBox="0 0 96 28" preserveAspectRatio="none" aria-hidden="true"><polyline points=""/></svg></td>';
+
+        var nameEl = tr.querySelector('.name');
+        nameEl.textContent = c.name;
+        var tkr = document.createElement('span');
+        tkr.className = 'tkr';
+        tkr.textContent = c.id;
+        nameEl.appendChild(tkr);
+        tr.querySelector('.desc').textContent = c.description || '';
+        body.appendChild(tr);
+
+        var r = {
+          c: c,
+          priceEl: tr.querySelector('.price'),
+          changeEl: tr.querySelector('.change'),
+          sparkEl: tr.querySelector('.spark'),
+          lineEl: tr.querySelector('polyline')
+        };
+        render(r);
+        return r;
+      });
     }
 
-    companies.forEach(function (c) {
-      c.hist = [c.start];
-      for (var i = 1; i < POINTS; i++) c.hist.push(step(c.hist[i - 1]));
-
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td><div class="name"></div><div class="desc"></div></td>' +
-        '<td class="num price"></td>' +
-        '<td class="num change"></td>' +
-        '<td class="num hide-sm"><svg class="spark" viewBox="0 0 96 28" preserveAspectRatio="none" aria-hidden="true"><polyline points=""/></svg></td>';
-
-      var nameEl = tr.querySelector('.name');
-      nameEl.textContent = c.name;
-      var tkr = document.createElement('span');
-      tkr.className = 'tkr';
-      tkr.textContent = c.tkr;
-      nameEl.appendChild(tkr);
-      tr.querySelector('.desc').textContent = c.desc;
-
-      c.priceEl = tr.querySelector('.price');
-      c.changeEl = tr.querySelector('.change');
-      c.sparkEl = tr.querySelector('.spark');
-      c.lineEl = tr.querySelector('polyline');
-      body.appendChild(tr);
-    });
-
-    function render(c) {
-      var last = c.hist[c.hist.length - 1];
-      var pct = (last / c.hist[0] - 1) * 100;
+    function render(r) {
+      var h = r.c.history;
+      var last = h[h.length - 1];
+      var pct = (last / h[0] - 1) * 100;
       var up = pct >= 0;
 
-      c.priceEl.textContent = last.toFixed(2);
-      c.changeEl.textContent = (up ? '▲ +' : '▼ ') + pct.toFixed(2) + '%';
-      c.changeEl.className = 'num change ' + (up ? 'up' : 'down');
-      c.sparkEl.setAttribute('class', 'spark ' + (up ? 'up' : 'down'));
+      r.priceEl.textContent = last.toFixed(2);
+      r.changeEl.textContent = (up ? '▲ +' : '▼ ') + pct.toFixed(2) + '%';
+      r.changeEl.className = 'num change ' + (up ? 'up' : 'down');
+      r.sparkEl.setAttribute('class', 'spark ' + (up ? 'up' : 'down'));
 
-      var min = Math.min.apply(null, c.hist), max = Math.max.apply(null, c.hist);
+      var min = Math.min.apply(null, h), max = Math.max.apply(null, h);
       var range = max - min || 1;
-      c.lineEl.setAttribute('points', c.hist.map(function (v, i) {
-        var x = (i / (POINTS - 1)) * 96;
+      var n = Math.max(h.length - 1, 1);
+      r.lineEl.setAttribute('points', h.map(function (v, i) {
+        var x = (i / n) * 96;
         var y = 26 - ((v - min) / range) * 24;
         return x.toFixed(1) + ',' + y.toFixed(1);
       }).join(' '));
     }
 
-    function tick() {
-      companies.forEach(function (c) {
-        c.hist.push(step(c.hist[c.hist.length - 1]));
-        c.hist.shift();
-        render(c);
-      });
+    function showLive(data) {
+      build(data.companies);
+      tagEl.textContent = 'LIVE';
+      tagEl.className = 'tag live';
+      var when = new Date(data.updated);
+      var stamp = isNaN(when) ? '' : ' Last update: ' + when.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + '.';
+      noteEl.textContent = 'Prices are fictional and update about every 30 minutes.' + stamp;
     }
 
-    companies.forEach(render);
-    if (!reduce) setInterval(tick, 2500);
+    function showFallback() {
+      var list = FALLBACK.map(function (c) {
+        var h = [c.start];
+        for (var i = 1; i < 48; i++) h.push(step(h[i - 1]));
+        return { id: c.id, name: c.name, description: c.description, history: h };
+      });
+      build(list);
+      tagEl.textContent = 'SIMULATED PREVIEW';
+      tagEl.className = 'tag';
+      noteEl.textContent = 'Live prices could not be loaded. These numbers are randomly generated for this page.';
+      if (!reduce) {
+        setInterval(function () {
+          rows.forEach(function (r) {
+            r.c.history.push(step(r.c.history[r.c.history.length - 1]));
+            r.c.history.shift();
+            render(r);
+          });
+        }, 2500);
+      }
+    }
+
+    function load(first) {
+      fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (res) { if (!res.ok) throw new Error(res.status); return res.json(); })
+        .then(function (data) {
+          if (!data.companies || !data.companies.length) throw new Error('empty');
+          showLive(data);
+          setTimeout(function () { load(false); }, REFRESH_MS);
+        })
+        .catch(function () {
+          if (first) showFallback();
+          else setTimeout(function () { load(false); }, REFRESH_MS);
+        });
+    }
+
+    load(true);
   })();
 </script>
 </body>
