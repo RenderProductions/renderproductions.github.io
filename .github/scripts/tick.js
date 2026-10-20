@@ -61,7 +61,12 @@ const companies = COMPANIES.map((c) => {
   };
 });
 
-const data = { updated: new Date().toISOString(), companies };
+// Lookup tables so the Discord bot can read a value by ticker, e.g. prices.RRM
+const prices = {};
+const changes = {};
+companies.forEach((c) => { prices[c.id] = c.price; changes[c.id] = c.change; });
+
+const data = { updated: new Date().toISOString(), prices, changes, companies };
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(

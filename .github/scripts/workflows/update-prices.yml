@@ -6,7 +6,8 @@ on:
   workflow_dispatch:          # lets you run it by hand from the Actions tab
 
 permissions:
-  contents: write
+  contents: write   # lets the job commit prices.json
+  pages: write      # lets the job ask GitHub Pages to rebuild
 
 concurrency:
   group: market-prices
@@ -29,3 +30,10 @@ jobs:
           git commit -m "Market tick" || exit 0
           git pull --rebase
           git push
+
+      # Commits pushed with the built-in token do not trigger a Pages build,
+      # so without this step the live site would never pick up the new prices.
+      - name: Request a Pages build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST repos/${{ github.repository }}/pages/builds
