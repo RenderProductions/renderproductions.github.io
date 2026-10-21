@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Not found | Render Productions</title>
+<!-- A 404 page is shown at many different addresses, so every link here starts with "/" -->
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/bot/">Bot</a></li>
+      <li><a href="https://discord.gg/D2v4EsuZBU">Discord</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero">
+    <h1>404<br>NO SIGNAL</h1>
+    <p class="tagline">Nothing is broadcasting on this frequency. The page may have moved, or it never existed.</p>
+
+    <div class="boot" aria-live="polite">
+      <div class="row">
+        <span>Requested path</span>
+        <span class="ok" id="path" style="max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">unknown</span>
+      </div>
+      <div class="row"><span>Status</span><span class="ok">NOT FOUND</span></div>
+      <div class="row"><span>Recommended action</span><span class="ok">RETURN HOME</span></div>
+      <div class="cursor"></div>
+    </div>
+
+    <div class="btns">
+      <a class="btn primary" href="/">Return home</a>
+      <a class="btn" href="/rend-conomy/">Rend-Conomy market</a>
+      <a class="btn" href="/bot/">The bot</a>
+    </div>
+    Do you remember what it was called? The project?
+  </header>
+
+  <footer class="footer">
+    <span>© Render Productions</span>
+    <span>Error 404</span>
+  </footer>
+
+</div>
+
+<script>
+  // Show which address was requested (textContent keeps it safe from injected markup).
+  document.getElementById('path').textContent = location.pathname + location.search;
+</script>
+</body>
+</html>
