@@ -259,3 +259,55 @@ button.btn { cursor: pointer; }
 .meta { font-size: 13px; color: var(--grey); margin-bottom: 1.5rem; }
 .footer a { color: var(--grey); }
 .footer a:hover { color: var(--bright); }
+
+/* ==========================================================
+   Message screen (frequency scanner)
+   ========================================================== */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.screen {
+  position: relative;
+  min-height: 16rem;
+  padding: 1.5rem;
+  display: flex; flex-direction: column; justify-content: center;
+  overflow: hidden;
+  background: #04060b;
+  border: 1px solid var(--line-strong);
+  box-shadow: inset 0 0 40px rgba(255, 230, 0, 0.06), 0 0 24px rgba(0, 0, 0, 0.6);
+  cursor: default;
+}
+.screen .status { font-size: 12px; color: var(--grey); margin-bottom: 0.9rem; }
+.screen .msg {
+  font-size: 16px; color: var(--bright); max-width: 68ch;
+  white-space: pre-wrap; word-break: break-word;
+  text-shadow: 0 0 8px rgba(255, 230, 0, 0.25);
+}
+.screen .msg::after { content: '\2588'; margin-left: 2px; animation: blink 1s steps(2) infinite; }
+.screen .stamp {
+  margin-top: 1.1rem; padding-top: 0.5rem; min-height: 2em;
+  border-top: 1px dotted var(--line);
+  font-size: 11px; color: var(--grey);
+}
+.screen.is-idle .msg { color: var(--dim); text-shadow: none; font-family: var(--display); font-size: 40px; letter-spacing: 3px; }
+.screen.is-error .status { color: #ff6b6b; }
+.screen.is-decoy .msg { color: var(--lime); }
+.screen.is-rare { border-color: rgba(255, 107, 107, 0.55); }
+.screen.is-rare .msg { color: #ff6b6b; text-shadow: 0 0 8px rgba(255, 107, 107, 0.3); }
+.screen.is-rare .stamp { color: #ff6b6b; }
+
+/* While tuning: static over the screen and a flickering message */
+.screen.tuning::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.22;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.screen.tuning .msg { color: var(--dim); animation: flicker 0.12s steps(2) infinite; }
+@keyframes flicker { 50% { opacity: 0.55; } }
+
+.screen + .tuner { margin-top: 1.25rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen .msg::after, .screen.tuning .msg { animation: none; }
+}
