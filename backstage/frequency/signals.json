@@ -26,9 +26,17 @@
     "WHAT HAPPENED?": {
       "actions": [
         {"type": "text", "text": "Finally, questions worth asking. NOT YET, Not YET??!"},
-        {"type": "glitch", "ms": 5000 },
+        {"type": "glitch", "ms": 50 },
         {"type": "text", "text": "GoodBYE!!!!"},
         {"type": "redirect", "to": "/"}
+      ]
+    },
+    "RETOLD": {
+      "actions": [
+        {"type": "glitch", "ms": 60 },
+        {"type": "text", "text": "There onCE was, an ORANge FELLOW. He loved to COOK"},
+        {"type": "glitch", "ms": 60 },
+        {"type": "text", "text": "I MISS him."}
       ]
     }
   }
