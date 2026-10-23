@@ -28,7 +28,7 @@
         {"type": "text", "text": "Finally, questions worth asking. NOT YET, Not YET??!"},
         {"type": "glitch", "ms": 5000 },
         {"type": "text", "text": "GoodBYE!!!!"},
-        {"type": "redirect", "tp": "/"}
+        {"type": "redirect", "to": "/"}
       ]
     }
   }
