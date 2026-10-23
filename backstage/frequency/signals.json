@@ -2,25 +2,33 @@
   "codes": {
     "HELLO": {
       "actions": [
-        { "type": "text", "text": "Hello, operator." }
+        { "type": "text", "text": "HELLO?!? is this THing ON?? can you see me.?" }
       ]
     },
     "DECOY": {
       "actions": [
-        { "type": "text", "theme": "decoy", "text": "Nothing to see here. Move along." }
+        { "type": "text", "theme": "decoy", "text": "SUCH A FUNNY WORD. word." }
       ]
     },
     "RARE": {
       "actions": [
         { "type": "glitch", "ms": 600 },
-        { "type": "text", "theme": "rare", "text": "RARE SIGNAL DETECTED." }
+        { "type": "text", "theme": "rare", "text": "TRULY A rare one?!" }
       ]
     },
     "LEAVE": {
       "actions": [
-        { "type": "text", "text": "Rerouting you home..." },
+        { "type": "text", "text": "GO AWAY?! AWAY!!!" },
         { "type": "wait", "ms": 1500 },
         { "type": "redirect", "to": "/" }
+      ]
+    },
+    "WHAT HAPPENED?": {
+      "actions": [
+        {"type": "text", "text": "Finally, questions worth asking. NOT YET, Not YET??!"},
+        {"type": "glitch", "ms": 5000 },
+        {"type": "text", "text": "GoodBYE!!!!"},
+        {"type": "redirect", "tp": "/"}
       ]
     }
   }
