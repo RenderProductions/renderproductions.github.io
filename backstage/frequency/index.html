@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Frequency | Render Productions</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<style>
+  /* Extras for the frequency screen. Everything else comes from style.css. */
+  .screen .layer { position: absolute; inset: 0; pointer-events: none; }
+  .screen .layer img {
+    position: absolute; opacity: 0; transition: opacity 0.4s ease;
+    max-width: 100%; max-height: 100%; image-rendering: auto;
+  }
+  .screen .layer img.show { opacity: 1; }
+  .screen .layer img.pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .screen .layer img.pos-full   { inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .screen .layer img.pos-top    { top: 0; left: 50%; transform: translateX(-50%); }
+  .screen .layer img.pos-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+  .screen .status, .screen .msg, .screen .stamp { position: relative; z-index: 2; }
+  .screen.glitching { animation: shake 0.08s steps(2) infinite; }
+  @keyframes shake {
+    0%   { transform: translate(0, 0); filter: none; }
+    50%  { transform: translate(-4px, 2px); filter: hue-rotate(40deg) contrast(1.4); }
+    100% { transform: translate(3px, -2px); }
+  }
+  @media (prefers-reduced-motion: reduce) { .screen.glitching { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/bot/">Bot</a></li>
+      <li><a href="https://discord.gg/D2v4EsuZBU">Discord</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero">
+    <h1 class="page-title">FREQUENCY</h1>
+
+    <div class="screen is-idle" id="screen">
+      <div class="layer" id="layer"></div>
+      <div class="status" id="status-line">CH 01</div>
+      <div class="msg" id="msg"></div>
+      <div class="stamp" id="stamp"></div>
+    </div>
+
+    <form class="tuner" id="tuner" autocomplete="off">
+      <label for="codeinput">Code</label>
+      <input class="input" id="codeinput" type="text" maxlength="40" placeholder="Enter code" spellcheck="false">
+      <button class="btn primary" type="submit">Execute</button>
+    </form>
+  </header>
+
+  <p class="sr-only" id="announce" aria-live="polite"></p>
+
+  <footer class="footer">
+    <span>Backstage</span>
+    <span>Host: The Render Room</span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- Settings ----------
+  var SIGNALS_URL = 'signals.json';
+  var UNKNOWN_TEXT = 'NO SIGNAL';   // shown in the status line for a wrong code ('' for nothing)
+
+  var screenEl   = document.getElementById('screen');
+  var layerEl    = document.getElementById('layer');
+  var statusEl   = document.getElementById('status-line');
+  var msgEl      = document.getElementById('msg');
+  var stampEl    = document.getElementById('stamp');
+  var announceEl = document.getElementById('announce');
+  var formEl     = document.getElementById('tuner');
+  var inputEl    = document.getElementById('codeinput');
+
+  var reduce = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var runId = 0;          // bumped on every new code so old runs stop themselves
+  var sounds = [];        // audio elements started by the current run
+  var dataPromise = null;
+
+  // ---------- Helpers ----------
+  function setTheme(name) {
+    var cls = 'screen';
+    if (name === 'decoy') cls += ' is-decoy';
+    else if (name === 'rare') cls += ' is-rare';
+    screenEl.className = cls;
+  }
+
+  function sleep(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function stopSounds() {
+    sounds.forEach(function (a) { try { a.pause(); a.currentTime = 0; } catch (e) {} });
+    sounds = [];
+  }
+
+  function resetScreen() {
+    stopSounds();
+    layerEl.innerHTML = '';
+    msgEl.textContent = '';
+    stampEl.textContent = '';
+    statusEl.textContent = 'CH 01';
+    setTheme('');
+    screenEl.classList.remove('glitching');
+  }
+
+  function loadSignals() {
+    if (!dataPromise) {
+      dataPromise = fetch(SIGNALS_URL, { cache: 'no-store' }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' while loading ' + SIGNALS_URL);
+        return r.json();
+      }).then(function (data) {
+        if (!data || typeof data.codes !== 'object' || data.codes === null) {
+          throw new Error(SIGNALS_URL + ' needs a "codes" object.');
+        }
+        return data;
+      }).catch(function (err) {
+        dataPromise = null;
+        console.error('[Frequency] Could not load ' + SIGNALS_URL + ':', err);
+        throw err;
+      });
+    }
+    return dataPromise;
+  }
+
+  // ---------- Actions ----------
+  // Each action returns a promise that resolves when it is finished.
+  // Actions that just start something (sound, image) resolve immediately,
+  // so the next action runs alongside them. Use "wait" for timing.
+  var ACTIONS = {
+    text: function (a, id) {
+      var text = String(a.text == null ? '' : a.text);
+      if (a.theme) setTheme(a.theme);
+      if (reduce || a.instant) { msgEl.textContent = text; return Promise.resolve(); }
+      var delay = Math.max(6, Math.min(40, 2600 / Math.max(1, text.length)));
+      return new Promise(function (resolve) {
+        var i = 0;
+        (function tick() {
+          if (id !== runId) { resolve(); return; }
+          msgEl.textContent = text.slice(0, ++i);
+          if (i < text.length) setTimeout(tick, delay); else resolve();
+        })();
+      });
+    },
+
+    status: function (a) {
+      statusEl.textContent = String(a.text || '');
+      return Promise.resolve();
+    },
+
+    theme: function (a) {
+      setTheme(a.name || '');
+      return Promise.resolve();
+    },
+
+    sound: function (a) {
+      var audio = new Audio(a.src);
+      audio.volume = Math.max(0, Math.min(1, a.volume == null ? 1 : a.volume));
+      audio.loop = !!a.loop;
+      sounds.push(audio);
+      audio.play().catch(function (err) {
+        console.warn('[Frequency] Sound could not play (' + a.src + '):', err);
+      });
+      return a.await ? new Promise(function (resolve) {
+        audio.addEventListener('ended', resolve);
+        audio.addEventListener('error', resolve);
+      }) : Promise.resolve();
+    },
+
+    stop: function () {
+      stopSounds();
+      return Promise.resolve();
+    },
+
+    image: function (a, id) {
+      var img = document.createElement('img');
+      img.className = 'pos-' + (a.position || 'center');
+      img.alt = a.alt || '';
+      if (a.width) img.style.width = a.width;
+      img.addEventListener('load', function () { img.classList.add('show'); });
+      img.addEventListener('error', function () {
+        console.warn('[Frequency] Image could not load:', a.src);
+      });
+      img.src = a.src;
+      layerEl.appendChild(img);
+      if (a.duration) {
+        setTimeout(function () {
+          if (id !== runId) return;
+          img.classList.remove('show');
+          setTimeout(function () { img.remove(); }, 400);
+        }, a.duration);
+      }
+      return Promise.resolve();
+    },
+
+    glitch: function (a, id) {
+      if (reduce) return Promise.resolve();
+      screenEl.classList.add('glitching');
+      return sleep(a.ms || 500).then(function () {
+        if (id === runId) screenEl.classList.remove('glitching');
+      });
+    },
+
+    wait: function (a) { return sleep(a.ms || 1000); },
+
+    clear: function () {
+      layerEl.innerHTML = '';
+      msgEl.textContent = '';
+      return Promise.resolve();
+    },
+
+    redirect: function (a) {
+      if (a.to) window.location.href = a.to;
+      return new Promise(function () {});   // page is leaving; never continue
+    }
+  };
+
+  async function run(actions, id) {
+    for (var i = 0; i < actions.length; i++) {
+      if (id !== runId) return;
+      var a = actions[i];
+      var fn = a && ACTIONS[a.type];
+      if (!fn) { console.warn('[Frequency] Unknown action:', a); continue; }
+      try { await fn(a, id); }
+      catch (err) { console.error('[Frequency] Action failed:', a, err); }
+    }
+  }
+
+  // ---------- Submit ----------
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    var code = inputEl.value.trim().toUpperCase();
+    if (!code) return;
+    inputEl.value = '';
+    inputEl.focus();
+
+    var id = ++runId;
+    resetScreen();
+    announceEl.textContent = '';
+
+    loadSignals().then(function (data) {
+      if (id !== runId) return;
+
+      // Codes in signals.json are matched case-insensitively.
+      var entry = null;
+      Object.keys(data.codes).forEach(function (key) {
+        if (key.trim().toUpperCase() === code) entry = data.codes[key];
+      });
+
+      if (!entry || !Array.isArray(entry.actions)) {
+        statusEl.textContent = UNKNOWN_TEXT ? 'CH 01 // ' + UNKNOWN_TEXT : 'CH 01';
+        announceEl.textContent = 'No signal.';
+        return;
+      }
+
+      statusEl.textContent = 'CH 01 // ' + code;
+      return run(entry.actions, id);
+    }).catch(function () {
+      if (id !== runId) return;
+      setTheme('');
+      screenEl.classList.add('is-error');
+      statusEl.textContent = 'CH 01 // SOURCE OFFLINE';
+      stampEl.textContent = 'Could not load ' + SIGNALS_URL + '. Check the browser console.';
+      announceEl.textContent = 'Signal source offline.';
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+/* ==========================================================
+   BACKSTAGE extras. Load AFTER /style.css on backstage pages:
+     <link rel="stylesheet" href="/style.css">
+     <link rel="stylesheet" href="/backstage/backstage.css">
+   Adds: .tape (hazard stripe), .spotlight, .lamp (ON AIR light),
+         .channels / .channel (patch-bay style link list)
+   ========================================================== */
+
+/* ---------- Hazard tape ---------- */
+.tape {
+  height: 14px;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--line-strong);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bright) 0, var(--bright) 14px,
+    var(--bg) 14px, var(--bg) 28px
+  );
+  opacity: 0.85;
+}
+.tape.thin { height: 8px; margin: 2rem 0 0; opacity: 0.5; }
+
+/* ---------- Spotlight cone behind the hero ---------- */
+.hero.stage > * { position: relative; z-index: 1; }
+.spotlight {
+  position: absolute; z-index: 0; pointer-events: none;
+  top: 0; right: 6%;
+  width: min(460px, 70%); height: 100%;
+  background: linear-gradient(to bottom, rgba(255, 230, 0, 0.16), rgba(255, 230, 0, 0) 85%);
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+}
+
+/* ---------- ON AIR lamp ---------- */
+.lamp {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  margin-bottom: 1.25rem; padding: 4px 12px 4px 10px;
+  border: 1px solid rgba(255, 107, 107, 0.55);
+  background: rgba(255, 107, 107, 0.07);
+  color: #ff6b6b; font-size: 12px; font-weight: 600; letter-spacing: 2px;
+}
+.lamp::before {
+  content: ''; width: 9px; height: 9px; border-radius: 50%;
+  background: #ff6b6b; box-shadow: 0 0 10px 2px rgba(255, 107, 107, 0.7);
+  animation: lamp 2.4s ease-in-out infinite;
+}
+@keyframes lamp { 50% { opacity: 0.35; box-shadow: 0 0 3px 0 rgba(255, 107, 107, 0.4); } }
+
+/* ---------- Channels: a patch-bay style list of links ---------- */
+.channels { list-style: none; border: 1px solid var(--line); background: var(--panel); }
+.channels li + li { border-top: 1px solid var(--line); }
+.channel {
+  display: grid; grid-template-columns: 5.5rem 1fr auto;
+  gap: 0.5rem 1.25rem; align-items: center;
+  padding: 1rem 1.25rem; color: inherit;
+}
+a.channel:hover { background: rgba(255, 230, 0, 0.07); }
+.channel .ch {
+  /* looks like a strip of label-maker tape stuck on a console */
+  justify-self: start;
+  padding: 2px 8px;
+  background: var(--bright); color: #050810;
+  font-size: 12px; font-weight: 600; letter-spacing: 1px;
+}
+.channel h3 { font-size: 15px; font-weight: 600; color: var(--bright); }
+.channel p  { font-size: 14px; color: var(--lime); }
+.channel.is-empty .ch { background: transparent; color: var(--grey); border: 1px dashed var(--line-strong); }
+.channel.is-empty h3, .channel.is-empty p { color: var(--grey); }
+
+@media (max-width: 640px) {
+  .channel { grid-template-columns: auto 1fr; }
+  .channel .tag { grid-column: 1 / -1; justify-self: start; }
+  .spotlight { right: 0; opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lamp::before { animation: none; }
+}
