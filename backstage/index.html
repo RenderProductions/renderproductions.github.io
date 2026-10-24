@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="/style.css">
 <link rel="stylesheet" href="/backstage/backstage.css">
 </head>
-<body>
+<body class="backstage">
 <div class="wrap">
 
   <nav class="nav" aria-label="Main">
@@ -24,63 +24,44 @@
 
   <div class="tape" role="presentation"></div>
 
-  <header class="hero stage">
-    <span class="spotlight" aria-hidden="true"></span>
+  <header class="poster">
     <div class="lamp">ON AIR</div>
     <h1>BACK<br>STAGE</h1>
     <p class="tagline">WELcomE, to THE BACKstAGE?!!</p>
   </header>
 
-  <section aria-labelledby="channels-title">
-    <div class="section-head">
-      <h2 id="channels-title">Channels</h2>
-      <span>1 patched</span>
-    </div>
+  <!-- Notes are linked with yarn in the order they appear here (each .pin gets a string to the next). -->
+  <section class="board" aria-label="Evidence board">
 
-    <ul class="channels">
-      <li>
-        <a class="channel" href="/backstage/frequency/">
-          <span class="ch">CH 01</span>
-          <div>
-            <h3>Frequency</h3>
-            <p>A handy-dandy FREQUENCY sCANner??! ALL FOR me? REALly?!!?</p>
-          </div>
-          <span class="tag live">ACTIVE</span>
-        </a>
-      </li>
-      <!-- Add the next room here. Copy the block above, change CH number, title, text and href.
-           Use class="channel is-empty" on a div (not a link) for an unpatched slot:
-      <li>
-        <div class="channel is-empty">
-          <span class="ch">CH 02</span>
-          <div><h3>Unpatched</h3><p>Nothing connected yet.</p></div>
-          <span class="tag off">EMPTY</span>
-        </div>
-      </li>
-      -->
-    </ul>
-  </section>
-
-  <section aria-labelledby="archive-title" style="margin-top: 2.5rem;">
-    <div class="section-head">
-      <h2 id="archive-title">Archive</h2>
-    </div>
-    <p class="prose">YOU're NOT SUppoSED TO be HERE? INtruDER!!!?</p>
-
-    <div class="log" style="margin-top: 1rem;">
+    <div class="note yellow" style="--r: -2.5deg">
+      <i class="pin"></i>
+      <h2>Archive</h2>
+      <p>YOU're NOT SUppoSED TO be HERE? INtruDER!!!?</p>
       <div class="label">Log reference only. Data stream SEC_01</div>
-      <div class="fragment">
-        &gt; DISCord STUFF HAPPENING?! ConnECTING TO MainFRAME!!!<br>
-        &gt; BACKstAGE?! YeAHHH!!!?
-      </div>
+      <p>&gt; DISCord STUFF HAPPENING?! ConnECTING TO MainFRAME!!!<br>&gt; BACKstAGE?! YeAHHH!!!?</p>
     </div>
-  </section>
 
-  <section aria-labelledby="codes-title" style="margin-top: 2.5rem;">
-    <div class="section-head">
-      <h2 id="codes-title">Access codes</h2>
+    <a class="note index" style="--r: 1.5deg" href="/backstage/frequency/">
+      <i class="pin"></i>
+      <span class="ch">CH 01</span>
+      <h2>Frequency</h2>
+      <p>A handy-dandy FREQUENCY sCANner??! ALL FOR me? REALly?!!?</p>
+      <span class="rubber">ACTIVE</span>
+    </a>
+    <!-- Next room: copy the <a class="note"> block above, change CH number, title, text and href. -->
+
+    <div class="note blue" style="--r: -1.2deg">
+      <i class="pin"></i>
+      <h2>Access codes</h2>
+      <p>NOTHING OVERRIDIng ME now?! YEAH Baby!!! Were cooking with BABIES NOW!!!</p>
     </div>
-    <p class="prose">NOTHING OVERRIDIng ME now?! YEAH Baby!!! Were cooking with BABIES NOW!!!</p>
+
+    <div class="note pink" style="--r: 2.2deg">
+      <i class="pin"></i>
+      <h2>Host</h2>
+      <p>TODD.OS</p>
+      <span class="rubber">CLASSIFIED</span>
+    </div>
   </section>
 
   <div class="tape thin" role="presentation"></div>
@@ -91,5 +72,24 @@
   </footer>
 
 </div>
+
+<div class="dark" aria-hidden="true"></div>
+<div class="desk">
+  <button class="lamp-btn" id="lamp-btn" type="button" aria-pressed="false" aria-label="Desk lamp: turn the lights off or on">
+    <svg viewBox="0 0 70 84" width="58" aria-hidden="true">
+      <ellipse cx="22" cy="80" rx="20" ry="4" fill="#111"/>
+      <path d="M22 78 L30 30 L52 14" fill="none" stroke="#2c2c2c" stroke-width="5" stroke-linecap="round"/>
+      <path d="M44 10 L66 22 L58 34 L38 22 Z" fill="#c9a227"/>
+      <ellipse class="bulb" cx="56" cy="32" rx="8" ry="5" fill="#fff3a0"/>
+    </svg>
+  </button>
+  <svg class="mug" viewBox="0 0 40 40" aria-hidden="true">
+    <rect x="4" y="8" width="26" height="30" rx="3" fill="#e9e4d2"/>
+    <path d="M30 14 h5 a4 4 0 0 1 0 14 h-5" fill="none" stroke="#e9e4d2" stroke-width="4"/>
+    <rect x="6" y="10" width="22" height="5" fill="#3b2412"/>
+  </svg>
+</div>
+
+<script src="/backstage/board.js"></script>
 </body>
 </html>

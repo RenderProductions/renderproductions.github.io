@@ -1,77 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Special+Elite&display=swap');
 /* ==========================================================
-   BACKSTAGE extras. Load AFTER /style.css on backstage pages:
-     <link rel="stylesheet" href="/style.css">
-     <link rel="stylesheet" href="/backstage/backstage.css">
-   Adds: .tape (hazard stripe), .spotlight, .lamp (ON AIR light),
-         .channels / .channel (patch-bay style link list)
+   BACKSTAGE: conspiracy board. Load AFTER /style.css and add
+   class="backstage" to <body>. Pieces: .tape .lamp .poster .board
+   .note (+ .yellow .pink .blue .index) .pin .rubber .yarn .desk
    ========================================================== */
+.backstage {
+  --paper: #f1ead6; --ink: #2b2412; --yarn: #c0392b;
+  --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
+  --type: 'Special Elite', 'Courier New', monospace;
+  font-family: var(--type);
+  padding-bottom: 9rem;
+  background:
+    radial-gradient(ellipse at 50% 15%, rgba(255, 214, 120, 0.28), transparent 62%),
+    radial-gradient(circle at 20% 30%, #4a3320 0 1.5px, transparent 2.5px) 0 0 / 37px 41px,
+    radial-gradient(circle at 70% 60%, #b08a5a 0 2px, transparent 3px) 0 0 / 53px 47px,
+    radial-gradient(circle at 40% 80%, #5b4129 0 1px, transparent 2px) 0 0 / 23px 29px,
+    #8a6a43;
+}
+/* lamp-lit edges instead of CRT scanlines */
+.backstage::after { background: radial-gradient(ellipse at 50% 30%, transparent 35%, rgba(10, 6, 2, 0.7) 100%); }
 
-/* ---------- Hazard tape ---------- */
-.tape {
-  height: 14px;
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--line-strong);
-  background: repeating-linear-gradient(
-    -45deg,
-    var(--bright) 0, var(--bright) 14px,
-    var(--bg) 14px, var(--bg) 28px
-  );
-  opacity: 0.85;
-}
-.tape.thin { height: 8px; margin: 2rem 0 0; opacity: 0.5; }
+/* nav = a dark wooden rail; footer = a paper label */
+.backstage .nav { background: #1a120b; padding: 0.75rem 1rem; border: 1px solid #000; box-shadow: 0 6px 12px -4px rgba(0,0,0,.6); }
+.backstage .footer { border: 0; background: var(--paper); color: var(--ink); padding: 0.6rem 1rem; transform: rotate(-0.4deg); box-shadow: 0 6px 12px -6px rgba(0,0,0,.6); }
+.backstage .footer a { color: var(--ink); }
 
-/* ---------- Spotlight cone behind the hero ---------- */
-.hero.stage > * { position: relative; z-index: 1; }
-.spotlight {
-  position: absolute; z-index: 0; pointer-events: none;
-  top: 0; right: 6%;
-  width: min(460px, 70%); height: 100%;
-  background: linear-gradient(to bottom, rgba(255, 230, 0, 0.16), rgba(255, 230, 0, 0) 85%);
-  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
-}
+/* hazard tape + ON AIR lamp */
+.tape { height: 14px; margin-bottom: 1.5rem; background: repeating-linear-gradient(-45deg, #ffe600 0 14px, #1a120b 14px 28px); box-shadow: 0 3px 6px rgba(0,0,0,.5); transform: rotate(-0.3deg); }
+.tape.thin { height: 8px; margin: 2.5rem 0 0; opacity: .7; }
+.lamp { display: inline-flex; align-items: center; gap: .6rem; margin-bottom: 1rem; padding: 3px 12px 3px 10px; background: #2a0d0d; color: #ff6b6b; font: 12px var(--type); letter-spacing: 2px; }
+.lamp::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #ff6b6b; box-shadow: 0 0 10px 2px rgba(255,107,107,.7); animation: lamp 2.4s ease-in-out infinite; }
+@keyframes lamp { 50% { opacity: .35; box-shadow: 0 0 3px rgba(255,107,107,.4); } }
 
-/* ---------- ON AIR lamp ---------- */
-.lamp {
-  display: inline-flex; align-items: center; gap: 0.6rem;
-  margin-bottom: 1.25rem; padding: 4px 12px 4px 10px;
-  border: 1px solid rgba(255, 107, 107, 0.55);
-  background: rgba(255, 107, 107, 0.07);
-  color: #ff6b6b; font-size: 12px; font-weight: 600; letter-spacing: 2px;
-}
-.lamp::before {
-  content: ''; width: 9px; height: 9px; border-radius: 50%;
-  background: #ff6b6b; box-shadow: 0 0 10px 2px rgba(255, 107, 107, 0.7);
-  animation: lamp 2.4s ease-in-out infinite;
-}
-@keyframes lamp { 50% { opacity: 0.35; box-shadow: 0 0 3px 0 rgba(255, 107, 107, 0.4); } }
+/* ---------- the board ---------- */
+.board { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2.25rem 1.75rem; align-items: start; padding: 1.5rem 0.5rem; }
+.board > .note:nth-of-type(1) { grid-column: span 2; }
+.board > .note:nth-of-type(2) { grid-column: span 4; margin-top: 1.5rem; }
+.board > .note:nth-of-type(3) { grid-column: span 3; }
+.board > .note:nth-of-type(4) { grid-column: span 3; margin-top: 1.25rem; }
+.yarn { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
 
-/* ---------- Channels: a patch-bay style list of links ---------- */
-.channels { list-style: none; border: 1px solid var(--line); background: var(--panel); }
-.channels li + li { border-top: 1px solid var(--line); }
-.channel {
-  display: grid; grid-template-columns: 5.5rem 1fr auto;
-  gap: 0.5rem 1.25rem; align-items: center;
-  padding: 1rem 1.25rem; color: inherit;
+.note, .poster {
+  position: relative; display: block; padding: 1.5rem 1.25rem 1.25rem; color: var(--ink);
+  background: var(--paper); transform: rotate(var(--r, 0deg)); z-index: 1;
+  box-shadow: 0 1px 1px rgba(0,0,0,.3), 0 12px 18px -8px rgba(0,0,0,.6); transition: transform .18s ease, box-shadow .18s ease;
 }
-a.channel:hover { background: rgba(255, 230, 0, 0.07); }
-.channel .ch {
-  /* looks like a strip of label-maker tape stuck on a console */
-  justify-self: start;
-  padding: 2px 8px;
-  background: var(--bright); color: #050810;
-  font-size: 12px; font-weight: 600; letter-spacing: 1px;
-}
-.channel h3 { font-size: 15px; font-weight: 600; color: var(--bright); }
-.channel p  { font-size: 14px; color: var(--lime); }
-.channel.is-empty .ch { background: transparent; color: var(--grey); border: 1px dashed var(--line-strong); }
-.channel.is-empty h3, .channel.is-empty p { color: var(--grey); }
+.note.yellow { background: #ffe94d; } .note.pink { background: #ffb3c1; } .note.blue { background: #a9d6ff; }
+.note.index { background: repeating-linear-gradient(#f6f1e0 0 23px, #b9d3e8 23px 24px); padding-top: 2rem; }
+.note h2, .note h3, .poster h1 { font-family: var(--marker); font-weight: 400; color: var(--ink); text-shadow: none; letter-spacing: 1px; }
+.note h2, .note h3 { font-size: 22px; margin-bottom: .5rem; }
+.note p { font-size: 14px; color: var(--ink); margin-bottom: .6rem; }
+.note .label { font-size: 12px; color: #6b5d3a; margin-bottom: .4rem; }
+a.note:hover, a.note:focus-visible { transform: rotate(0) translateY(-5px) scale(1.02); background-color: #fff6a8; outline: 2px solid var(--ink); background-image: none; }
+a.note { background-color: var(--paper); }
+.ch { display: inline-block; margin-bottom: .6rem; padding: 2px 8px; background: #111; color: #fff; font-size: 12px; letter-spacing: 2px; }
 
-@media (max-width: 640px) {
-  .channel { grid-template-columns: auto 1fr; }
-  .channel .tag { grid-column: 1 / -1; justify-self: start; }
-  .spotlight { right: 0; opacity: 0.7; }
-}
+/* pushpin (real element so the yarn can find it) */
+.pin { position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; z-index: 5;
+  background: radial-gradient(circle at 35% 30%, #ff9a90, #c62828 55%, #7f1010); box-shadow: 2px 6px 5px rgba(0,0,0,.45); }
+/* red rubber stamp */
+.rubber { display: inline-block; padding: 1px 10px; border: 3px solid #b3261e; border-radius: 3px; color: #b3261e; font: 16px var(--marker); letter-spacing: 2px; transform: rotate(-6deg); opacity: .85; }
 
-@media (prefers-reduced-motion: reduce) {
-  .lamp::before { animation: none; }
+/* poster headline */
+.poster { max-width: 520px; margin-bottom: 2.5rem; --r: -1.2deg; }
+.poster h1 { font-size: clamp(44px, 10vw, 84px); line-height: .95; }
+.poster .tagline { color: var(--ink); margin: .75rem 0 0; }
+.poster::before { content: ''; position: absolute; top: -12px; left: 18%; width: 90px; height: 24px; background: rgba(235,225,180,.8); transform: rotate(-4deg); }
+
+/* ---------- frequency page: dark equipment taped to the cork ---------- */
+.backstage .hero { background: #1c150d; border: 1px solid #000; box-shadow: 0 14px 22px -10px rgba(0,0,0,.75); }
+.backstage .hero::before { top: -12px; left: 50%; margin-left: -45px; width: 90px; height: 24px; border: 0; background: rgba(235,225,180,.82); transform: rotate(-3deg); }
+.backstage .hero::after { display: none; }
+.backstage .screen { border: 10px solid #0c0906; border-radius: 12px; }
+
+/* ---------- desk: stays fixed to the bottom of the viewport ---------- */
+.desk { position: fixed; left: 0; right: 0; bottom: 0; height: 64px; z-index: 8; pointer-events: none;
+  background: linear-gradient(#6a4a2c 0, #4a3019 6px, #2a1b0e 100%); border-top: 2px solid #8d6a42; box-shadow: 0 -8px 18px rgba(0,0,0,.5); }
+.desk svg { position: absolute; bottom: 58px; height: 84px; width: auto; }
+.desk .mug { right: 8%; height: 40px; bottom: 60px; }
+.lamp-btn { position: absolute; left: 6%; bottom: 58px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; }
+.lamp-btn svg { position: static; display: block; }
+.lamp-btn .bulb { transition: opacity .2s; }
+.lamp-btn[aria-pressed="true"] .bulb { opacity: 0; }
+.dark { position: fixed; inset: 0; z-index: 7; pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(circle 190px at var(--mx, 50%) var(--my, 40%), rgba(0,0,0,0) 0, rgba(0,0,0,.94) 100%); }
+body.lights-off .dark { opacity: 1; }
+
+@media (max-width: 760px) {
+  .board { grid-template-columns: 1fr; }
+  .board > .note { grid-column: 1 !important; margin-top: 0 !important; }
 }
+@media (prefers-reduced-motion: reduce) { .lamp::before { animation: none; } .note, .dark { transition: none; } }
