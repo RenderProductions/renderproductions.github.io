@@ -2,8 +2,11 @@ name: Update market prices
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # every 30 minutes (GitHub may run it a few minutes late)
-  workflow_dispatch:          # lets you run it by hand from the Actions tab
+    # Poll every 10 minutes, offset from :00/:30 when GitHub is busiest.
+    # tick.js only changes anything when a 30 minute tick is actually due,
+    # and catches up on any ticks that were missed.
+    - cron: '4-59/10 * * * *'
+  workflow_dispatch:          # run by hand from the Actions tab (forces one tick)
 
 permissions:
   contents: write   # lets the job commit prices.json
@@ -20,20 +23,22 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Advance prices
-        run: node .github/scripts/tick.js
+        run: node .github/scripts/tick.js ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
 
-      - name: Commit prices.json
+      # Commits pushed with the built-in token do not trigger a Pages build,
+      # so we ask for one ourselves, but only when prices.json really changed.
+      - name: Commit and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "rend-conomy-bot"
           git config user.email "actions@users.noreply.github.com"
           git add prices.json
-          git commit -m "Market tick" || exit 0
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "Market tick"
           git pull --rebase
           git push
-
-      # Commits pushed with the built-in token do not trigger a Pages build,
-      # so without this step the live site would never pick up the new prices.
-      - name: Request a Pages build
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api -X POST repos/${{ github.repository }}/pages/builds
+          gh api -X POST repos/${{ github.repository }}/pages/builds

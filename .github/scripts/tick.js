@@ -1,13 +1,21 @@
 #!/usr/bin/env node
-// Advances every company's price by one step and rewrites prices.json
-// in the repo root. Run by .github/workflows/update-prices.yml, or by hand:
-//   node .github/scripts/tick.js
+// Advances every company's price and rewrites prices.json in the repo root.
+// Run by .github/workflows/update-prices.yml, or by hand:
+//   node .github/scripts/tick.js            (only ticks if a tick is due)
+//   node .github/scripts/tick.js --force    (always does one tick, ignoring the schedule)
+//
+// GitHub's scheduler is "best effort": runs can start late or get skipped.
+// So the schedule is NOT trusted for timing. Every run checks the "updated"
+// time in prices.json, works out how many 30 minute ticks are due, and applies
+// all of them. A late run catches up; an early run does nothing.
 
 const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', '..', 'prices.json');
-const POINTS = 48; // history length kept per company (about 24 hours at 30 min per tick)
+const POINTS = 48;                       // history length kept per company (24 hours at 30 min per tick)
+const INTERVAL_MS = 30 * 60 * 1000;      // one market tick = 30 minutes
+const FORCE = process.argv.includes('--force');
 
 // To add, remove, or rename a company, edit this list.
 // volatility = how far a price can move in one tick (0.04 = up to 4%)
@@ -29,12 +37,32 @@ function step(price, c) {
 }
 
 let existing = {};
+let lastUpdated = NaN;
 try {
   const old = JSON.parse(fs.readFileSync(FILE, 'utf8'));
   (old.companies || []).forEach((c) => { existing[c.id] = c; });
+  lastUpdated = Date.parse(old.updated);
 } catch (e) {
   // No file yet (or unreadable): every company starts fresh below.
 }
+
+// ---- How many ticks are due? ----
+const now = Date.now();
+const rawDue = isNaN(lastUpdated) ? 1 : Math.floor((now - lastUpdated) / INTERVAL_MS);
+
+if (rawDue < 1 && !FORCE) {
+  console.log('Not due yet (' + Math.round((now - lastUpdated) / 60000) + ' min since last tick). Nothing to do.');
+  process.exit(0);
+}
+
+const tooFarBehind = rawDue > POINTS;                  // more than a whole history window missed
+const steps = Math.max(1, Math.min(rawDue, POINTS));
+
+// Move "updated" forward by whole ticks so the 30 minute rhythm doesn't drift.
+// If there is no previous time, we were forced, or we're hopelessly behind, use now.
+const stamp = (isNaN(lastUpdated) || tooFarBehind || rawDue < 1)
+  ? now
+  : lastUpdated + steps * INTERVAL_MS;
 
 const companies = COMPANIES.map((c) => {
   let history = existing[c.id] && Array.isArray(existing[c.id].history)
@@ -46,7 +74,8 @@ const companies = COMPANIES.map((c) => {
     history = [c.start];
     while (history.length < POINTS) history.push(step(history[history.length - 1], c));
   } else {
-    history.push(step(history[history.length - 1], c));
+    // Apply every tick that was due (usually 1; more if a run was late).
+    for (let i = 0; i < steps; i++) history.push(step(history[history.length - 1], c));
   }
   history = history.slice(-POINTS);
 
@@ -66,7 +95,7 @@ const prices = {};
 const changes = {};
 companies.forEach((c) => { prices[c.id] = c.price; changes[c.id] = c.change; });
 
-const data = { updated: new Date().toISOString(), prices, changes, companies };
+const data = { updated: new Date(stamp).toISOString(), prices, changes, companies };
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(
@@ -75,4 +104,4 @@ const text = JSON.stringify(data, null, 2).replace(
 );
 
 fs.writeFileSync(FILE, text + '\n');
-console.log('Updated ' + companies.length + ' companies at ' + data.updated);
+console.log('Applied ' + steps + ' tick(s) to ' + companies.length + ' companies. updated = ' + data.updated);
