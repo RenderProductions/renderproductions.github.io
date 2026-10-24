@@ -34,10 +34,12 @@
 
 /* ---------- the board ---------- */
 .board { width: auto; border: 0; background: none; position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2.25rem 1.75rem; align-items: start; padding: 1.5rem 0.5rem; }
-.board > .note:nth-of-type(1) { grid-column: span 2; }
-.board > .note:nth-of-type(2) { grid-column: span 4; margin-top: 1.5rem; }
-.board > .note:nth-of-type(3) { grid-column: span 3; }
-.board > .note:nth-of-type(4) { grid-column: span 3; margin-top: 1.25rem; }
+/* Layout repeats every 4 notes (widths 2, 4, 3, 3 of 6 columns), so you can add as many notes as you like. */
+.board > .note:nth-child(4n+1) { grid-column: span 2; }
+.board > .note:nth-child(4n+2) { grid-column: span 4; margin-top: 1.5rem; }
+.board > .note:nth-child(4n+3) { grid-column: span 3; }
+.board > .note:nth-child(4n+4) { grid-column: span 3; margin-top: 1.25rem; }
+.note:nth-child(odd) { --r: -1.8deg; } .note:nth-child(even) { --r: 1.6deg; } /* default tilt; style="--r: ..." overrides it */
 .yarn { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
 
 .note, .poster {
@@ -56,6 +58,12 @@
 a.note:hover, a.note:focus-visible { background-color: #fff6a8; outline: 2px solid var(--ink); background-image: none; }
 a.note { background-color: var(--paper); }
 .ch { display: inline-block; margin-bottom: .6rem; padding: 2px 8px; background: #111; color: #fff; font-size: 12px; letter-spacing: 2px; }
+
+/* empty slot: a blank note waiting for the next room */
+.note.empty { background: rgba(241,234,214,.28); border: 2px dashed rgba(43,36,18,.55); box-shadow: none; color: #3a2e18; }
+.note.empty h2, .note.empty p { color: #3a2e18; opacity: .75; }
+.note.empty .ch { background: transparent; color: #3a2e18; border: 1px dashed rgba(43,36,18,.6); }
+.note.empty .pin { opacity: .85; }
 
 /* pushpin (real element so the yarn can find it) */
 .pin { position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; z-index: 5;
