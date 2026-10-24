@@ -44,6 +44,13 @@
         {"type": "glitch", "ms": 45 },
         {"type": "text", "text": "You werent there to HELP me?? WHY SHouLD I Help YOU?!!? :("}
       ]
+    },
+    "JOKER": {
+      "actions": [
+        {"type": "text", "text": "..."},
+        {"type": "wait", "ms": 1500},
+        {"type": "text", "text": "What do you get when you cross a mentally ill loner with a society that abandons him and treats him like trash? I'll tell you what you get! You get what you fucking deserve!"}
+      ]
     }
   }
 }
