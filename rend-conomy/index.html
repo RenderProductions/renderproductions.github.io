@@ -156,7 +156,7 @@
       tagEl.className = 'tag live';
       var when = new Date(data.updated);
       var stamp = isNaN(when) ? '' : ' Last update: ' + when.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + '.';
-      noteEl.textContent = 'Prices are fictional and update about every 30 minutes.' + stamp;
+      noteEl.textContent = 'Prices are fictional and update about every 5-10 minutes.' + stamp;
     }
 
     function showFallback() {

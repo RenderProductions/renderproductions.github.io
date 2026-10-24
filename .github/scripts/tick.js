@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', '..', 'prices.json');
-const POINTS = 48;                       // history length kept per company (24 hours at 30 min per tick)
+const POINTS = 288;                       // history length kept per company (24 hours at 5 min per tick)
 const INTERVAL_MS = 30 * 60 * 1000;      // one market tick = 30 minutes
 const FORCE = process.argv.includes('--force');
 

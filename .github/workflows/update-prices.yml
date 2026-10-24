@@ -1,11 +1,6 @@
 name: Update market prices
 
 on:
-  schedule:
-    # Poll every 10 minutes, offset from :00/:30 when GitHub is busiest.
-    # tick.js only changes anything when a 30 minute tick is actually due,
-    # and catches up on any ticks that were missed.
-    - cron: '4-59/10 * * * *'
   workflow_dispatch:          # run by hand from the Actions tab (forces one tick)
 
 permissions:
