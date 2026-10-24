@@ -38,6 +38,12 @@
         {"type": "glitch", "ms": 60 },
         {"type": "text", "text": "I MISS him."}
       ]
+    },
+    "HELP": {
+      "actions": [
+        {"type": "glitch", "ms": 45 },
+        {"type": "text", "text": "You werent there to HELP me?? WHY SHouLD I Help YOU?!!? :("}
+      ]
     }
   }
 }
