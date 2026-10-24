@@ -27,6 +27,20 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(yarn);
   yarn();
 
+  // Notes spring on hover, so redraw the yarn every frame while they move.
+  var follow = 0;
+  function track() {
+    var end = performance.now() + 650;
+    if (follow) { follow = end; return; }
+    follow = end;
+    (function loop(now) { yarn(); if (now < follow) requestAnimationFrame(loop); else follow = 0; })(0);
+  }
+  if (board && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    board.querySelectorAll('.note').forEach(function (n) {
+      ['pointerenter', 'pointerleave', 'focus', 'blur'].forEach(function (ev) { n.addEventListener(ev, track); });
+    });
+  }
+
   var btn = document.getElementById('lamp-btn');
   if (btn) {
     btn.addEventListener('click', function () {
