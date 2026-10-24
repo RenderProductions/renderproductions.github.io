@@ -74,19 +74,33 @@
 </div>
 
 <div class="dark" aria-hidden="true"></div>
+<div class="lamp-glow" aria-hidden="true"></div>
 <div class="desk">
   <button class="lamp-btn" id="lamp-btn" type="button" aria-pressed="false" aria-label="Desk lamp: turn the lights off or on">
-    <svg viewBox="0 0 70 84" width="58" aria-hidden="true">
-      <ellipse cx="22" cy="80" rx="20" ry="4" fill="#111"/>
-      <path d="M22 78 L30 30 L52 14" fill="none" stroke="#2c2c2c" stroke-width="5" stroke-linecap="round"/>
-      <path d="M44 10 L66 22 L58 34 L38 22 Z" fill="#c9a227"/>
-      <ellipse class="bulb" cx="56" cy="32" rx="8" ry="5" fill="#fff3a0"/>
+    <svg viewBox="0 0 80 100" aria-hidden="true">
+      <ellipse cx="24" cy="95" rx="19" ry="4.5" fill="#15110c"/><rect x="8" y="88" width="32" height="8" rx="4" fill="#2a2620"/>
+      <path d="M24 90 L28 52 L54 28" fill="none" stroke="#3a352c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M24 90 L28 52 L54 28" fill="none" stroke="#6d6552" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 4"/>
+      <circle cx="28" cy="52" r="4" fill="#c9a227"/><circle cx="54" cy="28" r="4" fill="#c9a227"/>
+      <path d="M46 20 L74 34 L64 50 L38 36 Z" fill="#b8901f" stroke="#7a5d10" stroke-width="1.5"/>
+      <ellipse class="bulb" cx="57" cy="46" rx="9" ry="4.5" fill="#fff3a0"/>
     </svg>
   </button>
-  <svg class="mug" viewBox="0 0 40 40" aria-hidden="true">
-    <rect x="4" y="8" width="26" height="30" rx="3" fill="#e9e4d2"/>
-    <path d="M30 14 h5 a4 4 0 0 1 0 14 h-5" fill="none" stroke="#e9e4d2" stroke-width="4"/>
-    <rect x="6" y="10" width="22" height="5" fill="#3b2412"/>
+  <svg class="monitor" viewBox="0 0 110 94" aria-hidden="true">
+    <rect x="5" y="2" width="100" height="72" rx="9" fill="#cfc6ab" stroke="#8f8668" stroke-width="2"/>
+    <rect class="scr" x="13" y="10" width="84" height="50" rx="6" fill="#0a0f08"/>
+    <text class="t" x="19" y="26">&gt; TODD.OS</text><text class="t" x="19" y="39">&gt; watching</text><rect class="cur" x="20" y="45" width="6" height="9"/>
+    <circle cx="94" cy="67" r="2.5" fill="#4ade80"/><rect x="40" y="74" width="30" height="8" fill="#b3aa90"/><rect x="24" y="82" width="62" height="9" rx="4" fill="#cfc6ab" stroke="#8f8668" stroke-width="1.5"/>
+  </svg>
+  <svg class="pad" viewBox="0 0 64 44" aria-hidden="true">
+    <rect x="6" y="8" width="38" height="34" fill="#ffe94d" transform="rotate(-5 25 25)"/>
+    <g stroke="#b99a1c" stroke-width="1.5" transform="rotate(-5 25 25)"><path d="M12 20h26M12 27h26M12 34h18"/></g>
+    <rect x="34" y="4" width="26" height="4.5" rx="2" fill="#c62828" transform="rotate(24 47 6)"/>
+  </svg>
+  <svg class="mug" viewBox="0 0 44 58" aria-hidden="true">
+    <path class="steam" d="M13 20 q-4-5 0-9 q4-4 0-8"/><path class="steam" style="animation-delay:1s" d="M22 20 q-4-5 0-9 q4-4 0-8"/><path class="steam" style="animation-delay:2s" d="M31 20 q-4-5 0-9 q4-4 0-8"/>
+    <path d="M30 32 h6 a5 5 0 0 1 0 15 h-6" fill="none" stroke="#e9e4d2" stroke-width="4"/>
+    <rect x="6" y="24" width="26" height="30" rx="4" fill="#e9e4d2"/><rect x="8" y="26" width="22" height="6" fill="#3b2412"/><rect x="11" y="38" width="16" height="3" fill="#c62828"/>
   </svg>
 </div>
 
