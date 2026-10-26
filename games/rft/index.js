@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Render's File Tycoon | Render Productions</title>
+<meta name="description" content="Render's File Tycoon: wire up a file pipeline and sell to the Rend-Conomy market.">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="rft.css">
+</head>
+<body>
+<header id="rp-bar">
+  <a class="brand" href="/">RENDER PRODUCTIONS</a>
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/games/" aria-current="page">Games</a></li>
+    <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+    <li><a href="https://discord.gg/D2v4EsuZBU">Discord</a></li>
+  </ul>
+</header>
+<div id="app">
+ <div id="sidebar">
+  <div id="sidebar-header">
+   <div class="game-title">RENDER'S FILE TYCOON</div>
+   <div class="game-sub">wire modules · sell signals · watch the market</div>
+  </div>
+
+  <!-- Economy stats -->
+  <div id="stats">
+   <div class="stat"><span class="stat-label">Polygons</span><span class="stat-val green" id="st-money">300 ◆</span></div>
+   <div class="stat"><span class="stat-label">Income/s</span><span class="stat-val" id="st-ips">0 ◆/s</span></div>
+   <div class="stat"><span class="stat-label">Sold</span><span class="stat-val" id="st-sold">0</span></div>
+   <div class="stat"><span class="stat-label">Earned</span><span class="stat-val green" id="st-total">0 ◆</span></div>
+  </div>
+
+  <!-- PC Resource HUD -->
+  <div id="pc-hud">
+   <div class="hud-item" id="hud-cpu">
+    <div class="hud-label">CPU <span id="hud-cpu-pct" style="font-size:8px;color:var(--green)">0%</span></div>
+    <div class="hud-val" id="hud-cpu-val">0%</div>
+    <div class="hud-sub" id="hud-cpu-sub">i3-12100 · 4C</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-cpu-bar" style="width:0%"></div></div>
+   </div>
+   <div class="hud-item" id="hud-ram">
+    <div class="hud-label">RAM</div>
+    <div class="hud-val" id="hud-ram-val">0 / 8 GB</div>
+    <div class="hud-sub" id="hud-ram-sub">DDR4-3200</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-ram-bar" style="width:0%"></div></div>
+   </div>
+   <div class="hud-item" id="hud-disk">
+    <div class="hud-label">Storage</div>
+    <div class="hud-val" id="hud-disk-val">0 / 240 GB</div>
+    <div class="hud-sub" id="hud-disk-sub">SATA SSD</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-disk-bar" style="width:0%"></div></div>
+   </div>
+   <div class="hud-item" id="hud-temp">
+    <div class="hud-label">Temp</div>
+    <div class="hud-val" id="hud-temp-val">35°C</div>
+    <div class="hud-sub" id="hud-temp-sub">Stock cooler</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-temp-bar" style="width:0%"></div></div>
+   </div>
+  </div>
+
+  <!-- Market demand (reads /prices.json) -->
+  <div id="mkt">
+   <div id="mkt-head"><span>Market demand</span><span id="mkt-status" class="off">LOADING</span></div>
+   <div id="mkt-rows"></div>
+  </div>
+
+  <!-- Hardware panel button -->
+  <button id="hw-btn" onclick="openHardware()">
+   <i class="ti ti-cpu"></i> Hardware Upgrades
+  </button>
+
+  <div id="module-list"></div>
+ </div>
+
+ <div id="canvas-wrap">
+  <div id="viewport">
+   <canvas id="grid-canvas"></canvas>
+   <svg id="svg-layer" overflow="visible"></svg>
+   <div id="node-layer"></div>
+   <svg id="temp-wire" overflow="visible"></svg>
+  </div>
+  <div id="toolbar">
+   <button class="tbtn" onclick="autoLayout()">Auto-arrange</button>
+   <button class="tbtn" onclick="resetView()">Reset view</button>
+   <button class="tbtn" onclick="saveGame(true)">Save</button>
+   <button class="tbtn danger" onclick="resetSave()">Reset save</button>
+   <button class="tbtn danger" onclick="clearAll()">Clear all</button>
+  </div>
+  <div id="zoom-hud"></div>
+  <div id="log-bar"></div>
+ </div>
+</div>
+
+<!-- Upgrade Modal -->
+<div id="upg-modal">
+ <div id="upg-box">
+  <span id="upg-close" onclick="closeUpgrade()">✕</span>
+  <h3 id="upg-title">Upgrade</h3>
+  <div id="upg-content"></div>
+ </div>
+</div>
+
+<!-- Hardware Panel -->
+<div id="hw-modal">
+ <div id="hw-box">
+  <span class="hw-close" onclick="closeHardware()">✕</span>
+  <h3>🖥️ PC Hardware</h3>
+  <div class="hw-subtitle">Upgrade your rig to unlock higher CPU caps, RAM, faster storage, and better cooling.</div>
+  <div id="hw-content"></div>
+ </div>
+</div>
+
+<script src="rft.js"></script>
+</body>
+</html>
