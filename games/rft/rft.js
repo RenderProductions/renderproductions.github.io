@@ -555,6 +555,14 @@ function drawWireSVG(svg,p1,p2,active){
   svg.appendChild(path);
 }
 
+/* Progress bars: every node that does timed work shows one, always present
+   (an empty track), so node height doesn't jump when work starts. */
+function progBar(frac,color){
+  const p=Math.max(0,Math.min(1,frac||0));
+  return `<div class="node-progress"><div class="node-progress-bar" style="width:${Math.round(p*100)}%;background:${color}"></div></div>`;
+}
+function fillColor(frac,base){return frac>=0.9?'var(--red)':frac>=0.7?'var(--amber)':base;}
+
 function renderNode(id){
   const n=G.nodes[id];
   const def=MODULE_DEFS.find(d=>d.id===n.defId);
@@ -621,6 +629,10 @@ function renderNode(id){
       const spd=n._speeds.reduce((a,b)=>a+b,0);
       body+=`<div class="node-stat hi">${fmtSpeed(spd)}</div>`;
     }
+    for(let si=0;si<Math.min(slots,4);si++){
+      const s=(n._slots||[])[si];
+      body+=progBar(s&&s.total?s.progress/s.total:0,def.color);
+    }
   }
   if(def.procType){
     const pt=nodeStat(n,'procTime')||def.procTime;
@@ -628,13 +640,14 @@ function renderNode(id){
     const cpu=PROC_CPU[def.procType]||0;
     body=`<div class="node-stat">Time: ${pt.toFixed(2)}s · +${vb}% · ${cpu}% CPU</div>`;
     body+=`<div class="node-stat">Queue: ${(n.queue||[]).length}</div>`;
-    if(n.progress>0)body+=`<div class="node-progress"><div class="node-progress-bar" style="width:${Math.round(n.progress*100)}%;background:${def.color}"></div></div>`;
+    body+=progBar(n.progress,def.color);
   }
   if(n.defId==='network_binder'){
     const qs=nodeStat(n,'queueSize')||5;
     const q=(n.queue||[]).length;
     if(q>=qs*0.8)body=`<div class="node-stat warn">Queue: ${q}/${qs} ⚠</div>`;
     else body=`<div class="node-stat">Queue: ${q}/${qs}</div>`;
+    body+=progBar(q/qs,fillColor(q/qs,'var(--accent)'));
   }
   if(n.defId==='uploader'){
     const thr=nodeStat(n,'threads')||1;
@@ -643,18 +656,22 @@ function renderNode(id){
     const effUL=Math.min(diskRW,nicBW);
     body=`<div class="node-stat">Threads: ${thr} · max ${fmtSpeed(effUL)}</div>`;
     if(n._ulSpeed)body+=`<div class="node-stat hi">${fmtSpeed(n._ulSpeed)}</div>`;
-    if(n.progress>0&&n.progress<1)body+=`<div class="node-progress"><div class="node-progress-bar" style="width:${Math.round(n.progress*100)}%;background:#533AB7"></div></div>`;
+    body+=progBar(n.progress,'var(--purple)');;
   }
   if(def.isSeller){
     const comm=nodeStat(n,'commission')??def.commission??20;
     const sm=nodeStat(n,'sellMult')||def.sellMult||1;
     body=`<div class="node-stat">${sm.toFixed(1)}× value · ${comm}% fee</div>`;
     if(n._lastSell)body+=`<div class="node-stat hi">Last: ${fmtMoney(n._lastSell)}</div>`;
+    const sDelay=nodeStat(n,'sellDelay')||def.sellDelay||0.5;
+    body+=progBar((n.queue||[]).length?(n._sellTimer||0)/sDelay:0,def.color);
   }
   if(def.isBuffer||def.isPriority||def.isSSDCache||def.isRAMDisk||def.isBackup||def.isScheduler){
     const cap=nodeStat(n,'bufSize')||nodeStat(n,'cacheSize')||nodeStat(n,'rdSize')||8;
     body=`<div class="node-stat">Queue: ${(n.queue||[]).length}${cap?'/'+cap:''}</div>`;
     if(def.isRAMDisk)body+=`<div class="node-stat warn">8 GB RAM reserved</div>`;
+    const qf=(n.queue||[]).length/cap;
+    body+=progBar(qf,fillColor(qf,'var(--accent)'));
   }
 
   // ─── UPDATED: CLEAN INNERHTML HEAD TEMPLATE (NO BUTTONS AT ALL) ───
