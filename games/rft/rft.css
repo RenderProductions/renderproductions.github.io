@@ -99,6 +99,7 @@ body{overflow:hidden}
 }
 
 .node.active{border-color:var(--green);box-shadow:0 0 0 1px var(--green-dim),0 4px 20px rgba(0,0,0,.45)}
+.node.waiting{border-color:var(--amber);box-shadow:0 0 0 1px rgba(245,166,35,.3),0 4px 20px rgba(0,0,0,.45)}
 .node.error{border-color:var(--red);box-shadow:0 0 0 1px rgba(240,82,82,.3),0 4px 20px rgba(0,0,0,.45)}
 .node.uploading{border-color:var(--purple);box-shadow:0 0 0 1px rgba(167,139,250,.3),0 4px 20px rgba(0,0,0,.45)}
 .node-head{padding:7px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;border-radius:9px 9px 0 0}

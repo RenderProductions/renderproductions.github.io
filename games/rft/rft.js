@@ -66,6 +66,41 @@ const HW = {cpu:0, ram:0, storage:0, nic:0, cooler:0};
 
 function hwGet(slot){ return HW_SLOTS[slot].tiers[HW[slot]]; }
 
+/* ── PACING & LIMITS (tune the whole game's speed here) ──
+   dlTime:   seconds one file takes to download at full link speed
+   proc:     multiplier on every processor's job time (higher = slower)
+   ulMin:    minimum seconds any upload takes
+   sell:     multiplier on every seller's delay between sales
+   queueCap: how many files an ordinary node can hold before it blocks the node feeding it
+   Hard limits: a node that can't hand its file on, can't start a job, or has no
+   RAM/disk/CPU/cooling headroom simply stops and waits until room frees up. */
+const PACE={
+  startMoney:150,
+  dlTime:{Document:6,Ebook:7,Image:9,Audio:14,Archive:40,Software:55,Video:80,Database:100},
+  proc:2.5,
+  ulMin:2,
+  sell:3,
+  queueCap:10,
+  thermalResume:3   // degrees below the throttle point before processors restart
+};
+const PC_LOCK={thermal:false};
+
+function capOf(n){
+  const def=MODULE_DEFS.find(d=>d.id===n.defId);
+  if(!def)return PACE.queueCap;
+  if(n.defId==='network_binder')return nodeStat(n,'queueSize')||5;
+  if(def.isBuffer)return nodeStat(n,'bufSize')||8;
+  if(def.isSSDCache)return nodeStat(n,'cacheSize')||20;
+  return PACE.queueCap;
+}
+function roomIn(id){const n=G.nodes[id];return !n||(n.queue||[]).length<capOf(n);}
+// true when the node fed by (id, port) has room (or nothing is wired)
+function outRoom(id,port,all){
+  const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===port);
+  if(!outs.length)return true;
+  return all?outs.every(w=>roomIn(w.toNode)):roomIn(outs[0].toNode);
+}
+
 /* ── PC RESOURCE STATE ── */
 const PC = {
   cpuUsed: 0,       // % consumed by processors this tick
@@ -327,7 +362,7 @@ const MODULE_DEFS=[
 ];
 
 let CLAIMED={};
-let G={money:300,totalEarned:0,soldCount:0,nodes:{},wires:[],nextId:1,
+let G={money:PACE.startMoney,totalEarned:0,soldCount:0,nodes:{},wires:[],nextId:1,
   draggingNode:null,draggingOffset:{x:0,y:0},connectingPort:null,recentIncome:[],
   incomePs:0,upgModal:null};
 
@@ -663,7 +698,7 @@ function renderNode(id){
     const sm=nodeStat(n,'sellMult')||def.sellMult||1;
     body=`<div class="node-stat">${sm.toFixed(1)}× value · ${comm}% fee</div>`;
     if(n._lastSell)body+=`<div class="node-stat hi">Last: ${fmtMoney(n._lastSell)}</div>`;
-    const sDelay=nodeStat(n,'sellDelay')||def.sellDelay||0.5;
+    const sDelay=(nodeStat(n,'sellDelay')||def.sellDelay||0.5)*PACE.sell;
     body+=progBar((n.queue||[]).length?(n._sellTimer||0)/sDelay:0,def.color);
   }
   if(def.isBuffer||def.isPriority||def.isSSDCache||def.isRAMDisk||def.isBackup||def.isScheduler){
@@ -951,9 +986,9 @@ function calcPCResources(){
     if(!def)return;
 
     // CPU & heat from processing nodes (only when active)
-    if(def.procType&&n.state==='active'){
+    if(def.procType&&n._proc&&!n._blocked){
       cpuUsed+=PROC_CPU[def.procType]||0;
-      heatGenerated+=PROC_HEAT[def.procType]||0;
+      if(!PC_LOCK.thermal)heatGenerated+=PROC_HEAT[def.procType]||0;
     }
 
     // RAM from active downloaders
@@ -1036,7 +1071,7 @@ function updateHUD(){
   document.getElementById('hud-temp-val').textContent=Math.round(r.tempC)+'°C';
   const cooler=hwGet('cooler');
   const isThrottling=r.tempC>=r.throttleC;
-  document.getElementById('hud-temp-sub').textContent=isThrottling?'⚠ Throttling!':cooler.name;
+  document.getElementById('hud-temp-sub').textContent=PC_LOCK.thermal?'⚠ Overheated · processors paused':cooler.name;
   const tempBar=document.getElementById('hud-temp-bar');
   tempBar.style.width=Math.max(0,tempPct)+'%';
   tempBar.className='hud-bar-fill '+(r.tempC>=r.throttleC?'crit':r.tempC>=(r.throttleC-10)?'warn':'ok');
@@ -1126,16 +1161,22 @@ function gameTick(ts){
     const ramAvailMB=(ramTier.ramGB-r.ramUsedGB)*1024;
 
     const bwPerSlot=fd.bwMBs; // use realistic per-file bandwidth, not shared
+    const linkF=Math.max(0.1,Math.min(1,bw/fd.bwMBs)); // a slow link slows big files
+    let ramLeftMB=ramAvailMB;
+    n._blocked=false;
     n._slots.forEach((slot,si)=>{
       if(!slot){
-        if(ramAvailMB>fd.ramMB){
-          n._slots[si]={progress:0,total:fd.sizeMB/bwPerSlot};
+        if(ramLeftMB>fd.ramMB){
+          ramLeftMB-=fd.ramMB;
+          n._slots[si]={progress:0,total:PACE.dlTime[def.fileType]||fd.sizeMB/bwPerSlot};
         }
         return;
       }
-      slot.progress+=dt;
-      n._speeds.push(bwPerSlot);
+      if(slot.progress<slot.total)slot.progress+=dt*linkF;
+      n._speeds.push(bwPerSlot*linkF);
       if(slot.progress>=slot.total){
+        // Hard limit: the next node is full, so this file waits here
+        if(!outRoom(id,0)){slot.progress=slot.total;n._blocked=true;return;}
         n._slots[si]=null;
         const corrupt=Math.random()<0.07;
         const file={id:'f'+(G.nextId++),type:def.fileType,sizeMB:fd.sizeMB,
@@ -1145,20 +1186,40 @@ function gameTick(ts){
         n.state='active';
       }
     });
-    n.state=n._slots.some(s=>s)?'active':'idle';
+    n.state=n._blocked?'waiting':n._slots.some(s=>s)?'active':'idle';
   });
 
   /* PASS 4: Processing — slowed by CPU over-cap or thermal throttle */
-  const procThrottle=(pcState.cpuOverCap||pcState.isThrottling)?0.35:1.0;
+  // Hard limits: overheating pauses every processor until it cools down;
+  // a job only starts if there is CPU headroom for it.
+  const rNow=pcState.r;
+  if(rNow){
+    if(rNow.tempC>=rNow.throttleC)PC_LOCK.thermal=true;
+    else if(rNow.tempC<=rNow.throttleC-PACE.thermalResume)PC_LOCK.thermal=false;
+  }
+  let cpuRun=0;
+  Object.values(G.nodes).forEach(pn=>{
+    const pd=MODULE_DEFS.find(d=>d.id===pn.defId);
+    if(pd&&pd.procType&&pn._proc&&!pn._blocked)cpuRun+=PROC_CPU[pd.procType]||0;
+  });
+  const cpuCapNow=hwGet('cpu').cpuCap;
   Object.entries(G.nodes).forEach(([id,n])=>{
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.procType)return;
     n.queue=n.queue||[];
-    if(!n._proc&&n.queue.length){n._proc=n.queue.shift();n.progress=0;}
+    n._blocked=false;
+    n._waitCpu=false;
+    if(!n._proc&&n.queue.length){
+      const need=PROC_CPU[def.procType]||0;
+      if(!PC_LOCK.thermal&&cpuRun+need<=cpuCapNow){
+        n._proc=n.queue.shift();n.progress=0;cpuRun+=need;
+      } else n._waitCpu=true;
+    }
     if(n._proc){
-      const pt=nodeStat(n,'procTime')||def.procTime||1;
-      n.progress+=dt*procThrottle/pt;
+      const pt=(nodeStat(n,'procTime')||def.procTime||1)*PACE.proc;
+      if(!PC_LOCK.thermal&&n.progress<1)n.progress+=dt/pt;
       if(n.progress>=1){
+        if(!outRoom(id,0)){n.progress=1;n._blocked=true;n.state='waiting';return;}
         let f={...n._proc};
         const vb=nodeStat(n,'valBonus')||def.valBonus||0;
         if(['scanner','metadata','decoder','encryptor'].includes(def.procType))f.value=f.value*(1+vb/100);
@@ -1169,8 +1230,8 @@ function gameTick(ts){
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
         if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
         n.state='active';
-      } else n.state='active';
-    } else n.state=n.queue.length?'active':'idle';
+      } else n.state=PC_LOCK.thermal?'waiting':'active';
+    } else n.state=n._waitCpu?'waiting':n.queue.length?'active':'idle';
   });
 
   /* PASS 5: Utilities */
@@ -1182,7 +1243,7 @@ function gameTick(ts){
     if(def.isBuffer){
       const cap=nodeStat(n,'bufSize')||8;
       n._rTimer=(n._rTimer||0)+dt;
-      if(n._rTimer>=0.05&&n.queue.length){
+      if(n._rTimer>=0.05&&n.queue.length&&outRoom(id,0)){
         n._rTimer=0;
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
@@ -1194,7 +1255,7 @@ function gameTick(ts){
     if(def.isSSDCache){
       const cap=nodeStat(n,'cacheSize')||20;
       n._rTimer=(n._rTimer||0)+dt;
-      if(n._rTimer>=0.02&&n.queue.length){ // faster throughput
+      if(n._rTimer>=0.02&&n.queue.length&&outRoom(id,0)){ // faster throughput
         n._rTimer=0;
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
@@ -1206,7 +1267,7 @@ function gameTick(ts){
     if(def.isRAMDisk){
       // Ultra-fast — near-instant pass through
       n._rTimer=(n._rTimer||0)+dt;
-      if(n._rTimer>=0.01&&n.queue.length){
+      if(n._rTimer>=0.01&&n.queue.length&&outRoom(id,0)){
         n._rTimer=0;
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
@@ -1218,7 +1279,7 @@ function gameTick(ts){
     if(def.isBackup&&n.queue.length){
       const rt=nodeStat(n,'recoverTime')||2;
       n._rTimer=(n._rTimer||0)+dt;
-      if(n._rTimer>=rt){
+      if(n._rTimer>=rt&&outRoom(id,0)){
         n._rTimer=0;
         const f=n.queue.shift();
         if(f.corrupt)f.corrupt=false; // backup recovers corrupt
@@ -1232,7 +1293,7 @@ function gameTick(ts){
       // Task scheduler: drops low-value files when CPU overloaded
       const thresh=nodeStat(n,'schedThresh')||90;
       n._rTimer=(n._rTimer||0)+dt;
-      if(n._rTimer>=0.05&&n.queue.length){
+      if(n._rTimer>=0.05&&n.queue.length&&outRoom(id,0)){
         n._rTimer=0;
         // Sort so highest value goes first
         n.queue.sort((a,b)=>b.value-a.value);
@@ -1251,7 +1312,7 @@ function gameTick(ts){
       n.state=n.queue.length?'active':'idle';
     }
 
-    if(def.isSplit&&n.queue.length){
+    if(def.isSplit&&n.queue.length&&outRoom(id,0,true)&&outRoom(id,1,true)){
       const f=n.queue.shift();
       [0,1].forEach(pi=>{
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===pi);
@@ -1261,7 +1322,7 @@ function gameTick(ts){
     }
     if(def.isPriority){
       n.queue.sort((a,b)=>b.value-a.value);
-      if(n.queue.length){
+      if(n.queue.length&&outRoom(id,0)){
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
         if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
@@ -1278,7 +1339,7 @@ function gameTick(ts){
     n.queue=n.queue||[];
     const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
     n._rTimer=(n._rTimer||0)+dt;
-    if(n._rTimer>=0.1&&n.queue.length&&ul>0&&outs.length){
+    if(n._rTimer>=0.1&&n.queue.length&&ul>0&&outs.length&&outRoom(id,0)){
       n._rTimer=0;
       const f=n.queue.shift();
       f._boundUl=ul;
@@ -1303,10 +1364,11 @@ function gameTick(ts){
       if(!n._threads[ti])return;
       const f=n._threads[ti].file;
       const ulSpeed=Math.min(f._boundUl||maxULSpeed,maxULSpeed);
-      const timeNeeded=f.sizeMB/Math.max(0.1,ulSpeed);
-      n._threads[ti].progress+=dt/Math.max(0.1,timeNeeded);
+      const timeNeeded=Math.max(PACE.ulMin,f.sizeMB/Math.max(0.1,ulSpeed));
+      if(n._threads[ti].progress<1)n._threads[ti].progress+=dt/Math.max(0.1,timeNeeded);
       ulUsed+=ulSpeed;
       if(n._threads[ti].progress>=1){
+        if(!outRoom(id,0)){n._threads[ti].progress=1;return;}
         const sold=n._threads[ti].file;
         n._threads[ti]=null;
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
@@ -1324,7 +1386,7 @@ function gameTick(ts){
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.isSeller)return;
     n.queue=n.queue||[];
-    const delay=nodeStat(n,'sellDelay')||def.sellDelay||0.5;
+    const delay=(nodeStat(n,'sellDelay')||def.sellDelay||0.5)*PACE.sell;
     n._sellTimer=(n._sellTimer||0)+dt;
     if(n._sellTimer>=delay&&n.queue.length){
       n._sellTimer=0;
@@ -1570,6 +1632,6 @@ if(restored){
 }
 log('📈 Each file type sells to one Rend-Conomy company. Check Market demand in the sidebar.','info');
 log('🖥️ Open Hardware Upgrades to boost CPU, RAM, Storage & NIC — they affect real bottlenecks!');
-log('⚠ CPU throttle kicks in if load > cap. High temp also slows processors. Watch the HUD!');
+log('⚠ Limits are hard: no CPU headroom, a full next node, no free RAM/disk, or overheating makes a node wait (amber) until it clears.');
 applyFlags();
 requestAnimationFrame(gameTick);
