@@ -178,10 +178,11 @@ const MODULE_DEFS=[
    {label:'Efficiency',  stat:'aggEff',  unit:'%',base:90, levels:[95,98,100,100],costs:[300,800,2000,6000]},
   ]},
  {cat:'Network',id:'network_binder',name:'Network Binder',icon:'ti-plug-connected',
-  desc:'Binds files to your upload pipeline',cost:0,color:'#185FA5',
+  desc:'Binds files to your upload pipeline · upgrade for more file inputs',cost:0,color:'#185FA5',
   inputs:['file','upload'],outputs:['upload_queue'],
   upgrades:[
    {label:'Queue size',stat:'queueSize',unit:'files',base:5,levels:[10,20,40,80,160],costs:[100,300,700,1800,5000]},
+   {label:'File inputs',stat:'fileInputs',unit:'',base:1,levels:[2,3,4,6,8],costs:[150,400,1000,2500,6000]},
   ]},
 
  /* ── DOWNLOADS ── */
@@ -552,7 +553,22 @@ function getAggregatorPorts(n){
   return inputs;
 }
 
-function getEffectiveInputs(n,def){if(def.isAggregator)return getAggregatorPorts(n);return def.inputs||[];}
+function getBinderPorts(n){
+  const extra=Math.max(0,(nodeStat(n,'fileInputs')||1)-1);
+  const ports=['file','upload'];
+  for(let i=0;i<extra;i++)ports.push('file');
+  return ports;
+}
+function portLabelIn(n,def,i,p){
+  if(def.isAggregator)return p+' '+(i+1);
+  if(n.defId==='network_binder'&&p==='file'&&(nodeStat(n,'fileInputs')||1)>1)return 'file '+(i===0?1:i);
+  return p;
+}
+function getEffectiveInputs(n,def){
+  if(def.isAggregator)return getAggregatorPorts(n);
+  if(n.defId==='network_binder')return getBinderPorts(n);
+  return def.inputs||[];
+}
 function getEffectiveOutputs(n,def){return def.outputs||[];}
 
 function getPortPos(nodeId,portType,portIdx){
@@ -628,7 +644,7 @@ function renderNode(id){
   const inPorts=getEffectiveInputs(n,def).map((p,i)=>`
     <div class="port-row">
       <div class="port${isPortConnected(id,'in',i)?' connected':''}" id="port_${id}_in_${i}" data-node="${id}" data-type="in" data-idx="${i}"></div>
-      <span class="port-label">${p}${def.isAggregator?' '+(i+1):''}</span>
+      <span class="port-label">${portLabelIn(n,def,i,p)}</span>
     </div>`).join('');
   const outPorts=getEffectiveOutputs(n,def).map((p,i)=>`
     <div class="port-row" style="justify-content:flex-end">
@@ -682,6 +698,11 @@ function renderNode(id){
     const q=(n.queue||[]).length;
     if(q>=qs*0.8)body=`<div class="node-stat warn">Queue: ${q}/${qs} ⚠</div>`;
     else body=`<div class="node-stat">Queue: ${q}/${qs}</div>`;
+    const fi=nodeStat(n,'fileInputs')||1;
+    if(fi>1){
+      const wiredIn=G.wires.filter(w=>w.toNode===id&&w.toPort!==1).length;
+      body+=`<div class="node-stat">File inputs: ${wiredIn}/${fi}</div>`;
+    }
     body+=progBar(q/qs,fillColor(q/qs,'var(--accent)'));
   }
   if(n.defId==='uploader'){
@@ -1087,6 +1108,14 @@ function updateHUD(){
 
 /* ── GAME LOOP ── */
 let lastTick=null;
+// Rotates the starting node each tick so no input is always served first
+function rotatedNodes(){
+  const e=Object.entries(G.nodes);
+  if(e.length<2)return e;
+  const k=(G._rot=(G._rot||0)+1)%e.length;
+  return e.slice(k).concat(e.slice(0,k));
+}
+
 function gameTick(ts){
   if(!lastTick)lastTick=ts;
   const dt=Math.min((ts-lastTick)/1000,0.1);
@@ -1142,7 +1171,7 @@ function gameTick(ts){
   });
 
   /* PASS 3: Downloaders — disk full or RAM full blocks downloads */
-  Object.entries(G.nodes).forEach(([id,n])=>{
+  rotatedNodes().forEach(([id,n])=>{
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.fileType)return;
     const fd=FILE_DEFS[def.fileType];
@@ -1203,7 +1232,7 @@ function gameTick(ts){
     if(pd&&pd.procType&&pn._proc&&!pn._blocked)cpuRun+=PROC_CPU[pd.procType]||0;
   });
   const cpuCapNow=hwGet('cpu').cpuCap;
-  Object.entries(G.nodes).forEach(([id,n])=>{
+  rotatedNodes().forEach(([id,n])=>{
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.procType)return;
     n.queue=n.queue||[];
@@ -1547,7 +1576,7 @@ function setFlag(name){
 }
 // EXAMPLE rewards. Rename the flags or add more to match your scanner codes.
 const FLAG_REWARDS={
-  rft_bonus:{cash:2500,msg:'Backstage signal accepted: +2,500 ◆ transferred.'},
+  CashMoney:{cash:2500,msg:'Backstage signal accepted: +2,500 ◆ transferred.'},
   rft_backstage_market:{module:true,msg:'Backstage Market unlocked. Check Upload & Sell.'}
 };
 let seenFlags={};
