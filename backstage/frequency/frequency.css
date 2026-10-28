@@ -1,0 +1,123 @@
+/* ==========================================================
+   Frequency scanner: old receiver look (self-contained).
+   Linked by index.html in this folder. Does not need style.css
+   or backstage.css.
+   ========================================================== */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap');
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --lcd-dark:#1e2416; --lcd-dim:#6f7a5c;
+  --blue:#2f5fa8; --blue-dk:#1d3f78;
+  --key:#b9b9b4; --key-dk:#8d8d88;
+  --mono:'IBM Plex Mono','Courier New',monospace;
+  --seg:'VT323','Courier New',monospace;
+}
+html,body{height:100%}
+body{background:#000;color:#bbb;font-family:var(--mono);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.25rem;overflow-x:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid #ff6b5a;outline-offset:2px}
+
+#pulse{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.stage{position:relative;z-index:2;width:min(980px,100%)}
+.topnav{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;font-size:11px;letter-spacing:2px;color:#4a4a4a;margin-bottom:12px}
+.topnav ul{display:flex;gap:1.1rem;list-style:none}
+.topnav a{color:#5a5a5a;text-decoration:none}
+.topnav a:hover{color:#aaa}
+.foot-links{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:14px;font-size:11px;letter-spacing:1px;color:#444}
+
+/* ---------- the unit ---------- */
+.unit{position:relative;border-radius:6px 6px 10px 10px;padding:16px 22px 20px;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px),linear-gradient(180deg,#26262a 0%,#17171a 12%,#101012 100%);
+  border:1px solid #333;
+  box-shadow:0 0 0 2px #050505,0 30px 60px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.1),inset 0 -14px 30px rgba(0,0,0,.6)}
+.unit::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:5;opacity:.28;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+.unit::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:6;
+  background:linear-gradient(112deg,transparent 18%,rgba(255,255,255,.05) 19%,transparent 19.6%),
+             linear-gradient(68deg,transparent 61%,rgba(255,255,255,.04) 61.4%,transparent 62%),
+             linear-gradient(95deg,transparent 80%,rgba(255,255,255,.035) 80.3%,transparent 80.8%),
+             radial-gradient(ellipse at 15% 8%,rgba(255,255,255,.07),transparent 40%),
+             radial-gradient(ellipse at 90% 100%,rgba(0,0,0,.45),transparent 50%)}
+.screw{position:absolute;width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#555,#1a1a1a);box-shadow:inset 0 0 2px #000;z-index:7}
+.screw::after{content:'';position:absolute;left:1px;right:1px;top:4px;height:1px;background:#000;transform:rotate(35deg)}
+.brandrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;position:relative;z-index:2}
+.logo{font:italic 600 17px/1 var(--mono);letter-spacing:1px;color:#d8d8d0;text-shadow:0 1px 0 #000}
+.logo small{font:500 10px var(--mono);letter-spacing:3px;color:#9a9a92;margin-left:14px;font-style:normal}
+.model{font-size:10px;letter-spacing:2px;color:#7d7d77}
+.panel{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px;position:relative;z-index:2}
+
+/* ---------- LCD (.screen is what the page script drives) ---------- */
+.lcdwrap{background:#09090a;border:1px solid #2a2a2a;border-radius:3px;padding:7px;box-shadow:inset 0 2px 6px #000,0 1px 0 rgba(255,255,255,.07)}
+.screen{position:relative;height:230px;display:flex;flex-direction:column;padding:8px 12px;overflow:hidden;cursor:default;
+  background:linear-gradient(180deg,#9aa585,#8a9573 60%,#848f6e);color:var(--lcd-dark);
+  box-shadow:inset 0 0 26px rgba(25,32,15,.55),inset 0 0 0 1px rgba(0,0,0,.5);transition:filter .2s,background .3s}
+.screen::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.07) 0 1px,transparent 1px 3px),linear-gradient(160deg,rgba(255,255,255,.14),transparent 35%)}
+.screen.dim{filter:brightness(.62)}
+.screen .ind{position:relative;z-index:2;display:flex;justify-content:space-between;font:500 10px var(--mono);letter-spacing:1px;color:var(--lcd-dim);border-bottom:1px solid rgba(30,36,22,.3);padding-bottom:3px;margin-bottom:4px}
+.screen .ind span.on{color:var(--lcd-dark);font-weight:600}
+.screen .status{position:relative;z-index:2;font:500 10px var(--mono);letter-spacing:1px;color:var(--lcd-dim);min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screen .big{position:relative;z-index:2;font:400 38px/1.05 var(--seg);letter-spacing:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:1px 1px 0 rgba(255,255,255,.12)}
+.screen .msg{position:relative;z-index:2;flex:1;min-height:0;margin-top:4px;overflow-y:auto;font:400 21px/1.15 var(--seg);letter-spacing:1px;white-space:pre-wrap;word-break:break-word;scrollbar-width:none}
+.screen .msg::-webkit-scrollbar{display:none}
+.screen .msg::after{content:'\2588';margin-left:2px;animation:blink 1s steps(2) infinite}
+.screen .stamp{position:relative;z-index:2;font:500 10px var(--mono);letter-spacing:1px;color:var(--lcd-dim);border-top:1px solid rgba(30,36,22,.3);padding-top:3px;margin-top:4px;min-height:18px}
+@keyframes blink{50%{opacity:0}}
+
+/* themes set by the page script */
+.screen.is-decoy{background:linear-gradient(180deg,#a3a784,#929671 60%,#8a8e6a)}
+.screen.is-rare{background:linear-gradient(180deg,#b79a86,#a58572 60%,#9a7a68)}
+.screen.is-rare .big,.screen.is-rare .msg{color:#3a130d}
+.screen.is-error .stamp{color:#6a1c14}
+.screen.tuning .msg,.screen.tuning .big{animation:flick .12s steps(2) infinite}
+@keyframes flick{50%{opacity:.45}}
+.screen.glitching{animation:shake .08s steps(2) infinite}
+@keyframes shake{0%{transform:translate(0,0);filter:none}50%{transform:translate(-4px,2px);filter:hue-rotate(40deg) contrast(1.4)}100%{transform:translate(3px,-2px)}}
+
+/* images/sounds from signals.json land on the LCD */
+.screen .layer{position:absolute;inset:0;pointer-events:none;z-index:1}
+.screen .layer img{position:absolute;opacity:0;transition:opacity .4s ease;max-width:100%;max-height:100%;mix-blend-mode:multiply;filter:grayscale(1) contrast(1.15)}
+.screen .layer img.show{opacity:.85}
+.screen .layer img.pos-center{top:50%;left:50%;transform:translate(-50%,-50%)}
+.screen .layer img.pos-full{inset:0;width:100%;height:100%;object-fit:cover}
+.screen .layer img.pos-top{top:0;left:50%;transform:translateX(-50%)}
+.screen .layer img.pos-bottom{bottom:0;left:50%;transform:translateX(-50%)}
+
+/* ---------- knobs and buttons ---------- */
+.knobs{display:flex;gap:30px;align-items:flex-end;margin-top:14px;padding:0 6px}
+.knobcol{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:9px;letter-spacing:2px;color:#9a9a92}
+.knob{width:54px;height:54px;border-radius:50%;position:relative;cursor:grab;touch-action:none;
+  background:radial-gradient(circle at 36% 30%,#4a4a4a,#1d1d1d 60%,#0b0b0b);
+  box-shadow:0 4px 8px #000,inset 0 1px 1px rgba(255,255,255,.25),0 0 0 3px #101010,0 0 0 4px #333}
+.knob::before{content:'';position:absolute;inset:4px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.07) 0 6deg,transparent 6deg 12deg)}
+.knob i{position:absolute;left:50%;top:5px;width:3px;height:16px;margin-left:-1.5px;background:#ddd;border-radius:2px;transform-origin:50% 22px}
+.pill{display:flex;gap:10px;margin-left:auto}
+.btn2{font:600 9px var(--mono);letter-spacing:1px;color:#2a2a28;background:linear-gradient(180deg,#cfcfc9,#9c9c96);border:1px solid #444;border-radius:3px;padding:8px 10px;cursor:pointer;box-shadow:0 2px 0 #3a3a38,0 3px 4px #000;text-align:center;line-height:1.25}
+.btn2:active{transform:translateY(2px);box-shadow:0 0 0 #000}
+.led{width:9px;height:9px;border-radius:50%;background:#3a0a08;box-shadow:inset 0 0 2px #000;display:inline-block;margin-right:6px}
+.led.on{background:#ff3b2a;box-shadow:0 0 8px #ff3b2a,0 0 16px rgba(255,59,42,.6)}
+.pwr{display:flex;align-items:center;font-size:9px;letter-spacing:2px;color:#8a8a84;margin-top:12px}
+
+/* ---------- keypad ---------- */
+.keys{border:1px solid #2c2c2c;border-radius:4px;padding:8px;background:linear-gradient(180deg,#141416,#0c0c0d);box-shadow:inset 0 1px 6px #000}
+.hdrs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px}
+.hdr{background:linear-gradient(180deg,var(--blue),var(--blue-dk));color:#e6edf7;font:600 9px var(--mono);letter-spacing:3px;text-align:center;padding:3px 0;border-radius:2px}
+.kgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ops,.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
+.k{font:600 9px var(--mono);letter-spacing:.5px;color:#26262a;min-height:30px;border:1px solid #4a4a48;border-radius:3px;cursor:pointer;position:relative;
+  background:linear-gradient(180deg,#d0d0ca 0%,var(--key) 45%,var(--key-dk) 100%);box-shadow:0 2px 0 #2c2c2a,0 3px 3px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.5)}
+.k:active,.k.hit{transform:translateY(2px);box-shadow:0 0 0 #000,inset 0 2px 3px rgba(0,0,0,.4)}
+.nums .k{font-size:14px;min-height:36px}
+.nums small{position:absolute;top:1px;left:3px;font-size:6px;color:#55554f;letter-spacing:0}
+.k.dead{cursor:default}
+.k.enter{background:linear-gradient(180deg,#4f7fc4,var(--blue-dk));color:#e6edf7;border-color:#10234a;grid-column:span 2}
+.tag{margin-top:10px;font-size:9px;letter-spacing:2px;color:#7d7d77;display:flex;justify-content:space-between;gap:8px}
+.help{margin-top:14px;text-align:center;font-size:11px;color:#444;letter-spacing:1px}
+
+/* the real input: keeps typing, punctuation and phone keyboards working */
+.entry-input{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;border:0;padding:0;font-size:16px}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (max-width:760px){.panel{grid-template-columns:1fr}.screen{height:210px}}
+@media (prefers-reduced-motion:reduce){.screen .msg::after,.screen.tuning .msg,.screen.tuning .big,.screen.glitching{animation:none}}

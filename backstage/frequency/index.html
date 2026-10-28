@@ -6,35 +6,14 @@
 <meta name="robots" content="noindex">
 <title>Frequency | Render Productions</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="/style.css">
-<link rel="stylesheet" href="/backstage/backstage.css?v=3">
-<style>
-  /* Extras for the frequency screen. Everything else comes from style.css. */
-  .screen .layer { position: absolute; inset: 0; pointer-events: none; }
-  .screen .layer img {
-    position: absolute; opacity: 0; transition: opacity 0.4s ease;
-    max-width: 100%; max-height: 100%; image-rendering: auto;
-  }
-  .screen .layer img.show { opacity: 1; }
-  .screen .layer img.pos-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-  .screen .layer img.pos-full   { inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .screen .layer img.pos-top    { top: 0; left: 50%; transform: translateX(-50%); }
-  .screen .layer img.pos-bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
-  .screen .status, .screen .msg, .screen .stamp { position: relative; z-index: 2; }
-  .screen.glitching { animation: shake 0.08s steps(2) infinite; }
-  @keyframes shake {
-    0%   { transform: translate(0, 0); filter: none; }
-    50%  { transform: translate(-4px, 2px); filter: hue-rotate(40deg) contrast(1.4); }
-    100% { transform: translate(3px, -2px); }
-  }
-  @media (prefers-reduced-motion: reduce) { .screen.glitching { animation: none; } }
-</style>
+<link rel="stylesheet" href="frequency.css?v=1">
 </head>
-<body class="backstage">
-<div class="wrap">
+<body>
+<canvas id="pulse" aria-hidden="true"></canvas>
 
-  <nav class="nav" aria-label="Main">
-    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+<div class="stage">
+  <nav class="topnav" aria-label="Main">
+    <a href="/">RENDER PRODUCTIONS</a>
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/rend-conomy/">Rend-Conomy</a></li>
@@ -43,31 +22,69 @@
     </ul>
   </nav>
 
-  <header class="hero">
-    <h1 class="page-title">FREQUENCY</h1>
+  <main class="unit">
+    <span class="screw" style="left:8px;top:8px"></span><span class="screw" style="right:8px;top:8px"></span>
+    <span class="screw" style="left:8px;bottom:8px"></span><span class="screw" style="right:8px;bottom:8px"></span>
+    <h1 class="sr-only">Frequency</h1>
 
-    <div class="screen is-idle" id="screen">
-      <div class="layer" id="layer"></div>
-      <div class="status" id="status-line">CH 01</div>
-      <div class="msg" id="msg"></div>
-      <div class="stamp" id="stamp"></div>
+    <div class="brandrow">
+      <div class="logo">RENDER VISION<small>HYPERSCAN</small></div>
+      <div class="model">400 CHANNEL &middot; RV-2006</div>
     </div>
 
-    <form class="tuner" id="tuner" autocomplete="off">
-      <label for="codeinput">Code</label>
-      <input class="input" id="codeinput" type="text" maxlength="40" placeholder="Enter code" spellcheck="false">
-      <button class="btn primary" type="submit">Execute</button>
-    </form>
-  </header>
+    <div class="panel">
+      <div>
+        <div class="lcdwrap">
+          <div class="screen" id="screen">
+            <div class="layer" id="layer"></div>
+            <div class="ind" aria-hidden="true"><span id="i-scan" class="on">SCAN</span><span id="i-hold">HOLD</span><span id="i-pri">PRI</span><span id="i-lo">L/O</span><span id="i-rx">RX</span><span id="i-err">ERR</span></div>
+            <div class="status" id="status-line">CH 01</div>
+            <div class="big" id="entry">_</div>
+            <div class="msg" id="msg">ENTER CODE</div>
+            <div class="stamp" id="stamp"></div>
+          </div>
+        </div>
+        <div class="knobs">
+          <div class="knobcol"><div class="knob" id="k-vol"><i></i></div>VOLUME</div>
+          <div class="knobcol"><div class="knob" id="k-sql"><i></i></div>SQUELCH</div>
+          <div class="pill"><button class="btn2" type="button" id="b-sq">SOUND<br>SQUELCH</button><button class="btn2" type="button" id="b-dim">DIMMER</button></div>
+        </div>
+        <div class="pwr"><span class="led" id="led"></span><span id="ledtxt">POWER</span></div>
+      </div>
 
-  <p class="sr-only" id="announce" aria-live="polite"></p>
+      <div class="keys">
+        <div class="hdrs"><div class="hdr">OPERATION</div><div class="hdr">PROGRAM</div></div>
+        <div class="kgrid">
+          <div class="ops" aria-hidden="true">
+            <button class="k dead" tabindex="-1">MANUAL</button><button class="k dead" tabindex="-1">PRI</button><button class="k dead" tabindex="-1">LIMIT</button>
+            <button class="k dead" tabindex="-1">SCAN</button><button class="k dead" tabindex="-1">SPEED</button><button class="k dead" tabindex="-1">&#9650;</button>
+            <button class="k dead" tabindex="-1">DELAY</button><button class="k dead" tabindex="-1">MODE</button><button class="k dead" tabindex="-1">&#9660;</button>
+            <button class="k dead" tabindex="-1">L/OUT</button><button class="k dead" tabindex="-1">STEP</button><button class="k dead" tabindex="-1">DIRECT</button>
+            <button class="k dead" tabindex="-1">L/O RVW</button><button class="k dead" tabindex="-1">RESET</button><button class="k dead" tabindex="-1">MONITOR</button>
+          </div>
+          <div class="nums" id="nums">
+            <button class="k" data-k="1" type="button"><small>1-40</small>1</button><button class="k" data-k="2" type="button"><small>41-80</small>2</button><button class="k" data-k="3" type="button"><small>81-120</small>3</button>
+            <button class="k" data-k="4" type="button"><small>121-160</small>4</button><button class="k" data-k="5" type="button"><small>161-200</small>5</button><button class="k" data-k="6" type="button"><small>201-240</small>6</button>
+            <button class="k" data-k="7" type="button"><small>241-280</small>7</button><button class="k" data-k="8" type="button"><small>281-320</small>8</button><button class="k" data-k="9" type="button"><small>321-360</small>9</button>
+            <button class="k" data-k="0" type="button"><small>361-400</small>0</button><button class="k" data-k="." type="button">.</button><button class="k" data-act="clear" type="button">CLEAR</button>
+            <button class="k enter" data-act="enter" type="button">ENTER</button><button class="k" data-act="back" type="button" aria-label="Backspace">&#9664;</button>
+          </div>
+        </div>
+        <div class="tag"><span>DIRECT ENTRY PROGRAMMABLE</span><span>AM/FM SCANNING RECEIVER</span></div>
+      </div>
+    </div>
+  </main>
 
-  <footer class="footer">
-    <span>Backstage</span>
-    <span>Host: The Render Room</span>
-  </footer>
-
+  <p class="help">Type a code and press Enter, or use the keypad.</p>
+  <div class="foot-links"><span>Backstage</span><span>Host: The Render Room</span></div>
 </div>
+
+<form id="tuner" autocomplete="off">
+  <label class="sr-only" for="codeinput">Code</label>
+  <input class="entry-input" id="codeinput" type="text" maxlength="40" spellcheck="false" autocomplete="off" autocapitalize="characters">
+  <button class="sr-only" type="submit">Execute</button>
+</form>
+<p class="sr-only" id="announce" aria-live="polite"></p>
 
 <script>
 (function () {
@@ -76,15 +93,19 @@
   // ---------- Settings ----------
   var SIGNALS_URL = 'signals.json';
   var UNKNOWN_TEXT = 'NO SIGNAL';   // shown in the status line for a wrong code ('' for nothing)
+  var GLYPHS = '#%&@01+=';
 
   var screenEl   = document.getElementById('screen');
   var layerEl    = document.getElementById('layer');
   var statusEl   = document.getElementById('status-line');
+  var entryEl    = document.getElementById('entry');
   var msgEl      = document.getElementById('msg');
   var stampEl    = document.getElementById('stamp');
   var announceEl = document.getElementById('announce');
   var formEl     = document.getElementById('tuner');
   var inputEl    = document.getElementById('codeinput');
+  var ledEl      = document.getElementById('led');
+  var ledTxt     = document.getElementById('ledtxt');
 
   var reduce = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -92,13 +113,21 @@
   var runId = 0;          // bumped on every new code so old runs stop themselves
   var sounds = [];        // audio elements started by the current run
   var dataPromise = null;
+  var tuneTimer = null;
+
+  // LCD indicator row (SCAN / HOLD / PRI / L/O / RX / ERR)
+  function setFlags(on) {
+    ['i-scan', 'i-hold', 'i-pri', 'i-lo', 'i-rx', 'i-err'].forEach(function (id) {
+      document.getElementById(id).classList.toggle('on', on.indexOf(id) > -1);
+    });
+  }
 
   // ---------- Helpers ----------
   function setTheme(name) {
-    var cls = 'screen';
-    if (name === 'decoy') cls += ' is-decoy';
-    else if (name === 'rare') cls += ' is-rare';
-    screenEl.className = cls;
+    screenEl.classList.remove('is-decoy', 'is-rare', 'is-error');
+    if (name === 'decoy') screenEl.classList.add('is-decoy');
+    else if (name === 'rare') screenEl.classList.add('is-rare');
+    setFlags(name === 'decoy' ? ['i-hold'] : name === 'rare' ? ['i-pri', 'i-rx'] : ['i-rx']);
   }
 
   function sleep(ms) {
@@ -117,7 +146,8 @@
     stampEl.textContent = '';
     statusEl.textContent = 'CH 01';
     setTheme('');
-    screenEl.classList.remove('glitching');
+    screenEl.classList.remove('glitching', 'tuning');
+    setFlags(['i-scan']);
   }
 
   function loadSignals() {
@@ -147,13 +177,14 @@
     text: function (a, id) {
       var text = String(a.text == null ? '' : a.text);
       if (a.theme) setTheme(a.theme);
-      if (reduce || a.instant) { msgEl.textContent = text; return Promise.resolve(); }
+      if (reduce || a.instant) { msgEl.textContent = text; msgEl.scrollTop = msgEl.scrollHeight; return Promise.resolve(); }
       var delay = Math.max(6, Math.min(40, 2600 / Math.max(1, text.length)));
       return new Promise(function (resolve) {
         var i = 0;
         (function tick() {
           if (id !== runId) { resolve(); return; }
           msgEl.textContent = text.slice(0, ++i);
+          msgEl.scrollTop = msgEl.scrollHeight;
           if (i < text.length) setTimeout(tick, delay); else resolve();
         })();
       });
@@ -217,6 +248,15 @@
       });
     },
 
+    // {"type":"flag","name":"rft_bonus"} sets a shared flag that Render's File Tycoon reads.
+    flag: function (a) {
+      try {
+        var f = JSON.parse(localStorage.getItem('rp_flags')) || {};
+        if (a.name && !f[a.name]) { f[a.name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); }
+      } catch (e) {}
+      return Promise.resolve();
+    },
+
     wait: function (a) { return sleep(a.ms || 1000); },
 
     clear: function () {
@@ -242,6 +282,33 @@
     }
   }
 
+  // ---------- Scan sweep (static + hunting frequency before a result) ----------
+  function noise(n) {
+    var s = '';
+    for (var i = 0; i < n; i++) s += GLYPHS.charAt(Math.floor(Math.random() * GLYPHS.length));
+    return s;
+  }
+  function stopTune() {
+    clearTimeout(tuneTimer); tuneTimer = null;
+    screenEl.classList.remove('tuning');
+    ledEl.classList.remove('on'); ledTxt.textContent = 'POWER';
+  }
+  function tune(id) {
+    return new Promise(function (resolve) {
+      var n = 0;
+      screenEl.classList.add('tuning');
+      ledEl.classList.add('on'); ledTxt.textContent = 'SCANNING';
+      setFlags(['i-scan']);
+      (function step() {
+        if (id !== runId) { resolve(); return; }
+        if (n++ >= 12) { resolve(); return; }
+        entryEl.textContent = (100 + Math.random() * 400).toFixed(3);
+        msgEl.textContent = noise(20) + '\n' + noise(24);
+        tuneTimer = setTimeout(step, 70);
+      })();
+    });
+  }
+
   // ---------- Submit ----------
   formEl.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -249,14 +316,21 @@
     var code = inputEl.value.trim().toUpperCase();
     if (!code) return;
     inputEl.value = '';
-    inputEl.focus();
 
     var id = ++runId;
     resetScreen();
+    stopTune();
     announceEl.textContent = '';
+    entryEl.textContent = code;
 
-    loadSignals().then(function (data) {
+    var sweep = reduce ? Promise.resolve() : tune(id);
+
+    Promise.all([loadSignals(), sweep]).then(function (res) {
+      stopTune();
       if (id !== runId) return;
+      var data = res[0];
+      msgEl.textContent = '';
+      entryEl.textContent = code;
 
       // Codes in signals.json are matched case-insensitively.
       var entry = null;
@@ -266,21 +340,111 @@
 
       if (!entry || !Array.isArray(entry.actions)) {
         statusEl.textContent = UNKNOWN_TEXT ? 'CH 01 // ' + UNKNOWN_TEXT : 'CH 01';
+        msgEl.textContent = 'NOT LOCATED';
+        setFlags(['i-err']);
         announceEl.textContent = 'No signal.';
         return;
       }
 
       statusEl.textContent = 'CH 01 // ' + code;
+      setFlags(['i-rx']);
       return run(entry.actions, id);
     }).catch(function () {
+      stopTune();
       if (id !== runId) return;
       setTheme('');
+      setFlags(['i-err']);
       screenEl.classList.add('is-error');
+      msgEl.textContent = 'NO SIGNAL';
       statusEl.textContent = 'CH 01 // SOURCE OFFLINE';
       stampEl.textContent = 'Could not load ' + SIGNALS_URL + '. Check the browser console.';
       announceEl.textContent = 'Signal source offline.';
     });
   });
+
+  // ---------- Typing: keyboard (real input) and keypad ----------
+  function showTyped() { entryEl.textContent = inputEl.value.toUpperCase() || '_'; }
+  inputEl.addEventListener('input', showTyped);
+
+  function hit(el) { if (!el) return; el.classList.add('hit'); setTimeout(function () { el.classList.remove('hit'); }, 110); }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Escape') { inputEl.value = ''; showTyped(); return; }
+    if (document.activeElement !== inputEl && (e.key.length === 1 || e.key === 'Backspace')) inputEl.focus();
+    if (e.key === 'Enter') hit(document.querySelector('.k.enter'));
+    else if (e.key.length === 1) hit(document.querySelector('.k[data-k="' + e.key + '"]'));
+  });
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('button, .knob')) inputEl.focus();
+  });
+  document.getElementById('nums').addEventListener('click', function (e) {
+    var b = e.target.closest('.k'); if (!b) return;
+    if (b.dataset.k) { inputEl.value = (inputEl.value + b.dataset.k).slice(0, 40); showTyped(); }
+    else if (b.dataset.act === 'clear') { inputEl.value = ''; showTyped(); }
+    else if (b.dataset.act === 'back') { inputEl.value = inputEl.value.slice(0, -1); showTyped(); }
+    else if (b.dataset.act === 'enter') { formEl.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); }
+  });
+
+  // ---------- Knobs and buttons (cosmetic) ----------
+  function knob(id, start) {
+    var el = document.getElementById(id), a = start, drag = null;
+    el.firstElementChild.style.transform = 'rotate(' + a + 'deg)';
+    el.addEventListener('pointerdown', function (e) { drag = { y: e.clientY, a: a }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      a = Math.max(-135, Math.min(135, drag.a + (drag.y - e.clientY) * 2));
+      el.firstElementChild.style.transform = 'rotate(' + a + 'deg)';
+    });
+    el.addEventListener('pointerup', function () { drag = null; });
+  }
+  knob('k-vol', -20); knob('k-sql', 40);
+  document.getElementById('b-dim').addEventListener('click', function () { screenEl.classList.toggle('dim'); });
+  document.getElementById('b-sq').addEventListener('click', function () { document.getElementById('i-lo').classList.toggle('on'); });
+  inputEl.focus();
+
+  // ---------- The rare heartbeat line (preview with __pulse() in the console) ----------
+  var cv = document.getElementById('pulse'), cx = cv.getContext('2d'), W = 0, H = 0, beat = null;
+  function size() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+  size(); addEventListener('resize', size);
+  function ecg(x) {                                   // one beat, x in 0..1; negative = up
+    if (x < .10) return 0;
+    if (x < .16) return -.12 * Math.sin((x - .10) / .06 * Math.PI);   // P
+    if (x < .22) return 0;
+    if (x < .25) return .18 * Math.sin((x - .22) / .03 * Math.PI);    // Q
+    if (x < .29) return -Math.sin((x - .25) / .04 * Math.PI);         // R
+    if (x < .33) return .3 * Math.sin((x - .29) / .04 * Math.PI);     // S
+    if (x < .50) return 0;
+    if (x < .64) return -.25 * Math.sin((x - .50) / .14 * Math.PI);   // T
+    return 0;
+  }
+  function launch() {
+    beat = { t0: performance.now(), dur: 1500 + Math.random() * 700, y: H * (.2 + Math.random() * .6),
+             amp: H * (.07 + Math.random() * .05), dir: Math.random() < .5 ? 1 : -1, beats: 3 + Math.floor(Math.random() * 3) };
+  }
+  function schedule() { setTimeout(launch, 20000 + Math.random() * 50000); }
+  function frame(now) {
+    cx.clearRect(0, 0, W, H);
+    if (beat) {
+      var p = (now - beat.t0) / beat.dur;
+      if (p >= 1) { beat = null; schedule(); }
+      else {
+        var head = p * 1.25, tail = head - .28, N = 220;
+        cx.lineWidth = 2; cx.lineJoin = 'round'; cx.shadowColor = 'rgba(255,70,60,.9)'; cx.shadowBlur = 10;
+        for (var i = 0; i < N; i++) {
+          var u = i / N, pos = tail + u * (head - tail); if (pos < 0 || pos > 1) continue;
+          var pos2 = tail + (i + 1) / N * (head - tail);
+          var y1 = ecg((pos * beat.beats) % 1), y2 = ecg((pos2 * beat.beats) % 1);
+          var x1 = (beat.dir > 0 ? pos : 1 - pos) * W, x2 = (beat.dir > 0 ? pos2 : 1 - pos2) * W;
+          cx.strokeStyle = 'rgba(255,70,60,' + (u * u * .95).toFixed(3) + ')';
+          cx.beginPath(); cx.moveTo(x1, beat.y + y1 * beat.amp); cx.lineTo(x2, beat.y + y2 * beat.amp); cx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  window.__pulse = launch;
+  if (!reduce) { setTimeout(launch, 6000 + Math.random() * 8000); requestAnimationFrame(frame); }
 })();
 </script>
 </body>
