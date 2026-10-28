@@ -61,7 +61,7 @@ const HW_SLOTS = {
       {name:'Tower Air Cooler',  maxTempC:80, throttleC:70, cost:350, sub:'be quiet! Pure Rock'},
       {name:'240mm AIO Liquid',  maxTempC:70, throttleC:60, cost:900, sub:'Corsair H100'},
       {name:'Custom Loop',       maxTempC:55, throttleC:45, cost:4000,sub:'Hardline · silent'},
-      {name:'Icepack',           maxTempC:10, throttleC:5 , cost:999999999,sub'Ice cube cold.'},
+      {name:'Icepack',           maxTempC:10, throttleC:5 , cost:999999999,sub:'Ice cube cold.'},
     ]
   }
 };
