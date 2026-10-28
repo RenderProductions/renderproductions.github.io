@@ -51,6 +51,17 @@
         {"type": "wait", "ms": 1500},
         {"type": "text", "text": "What do you get when you cross a mentally ill loner with a society that abandons him and treats him like trash? I'll tell you what you get! You get what you fucking deserve!"}
       ]
+    },
+    "105.7": {
+      "actions": [
+      {"type": "glitch", "ms": 30 },
+      {"type": "text", "text": "Oldies 105.7!"}
+      ]
+    },
+    "FREE": {
+      "actions": [
+        {"Type": "Text", "Text": "And the truth, shall set you free!"}
+      ]
     }
   }
 }
