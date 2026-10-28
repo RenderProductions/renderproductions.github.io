@@ -643,7 +643,7 @@ function renderNode(id){
 
   const inPorts=getEffectiveInputs(n,def).map((p,i)=>`
     <div class="port-row">
-      <div class="port${isPortConnected(id,'in',i)?' connected':''}" id="port_${id}_in_${i}" data-node="${id}" data-type="in" data-idx="${i}"></div>
+      <div class="port${isPortConnected(id,'in',i)?' connected':''}${isCutTarget(id,i)?' cut':''}" id="port_${id}_in_${i}" data-node="${id}" data-type="in" data-idx="${i}"></div>
       <span class="port-label">${portLabelIn(n,def,i,p)}</span>
     </div>`).join('');
   const outPorts=getEffectiveOutputs(n,def).map((p,i)=>`
@@ -844,28 +844,74 @@ function startDragNode(e,id){
 }
 
 let connectStart=null;
+function nodeName(id){
+  const n=G.nodes[id];const d=n&&MODULE_DEFS.find(x=>x.id===n.defId);
+  return d?d.name:'node';
+}
+// Highlights the input ports that dragging from the current output would disconnect
+function isCutTarget(nodeId,idx){
+  if(!connectStart||connectStart.type!=='out')return false;
+  return G.wires.some(w=>w.fromNode===connectStart.nodeId&&w.fromPort===connectStart.idx&&w.toNode===nodeId&&w.toPort===idx);
+}
+function finishConnectUI(){
+  connectStart=null;tempWireSvg.innerHTML='';
+  document.body.classList.remove('connecting');
+  Object.keys(G.nodes).forEach(renderNode);
+  renderAllWires();
+}
+function logCut(w){log('Disconnected: '+nodeName(w.fromNode)+' ✕ '+nodeName(w.toNode),'info');}
+
+/* Drag from an output port to start a wire.
+   Drag from an input port that already has a wire to pull that wire off:
+   drop it on another input to move it, or anywhere else to disconnect it. */
 function startConnect(e,nodeId,type,idx){
-  if(type==='in')return;
-  connectStart={nodeId,type,idx};e.preventDefault();
+  e.preventDefault();
+  if(type==='in'){
+    const w=G.wires.find(x=>x.toNode===nodeId&&x.toPort===idx);
+    if(!w)return;
+    G.wires=G.wires.filter(x=>x!==w);
+    connectStart={nodeId:w.fromNode,type:'out',idx:w.fromPort,detached:{fromNode:w.fromNode,fromPort:w.fromPort,toNode:w.toNode,toPort:w.toPort}};
+    document.body.classList.add('connecting');
+    renderAllWires();
+    return;
+  }
+  connectStart={nodeId,type,idx};
   document.body.classList.add('connecting');
 }
 function endConnect(nodeId,type,idx){
-  document.body.classList.remove('connecting');
-  if(!connectStart||type!=='in'){connectStart=null;return;}
-  const{nodeId:fromNode,idx:fromPort}=connectStart;
+  const cs=connectStart;
+  const det=cs&&cs.detached;
+  const restore=()=>{if(det)G.wires.push({...det,_active:false});};
+  if(!cs||type!=='in'){
+    // dropped on an output port or nothing: a pulled-off wire stays disconnected
+    if(det)logCut(det);
+    finishConnectUI();return;
+  }
+  const fromNode=cs.nodeId,fromPort=cs.idx;
   const toNode=nodeId,toPort=idx;
-  connectStart=null;tempWireSvg.innerHTML='';
-  if(fromNode===toNode)return;
+  if(fromNode===toNode){restore();finishConnectUI();return;}
+  // dropped back on the port it was pulled from: nothing changes
+  if(det&&det.toNode===toNode&&det.toPort===toPort){restore();finishConnectUI();return;}
   const def=MODULE_DEFS.find(d=>d.id===G.nodes[fromNode].defId);
   const tdef=MODULE_DEFS.find(d=>d.id===G.nodes[toNode].defId);
   const outType=getEffectiveOutputs(G.nodes[fromNode],def)[fromPort];
   const inType=getEffectiveInputs(G.nodes[toNode],tdef)[toPort];
-  if(outType!==inType){log(`Type mismatch: "${outType}" → "${inType}"`,'err');return;}
+  if(outType!==inType){
+    restore();
+    log(`Type mismatch: "${outType}" → "${inType}"`,'err');
+    finishConnectUI();return;
+  }
+  // dragging between two nodes that are already connected disconnects them
+  const existing=G.wires.find(w=>w.fromNode===fromNode&&w.fromPort===fromPort&&w.toNode===toNode&&w.toPort===toPort);
+  if(existing&&!det){
+    G.wires=G.wires.filter(w=>w!==existing);
+    logCut(existing);
+    finishConnectUI();return;
+  }
   G.wires=G.wires.filter(w=>!(w.toNode===toNode&&w.toPort===toPort));
   G.wires.push({fromNode,fromPort,toNode,toPort,_active:false});
-  log(def.name+' → '+tdef.name,'info');
-  Object.keys(G.nodes).forEach(renderNode);
-  renderAllWires();
+  log((det?'Moved: ':'')+def.name+' → '+tdef.name,'info');
+  finishConnectUI();
 }
 
 document.addEventListener('mousemove',e=>{
@@ -893,7 +939,10 @@ document.addEventListener('mouseup',e=>{
   document.body.classList.remove('connecting');
   if(isPanning){isPanning=false;return;}
   if(G.draggingNode){G.draggingNode=null;renderAllWires();}
-  if(connectStart){connectStart=null;tempWireSvg.innerHTML='';}
+  if(connectStart){
+    if(connectStart.detached)logCut(connectStart.detached);
+    finishConnectUI();
+  }
 });
 canvasWrap.addEventListener('dragover',e=>e.preventDefault());
 canvasWrap.addEventListener('drop',e=>{
@@ -1576,7 +1625,7 @@ function setFlag(name){
 }
 // EXAMPLE rewards. Rename the flags or add more to match your scanner codes.
 const FLAG_REWARDS={
-  CashMoney:{cash:2500,msg:'Backstage signal accepted: +2,500 ◆ transferred.'},
+  rft_bonus:{cash:2500,msg:'Backstage signal accepted: +2,500 ◆ transferred.'},
   rft_backstage_market:{module:true,msg:'Backstage Market unlocked. Check Upload & Sell.'}
 };
 let seenFlags={};
@@ -1596,6 +1645,109 @@ function applyFlags(){
 }
 window.addEventListener('storage',e=>{if(e.key===FLAG_KEY)applyFlags();});
 window.addEventListener('focus',applyFlags);
+
+/* ── TERMINAL ──
+   Codes live in terminal.json (next to this page). An entry has either a plain
+   "code" or a "sha256" of the code (UPPERCASE, trimmed). Normalisation matches
+   the frequency scanner: trim + uppercase. Rewards: cash, flag/flags. */
+const TERMINAL_URL='terminal.json';
+const TERM={codes:null,loading:null,greeted:false};
+
+function termEls(){
+  return{modal:document.getElementById('term-modal'),out:document.getElementById('term-out'),
+         form:document.getElementById('term-form'),input:document.getElementById('term-input')};
+}
+function termPrint(text,cls){
+  const{out}=termEls();
+  const d=document.createElement('div');
+  d.className='tl'+(cls?' '+cls:'');
+  d.textContent=text;
+  out.appendChild(d);
+  out.scrollTop=out.scrollHeight;
+}
+function openTerminal(){
+  const{modal,input}=termEls();
+  modal.classList.add('open');
+  if(!TERM.greeted){
+    TERM.greeted=true;
+    termPrint('RENDER TERMINAL // ONLINE','ok');
+    termPrint('Enter a code to redeem it. Type HELP for commands.','dim');
+  }
+  setTimeout(()=>input.focus(),30);
+}
+function closeTerminal(){termEls().modal.classList.remove('open');}
+
+function termLoad(){
+  if(!TERM.loading){
+    TERM.loading=fetch(TERMINAL_URL,{cache:'no-store'})
+      .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+      .then(d=>{
+        if(!d||!Array.isArray(d.codes))throw new Error('bad format');
+        TERM.codes=d.codes;return d.codes;
+      })
+      .catch(e=>{TERM.loading=null;throw e;});
+  }
+  return TERM.loading;
+}
+function termNorm(s){return String(s).trim().toUpperCase();}
+async function sha256Hex(s){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function termRedeem(entry){
+  const key='t:'+(entry.id||entry.sha256||termNorm(entry.code));
+  if(entry.once!==false&&CLAIMED[key]){termPrint('Already redeemed.','warn');return;}
+  const got=[];
+  const cash=Number(entry.cash);
+  if(isFinite(cash)&&cash>0){G.money+=cash;got.push('+'+Math.round(cash).toLocaleString()+' ◆');}
+  const flags=[].concat(entry.flags||[],entry.flag?[entry.flag]:[]).filter(f=>typeof f==='string'&&f);
+  flags.forEach(setFlag);
+  CLAIMED[key]=true;
+  termPrint(entry.message||'Code accepted.','ok');
+  if(got.length)termPrint(got.join('  '),'ok');
+  updateStats();
+  applyFlags();   // unlocks anything tied to the flags just set
+  saveGame();
+}
+
+async function termSubmit(raw){
+  const code=termNorm(raw);
+  if(!code)return;
+  termPrint('> '+code,'cmd');
+  if(code==='HELP'){
+    termPrint('Enter a code to redeem it. Codes are not case-sensitive.');
+    termPrint('Commands: HELP, CLEAR, EXIT','dim');return;
+  }
+  if(code==='CLEAR'){termEls().out.innerHTML='';return;}
+  if(code==='EXIT'){closeTerminal();return;}
+  let list;
+  try{list=await termLoad();}
+  catch(e){termPrint('Terminal offline. Could not load terminal.json.','err');return;}
+  let hash=null;
+  for(const entry of list){
+    if(!entry)continue;
+    if(entry.code&&termNorm(entry.code)===code){termRedeem(entry);return;}
+    if(entry.sha256){
+      if(!(window.crypto&&crypto.subtle)){continue;}
+      if(hash===null)hash=await sha256Hex(code);
+      if(hash===String(entry.sha256).toLowerCase()){termRedeem(entry);return;}
+    }
+  }
+  termPrint('UNKNOWN CODE','err');
+}
+(function(){
+  const{form,input}=termEls();
+  form.addEventListener('submit',e=>{
+    e.preventDefault();
+    const v=input.value;input.value='';
+    termSubmit(v);
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&termEls().modal.classList.contains('open'))closeTerminal();
+  });
+  termEls().modal.addEventListener('mousedown',e=>{if(e.target===termEls().modal)closeTerminal();});
+})();
 
 /* ── SAVE SYSTEM ── */
 const SAVE_KEY='rft_save_v1';
@@ -1664,3 +1816,10 @@ log('🖥️ Open Hardware Upgrades to boost CPU, RAM, Storage & NIC — they af
 log('⚠ Limits are hard: no CPU headroom, a full next node, no free RAM/disk, or overheating makes a node wait (amber) until it clears.');
 applyFlags();
 requestAnimationFrame(gameTick);
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&connectStart){
+    if(connectStart.detached)G.wires.push({...connectStart.detached,_active:false});
+    finishConnectUI();
+  }
+});

@@ -1,0 +1,23 @@
+{
+  "_note": "Codes for the in-game Terminal. Each entry has EITHER 'code' (plain text) OR 'sha256' (SHA-256 hex of the code in UPPERCASE, so the code isn't readable here). Rewards: 'cash' (number), 'flag' or 'flags' (names written to the shared rp_flags). 'once' defaults to true (one redeem per browser). 'id' is optional and keeps the redeem record stable if you rename the code. These three are EXAMPLES, replace them.",
+  "codes": [
+    {
+      "id": "starter",
+      "code": "RFT STARTER",
+      "cash": 500,
+      "message": "Starter packet received."
+    },
+    {
+      "id": "backstage",
+      "code": "BACKSTAGE",
+      "flag": "rft_backstage_market",
+      "message": "Backstage Market unlocked. Check Upload & Sell."
+    },
+    {
+      "id": "hashed-example",
+      "sha256": "ff9d8a9bbccaee08f74e5f753fdac8f5e8222b2cc424a98e250b3746cab74a60",
+      "cash": -1000,
+      "message": "Dirty little cheater."
+    }
+  ]
+}

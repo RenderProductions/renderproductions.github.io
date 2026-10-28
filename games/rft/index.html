@@ -87,6 +87,7 @@
   <div id="toolbar">
    <button class="tbtn" onclick="autoLayout()">Auto-arrange</button>
    <button class="tbtn" onclick="resetView()">Reset view</button>
+   <button class="tbtn" onclick="openTerminal()"><i class="ti ti-terminal-2"></i> Terminal</button>
    <button class="tbtn" onclick="saveGame(true)">Save</button>
    <button class="tbtn danger" onclick="resetSave()">Reset save</button>
    <button class="tbtn danger" onclick="clearAll()">Clear all</button>
@@ -112,6 +113,19 @@
   <h3>🖥️ PC Hardware</h3>
   <div class="hw-subtitle">Upgrade your rig to unlock higher CPU caps, RAM, faster storage, and better cooling.</div>
   <div id="hw-content"></div>
+ </div>
+</div>
+
+<!-- Terminal -->
+<div id="term-modal">
+ <div id="term-box" role="dialog" aria-label="Render Terminal">
+  <span class="hw-close" onclick="closeTerminal()">✕</span>
+  <h3>RENDER TERMINAL</h3>
+  <div id="term-out" aria-live="polite"></div>
+  <form id="term-form" autocomplete="off">
+   <span class="term-prompt">&gt;</span>
+   <input id="term-input" type="text" maxlength="40" spellcheck="false" placeholder="Enter code">
+  </form>
  </div>
 </div>
 
