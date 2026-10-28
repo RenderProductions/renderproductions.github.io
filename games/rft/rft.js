@@ -17,6 +17,7 @@ const HW_SLOTS = {
       {name:'Intel i5-13600K',cores:10,cpuCap:220, cost:1200,  sub:'10C · Mid-range'},
       {name:'Intel i7-14700K',cores:20,cpuCap:500, cost:3500,  sub:'20C · Workstation'},
       {name:'AMD Threadripper',cores:64,cpuCap:1500,cost:12000,sub:'64C · Server-grade'},
+      {name:'The Gregulator',cores:128,cpuCap:30000,cost:999999999,sub:'Jesus Killer'},
     ]
   },
   ram: {
@@ -27,6 +28,7 @@ const HW_SLOTS = {
       {name:'16 GB DDR4-3600',ramGB:16, cost:400,  sub:'DDR4 · Gaming'},
       {name:'32 GB DDR5-5600',ramGB:32, cost:1100, sub:'DDR5 · Creator'},
       {name:'128 GB DDR5-6400',ramGB:128,cost:6000,sub:'DDR5 · Workstation'},
+      {name:'264 GB MOTHERLOAD',ramGB:264,cost:999999999,sub:'MOTHERLOAD'},
     ]
   },
   storage: {
@@ -37,6 +39,7 @@ const HW_SLOTS = {
       {name:'1 TB HDD',        capGB:1000, rwMBs:120,  cost:300,  sub:'120 MB/s · cheap capacity'},
       {name:'2 TB NVMe M.2',   capGB:2000, rwMBs:3500, cost:1800, sub:'3500 MB/s'},
       {name:'16 TB NAS RAID',  capGB:16000,rwMBs:1000, cost:9000, sub:'1 GB/s · massive'},
+      {name:'400 TB KICKER',   capGB:40000,rwMBs:30000, cost:999999999, sub:'Lord have mercy'},
     ]
   },
   nic: {
@@ -47,6 +50,7 @@ const HW_SLOTS = {
       {name:'1 GbE Ethernet',   maxBwMBs:125, cost:200,  sub:'Gigabit wired'},
       {name:'2.5 GbE Ethernet', maxBwMBs:312, cost:600,  sub:'2.5G wired'},
       {name:'10 GbE SFP+',      maxBwMBs:1250,cost:2500, sub:'10G fiber/DAC'},
+      {name:'GOD HELP US',      maxBwMBs:90000,cost:999999999,sub:'Oh my god.'},
     ]
   },
   cooler: {
@@ -57,6 +61,7 @@ const HW_SLOTS = {
       {name:'Tower Air Cooler',  maxTempC:80, throttleC:70, cost:350, sub:'be quiet! Pure Rock'},
       {name:'240mm AIO Liquid',  maxTempC:70, throttleC:60, cost:900, sub:'Corsair H100'},
       {name:'Custom Loop',       maxTempC:55, throttleC:45, cost:4000,sub:'Hardline · silent'},
+      {name:'Icepack',           maxTempC:10, throttleC:5 , cost:999999999,sub'Ice cube cold.'},
     ]
   }
 };
