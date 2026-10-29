@@ -61,7 +61,9 @@ body{overflow:hidden}
 #canvas-wrap.panning{cursor:grab}
 #canvas-wrap.panning:active{cursor:grabbing}
 #viewport{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform}
-#grid-canvas{position:absolute;top:0;left:0;pointer-events:none}
+#grid-canvas{display:none}
+#canvas-wrap{background-image:linear-gradient(rgba(79,120,180,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(79,120,180,.10) 1px,transparent 1px),linear-gradient(rgba(79,120,180,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(79,120,180,.05) 1px,transparent 1px);background-size:220px 220px,220px 220px,44px 44px,44px 44px}
+#wire-svg,#viewport svg{overflow:visible}
 #svg-layer{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
 #node-layer{position:absolute;top:0;left:0}
 #temp-wire{position:absolute;top:0;left:0;pointer-events:none;z-index:15;overflow:visible}
@@ -278,11 +280,11 @@ body.connecting .port.cut[data-type="in"]:hover{background:var(--red);transform:
 @keyframes rft-fade{from{opacity:0}to{opacity:1}}
 @keyframes rft-pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes rft-flicker{0%{opacity:0;transform:scaleY(.04)}35%{opacity:1;transform:scaleY(.04)}100%{opacity:1;transform:none}}
-#upg-modal.open,#hw-modal.open,#term-modal.open{animation:rft-fade .18s ease-out}
-#upg-modal.open #upg-box,#hw-modal.open #hw-box{animation:rft-pop .24s cubic-bezier(.2,.9,.3,1.1)}
-#term-modal.open #term-box{animation:rft-flicker .28s ease-out;transform-origin:center}
-.mod-card{animation:rft-pop .28s ease-out both}
-.node{animation:rft-pop .22s ease-out}
+#upg-modal.open,#hw-modal.open,#term-modal.open{animation:rft-fade .35s ease-out}
+#upg-modal.open #upg-box,#hw-modal.open #hw-box{animation:rft-pop .55s cubic-bezier(.22,.8,.3,1)}
+#term-modal.open #term-box{animation:rft-flicker .7s ease-out;transform-origin:center}
+.mod-card{animation:rft-pop .5s ease-out both}
+.node{animation:rft-pop .45s ease-out}
 @media (prefers-reduced-motion:reduce){
   #upg-modal.open,#hw-modal.open,#term-modal.open,#upg-box,#hw-box,#term-box,.mod-card,.node{animation:none!important}
 }

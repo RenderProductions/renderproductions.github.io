@@ -484,6 +484,11 @@ const viewport=document.getElementById('viewport');
 function applyViewport(){
   viewport.style.transform=`translate(${vp.x}px,${vp.y}px) scale(${vp.zoom})`;
   document.getElementById('zoom-hud').textContent=Math.round(vp.zoom*100)+'%';
+  // the grid is drawn by CSS and follows the view, so the board has no edges
+  const cw=document.getElementById('canvas-wrap');
+  if(cw){const c=CELL*vp.zoom,b=c*5;
+    cw.style.backgroundSize=`${b}px ${b}px,${b}px ${b}px,${c}px ${c}px,${c}px ${c}px`;
+    cw.style.backgroundPosition=`${vp.x}px ${vp.y}px`;}
 }
 function screenToWorld(sx,sy){return{x:(sx-vp.x)/vp.zoom,y:(sy-vp.y)/vp.zoom};}
 
@@ -641,7 +646,7 @@ function spawnNode(defId,x,y){
   if(def.cost>0&&G.money<def.cost){log('Not enough money for '+def.name,'err');return;}
   if(def.cost>0)G.money-=def.cost;
   const id='n'+(G.nextId++);
-  const sx=Math.round(x/CELL)*CELL,sy=Math.round(y/CELL)*CELL;
+  const sx=Math.round(x),sy=Math.round(y);   // free placement (hold Shift while dragging to snap)
   G.nodes[id]={id,defId,x:sx,y:sy,progress:0,queue:[],state:'idle',
     upgLevels:{},_sellTimer:0,_slots:[],_bwOut:0};
   renderNode(id);
@@ -1042,8 +1047,9 @@ document.addEventListener('mousemove',e=>{
   const{x:wx,y:wy}=screenToWorld(sx,sy);
   if(G.draggingNode){
     const n=G.nodes[G.draggingNode];
-    n.x=Math.max(0,Math.round((wx-G.draggingOffset.x)/CELL)*CELL);
-    n.y=Math.max(0,Math.round((wy-G.draggingOffset.y)/CELL)*CELL);
+    const gx=wx-G.draggingOffset.x,gy=wy-G.draggingOffset.y;
+    n.x=Math.round(e.shiftKey?Math.round(gx/CELL)*CELL:gx);   // free by default, Shift snaps to the grid
+    n.y=Math.round(e.shiftKey?Math.round(gy/CELL)*CELL:gy);
     renderNode(G.draggingNode);renderAllWires();
   }
   if(connectStart){
