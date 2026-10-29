@@ -272,3 +272,17 @@ body.connecting .port.cut[data-type="in"]:hover{background:var(--red);transform:
 #term-input{flex:1;background:transparent;border:0;border-bottom:1px solid var(--border3);color:var(--accent);font:500 14px/1 var(--mono);letter-spacing:2px;text-transform:uppercase;padding:8px 2px;outline:none;border-radius:0}
 #term-input::placeholder{color:var(--t2);text-transform:none;letter-spacing:1px}
 #term-input:focus{border-bottom-color:var(--accent);box-shadow:0 6px 10px -8px rgba(255,230,0,.5)}
+
+
+/* ── Menu animations: backdrops fade in, panels pop up ── */
+@keyframes rft-fade{from{opacity:0}to{opacity:1}}
+@keyframes rft-pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes rft-flicker{0%{opacity:0;transform:scaleY(.04)}35%{opacity:1;transform:scaleY(.04)}100%{opacity:1;transform:none}}
+#upg-modal.open,#hw-modal.open,#term-modal.open{animation:rft-fade .18s ease-out}
+#upg-modal.open #upg-box,#hw-modal.open #hw-box{animation:rft-pop .24s cubic-bezier(.2,.9,.3,1.1)}
+#term-modal.open #term-box{animation:rft-flicker .28s ease-out;transform-origin:center}
+.mod-card{animation:rft-pop .28s ease-out both}
+.node{animation:rft-pop .22s ease-out}
+@media (prefers-reduced-motion:reduce){
+  #upg-modal.open,#hw-modal.open,#term-modal.open,#upg-box,#hw-box,#term-box,.mod-card,.node{animation:none!important}
+}

@@ -14,10 +14,16 @@
       "message": "Backstage Market unlocked. Check Upload & Sell."
     },
     {
+      "id": "honeypot",
+      "code": "STICKY TRAP",
+      "flag": "rft_honeypot",
+      "message": "Honeypot unlocked. Check Utilities."
+    },
+    {
       "id": "hashed-example",
       "sha256": "ff9d8a9bbccaee08f74e5f753fdac8f5e8222b2cc424a98e250b3746cab74a60",
-      "cash": -1000,
-      "message": "Dirty little cheater."
+      "cash": 1000,
+      "message": "You found the hidden entry."
     }
   ]
 }

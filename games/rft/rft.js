@@ -95,17 +95,30 @@ const PC_LOCK={thermal:false};
 function capOf(n){
   const def=MODULE_DEFS.find(d=>d.id===n.defId);
   if(!def)return PACE.queueCap;
-  if(n.defId==='network_binder')return nodeStat(n,'queueSize')||5;
+  if(n.defId==='network_binder')return (nodeStat(n,'queueSize')||5)*Math.max(1,nodeStat(n,'fileInputs')||1);
   if(def.isBuffer)return nodeStat(n,'bufSize')||8;
   if(def.isSSDCache)return nodeStat(n,'cacheSize')||20;
   return PACE.queueCap;
 }
-function roomIn(id){const n=G.nodes[id];return !n||(n.queue||[]).length<capOf(n);}
+function roomIn(id,fromId){
+  const n=G.nodes[id];if(!n)return true;
+  const q=n.queue||[],cap=capOf(n);
+  if(q.length>=cap)return false;
+  // binder: every wired input gets an equal slice, so one fast downloader can't fill the whole queue
+  if(n.defId==='network_binder'&&fromId){
+    const srcs=new Set(G.wires.filter(w=>w.toNode===id&&w.toPort!==1).map(w=>w.fromNode));
+    if(srcs.size>1){
+      const slice=Math.ceil(cap/srcs.size);
+      if(q.filter(f=>f._src===fromId).length>=slice)return false;
+    }
+  }
+  return true;
+}
 // true when the node fed by (id, port) has room (or nothing is wired)
 function outRoom(id,port,all){
   const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===port);
   if(!outs.length)return true;
-  return all?outs.every(w=>roomIn(w.toNode)):roomIn(outs[0].toNode);
+  return all?outs.every(w=>roomIn(w.toNode,id)):roomIn(outs[0].toNode,id);
 }
 
 /* ── BANDWIDTH SHARING ──
@@ -226,7 +239,7 @@ const MODULE_DEFS=[
 
  /* ── DOWNLOADS ── */
  {cat:'Downloads',id:'dl_document',name:'Doc Downloader',icon:'ti-file-text',
-  desc:'Documents (~50 KB) · 0.5 MB/s · 32 MB RAM',cost:100,color:'#0F6E56',fileType:'Document',
+  desc:'Documents (~50 KB) · 32 MB RAM',cost:100,color:'#0F6E56',fileType:'Document',
   inputs:['bandwidth'],outputs:['file'],
   upgrades:[
    {label:'Parallel slots',stat:'slots',unit:'',base:1,levels:[2,3,5,8],costs:[150,400,900,2500]},
@@ -345,6 +358,19 @@ const MODULE_DEFS=[
    {label:'Auction speed', stat:'sellDelay',unit:'s', base:5,   levels:[3.5,2.5,1.5,0.8],costs:[800,2000,5500,16000],invert:true},
    {label:'Sell multiplier',stat:'sellMult', unit:'×',base:1.8, levels:[2.0,2.3,2.7,3.2], costs:[1000,2500,6500,20000]},
   ]},
+ {cat:'Upload & Sell',id:'seeder',name:'Seeder',icon:'ti-seeding',
+  desc:'Keeps sold files seeding · passive income per second · files pass on to a market',cost:1200,color:'#3B6D11',
+  inputs:['sold'],outputs:['sold'],isSeeder:true,
+  upgrades:[
+   {label:'Seed slots',stat:'seedSlots',unit:'files',base:10,levels:[20,40,80,160],costs:[500,1300,3200,8000]},
+   {label:'Seed rate',stat:'seedRate',unit:'%/s',base:1,levels:[1.5,2.2,3.2,4.5],costs:[600,1600,4000,10000]},
+  ]},
+ {cat:'Upload & Sell',id:'mirror',name:'Mirror Server',icon:'ti-copy',
+  desc:'Sells one file to two markets · each pays a share of its value',cost:1500,color:'#3B6D11',
+  inputs:['sold'],outputs:['sold','sold'],isMirror:true,
+  upgrades:[
+   {label:'Value per copy',stat:'mirrorMult',unit:'×',base:0.6,levels:[0.7,0.8,0.9,1.0],costs:[800,2200,6000,15000]},
+  ]},
  /* ── SECRET (unlocked by a frequency-scanner flag) ── */
  {cat:'Upload & Sell',id:'backstage_market',name:'Backstage Market',icon:'ti-antenna',
   locked:'rft_backstage_market',
@@ -380,6 +406,21 @@ const MODULE_DEFS=[
   desc:'Clones file to 2 outputs',cost:250,color:'#993556',
   inputs:['file'],outputs:['file','file'],isSplit:true,
   upgrades:[]},
+ {cat:'Utilities',id:'file_sorter',name:'File Sorter',icon:'ti-arrows-split-2',
+  desc:'Routes by size · small files out 1, large files out 2',cost:350,color:'#993556',
+  inputs:['file'],outputs:['file','file'],outLabels:['small','large'],isSorter:true,
+  upgrades:[
+   {label:'Large-file cutoff',stat:'cutoffMB',unit:'MB',base:5,levels:[1,20,100,400],costs:[150,400,1000,2500]},
+   {label:'Sort speed',stat:'sortTime',unit:'s',base:0.4,levels:[0.25,0.15,0.08,0.03],costs:[200,500,1200,3000],invert:true},
+  ]},
+ {cat:'Utilities',id:'honeypot',name:'Honeypot',icon:'ti-bug',
+  locked:'rft_honeypot',
+  desc:'Traps corrupt files for a bounty · clean files pass through',cost:900,color:'#ff6b6b',
+  inputs:['file'],outputs:['file'],isHoneypot:true,
+  upgrades:[
+   {label:'Bounty',stat:'bounty',unit:'×',base:0.4,levels:[0.6,0.9,1.3,2],costs:[500,1400,3500,9000]},
+   {label:'Trap speed',stat:'trapTime',unit:'s',base:0.5,levels:[0.35,0.2,0.1],costs:[300,900,2500],invert:true},
+  ]},
  {cat:'Utilities',id:'bandwidth_amp',name:'BW Amplifier',icon:'ti-bolt',
   desc:'Multiplies bandwidth signal',cost:400,color:'#993556',
   inputs:['bandwidth'],outputs:['bandwidth'],
@@ -710,7 +751,7 @@ function renderNode(id){
     </div>`).join('');
   const outPorts=getEffectiveOutputs(n,def).map((p,i)=>`
     <div class="port-row" style="justify-content:flex-end">
-      <span class="port-label">${p}${def.outputs.length>1?` ${i+1}`:''}</span>
+      <span class="port-label">${def.outLabels?def.outLabels[i]:p+(def.outputs.length>1?' '+(i+1):'')}</span>
       <div class="port out${isPortConnected(id,'out',i)?' connected':''}" id="port_${id}_out_${i}" data-node="${id}" data-type="out" data-idx="${i}"></div>
     </div>`).join('');
 
@@ -756,7 +797,7 @@ function renderNode(id){
     body+=progBar(n.progress,def.color);
   }
   if(n.defId==='network_binder'){
-    const qs=nodeStat(n,'queueSize')||5;
+    const qs=capOf(n);
     const q=(n.queue||[]).length;
     if(q>=qs*0.8)body=`<div class="node-stat warn">Queue: ${q}/${qs} ⚠</div>`;
     else body=`<div class="node-stat">Queue: ${q}/${qs}</div>`;
@@ -775,6 +816,20 @@ function renderNode(id){
     body=`<div class="node-stat">Threads: ${thr} · ${fmtSpeed(PACE.threadCap)} each, shared line</div>`;
     if(n._ulSpeed)body+=`<div class="node-stat hi">${fmtSpeed(n._ulSpeed)} uploading</div>`;
     body+=progBar(n.progress,'var(--purple)');;
+  }
+  if(def.isSorter){
+    body=`<div class="node-stat">Large ≥ ${nodeStat(n,'cutoffMB')||5} MB → out 2</div><div class="node-stat">Queue: ${(n.queue||[]).length}</div>`;
+  }
+  if(def.isHoneypot){
+    body=`<div class="node-stat">Bounty ${(nodeStat(n,'bounty')||0.4).toFixed(1)}× value</div><div class="node-stat hi">Trapped: ${n._trapped||0}${n._lastBounty?' · last '+fmtMoney(n._lastBounty):''}</div>`;
+  }
+  if(def.isMirror){
+    const mm=nodeStat(n,'mirrorMult')||0.6;
+    body=`<div class="node-stat">${mm.toFixed(1)}× per copy · ${(mm*2).toFixed(1)}× total</div><div class="node-stat">Queue: ${(n.queue||[]).length}</div>`;
+  }
+  if(def.isSeeder){
+    const sl=nodeStat(n,'seedSlots')||10;
+    body=`<div class="node-stat">Seeding ${(n.seeds||[]).length}/${sl} files</div><div class="node-stat hi">+${fmtMoney(n._seedPs||0)}/s</div>`;
   }
   if(def.isSeller){
     const comm=nodeStat(n,'commission')??def.commission??20;
@@ -1335,7 +1390,7 @@ function gameTick(ts){
         const file={id:'f'+(G.nextId++),type:def.fileType,sizeMB:fd.sizeMB,
           value:fd.baseVal*(0.85+Math.random()*0.3),corrupt,tags:[]};
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,file);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,file,id);outs[0]._active=true;}
         n.state='active';
       }
     });
@@ -1381,7 +1436,7 @@ function gameTick(ts){
         f.tags=[...(f.tags||[]),def.procType];
         n._proc=null;n.progress=0;
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
         n.state='active';
       } else n.state=PC_LOCK.thermal?'waiting':'active';
     } else n.state=n._waitCpu?'waiting':n.queue.length?'active':'idle';
@@ -1400,7 +1455,7 @@ function gameTick(ts){
         n._rTimer=0;
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
       }
       n.state=n.queue.length>=(cap*0.9)?'error':n.queue.length?'active':'idle';
     }
@@ -1412,7 +1467,7 @@ function gameTick(ts){
         n._rTimer=0;
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
       }
       n.state=n.queue.length>=(cap*0.9)?'error':n.queue.length?'active':'idle';
     }
@@ -1424,7 +1479,7 @@ function gameTick(ts){
         n._rTimer=0;
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
       }
       n.state=n.queue.length?'active':'idle';
     }
@@ -1437,7 +1492,7 @@ function gameTick(ts){
         const f=n.queue.shift();
         if(f.corrupt)f.corrupt=false; // backup recovers corrupt
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
       }
       n.state='active';
     }
@@ -1460,9 +1515,80 @@ function gameTick(ts){
           f=n.queue.shift();
         }
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
       }
       n.state=n.queue.length?'active':'idle';
+    }
+
+    if(def.isSorter&&n.queue.length){
+      n._rTimer=(n._rTimer||0)+dt;
+      if(n._rTimer>=(nodeStat(n,'sortTime')||0.4)){
+        const f=n.queue[0];
+        const cut=nodeStat(n,'cutoffMB')||5;
+        const want=f.sizeMB>=cut?1:0;
+        const wired=pi=>G.wires.some(w=>w.fromNode===id&&w.fromPort===pi);
+        // if the chosen output isn't wired, use the other one so nothing jams
+        const port=wired(want)?want:wired(1-want)?1-want:want;
+        if(outRoom(id,port)){
+          n._rTimer=0;n.queue.shift();
+          const o=G.wires.find(w=>w.fromNode===id&&w.fromPort===port);
+          if(o){pushToNode(o.toNode,f,id);o._active=true;}
+          n._lastPort=port;
+        }
+      }
+      n.state='active';
+    } else if(def.isSorter)n.state='idle';
+
+    if(def.isHoneypot&&n.queue.length){
+      n._rTimer=(n._rTimer||0)+dt;
+      if(n._rTimer>=(nodeStat(n,'trapTime')||0.5)){
+        const f=n.queue[0];
+        if(f.corrupt){
+          n._rTimer=0;n.queue.shift();
+          const pay=Math.round(f.value*(nodeStat(n,'bounty')||0.4));
+          G.money+=pay;G.totalEarned+=pay;incomeNow+=pay;G.incomeLog.push({t:G.clock,v:pay});
+          n._trapped=(n._trapped||0)+1;n._lastBounty=pay;
+          log('Honeypot trapped a corrupt '+f.type+' → '+fmtMoney(pay),'info');
+        } else if(outRoom(id,0)){
+          n._rTimer=0;n.queue.shift();
+          const o=G.wires.find(w=>w.fromNode===id&&w.fromPort===0);
+          if(o){pushToNode(o.toNode,f,id);o._active=true;}
+        }
+      }
+      n.state='active';
+    } else if(def.isHoneypot)n.state='idle';
+
+    if(def.isMirror&&n.queue.length&&outRoom(id,0,true)&&outRoom(id,1,true)){
+      const f=n.queue.shift();
+      const mm=nodeStat(n,'mirrorMult')||0.6;
+      [0,1].forEach(pi=>{
+        G.wires.filter(w=>w.fromNode===id&&w.fromPort===pi).forEach(w=>{
+          pushToNode(w.toNode,{...f,id:'f'+(G.nextId++),value:f.value*mm},id);w._active=true;});
+      });
+      n.state='active';
+    } else if(def.isMirror)n.state='idle';
+
+    if(def.isSeeder){
+      n.seeds=n.seeds||[];
+      const slots=nodeStat(n,'seedSlots')||10;
+      n._rTimer=(n._rTimer||0)+dt;
+      if(n.queue.length&&n._rTimer>=0.1&&outRoom(id,0)){
+        n._rTimer=0;
+        const f=n.queue.shift();
+        if(!f.corrupt){n.seeds.push({type:f.type,val:f.value});while(n.seeds.length>slots)n.seeds.shift();}
+        const o=G.wires.find(w=>w.fromNode===id&&w.fromPort===0);
+        if(o){pushToNode(o.toNode,f,id);o._active=true;}
+      }
+      // each seed earns a % of its value every second; a faster NIC seeds better
+      const rate=(nodeStat(n,'seedRate')||1)/100*sellNetFactor();
+      let inc=0;n.seeds.forEach(sd=>{inc+=sd.val*rate*marketMult(sd.type)*dt;});
+      n._seedAcc=(n._seedAcc||0)+inc;
+      n._seedPs=n.seeds.reduce((a,sd)=>a+sd.val*rate*marketMult(sd.type),0);
+      if(n._seedAcc>=1){
+        const pay=Math.floor(n._seedAcc);n._seedAcc-=pay;
+        G.money+=pay;G.totalEarned+=pay;incomeNow+=pay;G.incomeLog.push({t:G.clock,v:pay});
+      }
+      n.state=n.seeds.length?'active':'idle';
     }
 
     if(def.isSplit&&n.queue.length&&outRoom(id,0,true)&&outRoom(id,1,true)){
@@ -1478,7 +1604,7 @@ function gameTick(ts){
       if(n.queue.length&&outRoom(id,0)){
         const f=n.queue.shift();
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,f);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,f,id);outs[0]._active=true;}
         n.state='active';
       } else n.state='idle';
     }
@@ -1496,7 +1622,7 @@ function gameTick(ts){
       n._rTimer=0;
       const f=n.queue.shift();
       f._boundUl=ul;
-      pushToNode(outs[0].toNode,f);outs[0]._active=true;
+      pushToNode(outs[0].toNode,f,id);outs[0]._active=true;
     }
     n.state=ul<=0?'error':n.queue.length?'active':'idle';
   });
@@ -1536,7 +1662,7 @@ function gameTick(ts){
         const sold=t.file;
         n._threads[ti]=null;
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
-        if(outs.length){pushToNode(outs[0].toNode,sold);outs[0]._active=true;}
+        if(outs.length){pushToNode(outs[0].toNode,sold,id);outs[0]._active=true;}
         n.state='uploading';
       }
     });
@@ -1584,9 +1710,10 @@ function gameTick(ts){
 // Selling goes over your connection: a faster NIC means faster sales (WiFi 5 = 1×)
 function sellNetFactor(){return Math.max(1,Math.sqrt(hwGet('nic').maxBwMBs/62));}
 
-function pushToNode(toId,file){
+function pushToNode(toId,file,fromId){
   const n=G.nodes[toId];if(!n)return;
   if(!n.queue)n.queue=[];
+  if(fromId)file._src=fromId;   // lets a shared queue (the binder) keep one source from hogging it
   n.queue.push(file);
 }
 
@@ -1715,7 +1842,8 @@ function setFlag(name){
 // EXAMPLE rewards. Rename the flags or add more to match your scanner codes.
 const FLAG_REWARDS={
   rft_bonus:{cash:2500,msg:'Backstage signal accepted: +2,500 ◆ transferred.'},
-  rft_backstage_market:{module:true,msg:'Backstage Market unlocked. Check Upload & Sell.'}
+  rft_backstage_market:{module:true,msg:'Backstage Market unlocked. Check Upload & Sell.'},
+  rft_honeypot:{module:true,msg:'Honeypot unlocked. Check Utilities.'}
 };
 let seenFlags={};
 function applyFlags(){
@@ -1850,7 +1978,7 @@ function saveGame(manual){
     const data={
       v:1,money:G.money,totalEarned:G.totalEarned,soldCount:G.soldCount,nextId:G.nextId,
       HW:Object.assign({},HW),claimed:CLAIMED,
-      nodes:Object.values(G.nodes).map(n=>({id:n.id,defId:n.defId,x:n.x,y:n.y,upgLevels:n.upgLevels||{}})),
+      nodes:Object.values(G.nodes).map(n=>({id:n.id,defId:n.defId,x:n.x,y:n.y,upgLevels:n.upgLevels||{},seeds:n.seeds||undefined,trapped:n._trapped||undefined})),
       wires:G.wires.map(w=>({fromNode:w.fromNode,fromPort:w.fromPort,toNode:w.toNode,toPort:w.toPort})),
       vp:{x:vp.x,y:vp.y,zoom:vp.zoom}
     };
@@ -1872,7 +2000,7 @@ function loadGame(){
     (d.nodes||[]).forEach(s=>{
       if(!MODULE_DEFS.find(m=>m.id===s.defId))return;
       G.nodes[s.id]={id:s.id,defId:s.defId,x:s.x,y:s.y,progress:0,queue:[],state:'idle',
-        upgLevels:s.upgLevels||{},_sellTimer:0,_slots:[],_bwOut:0};
+        upgLevels:s.upgLevels||{},_sellTimer:0,_slots:[],_bwOut:0,seeds:Array.isArray(s.seeds)?s.seeds.slice(0,500):undefined,_trapped:s.trapped};
     });
     G.wires=(d.wires||[]).filter(w=>G.nodes[w.fromNode]&&G.nodes[w.toNode]).map(w=>({
       fromNode:w.fromNode,fromPort:w.fromPort,toNode:w.toNode,toPort:w.toPort,_active:false}));
