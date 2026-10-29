@@ -125,8 +125,7 @@ function fairShare(total,demands){
 function bwDemand(toNode){
   const n=G.nodes[toNode];if(!n)return 0;
   const def=MODULE_DEFS.find(d=>d.id===n.defId);
-  if(def&&def.fileType)return (nodeStat(n,'slots')||1)*FILE_DEFS[def.fileType].bwMBs;
-  return Infinity;
+  return Infinity;   // a download takes whatever the link gives it
 }
 // Splits `total` MB/s across every wire leaving (fromId, port)
 function distribute(fromId,port,total,map,byDemand){
@@ -146,14 +145,14 @@ const PC = {
 
 /* ── FILE TYPES ── */
 const FILE_DEFS={
-  Document: {sizeMB:0.05,  sizeLabel:'~50 KB',  baseVal:8,   icon:'ti-file-text', color:'#185FA5', bwMBs:0.01,  ramMB:32},
-  Image:    {sizeMB:3,     sizeLabel:'~3 MB',   baseVal:18,  icon:'ti-photo',      color:'#0F6E56', bwMBs:0.3,    ramMB:64},
-  Audio:    {sizeMB:8,     sizeLabel:'~8 MB',   baseVal:45,  icon:'ti-music',      color:'#854F0B', bwMBs:0.5,    ramMB:128},
-  Video:    {sizeMB:700,   sizeLabel:'~700 MB', baseVal:220, icon:'ti-video',      color:'#993556', bwMBs:9,   ramMB:512},
-  Software: {sizeMB:250,   sizeLabel:'~250 MB', baseVal:380, icon:'ti-cpu',        color:'#533AB7', bwMBs:4.5,   ramMB:256},
-  Archive:  {sizeMB:150,   sizeLabel:'~150 MB', baseVal:200, icon:'ti-archive',    color:'#3B6D11', bwMBs:4,   ramMB:192},
-  Database: {sizeMB:500,   sizeLabel:'~500 MB', baseVal:550, icon:'ti-database',   color:'#A32D2D', bwMBs:5,   ramMB:1024},
-  Ebook:    {sizeMB:2,     sizeLabel:'~2 MB',   baseVal:14,  icon:'ti-book',       color:'#0C447C', bwMBs:0.25,    ramMB:48},
+  Document: {sizeMB:0.05,  sizeLabel:'~50 KB',  baseVal:8,   icon:'ti-file-text', color:'#185FA5',  ramMB:32},
+  Image:    {sizeMB:3,     sizeLabel:'~3 MB',   baseVal:18,  icon:'ti-photo',      color:'#0F6E56',    ramMB:64},
+  Audio:    {sizeMB:8,     sizeLabel:'~8 MB',   baseVal:45,  icon:'ti-music',      color:'#854F0B',    ramMB:128},
+  Video:    {sizeMB:700,   sizeLabel:'~700 MB', baseVal:220, icon:'ti-video',      color:'#993556',   ramMB:512},
+  Software: {sizeMB:250,   sizeLabel:'~250 MB', baseVal:380, icon:'ti-cpu',        color:'#533AB7',   ramMB:256},
+  Archive:  {sizeMB:150,   sizeLabel:'~150 MB', baseVal:200, icon:'ti-archive',    color:'#3B6D11',   ramMB:192},
+  Database: {sizeMB:500,   sizeLabel:'~500 MB', baseVal:550, icon:'ti-database',   color:'#A32D2D',   ramMB:1024},
+  Ebook:    {sizeMB:2,     sizeLabel:'~2 MB',   baseVal:14,  icon:'ti-book',       color:'#0C447C',    ramMB:48},
 };
 
 // CPU load per processor type (%)
@@ -416,7 +415,7 @@ const MODULE_DEFS=[
     });
     if(d.fileType){
       const fd=FILE_DEFS[d.fileType];
-      d.desc=names[d.fileType]+' ('+fd.sizeLabel+') · '+fmtSpeed(fd.bwMBs)+' per slot · '+fd.ramMB+' MB RAM';
+      d.desc=names[d.fileType]+' ('+fd.sizeLabel+') · '+fd.ramMB+' MB RAM';
     }
     if(d.id==='uploader')d.desc='Uploads queued files. Line speed = min(link UL, NIC, disk), shared by all threads (max '+fmtSpeed(PACE.threadCap)+' each)';
   });
@@ -734,7 +733,7 @@ function renderNode(id){
     const slots=nodeStat(n,'slots')||1;
     const activeSlots=(n._slots||[]).filter(s=>s).length;
     const ramPerSlot=fd.ramMB/1024;
-    body=`<div class="node-stat">${fd.sizeLabel} · ${fmtSpeed(fd.bwMBs)}/slot</div>`;
+    body=`<div class="node-stat">${fd.sizeLabel}</div>`;
     body+=`<div class="node-stat">Slots: ${activeSlots}/${slots} · ${(ramPerSlot*slots).toFixed(1)} GB RAM</div>`;
     if(n._speeds&&n._speeds.length){
       const spd=n._speeds.reduce((a,b)=>a+b,0);
@@ -1317,9 +1316,8 @@ function gameTick(ts){
       }
     });
     // this node's share of the link is split between the files it is downloading;
-    // one connection can't go faster than the server allows (fd.bwMBs)
     const occ=n._slots.filter(s=>s&&s.progress<s.total).length;
-    const rate=occ?Math.min(fd.bwMBs,bw/occ):0;
+    const rate=occ?bw/occ:0;   // time = size ÷ this slot's share of the link
     n._slots.forEach((slot,si)=>{
       if(!slot)return;
       if(slot.progress<slot.total){
