@@ -72,19 +72,21 @@ const HW = {cpu:0, ram:0, storage:0, nic:0, cooler:0};
 function hwGet(slot){ return HW_SLOTS[slot].tiers[HW[slot]]; }
 
 /* ── PACING & LIMITS (tune the whole game's speed here) ──
-   dlTime:   seconds one file takes to download at full link speed
-   proc:     multiplier on every processor's job time (higher = slower)
-   ulMin:    minimum seconds any upload takes
-   sell:     multiplier on every seller's delay between sales
-   queueCap: how many files an ordinary node can hold before it blocks the node feeding it
+   THE PER-SECOND RULE: every speed is in MB/s and every time follows from it.
+     time = size / speed. A link's speed is shared between everything it feeds,
+     a downloader's speed is shared between its slots, and an uploader's speed is
+     shared between its threads. Nothing gets bandwidth for free.
+   proc:       slows every processor's job time (applied once to the numbers shown)
+   sell:       slows every seller's delay between sales (applied once to the numbers shown)
+   threadCap:  the most one upload thread can push (MB/s); more threads use more of the line
+   queueCap:   how many files an ordinary node holds before it blocks the node feeding it
    Hard limits: a node that can't hand its file on, can't start a job, or has no
    RAM/disk/CPU/cooling headroom simply stops and waits until room frees up. */
 const PACE={
   startMoney:150,
-  dlTime:{Document:6,Ebook:7,Image:9,Audio:14,Archive:40,Software:55,Video:80,Database:100},
   proc:2.5,
-  ulMin:2,
   sell:3,
+  threadCap:4,
   queueCap:10,
   thermalResume:3   // degrees below the throttle point before processors restart
 };
@@ -106,6 +108,34 @@ function outRoom(id,port,all){
   return all?outs.every(w=>roomIn(w.toNode)):roomIn(outs[0].toNode);
 }
 
+/* ── BANDWIDTH SHARING ──
+   fairShare: everyone gets what they ask for, and anything left over is split
+   equally among those who want more (max-min fairness). */
+function fairShare(total,demands){
+  const out=new Array(demands.length).fill(0);
+  const order=demands.map((d,i)=>i).sort((a,b)=>demands[a]<demands[b]?-1:demands[a]>demands[b]?1:0);
+  let left=Math.max(0,total),n=order.length;
+  order.forEach(i=>{
+    const give=Math.min(demands[i],left/n);
+    out[i]=give;left-=give;n--;
+  });
+  return out;
+}
+// How much download bandwidth a node can actually use
+function bwDemand(toNode){
+  const n=G.nodes[toNode];if(!n)return 0;
+  const def=MODULE_DEFS.find(d=>d.id===n.defId);
+  if(def&&def.fileType)return (nodeStat(n,'slots')||1)*FILE_DEFS[def.fileType].bwMBs;
+  return Infinity;
+}
+// Splits `total` MB/s across every wire leaving (fromId, port)
+function distribute(fromId,port,total,map,byDemand){
+  const outs=G.wires.filter(w=>w.fromNode===fromId&&w.fromPort===port);
+  if(!outs.length||!(total>0))return;
+  const shares=fairShare(total,outs.map(w=>byDemand?bwDemand(w.toNode):Infinity));
+  outs.forEach((w,i)=>{const k=w.toNode+'_'+w.toPort;map[k]=(map[k]||0)+shares[i];});
+}
+
 /* ── PC RESOURCE STATE ── */
 const PC = {
   cpuUsed: 0,       // % consumed by processors this tick
@@ -116,14 +146,14 @@ const PC = {
 
 /* ── FILE TYPES ── */
 const FILE_DEFS={
-  Document: {sizeMB:0.05,  sizeLabel:'~50 KB',  baseVal:8,   icon:'ti-file-text', color:'#185FA5', bwMBs:0.5,  ramMB:32},
-  Image:    {sizeMB:3,     sizeLabel:'~3 MB',   baseVal:18,  icon:'ti-photo',      color:'#0F6E56', bwMBs:3,    ramMB:64},
-  Audio:    {sizeMB:8,     sizeLabel:'~8 MB',   baseVal:45,  icon:'ti-music',      color:'#854F0B', bwMBs:8,    ramMB:128},
-  Video:    {sizeMB:700,   sizeLabel:'~700 MB', baseVal:220, icon:'ti-video',      color:'#993556', bwMBs:50,   ramMB:512},
-  Software: {sizeMB:250,   sizeLabel:'~250 MB', baseVal:380, icon:'ti-cpu',        color:'#533AB7', bwMBs:25,   ramMB:256},
-  Archive:  {sizeMB:150,   sizeLabel:'~150 MB', baseVal:200, icon:'ti-archive',    color:'#3B6D11', bwMBs:15,   ramMB:192},
-  Database: {sizeMB:500,   sizeLabel:'~500 GB', baseVal:550, icon:'ti-database',   color:'#A32D2D', bwMBs:80,   ramMB:1024},
-  Ebook:    {sizeMB:2,     sizeLabel:'~2 MB',   baseVal:14,  icon:'ti-book',       color:'#0C447C', bwMBs:2,    ramMB:48},
+  Document: {sizeMB:0.05,  sizeLabel:'~50 KB',  baseVal:8,   icon:'ti-file-text', color:'#185FA5', bwMBs:0.01,  ramMB:32},
+  Image:    {sizeMB:3,     sizeLabel:'~3 MB',   baseVal:18,  icon:'ti-photo',      color:'#0F6E56', bwMBs:0.3,    ramMB:64},
+  Audio:    {sizeMB:8,     sizeLabel:'~8 MB',   baseVal:45,  icon:'ti-music',      color:'#854F0B', bwMBs:0.5,    ramMB:128},
+  Video:    {sizeMB:700,   sizeLabel:'~700 MB', baseVal:220, icon:'ti-video',      color:'#993556', bwMBs:9,   ramMB:512},
+  Software: {sizeMB:250,   sizeLabel:'~250 MB', baseVal:380, icon:'ti-cpu',        color:'#533AB7', bwMBs:4.5,   ramMB:256},
+  Archive:  {sizeMB:150,   sizeLabel:'~150 MB', baseVal:200, icon:'ti-archive',    color:'#3B6D11', bwMBs:4,   ramMB:192},
+  Database: {sizeMB:500,   sizeLabel:'~500 MB', baseVal:550, icon:'ti-database',   color:'#A32D2D', bwMBs:5,   ramMB:1024},
+  Ebook:    {sizeMB:2,     sizeLabel:'~2 MB',   baseVal:14,  icon:'ti-book',       color:'#0C447C', bwMBs:0.25,    ramMB:48},
 };
 
 // CPU load per processor type (%)
@@ -141,6 +171,11 @@ function fmtSpeed(mbps){
   if(mbps<1)return Math.round(mbps*1000)+'KB/s';
   if(mbps<1000)return mbps.toFixed(mbps<10?1:0)+'MB/s';
   return (mbps/1000).toFixed(2)+'GB/s';
+}
+function fmtTime(s){
+  if(s<10)return s.toFixed(1)+'s';
+  if(s<60)return Math.round(s)+'s';
+  const m=Math.floor(s/60);return m+'m '+Math.round(s%60)+'s';
 }
 function fmtMoney(n){return Math.round(n).toLocaleString()+' ◆'}
 
@@ -367,9 +402,29 @@ const MODULE_DEFS=[
   ]},
 ];
 
+/* Apply the pacing multipliers once, to the definitions themselves, so the numbers
+   on screen (node stats, upgrade screens, sidebar) are the numbers the game uses. */
+(function bakePacing(){
+  const r3=v=>Math.round(v*1000)/1000;
+  const names={Document:'Documents',Image:'Images',Audio:'Audio',Video:'Videos',Software:'Software',Archive:'Archives',Database:'Databases',Ebook:'Ebooks'};
+  MODULE_DEFS.forEach(d=>{
+    if(d.procTime!=null)d.procTime=r3(d.procTime*PACE.proc);
+    if(d.isSeller)d.sellDelay=r3((d.sellDelay||0.5)*PACE.sell);
+    (d.upgrades||[]).forEach(u=>{
+      const k=u.stat==='procTime'?PACE.proc:u.stat==='sellDelay'?PACE.sell:0;
+      if(k){u.base=r3(u.base*k);u.levels=u.levels.map(v=>r3(v*k));}
+    });
+    if(d.fileType){
+      const fd=FILE_DEFS[d.fileType];
+      d.desc=names[d.fileType]+' ('+fd.sizeLabel+') · '+fmtSpeed(fd.bwMBs)+' per slot · '+fd.ramMB+' MB RAM';
+    }
+    if(d.id==='uploader')d.desc='Uploads queued files. Line speed = min(link UL, NIC, disk), shared by all threads (max '+fmtSpeed(PACE.threadCap)+' each)';
+  });
+})();
+
 let CLAIMED={};
 let G={money:PACE.startMoney,totalEarned:0,soldCount:0,nodes:{},wires:[],nextId:1,
-  draggingNode:null,draggingOffset:{x:0,y:0},connectingPort:null,recentIncome:[],
+  draggingNode:null,draggingOffset:{x:0,y:0},connectingPort:null,incomeLog:[],clock:0,
   incomePs:0,upgModal:null};
 
 const canvasWrap=document.getElementById('canvas-wrap');
@@ -679,11 +734,11 @@ function renderNode(id){
     const slots=nodeStat(n,'slots')||1;
     const activeSlots=(n._slots||[]).filter(s=>s).length;
     const ramPerSlot=fd.ramMB/1024;
-    body=`<div class="node-stat">${fd.sizeLabel} · ${fmtSpeed(fd.bwMBs)}</div>`;
+    body=`<div class="node-stat">${fd.sizeLabel} · ${fmtSpeed(fd.bwMBs)}/slot</div>`;
     body+=`<div class="node-stat">Slots: ${activeSlots}/${slots} · ${(ramPerSlot*slots).toFixed(1)} GB RAM</div>`;
     if(n._speeds&&n._speeds.length){
       const spd=n._speeds.reduce((a,b)=>a+b,0);
-      body+=`<div class="node-stat hi">${fmtSpeed(spd)}</div>`;
+      body+=`<div class="node-stat hi">${fmtSpeed(spd)} · ~${fmtTime(fd.sizeMB/(spd/n._speeds.length))}/file</div>`;
     }
     for(let si=0;si<Math.min(slots,4);si++){
       const s=(n._slots||[])[si];
@@ -715,8 +770,8 @@ function renderNode(id){
     const diskRW=hwGet('storage').rwMBs;
     const nicBW=hwGet('nic').maxBwMBs;
     const effUL=Math.min(diskRW,nicBW);
-    body=`<div class="node-stat">Threads: ${thr} · max ${fmtSpeed(effUL)}</div>`;
-    if(n._ulSpeed)body+=`<div class="node-stat hi">${fmtSpeed(n._ulSpeed)}</div>`;
+    body=`<div class="node-stat">Threads: ${thr} · ${fmtSpeed(PACE.threadCap)} each, shared line</div>`;
+    if(n._ulSpeed)body+=`<div class="node-stat hi">${fmtSpeed(n._ulSpeed)} uploading</div>`;
     body+=progBar(n.progress,'var(--purple)');;
   }
   if(def.isSeller){
@@ -724,7 +779,8 @@ function renderNode(id){
     const sm=nodeStat(n,'sellMult')||def.sellMult||1;
     body=`<div class="node-stat">${sm.toFixed(1)}× value · ${comm}% fee</div>`;
     if(n._lastSell)body+=`<div class="node-stat hi">Last: ${fmtMoney(n._lastSell)}</div>`;
-    const sDelay=(nodeStat(n,'sellDelay')||def.sellDelay||0.5)*PACE.sell;
+    const sDelay=nodeStat(n,'sellDelay')||def.sellDelay||1.5;
+    body+=`<div class="node-stat">1 sale / ${fmtTime(sDelay)}</div>`;
     body+=progBar((n.queue||[]).length?(n._sellTimer||0)/sDelay:0,def.color);
   }
   if(def.isBuffer||def.isPriority||def.isSSDCache||def.isRAMDisk||def.isBackup||def.isScheduler){
@@ -1175,6 +1231,7 @@ function gameTick(ts){
   const dt=Math.min((ts-lastTick)/1000,0.1);
   lastTick=ts;
   let incomeNow=0;
+  G.clock+=dt;
 
   const bwMap={};
   const ulMap={};
@@ -1183,17 +1240,25 @@ function gameTick(ts){
   updateHUD();
   const pcState=G._pcState||{};
 
-  /* PASS 1a: Network links → bwMap/ulMap (capped by NIC hardware) */
+  /* PASS 1a: Network links. The NIC is the ceiling for ALL downloading together;
+     each link's speed is then shared between the wires it feeds. */
+  const links=[];
   Object.entries(G.nodes).forEach(([id,n])=>{
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.isLink)return;
-    const nicMax=hwGet('nic').maxBwMBs;
-    const dlSpeed=Math.min(nodeStat(n,'dlSpeed')||(def.upgrades.find(u=>u.stat==='dlSpeed')?.base||10), nicMax);
-    const ulSpeed=nodeStat(n,'ulSpeed')||(def.upgrades.find(u=>u.stat==='ulSpeed')?.base||1);
-    n._dlSpeed=dlSpeed;n._ulSpeed=ulSpeed;
-    G.wires.filter(w=>w.fromNode===id&&w.fromPort===0).forEach(w=>{bwMap[w.toNode+'_'+w.toPort]=(bwMap[w.toNode+'_'+w.toPort]||0)+dlSpeed;});
-    G.wires.filter(w=>w.fromNode===id&&w.fromPort===1).forEach(w=>{ulMap[w.toNode+'_'+w.toPort]=(ulMap[w.toNode+'_'+w.toPort]||0)+ulSpeed;});
-    n.state='active';
+    links.push({id,n,def,
+      dl:nodeStat(n,'dlSpeed')||(def.upgrades.find(u=>u.stat==='dlSpeed')?.base||10),
+      ul:nodeStat(n,'ulSpeed')||(def.upgrades.find(u=>u.stat==='ulSpeed')?.base||1)});
+  });
+  const nicMax=hwGet('nic').maxBwMBs;
+  const dlSum=links.reduce((s,l)=>s+l.dl,0);
+  const nicScale=dlSum>nicMax?nicMax/dlSum:1;
+  links.forEach(l=>{
+    const dl=l.dl*nicScale;
+    l.n._dlSpeed=dl;l.n._ulSpeed=l.ul;
+    distribute(l.id,0,dl,bwMap,true);
+    distribute(l.id,1,l.ul,ulMap,false);
+    l.n.state='active';
   });
 
   /* PASS 1b: Link aggregator */
@@ -1209,8 +1274,8 @@ function gameTick(ts){
     }
     totalDl*=eff;totalUl*=eff;
     n._dlSpeed=totalDl;n._ulSpeed=totalUl;
-    G.wires.filter(w=>w.fromNode===id&&w.fromPort===0).forEach(w=>{bwMap[w.toNode+'_'+w.toPort]=totalDl;});
-    G.wires.filter(w=>w.fromNode===id&&w.fromPort===1).forEach(w=>{ulMap[w.toNode+'_'+w.toPort]=totalUl;});
+    distribute(id,0,totalDl,bwMap,true);
+    distribute(id,1,totalUl,ulMap,false);
     n.state=anyIn?'active':'idle';
   });
 
@@ -1219,8 +1284,7 @@ function gameTick(ts){
     if(n.defId!=='bandwidth_amp')return;
     const inBw=bwMap[id+'_0']||0;
     const mult=nodeStat(n,'bwMult')||1.5;
-    const nicMax=hwGet('nic').maxBwMBs;
-    G.wires.filter(w=>w.fromNode===id&&w.fromPort===0).forEach(w=>{bwMap[w.toNode+'_'+w.toPort]=Math.min(inBw*mult,nicMax*2);});
+    distribute(id,0,Math.min(inBw*mult,hwGet('nic').maxBwMBs*2),bwMap,true);
     n.state=inBw>0?'active':'idle';
   });
 
@@ -1243,20 +1307,25 @@ function gameTick(ts){
     const r=calcPCResources();
     const ramAvailMB=(ramTier.ramGB-r.ramUsedGB)*1024;
 
-    const bwPerSlot=fd.bwMBs; // use realistic per-file bandwidth, not shared
-    const linkF=Math.max(0.1,Math.min(1,bw/fd.bwMBs)); // a slow link slows big files
     let ramLeftMB=ramAvailMB;
     n._blocked=false;
+    // start a download in every free slot that has RAM for it
     n._slots.forEach((slot,si)=>{
-      if(!slot){
-        if(ramLeftMB>fd.ramMB){
-          ramLeftMB-=fd.ramMB;
-          n._slots[si]={progress:0,total:PACE.dlTime[def.fileType]||fd.sizeMB/bwPerSlot};
-        }
-        return;
+      if(!slot&&ramLeftMB>fd.ramMB){
+        ramLeftMB-=fd.ramMB;
+        n._slots[si]={progress:0,total:fd.sizeMB};   // MB downloaded / file size
       }
-      if(slot.progress<slot.total)slot.progress+=dt*linkF;
-      n._speeds.push(bwPerSlot*linkF);
+    });
+    // this node's share of the link is split between the files it is downloading;
+    // one connection can't go faster than the server allows (fd.bwMBs)
+    const occ=n._slots.filter(s=>s&&s.progress<s.total).length;
+    const rate=occ?Math.min(fd.bwMBs,bw/occ):0;
+    n._slots.forEach((slot,si)=>{
+      if(!slot)return;
+      if(slot.progress<slot.total){
+        slot.progress=Math.min(slot.total,slot.progress+rate*dt);
+        n._speeds.push(rate);
+      }
       if(slot.progress>=slot.total){
         // Hard limit: the next node is full, so this file waits here
         if(!outRoom(id,0)){slot.progress=slot.total;n._blocked=true;return;}
@@ -1299,7 +1368,7 @@ function gameTick(ts){
       } else n._waitCpu=true;
     }
     if(n._proc){
-      const pt=(nodeStat(n,'procTime')||def.procTime||1)*PACE.proc;
+      const pt=nodeStat(n,'procTime')||def.procTime||1;
       if(!PC_LOCK.thermal&&n.progress<1)n.progress+=dt/pt;
       if(n.progress>=1){
         if(!outRoom(id,0)){n.progress=1;n._blocked=true;n.state='waiting';return;}
@@ -1431,35 +1500,46 @@ function gameTick(ts){
     n.state=ul<=0?'error':n.queue.length?'active':'idle';
   });
 
-  /* PASS 7: Uploader — speed = min(NIC bw, SSD read speed) */
+  /* PASS 7: Uploader. The line (min of link UL, NIC and disk) is shared by every
+     active thread; one thread can't push more than PACE.threadCap. Time = size / speed. */
+  const upl=[];
   Object.entries(G.nodes).forEach(([id,n])=>{
     if(n.defId!=='uploader')return;
     n.queue=n.queue||[];
     const threads=nodeStat(n,'threads')||1;
     if(!n._threads)n._threads=Array(threads).fill(null);
     if(n._threads.length!==threads)n._threads=n._threads.slice(0,threads).concat(Array(Math.max(0,threads-n._threads.length)).fill(null));
-    const diskRW=hwGet('storage').rwMBs;
-    const nicBW=hwGet('nic').maxBwMBs;
-    const maxULSpeed=Math.min(diskRW,nicBW);
-    let ulUsed=0;
-    n._threads.forEach((slot,ti)=>{
-      if(!slot&&n.queue.length){n._threads[ti]={file:n.queue.shift(),progress:0};}
-      if(!n._threads[ti])return;
-      const f=n._threads[ti].file;
-      const ulSpeed=Math.min(f._boundUl||maxULSpeed,maxULSpeed);
-      const timeNeeded=Math.max(PACE.ulMin,f.sizeMB/Math.max(0.1,ulSpeed));
-      if(n._threads[ti].progress<1)n._threads[ti].progress+=dt/Math.max(0.1,timeNeeded);
-      ulUsed+=ulSpeed;
-      if(n._threads[ti].progress>=1){
-        if(!outRoom(id,0)){n._threads[ti].progress=1;return;}
-        const sold=n._threads[ti].file;
+    n._threads.forEach((t,ti)=>{
+      if(!t&&n.queue.length)n._threads[ti]={file:n.queue.shift(),progress:0};
+    });
+    const act=n._threads.filter(t=>t&&t.progress<1);
+    let line=Math.min(hwGet('storage').rwMBs,hwGet('nic').maxBwMBs);
+    act.forEach(t=>{if(t.file._boundUl)line=Math.min(line,t.file._boundUl);});
+    upl.push({id,n,threads,count:act.length,per:act.length?Math.min(PACE.threadCap,line/act.length):0});
+  });
+  // all uploaders together can't exceed the disk or the NIC
+  const upHw=Math.min(hwGet('storage').rwMBs,hwGet('nic').maxBwMBs);
+  const upWant=upl.reduce((s,u)=>s+u.per*u.count,0);
+  const upScale=upWant>upHw?upHw/upWant:1;
+  upl.forEach(({id,n,threads,per})=>{
+    const rate=per*upScale;
+    let used=0;
+    n._threads.forEach((t,ti)=>{
+      if(!t)return;
+      if(t.progress<1){
+        t.progress=Math.min(1,t.progress+rate*dt/Math.max(1e-6,t.file.sizeMB));
+        used+=rate;
+      }
+      if(t.progress>=1){
+        if(!outRoom(id,0)){t.progress=1;return;}
+        const sold=t.file;
         n._threads[ti]=null;
         const outs=G.wires.filter(w=>w.fromNode===id&&w.fromPort===0);
         if(outs.length){pushToNode(outs[0].toNode,sold);outs[0]._active=true;}
         n.state='uploading';
       }
     });
-    n._ulSpeed=ulUsed;
+    n._ulSpeed=used;
     n.progress=n._threads.filter(t=>t).length/threads;
     n.state=n._threads.some(t=>t)?'uploading':n.queue.length?'active':'idle';
   });
@@ -1469,7 +1549,7 @@ function gameTick(ts){
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.isSeller)return;
     n.queue=n.queue||[];
-    const delay=(nodeStat(n,'sellDelay')||def.sellDelay||0.5)*PACE.sell;
+    const delay=nodeStat(n,'sellDelay')||def.sellDelay||1.5;
     n._sellTimer=(n._sellTimer||0)+dt;
     if(n._sellTimer>=delay&&n.queue.length){
       n._sellTimer=0;
@@ -1481,7 +1561,7 @@ function gameTick(ts){
       if(f.corrupt)val*=0.1;
       val=val*(1-comm);
       val=Math.round(val);
-      G.money+=val;G.totalEarned+=val;G.soldCount++;incomeNow+=val;
+      G.money+=val;G.totalEarned+=val;G.soldCount++;incomeNow+=val;G.incomeLog.push({t:G.clock,v:val});
       if(G.soldCount===100)setFlag('rft_sold_100');
       if(G.soldCount===1000)setFlag('rft_sold_1000');
       n._lastSell=val;
@@ -1493,9 +1573,9 @@ function gameTick(ts){
   Object.keys(G.nodes).forEach(renderNode);
   renderAllWires();
 
-  G.recentIncome.push(incomeNow);
-  if(G.recentIncome.length>20)G.recentIncome.shift();
-  G.incomePs=Math.round(G.recentIncome.reduce((a,b)=>a+b,0)/Math.max(1,G.recentIncome.length)*10);
+  // income per second = what was earned in the last 15 game-seconds / those seconds
+  while(G.incomeLog.length&&G.incomeLog[0].t<G.clock-15)G.incomeLog.shift();
+  G.incomePs=G.incomeLog.reduce((a,e)=>a+e.v,0)/Math.max(1,Math.min(15,G.clock));
   updateStats();
   requestAnimationFrame(gameTick);
 }
@@ -1508,7 +1588,7 @@ function pushToNode(toId,file){
 
 function updateStats(){
   document.getElementById('st-money').textContent=fmtMoney(G.money);
-  document.getElementById('st-ips').textContent=fmtMoney(G.incomePs)+'/s';
+  document.getElementById('st-ips').textContent=(G.incomePs<10?G.incomePs.toFixed(1):Math.round(G.incomePs).toLocaleString())+' ◆/s';
   document.getElementById('st-sold').textContent=G.soldCount;
   document.getElementById('st-total').textContent=fmtMoney(G.totalEarned);
 }
@@ -1705,7 +1785,10 @@ function termRedeem(entry){
   if(entry.once!==false&&CLAIMED[key]){termPrint('Already redeemed.','warn');return;}
   const got=[];
   const cash=Number(entry.cash);
-  if(isFinite(cash)&&cash>0){G.money+=cash;got.push('+'+Math.round(cash).toLocaleString()+' ◆');}
+  if(isFinite(cash)&&cash!==0){
+    G.money=Math.max(0,G.money+cash);   // a negative amount takes Polygons away (never below 0)
+    got.push((cash>0?'+':'-')+Math.abs(Math.round(cash)).toLocaleString()+' ◆');
+  }
   const flags=[].concat(entry.flags||[],entry.flag?[entry.flag]:[]).filter(f=>typeof f==='string'&&f);
   flags.forEach(setFlag);
   CLAIMED[key]=true;
@@ -1818,6 +1901,7 @@ if(restored){
 }
 log('📈 Each file type sells to one Rend-Conomy company. Check Market demand in the sidebar.','info');
 log('🖥️ Open Hardware Upgrades to boost CPU, RAM, Storage & NIC — they affect real bottlenecks!');
+log('📏 Speeds are real: time = size ÷ MB/s, and a link, a downloader and an uploader share their speed between everything using it.');
 log('⚠ Limits are hard: no CPU headroom, a full next node, no free RAM/disk, or overheating makes a node wait (amber) until it clears.');
 applyFlags();
 requestAnimationFrame(gameTick);

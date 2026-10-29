@@ -16,6 +16,19 @@
 <meta name="description" content="Rend-Conomy is a fictional stock market simulator for The Render Room Discord server.">
 <link rel="icon" type="image/x-icon" href="../favicon.ico">
 <link rel="stylesheet" href="../style.css">
+<style>
+  /* Market news feed + active goals (page-specific) */
+  .news-feed .log { margin-bottom: 0.6rem; }
+  .news-feed .label { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .news-feed .kind { color: var(--bright); letter-spacing: 1px; }
+  .news-feed .is-rare .kind, .news-feed .is-rare .move { color: #ff6b6b; }
+  .news-feed .is-decoy .kind { color: var(--grey); }
+  .news-feed .move { font-variant-numeric: tabular-nums; color: var(--bright); }
+  .news-feed .fresh .kind::after { content: ' // NEW'; animation: blink 1s steps(2) infinite; }
+  .board .goal { font-size: 12px; color: var(--grey); margin-top: 4px; }
+  .board .goal b { color: var(--dim); font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) { .news-feed .fresh .kind::after { animation: none; } }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -27,7 +40,6 @@
       <li><a href="./" aria-current="page">Rend-Conomy</a></li>
       <li><a href="https://discord.gg/D2v4EsuZBU">Discord</a></li>
       <li><a href="/bot/">Bot</a></li>
-      <li><a href=../games/>Games</a></li>
     </ul>
   </nav>
 
@@ -39,6 +51,15 @@
       <a class="btn" href="#market">See the market</a>
     </div>
   </header>
+
+  <!-- Hidden until prices.json has news -->
+  <section id="news" aria-labelledby="news-title" style="margin-bottom: 2.5rem;" hidden>
+    <div class="section-head">
+      <h2 id="news-title">Market news</h2>
+      <span id="news-count"></span>
+    </div>
+    <div class="news-feed" id="news-feed" aria-live="polite"></div>
+  </section>
 
   <section id="market" aria-labelledby="market-title">
     <div class="section-head">
@@ -66,6 +87,7 @@
     </div>
     <div class="panel prose">
       <p>Trading happens in The Render Room server through the Rend-Conomy bot. Join the server to get started.</p>
+      <p>Companies announce goals in the news above. Hit the goal and the stock jumps; miss it and the stock drops. Buy in before the deadline if you think they'll pull it off.</p>
       <!-- Add your bot commands here once they're final, e.g. a short list of what each command does. -->
     </div>
   </section>
@@ -83,11 +105,16 @@
     // If that file can't be loaded, the board falls back to a random preview.
     var DATA_URL = '../prices.json';
     var REFRESH_MS = 60 * 1000;
+    var NEWS_SHOWN = 6;
+    var FRESH_MS = 60 * 60 * 1000; // news younger than this gets a "NEW" marker
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     var body = document.getElementById('board-body');
     var tagEl = document.getElementById('mode-tag');
     var noteEl = document.getElementById('board-note');
+    var newsEl = document.getElementById('news');
+    var feedEl = document.getElementById('news-feed');
+    var countEl = document.getElementById('news-count');
     var rows = [];
 
     var FALLBACK = [
@@ -99,12 +126,25 @@
 
     function step(p) { return Math.max(1, p * (1 + (Math.random() - 0.5) * 0.06)); }
 
+    function fmtTime(iso) {
+      var d = new Date(iso);
+      return isNaN(d) ? '' : d.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+    }
+
+    function timeLeft(iso) {
+      var ms = Date.parse(iso) - Date.now();
+      if (isNaN(ms)) return '';
+      if (ms <= 0) return 'deadline passed, result soon';
+      var h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+      return (h ? h + 'h ' : '') + m + 'm left';
+    }
+
     function build(list) {
       body.innerHTML = '';
       rows = list.map(function (c) {
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td><div class="name"></div><div class="desc"></div></td>' +
+          '<td><div class="name"></div><div class="desc"></div><div class="goal" hidden></div></td>' +
           '<td class="num price"></td>' +
           '<td class="num change"></td>' +
           '<td class="num hide-sm"><svg class="spark" viewBox="0 0 96 28" preserveAspectRatio="none" aria-hidden="true"><polyline points=""/></svg></td>';
@@ -116,6 +156,16 @@
         tkr.textContent = c.id;
         nameEl.appendChild(tkr);
         tr.querySelector('.desc').textContent = c.description || '';
+
+        // Active goal under the description
+        if (c.goal && c.goal.text) {
+          var g = tr.querySelector('.goal');
+          var b = document.createElement('b');
+          b.textContent = 'GOAL: ';
+          g.appendChild(b);
+          g.appendChild(document.createTextNode(c.goal.text + ' (' + timeLeft(c.goal.deadline) + ')'));
+          g.hidden = false;
+        }
         body.appendChild(tr);
 
         var r = {
@@ -151,13 +201,57 @@
       }).join(' '));
     }
 
+    function showNews(list) {
+      if (!Array.isArray(list) || !list.length) { newsEl.hidden = true; return; }
+      feedEl.innerHTML = '';
+      list.slice(0, NEWS_SHOWN).forEach(function (n) {
+        var item = document.createElement('div');
+        var kind = n.type === 'success' ? 'SUCCESS' : n.type === 'fail' ? 'FAILED' : 'NEW GOAL';
+        item.className = 'log' +
+          (n.type === 'fail' ? ' is-rare' : n.type === 'goal' ? ' is-decoy' : '') +
+          (Date.now() - Date.parse(n.time) < FRESH_MS ? ' fresh' : '');
+
+        var label = document.createElement('div');
+        label.className = 'label';
+        var k = document.createElement('span');
+        k.className = 'kind';
+        k.textContent = kind + ' // ' + (n.id || '');
+        var when = document.createElement('span');
+        when.textContent = fmtTime(n.time);
+        label.appendChild(k);
+        label.appendChild(when);
+
+        var frag = document.createElement('div');
+        frag.className = 'fragment';
+        frag.textContent = n.headline || '';
+
+        var stamp = document.createElement('div');
+        stamp.className = 'stamp';
+        if (typeof n.move === 'number') {
+          var mv = document.createElement('span');
+          mv.className = 'move';
+          mv.textContent = (n.move >= 0 ? '▲ +' : '▼ ') + n.move.toFixed(2) + '% on the news';
+          stamp.appendChild(mv);
+        } else if (n.deadline) {
+          stamp.textContent = 'Deadline: ' + fmtTime(n.deadline) + ' (' + timeLeft(n.deadline) + ')';
+        }
+
+        item.appendChild(label);
+        item.appendChild(frag);
+        if (stamp.childNodes.length) item.appendChild(stamp);
+        feedEl.appendChild(item);
+      });
+      countEl.textContent = Math.min(list.length, NEWS_SHOWN) + ' latest';
+      newsEl.hidden = false;
+    }
+
     function showLive(data) {
       build(data.companies);
+      showNews(data.news);
       tagEl.textContent = 'LIVE';
       tagEl.className = 'tag live';
-      var when = new Date(data.updated);
-      var stamp = isNaN(when) ? '' : ' Last update: ' + when.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + '.';
-      noteEl.textContent = 'Prices are fictional and update about every 5-10 minutes.' + stamp;
+      var stamp = data.updated ? ' Last update: ' + fmtTime(data.updated) + '.' : '';
+      noteEl.textContent = 'Prices are fictional and update about every 30 minutes.' + stamp;
     }
 
     function showFallback() {
