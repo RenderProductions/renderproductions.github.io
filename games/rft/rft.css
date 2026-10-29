@@ -288,3 +288,10 @@ body.connecting .port.cut[data-type="in"]:hover{background:var(--red);transform:
 @media (prefers-reduced-motion:reduce){
   #upg-modal.open,#hw-modal.open,#term-modal.open,#upg-box,#hw-box,#term-box,.mod-card,.node{animation:none!important}
 }
+
+/* ── 3D view ── */
+#view3d{position:absolute;inset:0;z-index:8;display:none;touch-action:none;animation:rft-fade .6s ease-out}
+#view3d canvas{display:block;outline:none}
+#canvas-wrap.mode3d{background-image:none}
+#canvas-wrap.mode3d #zoom-hud{display:none}
+.tbtn.on{border-color:var(--accent);color:var(--accent)}
