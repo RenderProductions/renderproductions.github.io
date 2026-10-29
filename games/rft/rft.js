@@ -328,12 +328,14 @@ const MODULE_DEFS=[
   desc:'Sells uploaded files at 1× value',cost:0,color:'#3B6D11',
   inputs:['sold'],outputs:[],isSeller:true,sellMult:1.0,
   upgrades:[
+   {label:'Sales speed',stat:'sellDelay',unit:'s',base:0.5,levels:[0.4,0.3,0.2,0.12],costs:[250,700,1800,5000],invert:true},
    {label:'Commission cut',stat:'commission',unit:'%',base:20,levels:[15,10,5,0],costs:[300,800,2000,6000],invert:true},
   ]},
  {cat:'Upload & Sell',id:'market_premium',name:'Premium Market',icon:'ti-building-store',
   desc:'Sells at 1.4× value',cost:1000,color:'#3B6D11',
   inputs:['sold'],outputs:[],isSeller:true,sellMult:1.4,
   upgrades:[
+   {label:'Sales speed',stat:'sellDelay',unit:'s',base:0.5,levels:[0.4,0.3,0.2,0.12],costs:[500,1400,3500,9000],invert:true},
    {label:'Commission cut',stat:'commission',unit:'%',base:15,levels:[10,5,2,0],costs:[400,1000,2500,7000],invert:true},
   ]},
  {cat:'Upload & Sell',id:'auction',name:'Auction House',icon:'ti-gavel',
@@ -349,6 +351,7 @@ const MODULE_DEFS=[
   desc:'Off-the-books buyer · 2.2× · no questions asked',cost:1500,color:'#ff6b6b',
   inputs:['sold'],outputs:[],isSeller:true,sellMult:2.2,
   upgrades:[
+   {label:'Sales speed',stat:'sellDelay',unit:'s',base:0.5,levels:[0.4,0.3,0.2,0.12],costs:[600,1600,4000,10000],invert:true},
    {label:'Commission cut',stat:'commission',unit:'%',base:10,levels:[7,4,2,0],costs:[500,1200,3000,8000],invert:true},
   ]},
 
@@ -778,8 +781,8 @@ function renderNode(id){
     const sm=nodeStat(n,'sellMult')||def.sellMult||1;
     body=`<div class="node-stat">${sm.toFixed(1)}× value · ${comm}% fee</div>`;
     if(n._lastSell)body+=`<div class="node-stat hi">Last: ${fmtMoney(n._lastSell)}</div>`;
-    const sDelay=nodeStat(n,'sellDelay')||def.sellDelay||1.5;
-    body+=`<div class="node-stat">1 sale / ${fmtTime(sDelay)}</div>`;
+    const sDelay=(nodeStat(n,'sellDelay')||def.sellDelay||1.5)/sellNetFactor();
+    body+=`<div class="node-stat">1 sale / ${fmtTime(sDelay)}${sellNetFactor()>1?' · NIC ×'+sellNetFactor().toFixed(1):''}</div>`;
     body+=progBar((n.queue||[]).length?(n._sellTimer||0)/sDelay:0,def.color);
   }
   if(def.isBuffer||def.isPriority||def.isSSDCache||def.isRAMDisk||def.isBackup||def.isScheduler){
@@ -1547,7 +1550,7 @@ function gameTick(ts){
     const def=MODULE_DEFS.find(d=>d.id===n.defId);
     if(!def||!def.isSeller)return;
     n.queue=n.queue||[];
-    const delay=nodeStat(n,'sellDelay')||def.sellDelay||1.5;
+    const delay=(nodeStat(n,'sellDelay')||def.sellDelay||1.5)/sellNetFactor();
     n._sellTimer=(n._sellTimer||0)+dt;
     if(n._sellTimer>=delay&&n.queue.length){
       n._sellTimer=0;
@@ -1577,6 +1580,9 @@ function gameTick(ts){
   updateStats();
   requestAnimationFrame(gameTick);
 }
+
+// Selling goes over your connection: a faster NIC means faster sales (WiFi 5 = 1×)
+function sellNetFactor(){return Math.max(1,Math.sqrt(hwGet('nic').maxBwMBs/62));}
 
 function pushToNode(toId,file){
   const n=G.nodes[toId];if(!n)return;
