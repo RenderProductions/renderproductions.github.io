@@ -20,7 +20,7 @@ let nodeMeshes={};          // id -> {group, block, top, tex, canvas, ports:[], 
 let wireMeshes=[];          // [{key, mesh, curve, pulses}]
 let pickables=[];
 let temp=null;              // temp wire line while connecting
-let hoverId=null, mode=null, dragOff=null, hoverPort=null;
+let hoverId=null, mode=null, dragOff=null, hoverPort=null, dragId=null;   // dragId is ours: the 2D game's G.draggingNode would also move the node, with 2D maths
 let lastSync=0;
 const cam={target:null, theta:0.0, phi:0.75, dist:30};
 const pulseGeo=()=>pulseGeo.g||(pulseGeo.g=new THREE.BoxGeometry(0.22,0.22,0.22));
@@ -72,6 +72,8 @@ function wireCurve(a,b){
 function build(){
   host=document.createElement('div');
   host.id='view3d';
+  // critical layout is set here, so the view still works if rft.css is stale or cached
+  host.style.cssText='position:absolute;left:0;top:0;right:0;bottom:0;z-index:8;touch-action:none;overflow:hidden;background:#070b12';
   document.getElementById('canvas-wrap').appendChild(host);
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -99,11 +101,11 @@ function resize(){
   if(!renderer)return;
   const w=host.clientWidth||800,h=host.clientHeight||600;
   renderer.setSize(w,h,false);
-  renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
+  renderer.domElement.style.cssText='display:block;position:absolute;left:0;top:0;width:100%;height:100%;outline:none';
   camera.aspect=w/h;camera.updateProjectionMatrix();
 }
 function placeCamera(){
-  cam.phi=Math.min(1.5,Math.max(0.15,cam.phi));
+  cam.phi=Math.min(1.25,Math.max(0.15,cam.phi));
   cam.dist=Math.min(140,Math.max(5,cam.dist));
   const sp=Math.sin(cam.phi),cp=Math.cos(cam.phi);
   camera.position.set(cam.target.x+cam.dist*sp*Math.sin(cam.theta),cam.target.y+cam.dist*cp,cam.target.z+cam.dist*sp*Math.cos(cam.theta));
@@ -281,9 +283,9 @@ function pick(e){
   setMouse(e);
   const hits=raycaster.intersectObjects(pickables,false);
   for(const h of hits){
-    if(h.object.userData.kind==='port')return h.object.userData;
+    if(h.object.userData.kind==='port')return Object.assign({point:h.point},h.object.userData);
   }
-  return hits.length?hits[0].object.userData:null;
+  return hits.length?Object.assign({point:hits[0].point},hits[0].object.userData):null;
 }
 function groundPoint(e,y){
   setMouse(e);
@@ -324,21 +326,21 @@ function attachInput(){
         return;
       }
       if(h&&h.kind==='node'){
-        const g=groundPoint(e,0);const n=G.nodes[h.id];
-        if(g&&n){mode='drag';G.draggingNode=h.id;dragOff={x:g.x*S-n.x,z:g.z*S-n.y};return;}
+        const g=groundPoint(e,BLOCK_H);const n=G.nodes[h.id];
+        if(g&&n){mode='drag';dragId=h.id;dragOff={x:g.x*S-n.x,z:g.z*S-n.y};return;}
       }
     }
     // empty board: orbit (left) or pan (right / middle)
     orbit={x:e.clientX,y:e.clientY,pan:e.button!==0,theta:cam.theta,phi:cam.phi,tx:cam.target.x,tz:cam.target.z};
   });
   el.addEventListener('pointermove',e=>{
-    if(mode==='drag'&&G.draggingNode){
-      const n=G.nodes[G.draggingNode];const g=groundPoint(e,0);
-      if(n&&g){
+    if(mode==='drag'&&dragId){
+      const n=G.nodes[dragId];const g=groundPoint(e,BLOCK_H);
+      if(n&&g&&g.distanceTo(camera.position)<cam.dist*4){
         let nx=g.x*S-dragOff.x,ny=g.z*S-dragOff.z;
         if(e.shiftKey){nx=Math.round(nx/CELL)*CELL;ny=Math.round(ny/CELL)*CELL;}
         n.x=Math.round(nx);n.y=Math.round(ny);
-        renderNode(G.draggingNode);
+        renderNode(dragId);
       }
       return;
     }
@@ -380,7 +382,7 @@ function attachInput(){
       // anything else: the game's own mouseup handler drops / cuts the wire
       if(temp){scene.remove(temp);temp.geometry.dispose();temp=null;}
     }
-    if(mode==='drag')G.draggingNode=null;
+    if(mode==='drag')dragId=null;
     mode=null;orbit=null;
   };
   el.addEventListener('pointerup',up);
@@ -416,7 +418,9 @@ async function enable(){
   try{await ensureThree();}catch(e){log('Could not load the 3D engine ('+e.message+').','err');return false;}
   if(!host){build();fit();}
   on=true;
-  document.getElementById('canvas-wrap').classList.add('mode3d');
+  const cw=document.getElementById('canvas-wrap');cw.classList.add('mode3d');
+  cw.style.backgroundImage='none';
+  const zh=document.getElementById('zoom-hud');if(zh)zh.style.display='none';
   document.getElementById('viewport').style.visibility='hidden';
   host.style.display='block';
   resize();syncNodes(true);
@@ -430,7 +434,9 @@ function disable(){
   if(!on)return;
   on=false;cancelAnimationFrame(raf);
   if(host)host.style.display='none';
-  document.getElementById('canvas-wrap').classList.remove('mode3d');
+  const cw=document.getElementById('canvas-wrap');cw.classList.remove('mode3d');
+  cw.style.backgroundImage='';
+  const zh=document.getElementById('zoom-hud');if(zh)zh.style.display='';
   document.getElementById('viewport').style.visibility='';
   const b=document.getElementById('btn-3d');if(b){b.classList.remove('on');b.textContent='3D view';}
   try{localStorage.setItem(LS_KEY,'0');}catch(e){}
@@ -441,7 +447,7 @@ function _screen(id,type,idx){
   const p=v.clone().project(camera);const r=renderer.domElement.getBoundingClientRect();
   return{x:r.left+(p.x+1)/2*r.width,y:r.top+(1-p.y)/2*r.height};
 }
-window.RFT3D={_screen,enable,disable,toggle:()=>on?disable():enable(),fit:()=>{if(host){fit();}},isOn:()=>on,
+window.RFT3D={_setCam:o=>Object.assign(cam,o),_screen,enable,disable,toggle:()=>on?disable():enable(),fit:()=>{if(host){fit();}},isOn:()=>on,
   _debug:()=>({nodes:Object.keys(nodeMeshes).length,wires:wireMeshes.length,pulses:pulses.length,cam:{...cam,target:cam.target&&cam.target.toArray()}})};
 
 // Reset view re-frames the board when in 3D
