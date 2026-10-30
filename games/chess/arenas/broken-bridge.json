@@ -1,0 +1,41 @@
+{
+  "v": 1,
+  "name": "Broken Bridge",
+  "intents": 2,
+  "grid": [
+    "__......__",
+    "_........_",
+    "...#..#...",
+    "oo.1..1.oo",
+    "oo.1..1.oo",
+    "...#..#...",
+    "_........_",
+    "__......__"
+  ],
+  "pieces": [
+    {"side": "player", "type": "R", "x": 2, "y": 0},
+    {"side": "player", "type": "N", "x": 3, "y": 0},
+    {"side": "player", "type": "K", "x": 4, "y": 0},
+    {"side": "player", "type": "B", "x": 5, "y": 0},
+    {"side": "player", "type": "N", "x": 6, "y": 0},
+    {"side": "player", "type": "R", "x": 7, "y": 0},
+    {"side": "player", "type": "P", "x": 2, "y": 1},
+    {"side": "player", "type": "P", "x": 3, "y": 1},
+    {"side": "player", "type": "P", "x": 4, "y": 1},
+    {"side": "player", "type": "P", "x": 5, "y": 1},
+    {"side": "player", "type": "P", "x": 6, "y": 1},
+    {"side": "player", "type": "P", "x": 7, "y": 1},
+    {"side": "enemy", "type": "P", "x": 2, "y": 6},
+    {"side": "enemy", "type": "P", "x": 3, "y": 6},
+    {"side": "enemy", "type": "P", "x": 4, "y": 6},
+    {"side": "enemy", "type": "P", "x": 5, "y": 6},
+    {"side": "enemy", "type": "P", "x": 6, "y": 6},
+    {"side": "enemy", "type": "P", "x": 7, "y": 6},
+    {"side": "enemy", "type": "R", "x": 2, "y": 7},
+    {"side": "enemy", "type": "B", "x": 3, "y": 7},
+    {"side": "enemy", "type": "Q", "x": 4, "y": 7},
+    {"side": "enemy", "type": "K", "x": 5, "y": 7},
+    {"side": "enemy", "type": "N", "x": 6, "y": 7},
+    {"side": "enemy", "type": "R", "x": 7, "y": 7}
+  ]
+}

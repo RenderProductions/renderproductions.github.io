@@ -3,25 +3,31 @@
    back as board cells. Built the same way as RFT's 3D view (same three.js
    copy, raycast picking), but with a fixed isometric orthographic camera.
 
-   Board cell (x, y): x = file 0..7 (left to right), y = rank 0..7
-   (your side is rank 0). World: (x - 3.5, height, 3.5 - y).
+   It draws any arena (see arena.js): any size from 4 to 12, odd shapes,
+   raised floors, walls, pits and empty void.
+
+   Board cell (x, y): x = column from the left, y = row from your side
+   (your back rank is y = 0). World: (x - (w-1)/2, height, (h-1)/2 - y).
 
    Style rule: no circles. Every round shape is built with 8 sides,
    so pieces come out as faceted octagons like the card art. */
 (function () {
   'use strict';
 
-  const N = 8;
-  const TILE_H = 0.3;      // tile thickness
-  const RAISE = 0.35;      // extra height of a raised tile
+  const BOTTOM = -0.6;     // underside of every tile column
+  const RAISE = 0.35;      // height of one raised level
+  const WALL_TOP = 0.8;
+  const PIT_TOP = -0.5;
   const SIDES = 8;         // octagons everywhere
 
   const COLORS = {
     bg: 0x0b0d14,
     light: 0x7a8096,
     dark: 0x3e4356,
-    base: 0x151823,
     pit: 0x020203,
+    wall: 0x262a3b,
+    wallEdge: 0x8a90a6,
+    tileEdge: 0x252938,
     player: 0xebe5d1,
     playerEdge: 0x000000,
     enemy: 0x1a1b21,
@@ -39,7 +45,9 @@
   };
 
   let host, renderer, scene, camera, raycaster, mouse;
-  let tiles = [];             // tiles[x][y] = {mesh, pit}
+  let tileObjs = [];          // every tile mesh, for disposal
+  let tileSig = '';           // what the tiles were last built from
+  let W = 8, H = 8;
   let pickables = [];
   let pieces = {};            // pid -> rec
   let hlObjs = [];
@@ -49,11 +57,16 @@
   let handlers = { cell() {}, hover() {}, cancel() {} };
   const view = { rot: 0, cur: 0, zoom: 1 };
 
-  const wx = (x) => x - (N - 1) / 2;
-  const wz = (y) => (N - 1) / 2 - y;
+  const wx = (x) => x - (W - 1) / 2;
+  const wz = (y) => (H - 1) / 2 - y;
+  function topOf(t) {
+    if (!t) return 0;
+    if (t.kind === 'wall') return WALL_TOP;
+    if (t.kind === 'pit') return PIT_TOP;
+    return (t.h || 0) * RAISE;
+  }
   function tileTop(x, y) {
-    const t = state && state.tiles[x] && state.tiles[x][y];
-    return t && t.raised ? RAISE : 0;
+    return topOf(state && state.tiles[x] && state.tiles[x][y]);
   }
 
   /* ---------- piece shapes ---------- */
@@ -211,39 +224,6 @@
     const rim = new THREE.DirectionalLight(0x5a42ed, 0.45); rim.position.set(12, 6, -10); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xffffff, 0.25); fill.position.set(8, 10, 12); scene.add(fill);
 
-    // board slab
-    const base = new THREE.Mesh(new THREE.BoxGeometry(N + 0.5, 0.4, N + 0.5),
-      new THREE.MeshStandardMaterial({ color: COLORS.base, roughness: 0.8, flatShading: true }));
-    base.position.y = -TILE_H - 0.2;
-    scene.add(base);
-    const baseEdge = new THREE.LineSegments(new THREE.EdgesGeometry(base.geometry),
-      new THREE.LineBasicMaterial({ color: 0x3a3f52 }));
-    baseEdge.position.copy(base.position);
-    scene.add(baseEdge);
-
-    const tg = new THREE.BoxGeometry(0.97, 1, 0.97);
-    const pitG = new THREE.BoxGeometry(0.97, 0.02, 0.97);
-    for (let x = 0; x < N; x++) {
-      tiles[x] = [];
-      for (let y = 0; y < N; y++) {
-        const lightSq = (x + y) % 2 === 1;
-        const m = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({
-          color: lightSq ? COLORS.light : COLORS.dark, roughness: 0.85, flatShading: true
-        }));
-        m.userData = { kind: 'tile', x, y };
-        m.scale.y = TILE_H;
-        m.position.set(wx(x), -TILE_H / 2, wz(y));
-        scene.add(m);
-        const pit = new THREE.Mesh(pitG, new THREE.MeshBasicMaterial({ color: COLORS.pit }));
-        pit.position.set(wx(x), -TILE_H + 0.005, wz(y));
-        pit.visible = false;
-        pit.userData = { kind: 'tile', x, y };
-        scene.add(pit);
-        tiles[x][y] = { mesh: m, pit };
-        pickables.push(m, pit);
-      }
-    }
-
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
     new ResizeObserver(resize).observe(host);
@@ -257,7 +237,8 @@
     renderer.setSize(w, h, false);
     const aspect = w / h;
     // fit the board whichever side of the screen is tighter
-    const half = (aspect < 1 ? 6.6 / aspect : 6.2) / view.zoom;
+    const f = Math.max(W, H) / 8;    // bigger arenas zoom out to fit
+    const half = (aspect < 1 ? 6.6 / aspect : 6.2) * f / view.zoom;
     camera.left = -half * aspect; camera.right = half * aspect;
     camera.top = half; camera.bottom = -half;
     camera.updateProjectionMatrix();
@@ -269,8 +250,10 @@
     camera.position.set(d * Math.cos(el) * Math.sin(th), d * Math.sin(el), d * Math.cos(el) * Math.cos(th));
     // aim a little toward the viewer and right, so the board sits
     // above the hand of cards and left of the side panel
-    const side = host.clientWidth < 560 ? 0 : 0.7;   // no side panel on phones
-    const tx = 0.75 * Math.sin(th) + side * Math.cos(th), tz = 0.75 * Math.cos(th) - side * Math.sin(th);
+    const f = Math.max(W, H) / 8;
+    const side = host.clientWidth < 560 ? 0 : 0.7 * f * (view.offset === undefined ? 1 : view.offset);   // no side panel on phones
+    const down = 0.75 * f * (view.offset === undefined ? 1 : view.offset);
+    const tx = down * Math.sin(th) + side * Math.cos(th), tz = down * Math.cos(th) - side * Math.sin(th);
     camera.position.x += tx; camera.position.z += tz;
     camera.lookAt(tx, -0.6, tz);
   }
@@ -386,21 +369,52 @@
   }
 
   /* ---------- sync with game state ---------- */
+  /* ---------- tiles ---------- */
+  const unitBox = new THREE.BoxGeometry(0.97, 1, 0.97);
+  unitBox.translate(0, 0.5, 0);           // origin at the bottom, so scale.y = height
+  const unitEdges = new THREE.EdgesGeometry(unitBox);
+  function column(x, y, top, color, edgeColor) {
+    const m = new THREE.Mesh(unitBox, new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true }));
+    m.position.set(wx(x), BOTTOM, wz(y));
+    m.scale.y = top - BOTTOM;
+    m.userData = { kind: 'tile', x, y };
+    const e = new THREE.LineSegments(unitEdges, new THREE.LineBasicMaterial({ color: edgeColor }));
+    m.add(e);
+    scene.add(m);
+    tileObjs.push(m);
+    pickables.push(m);
+    return m;
+  }
+  function buildTiles(s) {
+    tileObjs.forEach((m) => { scene.remove(m); m.material.dispose(); m.children.forEach((c) => c.material.dispose()); });
+    tileObjs = []; pickables = [];
+    const cream = new THREE.Color(0xfffef2);
+    for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
+      const t = s.tiles[x][y];
+      if (t.kind === 'void') continue;
+      if (t.kind === 'wall') { column(x, y, WALL_TOP, COLORS.wall, COLORS.wallEdge); continue; }
+      if (t.kind === 'pit') { column(x, y, PIT_TOP, COLORS.pit, COLORS.tileEdge); continue; }
+      const c = new THREE.Color((x + y) % 2 === 1 ? COLORS.light : COLORS.dark).lerp(cream, 0.07 * (t.h || 0));
+      column(x, y, topOf(t), c, COLORS.tileEdge);
+    }
+  }
+
+  /* ---------- sync with game state ---------- */
   function sync(s) {
     state = s;
-    for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
-      const t = s.tiles[x][y], T = tiles[x][y];
-      T.mesh.visible = !t.pit;
-      T.pit.visible = !!t.pit;
-      const top = t.raised ? RAISE : 0;
-      T.mesh.scale.y = TILE_H + top;
-      T.mesh.position.y = (top - TILE_H) / 2;
+    const sig = s.w + 'x' + s.h + ':' + s.tiles.map((col) => col.map((t) => t.kind[0] + (t.h || 0)).join('')).join('|');
+    if (sig !== tileSig) {
+      const resized = s.w !== W || s.h !== H;
+      W = s.w; H = s.h;
+      tileSig = sig;
+      buildTiles(s);
+      if (resized) resize();
     }
     const alive = new Set();
     s.pieces.forEach((p) => {
       alive.add(p.id);
       let rec = pieces[p.id];
-      if (rec && rec.type !== p.type) { disposePiece(p.id); rec = null; }   // promotion
+      if (rec && (rec.type !== p.type || rec.side !== p.side)) { disposePiece(p.id); rec = null; }   // promotion, or edited
       if (!rec) rec = makePiece(p);
       if (!rec.busy) rec.group.position.set(wx(p.x), tileTop(p.x, p.y), wz(p.y));
       setRing(rec, 'shield', !!p.shield, COLORS.shield, 0.4);
@@ -474,6 +488,9 @@
     init(el, h) { Object.assign(handlers, h); build(el); },
     sync, setHighlights, setIntents, animateMove, animateCapture, animateFizzle,
     rotate(dir) { view.rot += (dir * Math.PI) / 2; },
+    // how far to nudge the board away from the game's HUD (0 = centered, for the editor)
+    setFraming(k) { view.offset = k; },
+    setZoom(z) { view.zoom = z; if (renderer) resize(); },
     reset() { Object.keys(pieces).forEach(disposePiece); clearList(hlObjs); clearList(intentObjs); },
     // test hook: screen position of a cell, for automated play-testing
     _cellToScreen(x, y) {

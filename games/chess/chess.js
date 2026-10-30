@@ -2,16 +2,17 @@
    Rules, turn loop, enemy telegraphs and power cards. Board3D draws it.
 
    How a round works:
-   1. The enemy shows what it is about to do (red arcs). Up to INTENTS per turn.
+   1. The enemy shows what it is about to do (red arcs), a few moves per turn.
    2. Your turn: gain energy, draw a card, play cards, make one move.
    3. The enemy carries out its telegraphed moves, if they are still legal.
       Dodge, block, shield or capture the attacker to stop them.
-   Capture the enemy King to win. Lose your King and the battle is over. */
+   Capture the enemy King to win. Lose your King and the battle is over.
+
+   The board and both armies come from an arena file (see arena.js and arenas/).
+   Arenas are designed in the 2D editor at editor/. */
 (function () {
   'use strict';
 
-  const N = 8;
-  const INTENTS = 2;          // enemy moves telegraphed per turn
   const MAX_ENERGY = 5;
   const HAND_SIZE = 3;
   const VALUE = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 100 };
@@ -20,7 +21,9 @@
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const key = (x, y) => x + ',' + y;
-  const inB = (x, y) => x >= 0 && y >= 0 && x < N && y < N;
+  const inB = (x, y) => x >= 0 && y >= 0 && x < S.w && y < S.h;
+  // a tile a piece can stand on (not a wall, pit, void, or off the board)
+  const open = (x, y) => inB(x, y) && S.tiles[x][y].kind === 'floor';
   const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
   function shuffle(a) {
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -37,7 +40,7 @@
   const kingOf = (side) => S.pieces.find((p) => p.side === side && p.type === 'K') || null;
   const own = (p) => p && p.side === 'player';
   const foe = (p) => p && p.side === 'enemy';
-  const isPit = (x, y) => S.tiles[x][y].pit;
+  const tileAt = (x, y) => (inB(x, y) ? S.tiles[x][y] : null);
 
   function add(side, type, x, y) {
     const p = { id: ++uid, side, type, x, y, moved: false, shield: false, fortify: false, frozen: false };
@@ -60,9 +63,10 @@
   // (used by the enemy so it doesn't walk into captures).
   function movesFor(p, attack) {
     const out = [];
-    const boost = S.tiles[p.x][p.y].raised ? 1 : 0;
+    const boost = S.tiles[p.x][p.y].h > 0 ? 1 : 0;   // high ground: +1 range
+    const far = Math.max(S.w, S.h);
     const land = (x, y) => {
-      if (!inB(x, y) || isPit(x, y)) return;
+      if (!open(x, y)) return;
       const o = at(x, y);
       if (attack) { out.push({ x, y, capture: o && o.side !== p.side ? o : null }); return; }
       if (!o) out.push({ x, y, capture: null });
@@ -72,7 +76,7 @@
       let x = p.x, y = p.y;
       for (let i = 0; i < max; i++) {
         x += dx; y += dy;
-        if (!inB(x, y) || isPit(x, y)) return;   // pits block lines
+        if (!open(x, y)) return;   // walls, pits and gaps block lines
         const o = at(x, y);
         if (o) { land(x, y); return; }
         land(x, y);
@@ -81,22 +85,22 @@
     switch (p.type) {
       case 'K': ALL8.forEach(([dx, dy]) => ray(dx, dy, 1 + boost)); break;
       case 'N': JUMPS.forEach(([dx, dy]) => land(p.x + dx, p.y + dy)); break;
-      case 'B': DIAG.forEach(([dx, dy]) => ray(dx, dy, N)); break;
-      case 'R': ORTH.forEach(([dx, dy]) => ray(dx, dy, N)); break;
-      case 'Q': ALL8.forEach(([dx, dy]) => ray(dx, dy, N)); break;
+      case 'B': DIAG.forEach(([dx, dy]) => ray(dx, dy, far)); break;
+      case 'R': ORTH.forEach(([dx, dy]) => ray(dx, dy, far)); break;
+      case 'Q': ALL8.forEach(([dx, dy]) => ray(dx, dy, far)); break;
       case 'P': {
         const f = p.side === 'player' ? 1 : -1;
         if (!attack) {
           const steps = Math.max(p.moved ? 1 : 2, 1 + boost);
           for (let i = 1; i <= steps; i++) {
             const y = p.y + f * i;
-            if (!inB(p.x, y) || isPit(p.x, y) || at(p.x, y)) break;
+            if (!open(p.x, y) || at(p.x, y)) break;
             out.push({ x: p.x, y, capture: null });
           }
         }
         [-1, 1].forEach((dx) => {
           const x = p.x + dx, y = p.y + f;
-          if (!inB(x, y) || isPit(x, y)) return;
+          if (!open(x, y)) return;
           const o = at(x, y);
           if (attack) out.push({ x, y, capture: o && o.side !== p.side ? o : null });
           else if (o && o.side !== p.side && capturable(p, o)) out.push({ x, y, capture: o });
@@ -113,23 +117,18 @@
   }
 
   /* ---------- battle setup ---------- */
+  let arena = null;          // the arena being played (from arena.js)
+
   function newBattle() {
     uid = 0;
     S = {
+      w: arena.w, h: arena.h, intentCount: arena.intents,
       pieces: [], tiles: [], turn: 0, energy: 1, hand: [], draw: [], intents: [],
       phase: 'player', movesLeft: 1, lockPiece: null, movedThisTurn: false,
       selected: null, targeting: null, busy: false, over: false, fallen: [], log: []
     };
-    for (let x = 0; x < N; x++) { S.tiles[x] = []; for (let y = 0; y < N; y++) S.tiles[x][y] = { pit: false, raised: false }; }
-
-    // your army
-    add('player', 'R', 0, 0); add('player', 'N', 1, 0); add('player', 'B', 2, 0);
-    add('player', 'K', 4, 0); add('player', 'B', 5, 0); add('player', 'R', 7, 0);
-    [0, 2, 3, 4, 5, 7].forEach((x) => add('player', 'P', x, 1));
-    // the enemy
-    add('enemy', 'R', 0, 7); add('enemy', 'N', 1, 7); add('enemy', 'Q', 3, 7);
-    add('enemy', 'K', 4, 7); add('enemy', 'N', 6, 7); add('enemy', 'R', 7, 7);
-    [0, 1, 3, 4, 6, 7].forEach((x) => add('enemy', 'P', x, 6));
+    S.tiles = arena.tiles.map((col) => col.map((t) => ({ kind: t.kind, h: t.h })));
+    arena.pieces.forEach((p) => add(p.side, p.type, p.x, p.y));
 
     // every power goes into one shuffled draw pile; played cards are used up
     S.draw = shuffle(POWERS.map((c) => c.id));
@@ -137,7 +136,7 @@
     Board3D.reset();
     $('overlay').hidden = true;
     S.log = [];
-    say('Battle start. Red arcs show what the enemy will do after your move.');
+    say(`${arena.name}. Red arcs show what the enemy will do after your move.`);
     planIntents();
     startPlayerTurn();
   }
@@ -211,14 +210,14 @@
       say(by ? `Enemy ${NAME[by.type]} took your ${NAME[victim.type]}.` : `Your ${NAME[victim.type]} was lost.`);
     } else {
       if (by && by.side === 'player') S.energy = Math.min(MAX_ENERGY, S.energy + 1);
-      say(by ? `Your ${NAME[by.type]} took the enemy ${NAME[victim.type]}. +1 energy.` : `Enemy ${NAME[victim.type]} fell into the pit.`);
+      say(by ? `Your ${NAME[by.type]} took the enemy ${NAME[victim.type]}. +1 energy.` : `Enemy ${NAME[victim.type]} fell and was lost.`);
     }
     await cap;
   }
 
   function promote(p) {
     if (p.type !== 'P') return;
-    if ((p.side === 'player' && p.y === N - 1) || (p.side === 'enemy' && p.y === 0)) {
+    if ((p.side === 'player' && p.y === S.h - 1) || (p.side === 'enemy' && p.y === 0)) {
       p.type = 'Q';
       say(p.side === 'player' ? 'Your Pawn promoted to a Queen.' : 'An enemy Pawn promoted to a Queen.');
     }
@@ -272,7 +271,7 @@
     cands.sort((a, b) => b.s - a.s);
     const used = new Set();
     for (const c of cands) {
-      if (S.intents.length >= INTENTS) break;
+      if (S.intents.length >= S.intentCount) break;
       if (used.has(key(c.x, c.y))) continue;
       used.add(key(c.x, c.y));
       S.intents.push(c);
@@ -310,22 +309,27 @@
       targets: [{ kind: 'piece', prompt: 'Pick a piece to fortify.', ok: (t) => own(t) && !t.fortify }],
       apply([p]) { p.fortify = true; } },
     { id: 'raise', name: 'Raise Ground', file: 'RaiseGround', cost: 2, text: 'Lift a tile. A piece on it gains +1 range while it stays there.',
-      targets: [{ kind: 'tile', prompt: 'Pick a tile to raise.', ok: (t) => !isPit(t.x, t.y) && !S.tiles[t.x][t.y].raised }],
-      apply([t]) { S.tiles[t.x][t.y].raised = true; } },
+      targets: [{ kind: 'tile', prompt: 'Pick a tile to raise.', ok: (t) => open(t.x, t.y) && S.tiles[t.x][t.y].h < Arena.MAX_HEIGHT }],
+      apply([t]) { S.tiles[t.x][t.y].h += 1; } },
     { id: 'collapse', name: 'Collapse', file: 'Collapse', cost: 3, text: 'Turn an empty tile into a pit. Anything that enters it is lost.',
-      targets: [{ kind: 'tile', prompt: 'Pick an empty tile to collapse.', ok: (t) => !isPit(t.x, t.y) && !at(t.x, t.y) }],
-      apply([t]) { S.tiles[t.x][t.y].pit = true; S.tiles[t.x][t.y].raised = false; } },
+      targets: [{ kind: 'tile', prompt: 'Pick an empty tile to collapse.', ok: (t) => open(t.x, t.y) && !at(t.x, t.y) }],
+      apply([t]) { S.tiles[t.x][t.y] = { kind: 'pit', h: 0 }; } },
     { id: 'freeze', name: 'Freeze', file: 'Freeze', cost: 2, text: "An enemy piece can't move on its next turn.",
       targets: [{ kind: 'piece', prompt: 'Pick an enemy piece to freeze.', ok: (t) => foe(t) && !t.frozen }],
       apply([p]) { p.frozen = true; S.intents = S.intents.filter((i) => i.pid !== p.id); } },
     { id: 'shove', name: 'Shove', file: 'Shove', cost: 1, text: 'Push an enemy next to one of your pieces back one square.',
       targets: [{ kind: 'piece', prompt: 'Pick an enemy next to one of your pieces.',
-        ok: (t) => { if (!foe(t) || !adjacentToOwn(t)) return false; const d = shoveDest(t); return inB(d.x, d.y) && !at(d.x, d.y); } }],
+        ok: (t) => {
+          if (!foe(t) || !adjacentToOwn(t)) return false;
+          const d = shoveDest(t), tile = tileAt(d.x, d.y);
+          return !(tile && tile.kind === 'wall') && !at(d.x, d.y);   // walls and pieces stop a shove
+        } }],
       async apply([p]) {
         const d = shoveDest(p);
         await Board3D.animateMove(p.id, d.x, d.y);
         p.x = d.x; p.y = d.y;
-        if (isPit(d.x, d.y)) { await capture(p, null); checkKings(); }
+        // shoved into a pit, or off the edge of the arena
+        if (!open(d.x, d.y)) { await capture(p, null); checkKings(); }
       } },
     { id: 'martyr', name: 'Martyr', file: 'Martyr', cost: 1, text: 'Sacrifice a pawn to revive a captured piece next to your king.',
       playable: () => !S.fallen.length ? 'None of your pieces have fallen yet.'
@@ -333,7 +337,7 @@
       targets: [
         { kind: 'piece', prompt: 'Pick a pawn to sacrifice.', ok: (t) => own(t) && t.type === 'P' },
         { kind: 'tile', prompt: 'Pick an empty tile next to your King.',
-          ok: (t) => { const k = kingOf('player'); return k && cheb(k, t) === 1 && !at(t.x, t.y) && !isPit(t.x, t.y); } }],
+          ok: (t) => { const k = kingOf('player'); return k && cheb(k, t) === 1 && !at(t.x, t.y) && open(t.x, t.y); } }],
       async apply([pawn, t]) {
         await Board3D.animateCapture(pawn.id);
         S.pieces = S.pieces.filter((q) => q !== pawn);
@@ -440,7 +444,7 @@
     if (S.targeting) {
       const spec = S.targeting.card.targets[S.targeting.picks.length];
       S.targeting.picks.forEach((t) => hl.push({ x: t.x, y: t.y, kind: 'picked' }));
-      for (let x = 0; x < N; x++) for (let y = 0; y < N; y++) {
+      for (let x = 0; x < S.w; x++) for (let y = 0; y < S.h; y++) {
         const t = targetAt(spec, x, y);
         if (t && spec.ok(t, S.targeting.picks)) hl.push({ x, y, kind: 'target' });
       }
@@ -498,7 +502,7 @@
     if (p.shield) tags.push('SHIELDED');
     if (p.fortify) tags.push('FORTIFIED');
     if (p.frozen) tags.push('FROZEN');
-    if (S.tiles[p.x][p.y].raised) tags.push('HIGH GROUND');
+    if (S.tiles[p.x][p.y].h > 0) tags.push('HIGH GROUND');
     info.innerHTML = tags.map((t, i) => `<span class="chip${i === 0 ? (own(p) ? ' mine' : ' foe') : ''}">${t}</span>`).join('');
   }
 
@@ -516,14 +520,61 @@
     $('end-turn').addEventListener('click', () => { S.selected = null; endPlayerTurn(); });
     $('rot-l').addEventListener('click', () => Board3D.rotate(-1));
     $('rot-r').addEventListener('click', () => Board3D.rotate(1));
-    $('again').addEventListener('click', newBattle);
+    $('again').addEventListener('click', () => newBattle());
+    $('arena-pick').addEventListener('change', (e) => loadArena(e.target.value));
     window.addEventListener('keydown', (e) => {
-      if (e.target.closest && e.target.closest('input,textarea')) return;
+      if (e.target.closest && e.target.closest('input,textarea,select')) return;
       if (e.key === 'Escape') cancel();
       else if (e.key === 'q' || e.key === 'Q') Board3D.rotate(-1);
       else if (e.key === 'e' || e.key === 'E') Board3D.rotate(1);
       else if (e.key === 'Enter' && S.phase === 'player') endPlayerTurn();
     });
+    loadArenaList();
+  }
+
+  /* ---------- arenas ---------- */
+  // Used if arenas/ can't be fetched (for example when opened straight from disk).
+  const FALLBACK = {
+    name: 'Opening Skirmish', intents: 2,
+    grid: ['........', '........', '........', '........', '........', '........', '........', '........'],
+    pieces: [['R', 0], ['N', 1], ['Q', 3], ['K', 4], ['N', 6], ['R', 7]].map(([type, x]) => ({ side: 'enemy', type, x, y: 7 }))
+      .concat([0, 1, 3, 4, 6, 7].map((x) => ({ side: 'enemy', type: 'P', x, y: 6 })))
+      .concat([['R', 0], ['N', 1], ['B', 2], ['K', 4], ['B', 5], ['R', 7]].map(([type, x]) => ({ side: 'player', type, x, y: 0 })))
+      .concat([0, 2, 3, 4, 5, 7].map((x) => ({ side: 'player', type: 'P', x, y: 1 })))
+  };
+  const TEST_KEY = 'isochess_test_arena';   // the editor's "Test play" hands arenas over here
+
+  async function loadArenaList() {
+    const params = new URLSearchParams(location.search);
+    const pick = $('arena-pick');
+    let list = [];
+    try {
+      const r = await fetch('arenas/index.json', { cache: 'no-store' });
+      list = (await r.json()).arenas || [];
+    } catch (e) { list = []; }
+    let testArena = null;
+    if (params.has('test')) {
+      try { testArena = localStorage.getItem(TEST_KEY); } catch (e) { testArena = null; }
+    }
+    pick.innerHTML = (testArena ? '<option value="@test">Editor test arena</option>' : '') +
+      list.map((a) => `<option value="${a.file}">${a.name}</option>`).join('');
+    const want = testArena ? '@test' : (list.find((a) => a.file === params.get('arena') + '.json' || a.file === params.get('arena')) || list[0] || {}).file;
+    if (want) pick.value = want;
+    loadArena(want || null, testArena);
+  }
+
+  async function loadArena(file, testText) {
+    let data = FALLBACK;
+    try {
+      if (file === '@test') data = testText || localStorage.getItem(TEST_KEY);
+      else if (file) data = await (await fetch('arenas/' + file, { cache: 'no-store' })).text();
+      arena = Arena.parse(data);
+      const problems = Arena.validate(arena);
+      if (problems.length) throw new Error(problems[0]);
+    } catch (e) {
+      console.warn('[Iso-Chess] Could not load arena, using the default:', e.message);
+      arena = Arena.parse(FALLBACK);
+    }
     newBattle();
   }
 

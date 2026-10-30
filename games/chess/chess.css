@@ -34,6 +34,11 @@ button { font: inherit; color: inherit; }
 .stat { font-size: 11px; letter-spacing: 2px; color: var(--dim); display: flex; align-items: center; gap: 8px; }
 .stat b { font-family: var(--display); font-size: 22px; color: var(--cream); font-weight: 400; }
 .spacer { flex: 1; }
+.arena-wrap select {
+  font: 12px var(--mono); color: var(--cream); background: #1a1d2b; border: 1px solid var(--line);
+  padding: 4px 6px; letter-spacing: 0; max-width: 170px;
+}
+.btn.small { font-size: 13px; padding: 9px 12px; }
 
 .energy { display: inline-flex; gap: 5px; }
 .energy .pip { width: 20px; height: 20px; clip-path: var(--oct); background: #2a2f3e; display: block; }
@@ -132,7 +137,7 @@ body.enemy-turn .prompt { border-color: var(--red); color: var(--red); font-fami
 }
 @media (max-width: 560px) {
   .side { display: none; }
-  .back, .title span { display: none; }
+  .back, .title span, .arena-wrap, .btn.small { display: none; }
   .card { width: 92px; }
   .pile { width: 52px; height: 72px; }
   .help { display: none; }

@@ -19,7 +19,11 @@
   <div class="title">ISO-CHESS <span>PROTOTYPE</span></div>
   <div class="stat">TURN <b id="turn">1</b></div>
   <div class="stat energy-wrap">ENERGY <span class="energy" id="energy" aria-label="Energy"></span></div>
+  <label class="stat arena-wrap">ARENA
+    <select id="arena-pick" aria-label="Arena"></select>
+  </label>
   <div class="spacer"></div>
+  <a class="btn ghost small" href="editor/" title="Design arenas in 2D">EDITOR</a>
   <button class="btn ghost" id="rot-l" title="Rotate board (Q)" aria-label="Rotate board left">&#10226;</button>
   <button class="btn ghost" id="rot-r" title="Rotate board (E)" aria-label="Rotate board right">&#10227;</button>
   <button class="btn" id="end-turn">SKIP MOVE</button>
@@ -62,6 +66,7 @@
 
 <!-- Same three.js copy RFT uses -->
 <script src="../rft/vendor/three.min.js"></script>
+<script src="arena.js"></script>
 <script src="board3d.js"></script>
 <script src="chess.js"></script>
 </body>

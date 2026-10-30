@@ -1,0 +1,12 @@
+{
+  "arenas": [
+    {
+      "file": "skirmish.json",
+      "name": "Opening Skirmish"
+    },
+    {
+      "file": "broken-bridge.json",
+      "name": "Broken Bridge"
+    }
+  ]
+}
