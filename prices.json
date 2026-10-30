@@ -1,21 +1,30 @@
 {
-  "updated": "2026-10-30T21:05:13.208Z",
+  "updated": "2026-10-30T21:10:13.165Z",
   "prices": {
-    "RRM": 130.17,
-    "NACH": 34.8,
-    "BLU": 83.11,
-    "BNW": 16.37
+    "RRM": 133.58,
+    "NACH": 35.23,
+    "BLU": 83.74,
+    "BNW": 16.97
   },
   "changes": {
-    "RRM": -6.64,
-    "NACH": -15.88,
-    "BLU": 4.33,
-    "BNW": 21.89
+    "RRM": -7.48,
+    "NACH": -12.73,
+    "BLU": 1.91,
+    "BNW": 28.27
   },
-  "headline": "Business Numbers Working sets out to make the numbers work.",
-  "headlineText": "📢 **NEW GOAL** · `BNW` · <t:1793391014:R>\nBusiness Numbers Working sets out to make the numbers work.\n*Deadline <t:1793446019:R>*",
-  "newsText": "📢 **NEW GOAL** · `BNW` · <t:1793391014:R>\nBusiness Numbers Working sets out to make the numbers work.\n*Deadline <t:1793446019:R>*\n\n📢 **NEW GOAL** · `BLU` · <t:1793381711:R>\nBuilder's League United tries to agree on a single blueprint.\n*Deadline <t:1793428088:R>*\n\n📢 **NEW GOAL** · `RRM` · <t:1793379014:R>\nRender Room aims to hit a new member record.\n*Deadline <t:1793438393:R>*\n\n🔴 **FAILED** · `NACH` · <t:1793371815:R>\nCheese shortage hits De Nacho hard.\n*▼ -15.19% on the news*\n\n🟢 **SUCCESS** · `BNW` · <t:1793366712:R>\nBNW hires an accountant, investors relieved!\n*▲ +16.73% on the news*",
+  "headline": "De Nacho is opening three new nacho stands.",
+  "headlineText": "📢 **NEW GOAL** · `NACH` · <t:1793394613:R>\nDe Nacho is opening three new nacho stands.\n*Deadline <t:1793440569:R>*",
+  "newsText": "📢 **NEW GOAL** · `NACH` · <t:1793394613:R>\nDe Nacho is opening three new nacho stands.\n*Deadline <t:1793440569:R>*\n\n📢 **NEW GOAL** · `BNW` · <t:1793391014:R>\nBusiness Numbers Working sets out to make the numbers work.\n*Deadline <t:1793446019:R>*\n\n📢 **NEW GOAL** · `BLU` · <t:1793381711:R>\nBuilder's League United tries to agree on a single blueprint.\n*Deadline <t:1793428088:R>*\n\n📢 **NEW GOAL** · `RRM` · <t:1793379014:R>\nRender Room aims to hit a new member record.\n*Deadline <t:1793438393:R>*\n\n🔴 **FAILED** · `NACH` · <t:1793371815:R>\nCheese shortage hits De Nacho hard.\n*▼ -15.19% on the news*",
   "news": [
+    {
+      "time": "2026-10-30T21:10:13.165Z",
+      "id": "NACH",
+      "name": "De Nacho",
+      "type": "goal",
+      "headline": "De Nacho is opening three new nacho stands.",
+      "deadline": "2026-10-31T09:56:09.858Z",
+      "discord": "📢 **NEW GOAL** · `NACH` · <t:1793394613:R>\nDe Nacho is opening three new nacho stands.\n*Deadline <t:1793440569:R>*"
+    },
     {
       "time": "2026-10-30T20:10:14.765Z",
       "id": "BNW",
@@ -114,15 +123,6 @@
       "headline": "De Nacho vows to survive the cheese shortage.",
       "deadline": "2026-10-30T14:48:55.397Z",
       "discord": "📢 **NEW GOAL** · `NACH` · <t:1793313913:R>\nDe Nacho vows to survive the cheese shortage.\n*Deadline <t:1793371735:R>*"
-    },
-    {
-      "time": "2026-10-29T21:15:13.995Z",
-      "id": "BNW",
-      "name": "Business Numbers Working",
-      "type": "fail",
-      "headline": "BNW admits the numbers are not working.",
-      "move": -18.6,
-      "discord": "🔴 **FAILED** · `BNW` · <t:1793308513:R>\nBNW admits the numbers are not working.\n*▼ -18.60% on the news*"
     }
   ],
   "companies": [
@@ -130,9 +130,9 @@
       "id": "RRM",
       "name": "Render Room",
       "description": "The server itself, publicly traded.",
-      "price": 130.17,
-      "change": -6.64,
-      "history": [139.43, 144.38, 140.21, 140.99, 136.71, 132.68, 130.15, 125.54, 121.77, 120.05, 117.97, 119.32, 119.67, 124.27, 122.07, 120.96, 123.3, 121.68, 124.37, 121.95, 125.14, 125.22, 126.29, 127.35, 131.85, 130.31, 130.31, 128.47, 125.12, 120.14, 123.89, 128.04, 126.67, 129.41, 127.36, 124.7, 119.75, 119.78, 119.23, 118.11, 117.57, 119.96, 124.41, 126.6, 129.24, 133.24, 127.92, 130.17],
+      "price": 133.58,
+      "change": -7.48,
+      "history": [144.38, 140.21, 140.99, 136.71, 132.68, 130.15, 125.54, 121.77, 120.05, 117.97, 119.32, 119.67, 124.27, 122.07, 120.96, 123.3, 121.68, 124.37, 121.95, 125.14, 125.22, 126.29, 127.35, 131.85, 130.31, 130.31, 128.47, 125.12, 120.14, 123.89, 128.04, 126.67, 129.41, 127.36, 124.7, 119.75, 119.78, 119.23, 118.11, 117.57, 119.96, 124.41, 126.6, 129.24, 133.24, 127.92, 130.17, 133.58],
       "goal": {
         "index": 0,
         "text": "Render Room aims to hit a new member record.",
@@ -146,10 +146,15 @@
       "id": "NACH",
       "name": "De Nacho",
       "description": "Nachos, at scale.",
-      "price": 34.8,
-      "change": -15.88,
-      "history": [41.37, 40.37, 38.81, 40.18, 38.74, 39.46, 38.97, 40.92, 42.83, 43.53, 44.65, 45.41, 46.46, 45.68, 43.91, 42.96, 42.92, 41.67, 43.23, 41.59, 40.5, 42.25, 42.94, 42.99, 45.18, 43.97, 45.17, 43.62, 41.77, 39.85, 39.46, 40.38, 40.97, 41.31, 40.09, 38.98, 40.67, 40.44, 40.74, 40.7, 39.97, 39.58, 38.21, 38.6, 37.79, 36.23, 36.2, 34.8],
-      "goal": null,
+      "price": 35.23,
+      "change": -12.73,
+      "history": [40.37, 38.81, 40.18, 38.74, 39.46, 38.97, 40.92, 42.83, 43.53, 44.65, 45.41, 46.46, 45.68, 43.91, 42.96, 42.92, 41.67, 43.23, 41.59, 40.5, 42.25, 42.94, 42.99, 45.18, 43.97, 45.17, 43.62, 41.77, 39.85, 39.46, 40.38, 40.97, 41.31, 40.09, 38.98, 40.67, 40.44, 40.74, 40.7, 39.97, 39.58, 38.21, 38.6, 37.79, 36.23, 36.2, 34.8, 35.23],
+      "goal": {
+        "index": 0,
+        "text": "De Nacho is opening three new nacho stands.",
+        "startPrice": 35.23,
+        "deadline": "2026-10-31T09:56:09.858Z"
+      },
       "lastGoal": 2,
       "nextGoalAt": "2026-10-30T21:07:20.014Z"
     },
@@ -157,9 +162,9 @@
       "id": "BLU",
       "name": "Builder's League United",
       "description": "Building things together, allegedly.",
-      "price": 83.11,
-      "change": 4.33,
-      "history": [79.66, 82.17, 84.14, 84.96, 85.88, 86.28, 83.15, 81.92, 84.51, 84.33, 85.78, 88.57, 90.09, 90.11, 91.92, 92.35, 91.93, 93.7, 91, 93.79, 95.95, 93.81, 93.8, 94.21, 95.96, 93.19, 92.85, 94.32, 93.27, 95.55, 96.29, 92.5, 90.96, 93.51, 91.5, 88.8, 87.12, 89.32, 89.24, 89.71, 86.83, 84.4, 83.59, 83.97, 83.62, 82.96, 83.99, 83.11],
+      "price": 83.74,
+      "change": 1.91,
+      "history": [82.17, 84.14, 84.96, 85.88, 86.28, 83.15, 81.92, 84.51, 84.33, 85.78, 88.57, 90.09, 90.11, 91.92, 92.35, 91.93, 93.7, 91, 93.79, 95.95, 93.81, 93.8, 94.21, 95.96, 93.19, 92.85, 94.32, 93.27, 95.55, 96.29, 92.5, 90.96, 93.51, 91.5, 88.8, 87.12, 89.32, 89.24, 89.71, 86.83, 84.4, 83.59, 83.97, 83.62, 82.96, 83.99, 83.11, 83.74],
       "goal": {
         "index": 1,
         "text": "Builder's League United tries to agree on a single blueprint.",
@@ -173,9 +178,9 @@
       "id": "BNW",
       "name": "Business Numbers Working",
       "description": "Numbers. Business. Working, mostly.",
-      "price": 16.37,
-      "change": 21.89,
-      "history": [13.43, 13.23, 13.63, 13.99, 14.27, 14.83, 14.74, 15.12, 14.72, 14.4, 14.59, 14.63, 15.15, 15.63, 15, 14.99, 15.29, 15.94, 16.59, 17.38, 18.07, 18.22, 18.12, 18.25, 17.66, 18.37, 19.1, 19.66, 20.25, 19.5, 20.38, 20.83, 20.72, 20.26, 19.88, 19.73, 20.24, 19.11, 20.06, 20.88, 19.48, 19.78, 19.29, 18.63, 18.98, 18.31, 17.46, 16.37],
+      "price": 16.97,
+      "change": 28.27,
+      "history": [13.23, 13.63, 13.99, 14.27, 14.83, 14.74, 15.12, 14.72, 14.4, 14.59, 14.63, 15.15, 15.63, 15, 14.99, 15.29, 15.94, 16.59, 17.38, 18.07, 18.22, 18.12, 18.25, 17.66, 18.37, 19.1, 19.66, 20.25, 19.5, 20.38, 20.83, 20.72, 20.26, 19.88, 19.73, 20.24, 19.11, 20.06, 20.88, 19.48, 19.78, 19.29, 18.63, 18.98, 18.31, 17.46, 16.37, 16.97],
       "goal": {
         "index": 0,
         "text": "Business Numbers Working sets out to make the numbers work.",
