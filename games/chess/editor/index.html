@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Arena Editor | Iso-Chess</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="editor.css">
+</head>
+<body>
+
+<header class="bar">
+  <a class="back" href="../">&larr; ISO-CHESS</a>
+  <div class="title">ARENA EDITOR</div>
+  <label class="field">NAME <input id="name" maxlength="40" spellcheck="false"></label>
+  <div class="field">SIZE
+    <span class="stepper"><button class="mini" data-size="w-1" aria-label="Narrower">&minus;</button><b id="w">8</b><button class="mini" data-size="w+1" aria-label="Wider">+</button></span>
+    &times;
+    <span class="stepper"><button class="mini" data-size="h-1" aria-label="Shorter">&minus;</button><b id="h">8</b><button class="mini" data-size="h+1" aria-label="Taller">+</button></span>
+  </div>
+  <label class="field">ENEMY MOVES / TURN
+    <select id="intents"><option>1</option><option>2</option><option>3</option><option>4</option></select>
+  </label>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="undo" title="Undo (Ctrl+Z)">UNDO</button>
+  <button class="btn ghost" id="new">NEW</button>
+  <label class="btn ghost file">OPEN<input type="file" id="open" accept=".json,application/json"></label>
+  <button class="btn ghost" id="copy">COPY JSON</button>
+  <button class="btn ghost" id="save">SAVE FILE</button>
+  <button class="btn" id="test">TEST PLAY</button>
+</header>
+
+<main class="layout">
+  <nav class="tools" aria-label="Tools">
+    <h2>TERRAIN</h2>
+    <button class="tool" data-tool="floor"><i class="sw floor"></i>Floor</button>
+    <button class="tool" data-tool="raise"><i class="sw raise">+</i>Raise</button>
+    <button class="tool" data-tool="lower"><i class="sw lower">&minus;</i>Lower</button>
+    <button class="tool" data-tool="wall"><i class="sw wall"></i>Wall</button>
+    <button class="tool" data-tool="pit"><i class="sw pit"></i>Pit</button>
+    <button class="tool" data-tool="void"><i class="sw void"></i>Void</button>
+
+    <h2>PIECES</h2>
+    <div class="sides">
+      <button class="side-btn" data-side="player">YOURS</button>
+      <button class="side-btn" data-side="enemy">ENEMY</button>
+    </div>
+    <div class="piece-tools">
+      <button class="tool piece" data-tool="K" title="King">&#9818;</button>
+      <button class="tool piece" data-tool="Q" title="Queen">&#9819;</button>
+      <button class="tool piece" data-tool="R" title="Rook">&#9820;</button>
+      <button class="tool piece" data-tool="B" title="Bishop">&#9821;</button>
+      <button class="tool piece" data-tool="N" title="Knight">&#9822;</button>
+      <button class="tool piece" data-tool="P" title="Pawn">&#9823;</button>
+    </div>
+    <button class="tool" data-tool="erase"><i class="sw erase">&times;</i>Remove piece</button>
+
+    <h2>OPTIONS</h2>
+    <label class="check"><input type="checkbox" id="mirror"> Mirror to the other side</label>
+    <p class="hint">Click or drag to paint. Right-click removes a piece. You can also click tiles in the 3D view.</p>
+  </nav>
+
+  <section class="grid-wrap" aria-label="Arena, top-down">
+    <div class="side-label enemy">ENEMY SIDE</div>
+    <div id="grid" class="grid"></div>
+    <div class="side-label player">YOUR SIDE</div>
+  </section>
+
+  <aside class="right">
+    <div class="preview-box">
+      <div class="preview-head">
+        <h2>3D PREVIEW</h2>
+        <button class="mini" id="rot-l" aria-label="Rotate preview left">&#10226;</button>
+        <button class="mini" id="rot-r" aria-label="Rotate preview right">&#10227;</button>
+      </div>
+      <div id="preview"></div>
+    </div>
+    <div class="panel">
+      <h2>CHECKS</h2>
+      <ul id="problems"></ul>
+    </div>
+    <div class="panel">
+      <h2>BUILT-IN ARENAS</h2>
+      <select id="builtin"><option value="">Load one to start from&hellip;</option></select>
+    </div>
+    <div class="panel">
+      <h2>ADDING IT TO THE GAME</h2>
+      <p class="hint">Save the file into <code>games/chess/arenas/</code>, then add a line for it in <code>arenas/index.json</code>. It will show up in the game's Arena list.</p>
+    </div>
+  </aside>
+</main>
+
+<p class="toast" id="toast" hidden></p>
+
+<script src="../../rft/vendor/three.min.js"></script>
+<script src="../arena.js"></script>
+<script src="../board3d.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>
