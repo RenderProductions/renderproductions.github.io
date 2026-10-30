@@ -84,7 +84,7 @@
   function renderGrid() {
     const g = $('grid');
     const avail = Math.min(g.parentElement.clientWidth - 24, window.innerHeight - 190);
-    const cell = Math.max(26, Math.min(58, Math.floor(avail / Math.max(A.w, A.h))));
+    const cell = Math.max(16, Math.min(58, Math.floor(avail / Math.max(A.w, A.h)) - 2));
     g.style.setProperty('--cell', cell + 'px');
     g.style.gridTemplateColumns = `repeat(${A.w}, var(--cell))`;
     let html = '';

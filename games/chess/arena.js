@@ -24,7 +24,7 @@
 (function () {
   'use strict';
 
-  const MIN = 4, MAX = 12, MAX_HEIGHT = 3;
+  const MIN = 4, MAX = 24, MAX_HEIGHT = 3;
   const TYPES = ['K', 'Q', 'R', 'B', 'N', 'P'];
   const NAMES = { K: 'King', Q: 'Queen', R: 'Rook', B: 'Bishop', N: 'Knight', P: 'Pawn' };
 

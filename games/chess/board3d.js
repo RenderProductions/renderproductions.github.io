@@ -3,7 +3,7 @@
    back as board cells. Built the same way as RFT's 3D view (same three.js
    copy, raycast picking), but with a fixed isometric orthographic camera.
 
-   It draws any arena (see arena.js): any size from 4 to 12, odd shapes,
+   It draws any arena (see arena.js): any size from 4 to 24, odd shapes,
    raised floors, walls, pits and empty void.
 
    Board cell (x, y): x = column from the left, y = row from your side
@@ -45,7 +45,6 @@
   };
 
   let host, renderer, scene, camera, raycaster, mouse;
-  let tileObjs = [];          // every tile mesh, for disposal
   let tileSig = '';           // what the tiles were last built from
   let W = 8, H = 8;
   let pickables = [];
@@ -55,7 +54,7 @@
   let anims = [];
   let state = null;
   let handlers = { cell() {}, hover() {}, cancel() {} };
-  const view = { rot: 0, cur: 0, zoom: 1 };
+  const view = { rot: 0, cur: 0, zoom: 1, px: 0, pz: 0 };   // px/pz: panned offset
 
   const wx = (x) => x - (W - 1) / 2;
   const wz = (y) => (H - 1) / 2 - y;
@@ -253,7 +252,7 @@
     const f = Math.max(W, H) / 8;
     const side = host.clientWidth < 560 ? 0 : 0.7 * f * (view.offset === undefined ? 1 : view.offset);   // no side panel on phones
     const down = 0.75 * f * (view.offset === undefined ? 1 : view.offset);
-    const tx = down * Math.sin(th) + side * Math.cos(th), tz = down * Math.cos(th) - side * Math.sin(th);
+    const tx = down * Math.sin(th) + side * Math.cos(th) + view.px, tz = down * Math.cos(th) - side * Math.sin(th) + view.pz;
     camera.position.x += tx; camera.position.z += tz;
     camera.lookAt(tx, -0.6, tz);
   }
@@ -273,9 +272,9 @@
       if (u.kind === 'piece') {
         const p = state && state.pieces.find((q) => q.id === u.pid);
         if (p) return { x: p.x, y: p.y };
-      } else if (u.kind === 'tile') {
-        if (!h.object.visible) continue;
-        return { x: u.x, y: u.y };
+      } else if (u.kind === 'tiles' && h.instanceId !== undefined) {
+        const c = tileCells[h.instanceId];
+        if (c) return { x: c.x, y: c.y };
       }
     }
     return null;
@@ -284,11 +283,15 @@
     const el = renderer.domElement;
     let down = null;
     el.addEventListener('contextmenu', (e) => e.preventDefault());
-    el.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, b: e.button }; });
+    el.addEventListener('pointerdown', (e) => {
+      down = { x: e.clientX, y: e.clientY, b: e.button, px: view.px, pz: view.pz, panning: false };
+      el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    });
     el.addEventListener('pointerup', (e) => {
       if (!down) return;
-      const moved = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 8;
+      const moved = down.panning || Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y) > 8;
       const b = down.b; down = null;
+      el.style.cursor = 'default';
       if (moved) return;
       if (b === 2) { handlers.cancel(); return; }
       if (b !== 0) return;
@@ -297,6 +300,23 @@
     });
     let lastHover = '';
     el.addEventListener('pointermove', (e) => {
+      // dragging pans the view (big arenas don't fit on screen when zoomed in)
+      if (down && (down.b === 0 || down.b === 1)) {
+        const dx = e.clientX - down.x, dy = e.clientY - down.y;
+        if (down.panning || Math.abs(dx) + Math.abs(dy) > 8) {
+          down.panning = true;
+          el.style.cursor = 'grabbing';
+          const th = Math.PI / 4 + view.cur;
+          const k = (camera.right - camera.left) / (el.clientWidth || 1);       // world units per pixel
+          const up = k / Math.sin(Math.atan(1 / Math.SQRT2));                  // ground is foreshortened vertically
+          view.px = down.px - dx * k * Math.cos(th) - dy * up * Math.sin(th);
+          view.pz = down.pz + dx * k * Math.sin(th) - dy * up * Math.cos(th);
+          const lim = Math.max(W, H) * 0.75;
+          view.px = Math.max(-lim, Math.min(lim, view.px));
+          view.pz = Math.max(-lim, Math.min(lim, view.pz));
+          return;
+        }
+      }
       const c = pickCell(e);
       const k = c ? c.x + ',' + c.y : '';
       el.style.cursor = c ? 'pointer' : 'default';
@@ -305,7 +325,7 @@
     el.addEventListener('pointerleave', () => { lastHover = ''; handlers.hover(-1, -1); });
     el.addEventListener('wheel', (e) => {
       e.preventDefault();
-      view.zoom = Math.min(2.2, Math.max(0.6, view.zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
+      view.zoom = Math.min(4, Math.max(0.6, view.zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
       resize();
     }, { passive: false });
   }
@@ -368,35 +388,65 @@
     });
   }
 
-  /* ---------- sync with game state ---------- */
   /* ---------- tiles ---------- */
+  // All tiles are ONE instanced mesh plus ONE set of edge lines, so even a
+  // 24 x 24 arena is only two draw calls.
   const unitBox = new THREE.BoxGeometry(0.97, 1, 0.97);
   unitBox.translate(0, 0.5, 0);           // origin at the bottom, so scale.y = height
-  const unitEdges = new THREE.EdgesGeometry(unitBox);
-  function column(x, y, top, color, edgeColor) {
-    const m = new THREE.Mesh(unitBox, new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true }));
-    m.position.set(wx(x), BOTTOM, wz(y));
-    m.scale.y = top - BOTTOM;
-    m.userData = { kind: 'tile', x, y };
-    const e = new THREE.LineSegments(unitEdges, new THREE.LineBasicMaterial({ color: edgeColor }));
-    m.add(e);
-    scene.add(m);
-    tileObjs.push(m);
-    pickables.push(m);
-    return m;
+  let tileMesh = null, tileLines = null, tileCells = [];
+  function disposeTiles() {
+    if (tileMesh) { scene.remove(tileMesh); tileMesh.material.dispose(); tileMesh.dispose && tileMesh.dispose(); }
+    if (tileLines) { scene.remove(tileLines); tileLines.geometry.dispose(); tileLines.material.dispose(); }
+    tileMesh = tileLines = null; tileCells = []; pickables = [];
   }
   function buildTiles(s) {
-    tileObjs.forEach((m) => { scene.remove(m); m.material.dispose(); m.children.forEach((c) => c.material.dispose()); });
-    tileObjs = []; pickables = [];
+    disposeTiles();
     const cream = new THREE.Color(0xfffef2);
+    const cells = [];
     for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
       const t = s.tiles[x][y];
       if (t.kind === 'void') continue;
-      if (t.kind === 'wall') { column(x, y, WALL_TOP, COLORS.wall, COLORS.wallEdge); continue; }
-      if (t.kind === 'pit') { column(x, y, PIT_TOP, COLORS.pit, COLORS.tileEdge); continue; }
-      const c = new THREE.Color((x + y) % 2 === 1 ? COLORS.light : COLORS.dark).lerp(cream, 0.07 * (t.h || 0));
-      column(x, y, topOf(t), c, COLORS.tileEdge);
+      let color, edge;
+      if (t.kind === 'wall') { color = new THREE.Color(COLORS.wall); edge = new THREE.Color(COLORS.wallEdge); }
+      else if (t.kind === 'pit') { color = new THREE.Color(COLORS.pit); edge = new THREE.Color(COLORS.tileEdge); }
+      else {
+        color = new THREE.Color((x + y) % 2 === 1 ? COLORS.light : COLORS.dark).lerp(cream, 0.07 * (t.h || 0));
+        edge = new THREE.Color(COLORS.tileEdge);
+      }
+      cells.push({ x, y, top: topOf(t), color, edge });
     }
+    if (!cells.length) return;
+    tileMesh = new THREE.InstancedMesh(unitBox,
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, flatShading: true }), cells.length);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3();
+    const pos = [], col = [];
+    const r = 0.485;
+    cells.forEach((c, i) => {
+      m4.compose(v.set(wx(c.x), BOTTOM, wz(c.y)), q, sc.set(1, c.top - BOTTOM, 1));
+      tileMesh.setMatrixAt(i, m4);
+      tileMesh.setColorAt(i, c.color);
+      // the 12 edges of this column, merged into one line set
+      const X = wx(c.x), Z = wz(c.y), y0 = BOTTOM, y1 = c.top;
+      const corners = [[-r, -r], [r, -r], [r, r], [-r, r]];
+      for (let k = 0; k < 4; k++) {
+        const [ax, az] = corners[k], [bx, bz] = corners[(k + 1) % 4];
+        pos.push(X + ax, y1, Z + az, X + bx, y1, Z + bz);   // top
+        pos.push(X + ax, y0, Z + az, X + bx, y0, Z + bz);   // bottom
+        pos.push(X + ax, y0, Z + az, X + ax, y1, Z + az);   // upright
+      }
+      for (let k = 0; k < 24; k++) col.push(c.edge.r, c.edge.g, c.edge.b);
+    });
+    tileMesh.instanceMatrix.needsUpdate = true;
+    if (tileMesh.instanceColor) tileMesh.instanceColor.needsUpdate = true;
+    tileMesh.userData = { kind: 'tiles' };
+    scene.add(tileMesh);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    tileLines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true }));
+    scene.add(tileLines);
+    tileCells = cells;
+    pickables = [tileMesh];
   }
 
   /* ---------- sync with game state ---------- */
@@ -408,7 +458,7 @@
       W = s.w; H = s.h;
       tileSig = sig;
       buildTiles(s);
-      if (resized) resize();
+      if (resized) { view.px = 0; view.pz = 0; resize(); }
     }
     const alive = new Set();
     s.pieces.forEach((p) => {
