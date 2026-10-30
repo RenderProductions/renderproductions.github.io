@@ -130,7 +130,7 @@
     S.tiles = arena.tiles.map((col) => col.map((t) => ({ kind: t.kind, h: t.h })));
     arena.pieces.forEach((p) => add(p.side, p.type, p.x, p.y));
 
-    // every power goes into one shuffled draw pile; played cards are used up
+    // every power goes into one shuffled draw pile; a played card is shuffled back in
     S.draw = shuffle(POWERS.map((c) => c.id));
 
     Board3D.reset();
@@ -386,9 +386,11 @@
     if (!t || !spec.ok(t, T.picks)) { flash('prompt'); return; }
     T.picks.push(t);
     if (T.picks.length < c.targets.length) { refresh(); return; }
-    // resolve: the card is paid for and used up
+    // resolve: the card is paid for, leaves your hand, and goes back
+    // into the draw pile at a random spot, so it can come around again
     S.energy -= c.cost;
     S.hand.splice(S.hand.indexOf(c.id), 1);
+    S.draw.splice(Math.floor(Math.random() * (S.draw.length + 1)), 0, c.id);
     S.targeting = null;
     S.busy = true;
     refresh();
