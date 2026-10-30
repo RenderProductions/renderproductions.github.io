@@ -36,4 +36,13 @@ jobs:
           git commit -m "Market tick"
           git pull --rebase
           git push
-          gh api -X POST repos/${{ github.repository }}/pages/builds
+
+          # GitHub Pages allows about 10 builds an hour. Ticks run every 5 minutes,
+          # so only ask for a build if the last one is at least 6 minutes old.
+          # A skipped tick still goes live with the next build.
+          last=$(gh api repos/${{ github.repository }}/pages/builds/latest --jq .created_at 2>/dev/null || true)
+          if [ -n "$last" ] && [ $(( $(date +%s) - $(date -d "$last" +%s) )) -lt 360 ]; then
+            echo "Last Pages build was under 6 minutes ago; skipping this one."
+          else
+            gh api -X POST repos/${{ github.repository }}/pages/builds
+          fi

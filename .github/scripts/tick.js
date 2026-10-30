@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, '..', '..', 'prices.json');
-const POINTS = 48; // history length kept per company (about 24 hours at 30 min per tick)
+const POINTS = 288; // history length kept per company (24 hours at 5 min per tick)
 
 // ---------- Goal tuning ----------
 const GOAL_HOURS = [6, 18];     // how long a company has to reach a goal
@@ -22,10 +22,10 @@ const MAX_NEWS = 12;            // how many news items prices.json keeps
 // To add, remove, or rename a company, edit this list.
 // volatility = how far a price can move in one tick (0.04 = up to 4%)
 const COMPANIES = [
-  { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00, volatility: 0.040 },
-  { id: 'NACH', name: 'De Nacho',                 description: 'Nachos, at scale.',                     start: 45.50,  volatility: 0.050 },
-  { id: 'BLU',  name: "Builder's League United",  description: 'Building things together, allegedly.',  start: 78.25,  volatility: 0.035 },
-  { id: 'BNW',  name: 'Business Numbers Working', description: 'Numbers. Business. Working, mostly.',   start: 12.80,  volatility: 0.060 }
+  { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00, volatility: 0.016 },
+  { id: 'NACH', name: 'De Nacho',                 description: 'Nachos, at scale.',                     start: 45.50,  volatility: 0.020 },
+  { id: 'BLU',  name: "Builder's League United",  description: 'Building things together, allegedly.',  start: 78.25,  volatility: 0.014 },
+  { id: 'BNW',  name: 'Business Numbers Working', description: 'Numbers. Business. Working, mostly.',   start: 12.80,  volatility: 0.025 }
 ];
 
 // Goals per company. goal = the announcement, win/lose = the outcome headlines.
@@ -62,7 +62,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 // so nothing drifts to zero or runs away forever.
 function step(price, c) {
   const shock = (Math.random() - 0.5) * 2 * c.volatility;
-  const pull = ((c.start - price) / c.start) * 0.02;
+  const pull = ((c.start - price) / c.start) * 0.0035;
   return Math.max(1, round2(price * (1 + shock + pull)));
 }
 

@@ -60,7 +60,16 @@
     },
     "FREE": {
       "actions": [
-        {"Type": "Text", "Text": "And the truth, shall set you free!"}
+        {"type": "text", "text": "And the truth, shall set you free!"}
+      ]
+    },
+    "404": {
+      "actions": [
+        { "type": "status", "text": "CH 01 // LOST TRANSMISSION" },
+        { "type": "glitch", "ms": 400 },
+        { "type": "text", "theme": "rare", "text": "you FOUND the page that ISN'T there.\nTell the bot what you found." },
+        { "type": "wait", "ms": 1200 },
+        { "type": "text", "theme": "rare", "instant": true, "text": "r!404" }
       ]
     }
   }

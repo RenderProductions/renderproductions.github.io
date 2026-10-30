@@ -40,6 +40,7 @@
       <li><a href="./" aria-current="page">Rend-Conomy</a></li>
       <li><a href="https://discord.gg/D2v4EsuZBU">Discord</a></li>
       <li><a href="/bot/">Bot</a></li>
+      <li><a href="/games/">Games</a></li>
     </ul>
   </nav>
 
@@ -251,7 +252,7 @@
       tagEl.textContent = 'LIVE';
       tagEl.className = 'tag live';
       var stamp = data.updated ? ' Last update: ' + fmtTime(data.updated) + '.' : '';
-      noteEl.textContent = 'Prices are fictional and update about every 30 minutes.' + stamp;
+      noteEl.textContent = 'Prices are fictional and update every few minutes.' + stamp;
     }
 
     function showFallback() {
