@@ -176,6 +176,55 @@ const prices = {};
 const changes = {};
 companies.forEach((c) => { prices[c.id] = c.price; changes[c.id] = c.change; });
 
+// ---------- Charts for r!chart ----------
+// The bot can't loop over history, so each company gets a ready-made
+// QuickChart image link (charts.RRM), a text sparkline (sparks.RRM)
+// and its full name (names.RRM).
+const CHART_POINTS = 48; // history is thinned to this many points so the link stays short
+const SPARK = '▁▂▃▄▅▆▇█';
+
+function thin(h, n) {
+  if (h.length <= n) return h.slice();
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(h[Math.round(i * (h.length - 1) / (n - 1))]);
+  return out;
+}
+
+function sparkline(h) {
+  const pts = thin(h, 24);
+  const min = Math.min(...pts), max = Math.max(...pts), range = max - min || 1;
+  return pts.map((v) => SPARK[Math.round(((v - min) / range) * (SPARK.length - 1))]).join('');
+}
+
+function chartUrl(c) {
+  const pts = thin(c.history, CHART_POINTS);
+  const up = c.change >= 0;
+  const line = up ? '#ffe600' : '#ff6b6b';
+  const fill = up ? 'rgba(255,230,0,0.12)' : 'rgba(255,107,107,0.12)';
+  const hours = Math.round(c.history.length * 5 / 60);
+  const config = {
+    type: 'line',
+    data: {
+      labels: pts.map(() => ''),
+      datasets: [{ data: pts, borderColor: line, backgroundColor: fill, fill: true, pointRadius: 0, borderWidth: 2, lineTension: 0 }]
+    },
+    options: {
+      legend: { display: false },
+      title: { display: true, text: c.id + ' · last ' + hours + 'h', fontColor: '#ffe600', fontSize: 16 },
+      scales: {
+        xAxes: [{ display: false }],
+        yAxes: [{ ticks: { fontColor: '#8a93ab' }, gridLines: { color: 'rgba(255,230,0,0.12)' } }]
+      }
+    }
+  };
+  return 'https://quickchart.io/chart?w=600&h=300&bkg=%23050810&c=' + encodeURIComponent(JSON.stringify(config));
+}
+
+const charts = {};
+const sparks = {};
+const names = {};
+companies.forEach((c) => { charts[c.id] = chartUrl(c); sparks[c.id] = sparkline(c.history); names[c.id] = c.name; });
+
 // headline = newest news item as plain text, handy for a bot command like r!news
 const headline = news[0] ? news[0].headline : '';
 
@@ -188,7 +237,7 @@ const newsText = withLines.length
   : 'No market news yet. Check back soon.';
 const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
 
-const data = { updated: nowIso, prices, changes, headline, headlineText, newsText, news: withLines, companies };
+const data = { updated: nowIso, prices, changes, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(
