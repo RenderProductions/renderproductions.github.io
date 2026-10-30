@@ -13,6 +13,16 @@ const path = require('path');
 const FILE = path.join(__dirname, '..', '..', 'prices.json');
 const POINTS = 288; // history length kept per company (24 hours at 5 min per tick)
 
+// ---------- Market hours ----------
+// Open 9 AM to 9 PM Detroit time, Monday to Saturday.
+// Weeknights are "after hours": prices drift slowly, trading is closed, goals wait.
+// Sunday is fully closed: prices freeze and nothing is written.
+const TZ = 'America/Detroit';
+const OPEN_HOUR = 9;
+const CLOSE_HOUR = 21;
+const CLOSED_DAYS = [0];        // 0 = Sunday
+const AFTER_HOURS_SCALE = 0.25; // after-hours moves are a quarter of normal
+
 // ---------- Goal tuning ----------
 const GOAL_HOURS = [6, 18];     // how long a company has to reach a goal
 const COOLDOWN_HOURS = [2, 8];  // quiet time before the next goal is announced
@@ -60,8 +70,8 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 // Random move, with a gentle pull back toward the starting price
 // so nothing drifts to zero or runs away forever.
-function step(price, c) {
-  const shock = (Math.random() - 0.5) * 2 * c.volatility;
+function step(price, c, scale = 1) {
+  const shock = (Math.random() - 0.5) * 2 * c.volatility * scale;
   const pull = ((c.start - price) / c.start) * 0.0035;
   return Math.max(1, round2(price * (1 + shock + pull)));
 }
@@ -77,6 +87,44 @@ const existing = {};
 
 const now = Date.now();
 const nowIso = new Date(now).toISOString();
+
+// ---------- Market status ----------
+const WEEKDAYS = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const tzParts = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', hour: 'numeric', hourCycle: 'h23' });
+
+function statusAt(ms) {
+  const p = {};
+  tzParts.formatToParts(new Date(ms)).forEach((x) => { p[x.type] = x.value; });
+  const day = WEEKDAYS[p.weekday];
+  const hour = Number(p.hour);
+  if (CLOSED_DAYS.includes(day)) return 'closed';
+  return hour >= OPEN_HOUR && hour < CLOSE_HOUR ? 'open' : 'after-hours';
+}
+
+// Walks forward in 5-minute steps (handles daylight saving on its own).
+function nextTime(test) {
+  for (let t = now + 5 * 60 * 1000; t < now + 8 * 24 * HOUR; t += 5 * 60 * 1000) {
+    if (test(statusAt(t))) return t - (t % (5 * 60 * 1000));
+  }
+  return null;
+}
+
+const status = statusAt(now);
+const nextChange = nextTime((st) => st !== status);
+const nextOpen = status === 'open' ? null : nextTime((st) => st === 'open');
+const ts = (ms) => '<t:' + Math.floor(ms / 1000) + ':R>';
+const market = {
+  status,
+  open: status === 'open',
+  nextChange: nextChange ? new Date(nextChange).toISOString() : null,
+  nextOpen: nextOpen ? new Date(nextOpen).toISOString() : null,
+  // Ready-made Discord line, e.g. for r!market or a "market closed" reply in r!buy
+  text: status === 'open'
+    ? '🟢 **Market open** · closes ' + ts(nextChange)
+    : status === 'after-hours'
+      ? '🌙 **After hours** · prices drift, trading opens ' + ts(nextOpen)
+      : '⛔ **Closed for Sunday** · opens ' + ts(nextOpen)
+};
 let news = Array.isArray(old.news) ? old.news.slice() : [];
 
 const unix = (ms) => Math.floor(ms / 1000);
@@ -110,9 +158,12 @@ const companies = COMPANIES.map((c) => {
     // New company: build a believable past so the chart isn't empty.
     history = [c.start];
     while (history.length < POINTS) history.push(step(history[history.length - 1], c));
-  } else {
+  } else if (status === 'open') {
     history.push(step(history[history.length - 1], c));
+  } else if (status === 'after-hours') {
+    history.push(step(history[history.length - 1], c, AFTER_HOURS_SCALE));
   }
+  // Closed: no new point, the price stays frozen.
 
   // ---------- Goals ----------
   const pool = GOALS[c.id] || [];
@@ -124,7 +175,11 @@ const companies = COMPANIES.map((c) => {
   // Drop a goal whose template was removed from the list above.
   if (goal && !pool[goal.index]) goal = null;
 
-  if (goal && now >= Date.parse(goal.deadline)) {
+  // Goals only resolve or start while the market is open. A deadline that
+  // passes overnight resolves on the first tick after the opening bell.
+  if (status !== 'open') {
+    // nothing
+  } else if (goal && now >= Date.parse(goal.deadline)) {
     const tpl = pool[goal.index];
     const price = history[history.length - 1];
     // 50/50 by default; a stock that rose during the goal is more likely to succeed.
@@ -237,13 +292,19 @@ const newsText = withLines.length
   : 'No market news yet. Check back soon.';
 const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
 
-const data = { updated: nowIso, prices, changes, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
+const data = { updated: nowIso, market, prices, changes, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(
   /\[\s+(-?[\d.]+(?:,\s+-?[\d.]+)*)\s+\]/g,
   (m, inner) => '[' + inner.replace(/\s+/g, ' ') + ']'
 );
+
+// On Sunday, write once (to flip the status to closed), then leave the file alone.
+if (status === 'closed' && old.market && old.market.status === 'closed') {
+  console.log('Market closed; nothing to update.');
+  process.exit(0);
+}
 
 fs.writeFileSync(FILE, text + '\n');
 console.log('Updated ' + companies.length + ' companies at ' + data.updated +

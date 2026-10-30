@@ -249,10 +249,24 @@
     function showLive(data) {
       build(data.companies);
       showNews(data.news);
-      tagEl.textContent = 'LIVE';
-      tagEl.className = 'tag live';
+      var m = data.market || { status: 'open' };
+      var hours = ' Trading hours: 9 AM to 9 PM Eastern, Monday to Saturday.';
       var stamp = data.updated ? ' Last update: ' + fmtTime(data.updated) + '.' : '';
-      noteEl.textContent = 'Prices are fictional and update every few minutes.' + stamp;
+      if (m.status === 'after-hours') {
+        tagEl.textContent = 'AFTER HOURS';
+        tagEl.className = 'tag';
+        noteEl.textContent = 'After hours: prices drift slowly and trading is closed' +
+          (m.nextOpen ? ' until ' + fmtTime(m.nextOpen) : '') + '.' + hours + stamp;
+      } else if (m.status === 'closed') {
+        tagEl.textContent = 'CLOSED';
+        tagEl.className = 'tag off';
+        noteEl.textContent = 'The market is closed on Sundays' +
+          (m.nextOpen ? ' and opens ' + fmtTime(m.nextOpen) : '') + '.' + hours + stamp;
+      } else {
+        tagEl.textContent = 'OPEN';
+        tagEl.className = 'tag live';
+        noteEl.textContent = 'Prices are fictional and update every few minutes.' + hours + stamp;
+      }
     }
 
     function showFallback() {
