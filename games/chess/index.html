@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iso-Chess | Render Productions</title>
+<meta name="description" content="Iso-Chess: an isometric roguelike chess prototype from Render Productions.">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="chess.css">
+</head>
+<body>
+
+<div id="stage" aria-label="Chess board"></div>
+
+<header class="hud-top">
+  <a class="back" href="../">&larr; GAMES</a>
+  <div class="title">ISO-CHESS <span>PROTOTYPE</span></div>
+  <div class="stat">TURN <b id="turn">1</b></div>
+  <div class="stat energy-wrap">ENERGY <span class="energy" id="energy" aria-label="Energy"></span></div>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="rot-l" title="Rotate board (Q)" aria-label="Rotate board left">&#10226;</button>
+  <button class="btn ghost" id="rot-r" title="Rotate board (E)" aria-label="Rotate board right">&#10227;</button>
+  <button class="btn" id="end-turn">SKIP MOVE</button>
+</header>
+
+<p class="prompt" id="prompt" hidden></p>
+
+<aside class="side">
+  <div class="panel">
+    <h2>INSPECT</h2>
+    <img id="inspect-card" alt="" hidden>
+    <div id="inspect-info"></div>
+  </div>
+  <div class="panel">
+    <h2>ENEMY INTENT</h2>
+    <ul id="threats"></ul>
+  </div>
+  <div class="panel">
+    <h2>LOG</h2>
+    <ul id="log"></ul>
+  </div>
+</aside>
+
+<footer class="hand-bar">
+  <div class="pile" title="Cards left in the draw pile">
+    <span>DRAW</span><b id="pile">0</b>
+  </div>
+  <div class="hand" id="hand"></div>
+  <p class="help">Click a piece, then a tile &middot; Q / E rotate &middot; wheel zoom &middot; Esc cancel</p>
+</footer>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="overlay-box">
+    <h1 id="overlay-title">VICTORY</h1>
+    <p id="overlay-text"></p>
+    <button class="btn" id="again">PLAY AGAIN</button>
+    <a class="btn ghost" href="../">BACK TO GAMES</a>
+  </div>
+</div>
+
+<!-- Same three.js copy RFT uses -->
+<script src="../rft/vendor/three.min.js"></script>
+<script src="board3d.js"></script>
+<script src="chess.js"></script>
+</body>
+</html>
