@@ -79,8 +79,27 @@ const now = Date.now();
 const nowIso = new Date(now).toISOString();
 let news = Array.isArray(old.news) ? old.news.slice() : [];
 
+const unix = (ms) => Math.floor(ms / 1000);
+
+// Each news item also carries a ready-made Discord line, so the bot
+// (which can't loop or format easily) just prints it.
+// <t:UNIX:R> shows as a live "in 5 hours" / "2 hours ago" in Discord.
+function discordLine(item) {
+  const tag = item.type === 'success' ? '🟢 **SUCCESS**' : item.type === 'fail' ? '🔴 **FAILED**' : '📢 **NEW GOAL**';
+  let extra;
+  if (typeof item.move === 'number') {
+    extra = (item.move >= 0 ? '▲ +' : '▼ ') + item.move.toFixed(2) + '% on the news';
+  } else if (item.deadline) {
+    extra = 'Deadline <t:' + unix(Date.parse(item.deadline)) + ':R>';
+  }
+  return tag + ' · `' + item.id + '` · <t:' + unix(Date.parse(item.time)) + ':R>\n' +
+    item.headline + (extra ? '\n*' + extra + '*' : '');
+}
+
 function addNews(item) {
-  news.unshift(Object.assign({ time: nowIso }, item));
+  const full = Object.assign({ time: nowIso }, item);
+  full.discord = discordLine(full);
+  news.unshift(full);
 }
 
 const companies = COMPANIES.map((c) => {
@@ -160,7 +179,16 @@ companies.forEach((c) => { prices[c.id] = c.price; changes[c.id] = c.change; });
 // headline = newest news item as plain text, handy for a bot command like r!news
 const headline = news[0] ? news[0].headline : '';
 
-const data = { updated: nowIso, prices, changes, headline, news, companies };
+// newsText = the 5 latest stories, already formatted for a Discord embed (r!news)
+// headlineText = just the newest one, formatted (for a field in r!market)
+const NEWS_IN_DISCORD = 5;
+const withLines = news.map((n) => (n.discord ? n : Object.assign({}, n, { discord: discordLine(n) })));
+const newsText = withLines.length
+  ? withLines.slice(0, NEWS_IN_DISCORD).map((n) => n.discord).join('\n\n')
+  : 'No market news yet. Check back soon.';
+const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
+
+const data = { updated: nowIso, prices, changes, headline, headlineText, newsText, news: withLines, companies };
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(
