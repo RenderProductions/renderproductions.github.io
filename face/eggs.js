@@ -8,7 +8,7 @@
 //    page and Render Vision takes over the site for a few seconds.
 // 3. PEEKING FACE: now and then a little Render Vision peeks in from an
 //    edge of the screen and stares. Touch him and he panics and runs off.
-//    (Try it now from the console: RenderEggs.peek())
+//    Up to 12 at once. (Console: RenderEggs.peek() for one, RenderEggs.peek(12) for a swarm)
 // ==========================================================
 (function () {
   'use strict';
@@ -148,11 +148,14 @@
   });
   // ---------- 3. The peeking face ----------
   // Every so often a little Render Vision peeks in from an edge of the screen
-  // and stares. Touch him with the pointer (or tap him) and he panics and flees.
+  // and stares, sometimes with friends (up to 12). Touch one and he panics and flees.
   var PEEK_FIRST = [25, 75];     // seconds before the first possible peek
   var PEEK_AGAIN = [90, 200];    // seconds between later chances
   var PEEK_CHANCE = 0.5;         // chance he actually shows up each time
   var PEEK_STAY = 9000;          // he gives up and leaves after this long
+  var MAX_PEEKS = 12;            // most that can be on screen at once
+  var GROUP_SIZES = [1, 1, 1, 2, 2, 3, 4]; // how many show up together (picked at random)
+  var SWARM_CHANCE = 0.05;       // rare: all 12 at once
   var FOUND_LINES = ['OH NO THEY FOUND ME!', 'ABORT! ABORT!', 'I WASN\'T HERE!', 'YOU SAW NOTHING!'];
 
   var peekCss = [
@@ -183,10 +186,10 @@
     '<circle class="pk-o" cx="40" cy="66" r="5" fill="none" stroke="#ffe600" stroke-width="3" opacity="0"/>' +
     '</svg>';
 
-  var peekEl = null;
+  var peeks = [];   // { wrap, x, y } for each one on screen
 
-  function peek() {
-    if (peekEl || document.hidden) return;
+  function peekOne() {
+    if (peeks.length >= MAX_PEEKS || document.hidden) return;
     if (!document.getElementById('rv-peek-css')) {
       var st = document.createElement('style');
       st.id = 'rv-peek-css';
@@ -196,12 +199,17 @@
     var W = window.innerWidth, H = window.innerHeight;
     // Pick an edge. Bottom is the most common; the top has him hanging upside down.
     var edges = ['bottom', 'bottom', 'left', 'right', 'top'];
-    var edge = pick(edges);
-    var x, y, rot;
-    if (edge === 'bottom') { x = W * (0.12 + Math.random() * 0.76); y = H; rot = 0; }
-    if (edge === 'top')    { x = W * (0.12 + Math.random() * 0.76); y = 0; rot = 180; }
-    if (edge === 'left')   { x = 0; y = H * (0.25 + Math.random() * 0.6); rot = 90; }
-    if (edge === 'right')  { x = W; y = H * (0.25 + Math.random() * 0.6); rot = -90; }
+    var edge, x, y, rot, tries = 0, crowded;
+    // Find a spot that isn't on top of another one (gives up after a few tries).
+    do {
+      edge = pick(edges);
+      if (edge === 'bottom') { x = W * (0.06 + Math.random() * 0.88); y = H; rot = 0; }
+      if (edge === 'top')    { x = W * (0.06 + Math.random() * 0.88); y = 0; rot = 180; }
+      if (edge === 'left')   { x = 0; y = H * (0.15 + Math.random() * 0.75); rot = 90; }
+      if (edge === 'right')  { x = W; y = H * (0.15 + Math.random() * 0.75); rot = -90; }
+      crowded = peeks.some(function (o) { return Math.hypot(o.x - x, o.y - y) < 100; });
+    } while (crowded && ++tries < 20);
+    if (crowded) return;
 
     var wrap = document.createElement('div');
     wrap.className = 'rv-peek';
@@ -213,7 +221,8 @@
     body.innerHTML = PEEK_SVG;
     wrap.appendChild(body);
     document.body.appendChild(wrap);
-    peekEl = wrap;
+    var me = { wrap: wrap, x: x, y: y };
+    peeks.push(me);
 
     var eyes = body.querySelector('.pk-eyes');
     var rad = -rot * Math.PI / 180;
@@ -240,7 +249,11 @@
       clearInterval(blinker);
       clearTimeout(leaveTimer);
       document.removeEventListener('pointermove', stare);
-      setTimeout(function () { wrap.remove(); peekEl = null; }, delay);
+      setTimeout(function () {
+        wrap.remove();
+        var i = peeks.indexOf(me);
+        if (i >= 0) peeks.splice(i, 1);
+      }, delay);
     }
 
     var found = false;
@@ -285,10 +298,18 @@
     }, PEEK_STAY);
   }
 
+  // Several at once, a moment apart. peek(12) for a swarm.
+  function peek(count) {
+    count = count || 1;
+    for (var i = 0; i < count; i++) {
+      setTimeout(peekOne, i === 0 ? 0 : i * 250 + Math.random() * 500);
+    }
+  }
+
   function schedulePeek(range) {
     var ms = (range[0] + Math.random() * (range[1] - range[0])) * 1000;
     setTimeout(function () {
-      if (Math.random() < PEEK_CHANCE) peek();
+      if (Math.random() < PEEK_CHANCE) peek(Math.random() < SWARM_CHANCE ? MAX_PEEKS : pick(GROUP_SIZES));
       schedulePeek(PEEK_AGAIN);
     }, ms);
   }
