@@ -20,27 +20,28 @@
   const PIT_TOP = -0.5;
   const SIDES = 8;         // octagons everywhere
 
+  // Render Productions palette: yellow phosphor on deep navy (see /style.css)
   const COLORS = {
-    bg: 0x0b0d14,
-    light: 0x7a8096,
-    dark: 0x3e4356,
-    pit: 0x020203,
-    wall: 0x262a3b,
-    wallEdge: 0x8a90a6,
-    tileEdge: 0x252938,
-    player: 0xebe5d1,
-    playerEdge: 0x000000,
-    enemy: 0x1a1b21,
-    enemyEdge: 0x6d7385,
-    move: 0xfffef2,
-    capture: 0xff4b4b,
-    select: 0xffd84a,
-    target: 0x42edc8,
-    hover: 0xffffff,
-    intent: 0xff4b4b,
-    shield: 0x8f84ff,
-    fortify: 0x5a42ed,
-    haste: 0x42edc8,
+    bg: 0x050810,
+    light: 0x233150,
+    dark: 0x111a2e,
+    pit: 0x020306,
+    wall: 0x0d1322,
+    wallEdge: 0xa08c00,
+    tileEdge: 0x2c3242,
+    player: 0xf4e27a,
+    playerEdge: 0x050810,
+    enemy: 0x10172a,
+    enemyEdge: 0x8a93ab,
+    move: 0xffe600,
+    capture: 0xff6b6b,
+    select: 0xffe600,
+    target: 0xb5e853,
+    hover: 0xfff27a,
+    intent: 0xff6b6b,
+    shield: 0xa78bfa,
+    fortify: 0xf5a623,
+    haste: 0xb5e853,
     frozen: 0x6fb8ff
   };
 
@@ -218,10 +219,10 @@
     camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 
     // light from the left, like the rim light on the cards
-    scene.add(new THREE.AmbientLight(0x9aa6c8, 0.55));
-    const key = new THREE.DirectionalLight(0xfff4dc, 0.95); key.position.set(-10, 14, 6); scene.add(key);
-    const rim = new THREE.DirectionalLight(0x5a42ed, 0.45); rim.position.set(12, 6, -10); scene.add(rim);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.25); fill.position.set(8, 10, 12); scene.add(fill);
+    scene.add(new THREE.AmbientLight(0x8a93ab, 0.6));
+    const key = new THREE.DirectionalLight(0xfff4cc, 0.95); key.position.set(-10, 14, 6); scene.add(key);
+    const rim = new THREE.DirectionalLight(0xffe600, 0.35); rim.position.set(12, 6, -10); scene.add(rim);
+    const fill = new THREE.DirectionalLight(0x9fb0cc, 0.22); fill.position.set(8, 10, 12); scene.add(fill);
 
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
@@ -401,7 +402,7 @@
   }
   function buildTiles(s) {
     disposeTiles();
-    const cream = new THREE.Color(0xfffef2);
+    const cream = new THREE.Color(0xf4ecb8);
     const cells = [];
     for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
       const t = s.tiles[x][y];
@@ -410,7 +411,7 @@
       if (t.kind === 'wall') { color = new THREE.Color(COLORS.wall); edge = new THREE.Color(COLORS.wallEdge); }
       else if (t.kind === 'pit') { color = new THREE.Color(COLORS.pit); edge = new THREE.Color(COLORS.tileEdge); }
       else {
-        color = new THREE.Color((x + y) % 2 === 1 ? COLORS.light : COLORS.dark).lerp(cream, 0.07 * (t.h || 0));
+        color = new THREE.Color((x + y) % 2 === 1 ? COLORS.light : COLORS.dark).lerp(cream, 0.06 * (t.h || 0));
         edge = new THREE.Color(COLORS.tileEdge);
       }
       cells.push({ x, y, top: topOf(t), color, edge });
