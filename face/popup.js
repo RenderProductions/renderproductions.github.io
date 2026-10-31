@@ -360,6 +360,12 @@
 
   window.RenderPopup = { spawn: spawn, count: function () { return open.length; } };
 
+  // Load the Easter eggs (come-back titles, Konami code) on every page that has popups.
+  var eggs = document.createElement('script');
+  eggs.src = '/face/eggs.js';
+  eggs.async = true;
+  document.head.appendChild(eggs);
+
   // ---------- Automatic modes ----------
   if (!me) return;
   var odds = parseInt(me.getAttribute('data-odds'), 10);
