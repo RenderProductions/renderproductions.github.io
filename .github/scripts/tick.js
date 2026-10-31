@@ -28,6 +28,7 @@ const GOAL_HOURS = [6, 18];     // how long a company has to reach a goal
 const COOLDOWN_HOURS = [2, 8];  // quiet time before the next goal is announced
 const JUMP = [0.15, 0.35];      // success/failure moves the price 15% to 35%
 const MAX_NEWS = 12;            // how many news items prices.json keeps
+const COMPANY_NEWS = 10;        // how many stories each company page keeps
 
 // To add, remove, or rename a company, edit this list.
 // volatility = how far a price can move in one tick (0.04 = up to 4%)
@@ -148,11 +149,18 @@ function addNews(item) {
   const full = Object.assign({ time: nowIso }, item);
   full.discord = discordLine(full);
   news.unshift(full);
+  // Copy without the Discord line, for the company's own news log
+  const { discord, ...plain } = full;
+  return plain;
 }
 
 const companies = COMPANIES.map((c) => {
   const prev = existing[c.id] || {};
   let history = Array.isArray(prev.history) ? prev.history.slice() : null;
+  // First run: start the company's log from whatever is already in the main news feed.
+  const newsLog = Array.isArray(prev.newsLog)
+    ? prev.newsLog.slice()
+    : (Array.isArray(old.news) ? old.news : []).filter((n) => n.id === c.id).map(({ discord, ...n }) => n);
 
   if (!history || history.length === 0) {
     // New company: build a believable past so the chart isn't empty.
@@ -189,13 +197,13 @@ const companies = COMPANIES.map((c) => {
     const newPrice = Math.max(1, round2(price * (won ? 1 + jump : 1 - jump)));
     history[history.length - 1] = newPrice;
 
-    addNews({
+    newsLog.unshift(addNews({
       id: c.id,
       name: c.name,
       type: won ? 'success' : 'fail',
       headline: won ? tpl.win : tpl.lose,
       move: round2((newPrice / price - 1) * 100)
-    });
+    }));
 
     lastGoal = goal.index;
     goal = null;
@@ -206,7 +214,7 @@ const companies = COMPANIES.map((c) => {
     const deadline = new Date(now + between(GOAL_HOURS[0], GOAL_HOURS[1]) * HOUR).toISOString();
 
     goal = { index, text: pool[index].goal, startPrice: history[history.length - 1], deadline };
-    addNews({ id: c.id, name: c.name, type: 'goal', headline: pool[index].goal, deadline });
+    newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'goal', headline: pool[index].goal, deadline }));
   }
 
   history = history.slice(-POINTS);
@@ -220,7 +228,8 @@ const companies = COMPANIES.map((c) => {
     history,
     goal,
     lastGoal,
-    nextGoalAt
+    nextGoalAt,
+    newsLog: newsLog.slice(0, COMPANY_NEWS)
   };
 });
 

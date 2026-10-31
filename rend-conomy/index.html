@@ -27,6 +27,8 @@
   .news-feed .fresh .kind::after { content: ' // NEW'; animation: blink 1s steps(2) infinite; }
   .board .goal { font-size: 12px; color: var(--grey); margin-top: 4px; }
   .board .goal b { color: var(--dim); font-weight: 500; }
+  .board .name a { color: inherit; }
+  .board .name a:hover { text-decoration: underline; text-underline-offset: 3px; }
   @media (prefers-reduced-motion: reduce) { .news-feed .fresh .kind::after { animation: none; } }
 </style>
 </head>
@@ -151,7 +153,10 @@
           '<td class="num hide-sm"><svg class="spark" viewBox="0 0 96 28" preserveAspectRatio="none" aria-hidden="true"><polyline points=""/></svg></td>';
 
         var nameEl = tr.querySelector('.name');
-        nameEl.textContent = c.name;
+        var link = document.createElement('a');
+        link.href = '/rend-conomy/' + String(c.id).toLowerCase() + '/';
+        link.textContent = c.name;
+        nameEl.appendChild(link);
         var tkr = document.createElement('span');
         tkr.className = 'tkr';
         tkr.textContent = c.id;

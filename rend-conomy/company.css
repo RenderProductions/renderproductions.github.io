@@ -1,0 +1,90 @@
+/* ==========================================================
+   Rend-Conomy company pages (/rend-conomy/<ticker>/)
+   Loaded after /style.css. Live data is filled in by company.js.
+   ========================================================== */
+
+.crumb { font-size: 13px; color: var(--grey); margin: -0.75rem 0 1.25rem; }
+.crumb a { color: var(--grey); }
+.crumb a:hover { color: var(--bright); }
+
+/* ---------- Header ---------- */
+.co-head .page-title { margin-bottom: 0.5rem; }
+.co-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+.co-desc { color: var(--lime); margin-bottom: 1.5rem; max-width: 60ch; }
+.co-quote { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.co-price {
+  font-family: var(--display); font-size: clamp(44px, 9vw, 72px); line-height: 1;
+  color: var(--bright); text-shadow: 0 0 14px rgba(255, 230, 0, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+.co-price small { font-family: var(--mono); font-size: 13px; color: var(--grey); text-shadow: none; margin-left: 0.4rem; }
+.co-change { font-size: 17px; font-variant-numeric: tabular-nums; }
+.co-change.up { color: var(--bright); }
+.co-change.down { color: #ff6b6b; }
+
+/* ---------- Chart ---------- */
+.chart {
+  position: relative; height: 240px;
+  border: 1px solid var(--line); background: #04060b;
+  touch-action: pan-y; cursor: crosshair;
+}
+.chart svg { position: absolute; inset: 12px 0 22px; width: 100%; height: calc(100% - 34px); overflow: visible; }
+.chart .area { fill: rgba(255, 230, 0, 0.1); stroke: none; }
+.chart .line { fill: none; stroke: var(--bright); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.chart .grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 2 4; }
+.chart.down .area { fill: rgba(255, 107, 107, 0.1); }
+.chart.down .line { stroke: #ff6b6b; }
+.chart .axis {
+  position: absolute; left: 8px; font-size: 11px; color: var(--grey);
+  background: rgba(4, 6, 11, 0.8); padding: 0 4px; pointer-events: none;
+}
+.chart .axis.hi { top: 4px; }
+.chart .axis.lo { bottom: 4px; }
+.chart .span { left: auto; right: 8px; bottom: 4px; }
+.chart .marker {
+  position: absolute; top: 12px; bottom: 22px; width: 1px;
+  background: var(--line-strong); pointer-events: none;
+}
+.chart .readout {
+  position: absolute; top: 4px; right: 8px; font-size: 12px; color: var(--bright);
+  background: rgba(4, 6, 11, 0.85); padding: 0 6px; pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Stats ---------- */
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  border: 1px solid var(--line); border-top: 0; background: var(--panel);
+}
+.stat { padding: 0.9rem 1.1rem; border-top: 1px solid var(--line); }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat .k { font-size: 11px; letter-spacing: 1px; color: var(--grey); }
+.stat .v { font-size: 16px; color: var(--bright); font-variant-numeric: tabular-nums; }
+
+/* ---------- Goal ---------- */
+.goal-panel .goal-text { color: var(--bright); font-size: 16px; margin-bottom: 0.4rem; }
+.goal-panel .goal-when { font-size: 13px; color: var(--grey); }
+
+/* ---------- Writing slots ---------- */
+.placeholder {
+  border: 1px dashed var(--line-strong);
+  color: var(--grey); font-size: 14px;
+  padding: 1.25rem; text-align: center; letter-spacing: 1px;
+}
+
+/* ---------- News log ---------- */
+.co-news .log { margin-bottom: 0.6rem; }
+.co-news .label { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.co-news .kind { color: var(--bright); letter-spacing: 1px; }
+.co-news .is-rare .kind, .co-news .is-rare .move { color: #ff6b6b; }
+.co-news .is-decoy .kind { color: var(--grey); }
+.co-news .move { color: var(--bright); font-variant-numeric: tabular-nums; }
+
+.co-section { margin-top: 2.5rem; }
+
+@media (max-width: 640px) {
+  .chart { height: 200px; }
+  .stat + .stat { border-left: 0; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  .stat:nth-child(even) { border-left: 1px solid var(--line); }
+}
