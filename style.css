@@ -68,10 +68,10 @@ a:hover { background: rgba(255, 230, 0, 0.14); }
   font-size: 13px;
 }
 .nav .brand { color: var(--bright); font-weight: 600; letter-spacing: 2px; }
-.nav ul { display: flex; gap: 1.25rem; list-style: none; }
-.nav ul a { color: var(--grey); padding: 2px 4px; }
+.nav ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; }
+.nav ul a { color: var(--grey); padding: 2px 4px; white-space: nowrap; }
 .nav ul a:hover { color: var(--bright); }
-.nav ul a[aria-current="page"] { color: var(--bright); border-bottom: 1px solid var(--bright); }
+.nav ul a[aria-current] { color: var(--bright); border-bottom: 1px solid var(--bright); }
 
 /* ---------- Hero ---------- */
 .hero {

@@ -165,6 +165,19 @@
         c.nextGoalAt ? 'Next announcement expected around ' + fmtTime(c.nextGoalAt) + '.' : '';
     }
 
+    var others = $('others');
+    if (others) {
+      others.innerHTML = '';
+      data.companies.forEach(function (o) {
+        if (o.id === ticker) return;
+        var a = document.createElement('a');
+        a.className = 'btn';
+        a.href = '/rend-conomy/' + String(o.id).toLowerCase() + '/';
+        a.textContent = o.name + ' (' + o.id + ')';
+        others.appendChild(a);
+      });
+    }
+
     drawNews(Array.isArray(c.newsLog) ? c.newsLog : (data.news || []).filter(function (n) { return n.id === ticker; }));
 
     set('note', 'Prices are fictional.' + (data.updated ? ' Last update: ' + fmtTime(data.updated) + '.' : ''));
