@@ -5,11 +5,17 @@
 //   <script src="/face/popup.js" data-odds="20"></script>
 //     -> 1 in 20 page views, one popup shows up after a short random delay.
 //   <script src="/face/popup.js" data-every="45-90"></script>
-//     -> a popup every 45 to 90 seconds (used on /face/).
-//   (The homepage, market, company, bot, games and 404 pages use data-odds="20".)
+//     -> a popup every 45 to 90 seconds (/face/ and backstage use this).
+//   Most pages use data-odds="10"; the games use data-odds="20".
+//   Add data-page="404" (or any key from PAGES) to force a page's lines.
 //   No attributes: nothing appears on its own; call RenderPopup.spawn() yourself.
 //
-// Edit the MESSAGES and TITLES lists below to change what it says.
+// What it says:
+//   MESSAGES  - general lines, used anywhere.
+//   PAGES     - lines for one part of the site, matched by the address.
+//   COMPANY   - lines for company pages; {ticker} and {name} get filled in.
+//   TICKERS   - extra lines for one specific company.
+// On a page with its own lines, about 70% of popups use them (90% backstage).
 // ==========================================================
 (function () {
   'use strict';
@@ -28,11 +34,149 @@
     'HELLO :)'
   ];
   var TITLES = ['System Alert!', 'Render Vision', 'Warning', 'Important Message'];
+
+  // Longest match wins, so /backstage/frequency/ beats /backstage/.
+  // theme: 'red' gives the window a red "something is wrong" look.
+  var PAGES = {
+    '/': {
+      exact: true,
+      lines: [
+        'WELCOME TO RENDER PRODUCTIONS. I RUN THIS PLACE.',
+        'THE BIOS SAID "WHAT?" I SAID "WHAT?" TOO.',
+        'CLICK THE FACE. I DARE YOU.',
+        'WE MAY OR MAY NOT KNOW WHAT WE\'RE DOING.',
+        'JOIN THE RENDER ROOM. EVERYONE ELSE DID.'
+      ]
+    },
+    '/rend-conomy/': {
+      lines: [
+        'BUY BNW!!',
+        'BUY BNW. TRUST ME.',
+        'SELL EVERYTHING. (THIS IS NOT FINANCIAL ADVICE.)',
+        'STONKS.',
+        'THE MARKET IS FAKE. MY FEELINGS ARE REAL.',
+        'RRM TO THE MOON.',
+        'I HAVE INSIDER INFORMATION. I WILL NOT SHARE IT.',
+        'NUMBER GO UP. NUMBER GO DOWN. NUMBER GO UP.'
+      ],
+      titles: ['Market Alert!', 'Trading Tip', 'System Alert!']
+    },
+    '/bot/': {
+      lines: [
+        'TYPE r!help. I\'LL WAIT.',
+        'THE BOT AND I ARE NOT RELATED. PROBABLY.',
+        'ADD ME TO YOUR SERVER. PLEASE.',
+        'r!daily. DO IT. DO IT NOW.'
+      ]
+    },
+    '/bot/privacy/': {
+      lines: [
+        'I KNOW WHERE YOUR CURSOR IS. THAT\'S NOT IN THE POLICY.',
+        'YOUR DATA IS SAFE. I\'M JUST LOOKING AT IT.',
+        'I DON\'T STORE YOUR MESSAGES. I REMEMBER THEM.'
+      ]
+    },
+    '/bot/terms/': {
+      lines: [
+        'YOU DIDN\'T READ ALL OF THIS. NOBODY DOES.',
+        'BY CLOSING THIS WINDOW YOU AGREE TO NOTHING.',
+        'SECTION 7: RENDER VISION IS ALWAYS RIGHT.'
+      ]
+    },
+    '/games/': {
+      lines: [
+        'PLAY RFT. THE MARKET NEEDS YOUR FILES.',
+        'I\'M BETTER AT CHESS THAN YOU.',
+        'SOME GAMES DON\'T COME BACK.',
+        'INSERT COIN.'
+      ]
+    },
+    '/face/': {
+      lines: [
+        'THAT\'S ME. HI.',
+        'STOP STARING. (DON\'T STOP.)',
+        'I\'M RIGHT HERE. AND HERE. AND HERE.',
+        'TRY SPINNING ME. NO, DON\'T.'
+      ]
+    },
+    '404': {
+      lines: [
+        'YOU\'RE LOST. I\'M NOT.',
+        'THIS PAGE DOESN\'T EXIST. NEITHER DO I.',
+        'DO YOU REMEMBER WHAT IT WAS CALLED?',
+        'NOTHING IS BROADCASTING HERE. EXCEPT ME.'
+      ],
+      titles: ['Error 404', 'System Alert!']
+    },
+    '/backstage/': {
+      theme: 'red',
+      lines: [
+        'YOU\'RE NOT SUPPOSED TO BE BACK HERE.',
+        'WHO LET YOU IN?',
+        'DON\'T TOUCH THE BOARD.',
+        'I SEE YOU READING THE NOTES.',
+        'THE YARN CONNECTS EVERYTHING.',
+        'LEAVE. NOW. (PLEASE STAY.)',
+        'THIS ROOM IS BEING MONITORED.'
+      ],
+      titles: ['UNAUTHORIZED ACCESS', 'Security Alert!', 'ERROR']
+    },
+    '/backstage/frequency/': {
+      theme: 'red',
+      lines: [
+        'TRY A NUMBER.',
+        'SOME FREQUENCIES TALK BACK.',
+        'I\'M ON CHANNEL 01 TOO.',
+        'TURN THE KNOB. NO, THE OTHER ONE.',
+        'STATIC IS JUST VOICES TALKING AT ONCE.'
+      ],
+      titles: ['SIGNAL DETECTED', 'UNAUTHORIZED ACCESS']
+    }
+  };
+
+  var COMPANY = [
+    '{ticker} IS GOING UP. PROBABLY.',
+    'I WOULDN\'T BUY {ticker}. I WOULDN\'T SELL IT EITHER.',
+    'YOU\'RE LOOKING AT {name}. {name} IS LOOKING BACK.',
+    'HAVE YOU CHECKED {ticker}\'S GOAL? THE CLOCK IS TICKING.'
+  ];
+  var TICKERS = {
+    BNW: ['BUY BNW!!', 'BUY BNW!! BUY BNW!!', 'THE NUMBERS ARE WORKING. MOSTLY.'],
+    NACH: ['I CAN\'T EAT NACHOS. I HAVE LEDS, NOT A MOUTH.', 'NACHOS. AT SCALE.'],
+    BLU: ['THEY\'RE BUILDING SOMETHING. NOBODY KNOWS WHAT.', 'ALLEGEDLY.'],
+    RRM: ['RRM IS THE SERVER. THE SERVER IS WATCHING.', 'RRM TO THE MOON.']
+  };
   var DODGE_LINES = ['NOPE.', 'MISSED ME.', 'TOO SLOW.', 'NICE TRY.'];
   var DODGE_CHANCE = 0.35;   // chance the window jumps away instead of closing
   var MAX_OPEN = 5;
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var me = document.currentScript;
+
+  // Which page are we on?
+  function pageInfo() {
+    var forced = me && me.getAttribute('data-page');
+    if (forced && PAGES[forced]) return PAGES[forced];
+    var path = location.pathname.replace(/index\.html$/, '');
+    var best = null, bestLen = -1;
+    Object.keys(PAGES).forEach(function (key) {
+      var pg = PAGES[key];
+      if (key.charAt(0) !== '/') return;
+      var hit = pg.exact ? path === key : path.indexOf(key) === 0;
+      if (hit && key.length > bestLen) { best = pg; bestLen = key.length; }
+    });
+    var ticker = document.body && document.body.getAttribute('data-ticker');
+    if (ticker) {
+      var h1 = document.querySelector('h1');
+      var name = h1 ? h1.textContent.trim().toUpperCase() : ticker;
+      var lines = COMPANY.concat(TICKERS[ticker] || []).map(function (l) {
+        return l.split('{ticker}').join(ticker).split('{name}').join(name);
+      });
+      best = { lines: lines.concat(best ? best.lines : []), titles: best && best.titles };
+    }
+    return best;
+  }
+  var page = null;
   var started = Date.now();
   var open = [];
   var topZ = 9990;
@@ -63,6 +207,12 @@
     '.rv-pop.rv-big .rv-face{width:96px;height:96px}',
     '.rv-msg{position:relative;font-weight:bold;color:#000080;font-size:12px;line-height:1.4}',
     '.rv-pop.rv-big .rv-msg{font-size:14px}',
+    '.rv-pop.rv-red{border-color:#5a0a0a;box-shadow:4px 4px 0 rgba(0,0,0,.5),0 0 22px rgba(255,40,40,.5);animation:rvGlowRed 1.4s ease-in-out infinite}',
+    '.rv-pop.rv-red.rv-shake{animation:rvShake .12s linear 5,rvGlowRed 1.4s ease-in-out infinite}',
+    '.rv-red .rv-title{background:linear-gradient(to bottom,#B01010 0%,#E83A2A 100%)}',
+    '.rv-red .rv-msg{color:#7a0000}',
+    '.rv-red .rv-body::before{background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,0,0,.12) 10px,rgba(255,0,0,.12) 20px)}',
+    '@keyframes rvGlowRed{50%{box-shadow:4px 4px 0 rgba(0,0,0,.5),0 0 32px rgba(255,40,40,.8)}}',
     '@keyframes rvShake{0%,100%{translate:0 0}25%{translate:-4px 2px}50%{translate:3px -2px}75%{translate:-2px -3px}}',
     '@keyframes rvGlow{50%{box-shadow:4px 4px 0 rgba(0,0,0,.45),0 0 28px rgba(0,153,255,.7)}}',
     '@media (prefers-reduced-motion:reduce){.rv-pop,.rv-pop.rv-shake{animation:none}}'
@@ -138,15 +288,21 @@
       '<button class="rv-btn" type="button" data-act="max" aria-label="Maximize">□</button>' +
       '<button class="rv-btn rv-x" type="button" data-act="close" aria-label="Close">✕</button>' +
       '</div></div><div class="rv-body">' + FACE_SVG + '<p class="rv-msg"></p></div>';
-    var title = opts.title || pick(TITLES);
+    if (page === null) page = pageInfo() || {};
+    // Backstage (red pages) almost always stays in character.
+    var local = page.lines && page.lines.length && Math.random() < (page.theme === 'red' ? 0.9 : 0.7);
+    var title = opts.title || pick(local && page.titles ? page.titles : TITLES);
+    var red = (opts.theme || page.theme) === 'red';
+    if (red) win.classList.add('rv-red');
+    var baseMood = (opts.mood === 'angry' || red) ? 'angry' : 'calm';
     win.querySelector('.rv-title span').textContent = '⚠️ ' + title;
     win.setAttribute('aria-label', title);
     var msgEl = win.querySelector('.rv-msg');
-    msgEl.textContent = fill(opts.message || pick(MESSAGES));
+    msgEl.textContent = fill(opts.message || pick(local ? page.lines : MESSAGES));
     document.body.appendChild(win);
     open.push(win);
     if (typeof opts.x === 'number') place(win, opts.x, opts.y); else randomSpot(win);
-    if (opts.mood === 'angry') setMood(win, 'angry');
+    if (baseMood === 'angry') setMood(win, 'angry');
     shake(win);
 
     // Bring to front when touched
@@ -166,7 +322,7 @@
           setMood(win, 'angry');
           randomSpot(win);
           shake(win);
-          setTimeout(function () { setMood(win, opts.mood === 'angry' ? 'angry' : 'calm'); }, 1200);
+          setTimeout(function () { setMood(win, baseMood); }, 1200);
         } else {
           close(win);
         }
@@ -205,7 +361,6 @@
   window.RenderPopup = { spawn: spawn, count: function () { return open.length; } };
 
   // ---------- Automatic modes ----------
-  var me = document.currentScript;
   if (!me) return;
   var odds = parseInt(me.getAttribute('data-odds'), 10);
   var every = me.getAttribute('data-every');
