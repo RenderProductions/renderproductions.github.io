@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
 <title>Render Face | Render Productions</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="stylesheet" href="/style.css">
@@ -39,7 +38,7 @@
 
   <main>
     <h1 class="sr-only">Render face</h1>
-    <p class="sr-only">A large robot head with a screen face. Its eyes follow your pointer, it blinks now and then, and it frowns when your pointer leaves the window.</p>
+    <p class="sr-only">A large robot head with a screen face. Its eyes follow your pointer and it blinks now and then. It frowns when your pointer leaves the window, gets annoyed if you keep clicking it, and gets dizzy if you circle it. Little alert windows pop up from time to time; press Escape to close the newest one.</p>
 
     <div class="stage">
       <svg class="face" id="face" viewBox="0 0 400 400" aria-hidden="true">
@@ -87,8 +86,8 @@
         <rect x="66" y="72" width="266" height="256" rx="22" fill="#080c16" stroke="#ffe600" stroke-opacity="0.25" stroke-width="2"/>
         <g clip-path="url(#screen-clip)">
           <g id="face-g">
-            <g id="eye-l" transform="translate(143 170)"><rect x="-17" y="-46" width="34" height="92" rx="9" fill="#ffe600" filter="url(#glow)"/></g>
-            <g id="eye-r" transform="translate(255 170)"><rect x="-17" y="-46" width="34" height="92" rx="9" fill="#ffe600" filter="url(#glow)"/></g>
+            <g id="eye-l" transform="translate(143 170)"><rect class="eye-rect" x="-17" y="-46" width="34" height="92" rx="9" fill="#ffe600" filter="url(#glow)"/><path class="spiral" d="" fill="none" stroke="#ffe600" stroke-width="7" stroke-linecap="round" filter="url(#glow)" opacity="0"/></g>
+            <g id="eye-r" transform="translate(255 170)"><rect class="eye-rect" x="-17" y="-46" width="34" height="92" rx="9" fill="#ffe600" filter="url(#glow)"/><path class="spiral" d="" fill="none" stroke="#ffe600" stroke-width="7" stroke-linecap="round" filter="url(#glow)" opacity="0"/></g>
             <g id="mouth" fill="#ffe600" filter="url(#glow)"></g>
           </g>
           <rect x="66" y="72" width="266" height="256" fill="url(#scan)"/>
@@ -101,8 +100,8 @@
   </main>
 
   <footer class="footer">
-    <span>Backstage</span>
-    <span>Host: The Render Room</span>
+    <span>Render Productions</span>
+    <span>Render Vision is watching.</span>
   </footer>
 
 </div>
@@ -115,11 +114,27 @@
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
     function snap(v, step) { return Math.round(v / step) * step; }
 
+    var YELLOW = '#ffe600', RED = '#ff4d4d';
+
     var face = $('face'), faceG = $('face-g'), led = $('led'), caption = $('caption');
     var eyes = [
       { g: $('eye-l'), x: 143, y: 170, dir: 1 },
       { g: $('eye-r'), x: 255, y: 170, dir: -1 }
     ];
+    eyes.forEach(function (eye) {
+      eye.rect = eye.g.querySelector('.eye-rect');
+      eye.spiral = eye.g.querySelector('.spiral');
+    });
+
+    // Spiral eyes for when it's dizzy: three turns, drawn once.
+    (function () {
+      var d = '';
+      for (var a = 0; a <= Math.PI * 6; a += 0.2) {
+        var r = 3 + a * 2.6;
+        d += (d ? ' L' : 'M') + (Math.cos(a) * r).toFixed(1) + ' ' + (Math.sin(a) * r).toFixed(1);
+      }
+      eyes.forEach(function (eye) { eye.spiral.setAttribute('d', d); });
+    })();
 
     // The mouth is a row of LED segments that bend into a smile or a frown.
     var SEGMENTS = 9, mouthG = $('mouth'), segs = [];
@@ -132,6 +147,14 @@
       r.setAttribute('y', 262);
       mouthG.appendChild(r);
       segs.push(r);
+    }
+
+    var color = YELLOW;
+    function setColor(c) {
+      if (c === color) return;
+      color = c;
+      eyes.forEach(function (eye) { eye.rect.setAttribute('fill', c); eye.spiral.setAttribute('stroke', c); });
+      mouthG.setAttribute('fill', c);
     }
 
     var t0 = performance.now();
@@ -147,11 +170,63 @@
     var blink = { start: -1, next: t0 + 3200 };
     var glitch = { until: 0, next: t0 + 7000 };
 
+    // ----- Being annoyed -----
+    // Every click is a poke. Pokes fade away slowly if you stop.
+    //   1-3 pokes: giggles.  4+: annoyed.  12+: angry (red).  25: it calls for backup.
+    var pokes = 0, lastPoke = -1e9, giggleUntil = 0, stormUntil = 0;
+    var ANNOYED = 4, ANGRY = 12, FURIOUS = 25;
+
+    // ----- Being dizzy -----
+    // Circle the pointer around the face (about a lap and a half, quickly) to make it dizzy.
+    var spin = 0, lastAngle = null, dizzyUntil = 0;
+
+    // ----- Being startled -----
+    var lastPos = null, surprisedUntil = 0, nextSurprise = 0;
+
+    var rudeUntil = 0;        // a popup was closed
+
+    function faceCenter() {
+      var b = face.getBoundingClientRect();
+      return { x: b.left + b.width / 2, y: b.top + b.height / 2, r: b.width / 2 };
+    }
+
     // ----- events -----
     window.addEventListener('pointermove', function (e) {
+      var now = performance.now();
       pointer.x = e.clientX; pointer.y = e.clientY;
-      lastMove = performance.now();
-      if (outside) { outside = false; pulseUntil = performance.now() + 1500; }
+      lastMove = now;
+      if (outside) { outside = false; pulseUntil = now + 1500; }
+
+      // Speed check: a sudden fast swipe startles it.
+      if (lastPos && e.pointerType === 'mouse') {
+        var dt = Math.max(1, now - lastPos.t);
+        var speed = Math.hypot(e.clientX - lastPos.x, e.clientY - lastPos.y) / dt;
+        if (speed > 3.5 && now > nextSurprise && now > dizzyUntil) {
+          surprisedUntil = now + 800;
+          nextSurprise = now + 2500;
+        }
+      }
+      lastPos = { x: e.clientX, y: e.clientY, t: now };
+
+      // Circling check: add up how far the pointer has turned around the face.
+      var c = faceCenter();
+      var dx = e.clientX - c.x, dy = e.clientY - c.y;
+      if (Math.hypot(dx, dy) > c.r * 0.25) {
+        var a = Math.atan2(dy, dx);
+        if (lastAngle !== null) {
+          var d = a - lastAngle;
+          if (d > Math.PI) d -= Math.PI * 2;
+          if (d < -Math.PI) d += Math.PI * 2;
+          spin += d;
+        }
+        lastAngle = a;
+      } else {
+        lastAngle = null;
+      }
+      if (Math.abs(spin) > Math.PI * 3 && now > dizzyUntil) {
+        dizzyUntil = now + 3500;
+        spin = 0;
+      }
     });
     // relatedTarget is null when the pointer leaves the browser window
     document.addEventListener('mouseout', function (e) {
@@ -162,13 +237,45 @@
       else if (away) { away = false; pulseUntil = performance.now() + 1500; }
     });
     face.addEventListener('click', function () {
-      if (!reduce) blink.start = performance.now();
+      var now = performance.now();
+      if (!reduce) blink.start = now;
+      pokes = Math.floor(pokes) + 1;
+      lastPoke = now;
+      if (pokes < ANNOYED) giggleUntil = now + 700;
+      if (pokes >= FURIOUS && now > stormUntil && window.RenderPopup) {
+        // It calls for backup: a burst of popups.
+        stormUntil = now + 4000;
+        var lines = ['STOP POKING ME.', 'I SAID STOP.', 'REPORTING YOU TO THE MODERATORS.', 'OW.'];
+        lines.forEach(function (msg, n) {
+          setTimeout(function () { window.RenderPopup.spawn({ title: 'Render Vision', message: msg, mood: 'angry' }); }, n * 250);
+        });
+        pokes = ANNOYED + 2;
+      }
+    });
+    document.addEventListener('renderpopup:close', function () {
+      rudeUntil = performance.now() + 1600;
     });
 
     // ----- animation -----
     function ease(cur, target, amount) { return reduce ? target : cur + (target - cur) * amount; }
+    var lastFrame = t0;
 
     function frame(now) {
+      var dtf = Math.min(100, now - lastFrame);
+      lastFrame = now;
+
+      // Pokes fade one at a time once you stop for a couple of seconds.
+      if (now - lastPoke > 2500 && pokes > 0) pokes = Math.max(0, pokes - dtf / 1500);
+      // Spin fades too, so it only counts quick circles.
+      spin *= Math.pow(0.5, dtf / 1500);
+
+      var dizzy = now < dizzyUntil;
+      var storm = now < stormUntil;
+      var angry = pokes >= ANGRY || storm;
+      var annoyed = !angry && pokes >= ANNOYED;
+      var surprised = !dizzy && !angry && now < surprisedUntil;
+      var giggling = !dizzy && !angry && !annoyed && now < giggleUntil;
+
       // Boot-up: the eyes open from a thin line.
       var bootT = reduce ? 1 : Math.min(1, (now - t0) / 700);
       var boot = 1 - Math.pow(1 - bootT, 3);
@@ -186,21 +293,27 @@
       look.x = ease(look.x, target.x, 0.3);
       look.y = ease(look.y, target.y, 0.3);
 
-      // Head turns a little toward whatever it is looking at.
+      // Head turns a little toward whatever it is looking at, and wobbles when dizzy.
       var halfW = window.innerWidth / 2, halfH = window.innerHeight / 2;
       var nx = clamp((look.x - halfW) / halfW, -1, 1);
       var ny = clamp((look.y - halfH) / halfH, -1, 1);
       tilt.x = ease(tilt.x, nx, 0.08);
       tilt.y = ease(tilt.y, ny, 0.08);
-      face.style.transform = reduce ? '' : 'rotateY(' + (tilt.x * 12).toFixed(2) + 'deg) rotateX(' + (-tilt.y * 9).toFixed(2) + 'deg)';
+      var wobble = dizzy && !reduce ? Math.sin(now / 140) * 5 : 0;
+      face.style.transform = reduce ? '' :
+        'rotateY(' + (tilt.x * 12).toFixed(2) + 'deg) rotateX(' + (-tilt.y * 9).toFixed(2) + 'deg) rotateZ(' + wobble.toFixed(2) + 'deg)';
 
-      // Mood: frown while the pointer is outside the window, smile briefly when it returns.
-      var moodTarget = outside ? -1 : (now < pulseUntil ? 0.9 : 0);
+      // Mood: frown while the pointer is outside or it's annoyed, smile when you come back or it giggles.
+      var moodTarget = angry ? -0.6 : annoyed ? -0.35 : outside ? -1 : (now < pulseUntil || giggling) ? 0.9 : 0;
+      if (surprised || dizzy) moodTarget = 0;
       mood = ease(mood, moodTarget, 0.14);
-      var sad = Math.max(0, -mood), happy = Math.max(0, mood);
+      var sad = outside && !angry && !annoyed ? Math.max(0, -mood) : 0;
+      var happy = Math.max(0, mood);
 
-      // Blink. Sad eyes are shorter, happy eyes slightly squinted.
+      // Blink. Sad eyes are shorter, happy eyes slightly squinted, annoyed eyes narrowed.
       var base = (1 - sad * 0.25 - happy * 0.12) * Math.max(boot, 0.04);
+      if (annoyed) base *= 0.6;
+      if (angry) base *= 0.45;
       var scaleY = base;
       if (!reduce) {
         if (blink.start < 0 && now > blink.next) blink.start = now;
@@ -214,25 +327,44 @@
           }
         }
       }
+      var scaleX = 1;
+      if (surprised) { scaleX = 1.25; scaleY = Math.max(scaleY, 1.12); }
 
-      // Eyes slide inside the screen in small, snappy steps; sad eyes tilt like / \.
+      // Eyes slide inside the screen in small, snappy steps.
+      // Sad eyes tilt like / \, annoyed and angry eyes tilt the other way like \ /.
       var ox = snap(nx * 16, 3), oy = snap(ny * 14, 3);
       eyes.forEach(function (eye) {
-        var rot = eye.dir * sad * 14;
+        if (dizzy) {
+          eye.rect.setAttribute('opacity', '0');
+          eye.spiral.setAttribute('opacity', '1');
+          var spinDeg = reduce ? 0 : (now / 3) % 360;
+          eye.g.setAttribute('transform', 'translate(' + eye.x + ' ' + eye.y + ') rotate(' + (spinDeg * eye.dir).toFixed(1) + ')');
+          return;
+        }
+        eye.rect.setAttribute('opacity', '1');
+        eye.spiral.setAttribute('opacity', '0');
+        var rot = eye.dir * sad * 14 - eye.dir * (angry ? 16 : annoyed ? 10 : 0);
         eye.g.setAttribute('transform',
-          'translate(' + (eye.x + ox) + ' ' + (eye.y + oy) + ') rotate(' + rot.toFixed(1) + ') scale(1 ' + scaleY.toFixed(3) + ')');
+          'translate(' + (eye.x + ox) + ' ' + (eye.y + oy) + ') rotate(' + rot.toFixed(1) + ') scale(' + scaleX + ' ' + scaleY.toFixed(3) + ')');
       });
 
       // Mouth: LED segments in a curve, moved in pixel-sized steps.
+      // Angry: a jagged zigzag. Dizzy: a wobbly wave. Surprised: a small "o".
       for (var i = 0; i < SEGMENTS; i++) {
         var k = (i - 4) / 4;
         var y = 262 + mood * 22 * (1 - k * k);
+        var show = boot;
+        if (angry) y = 262 + (i % 2 ? -7 : 7);
+        if (dizzy) y = 262 + Math.sin(now / 110 + i * 0.9) * 10;
+        if (surprised) { show = (i >= 3 && i <= 5) ? boot : 0; y = 262 + (i === 4 ? 0 : -4); }
         segs[i].setAttribute('y', snap(y, 6));
-        segs[i].setAttribute('opacity', boot.toFixed(2));
+        segs[i].setAttribute('opacity', show.toFixed(2));
       }
 
-      // Now and then the picture glitches sideways for a moment.
-      var gx = 0, glitching = false;
+      setColor(angry ? RED : YELLOW);
+
+      // Glitches now and then; shakes when angry.
+      var gx = 0, gy = 0, glitching = false;
       if (!reduce) {
         if (now > glitch.next && now > glitch.until) {
           glitch.until = now + 180;
@@ -240,15 +372,24 @@
         }
         glitching = now < glitch.until;
         if (glitching) gx = (Math.random() - 0.5) * 14;
+        if (angry) { gx += (Math.random() - 0.5) * (storm ? 12 : 6); gy = (Math.random() - 0.5) * (storm ? 8 : 4); }
       }
-      faceG.setAttribute('transform', 'translate(' + gx.toFixed(1) + ' 0)');
+      faceG.setAttribute('transform', 'translate(' + gx.toFixed(1) + ' ' + gy.toFixed(1) + ')');
       faceG.setAttribute('opacity', glitching ? '0.75' : '1');
 
-      // Status light on the antenna: pulses yellow, turns red when you are leaving.
-      led.setAttribute('fill', outside ? '#ff4d4d' : '#ffe600');
-      led.setAttribute('opacity', reduce ? '1' : (0.6 + 0.4 * Math.sin(now / 400)).toFixed(2));
+      // Status light on the antenna: pulses yellow, red when you leave or make it angry.
+      led.setAttribute('fill', (outside || angry) ? RED : YELLOW);
+      var ledSpeed = angry ? 90 : 400;
+      led.setAttribute('opacity', reduce ? '1' : (0.6 + 0.4 * Math.sin(now / ledSpeed)).toFixed(2));
 
       var text = (!reduce && now - t0 < 800) ? 'BOOTING...'
+               : dizzy ? 'WHOA. THE ROOM IS SPINNING.'
+               : storm ? 'THAT\'S IT. I\'M CALLING FOR BACKUP.'
+               : angry ? 'I SAID STOP.'
+               : annoyed ? 'STOP POKING ME.'
+               : surprised ? 'WHOA! SLOW DOWN.'
+               : giggling ? 'HEHE. THAT TICKLES.'
+               : now < rudeUntil ? 'HOW RUDE.'
                : outside ? 'WARNING: USER LEAVING. PLEASE RECONSIDER.'
                : now < pulseUntil ? 'USER REACQUIRED. HAPPINESS RESTORED.'
                : 'RENDER VISION // WATCHING';
@@ -259,5 +400,6 @@
     requestAnimationFrame(frame);
   })();
 </script>
+<script src="/face/popup.js" data-every="45-90"></script>
 </body>
 </html>
