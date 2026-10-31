@@ -207,7 +207,7 @@
       if (edge === 'top')    { x = W * (0.06 + Math.random() * 0.88); y = 0; rot = 180; }
       if (edge === 'left')   { x = 0; y = H * (0.15 + Math.random() * 0.75); rot = 90; }
       if (edge === 'right')  { x = W; y = H * (0.15 + Math.random() * 0.75); rot = -90; }
-      crowded = peeks.some(function (o) { return Math.hypot(o.x - x, o.y - y) < 100; });
+      crowded = peeks.some(function (o) { return Math.hypot(o.x - x, o.y - y) < (W < 640 ? 80 : 100); });
     } while (crowded && ++tries < 20);
     if (crowded) return;
 
@@ -215,7 +215,9 @@
     wrap.className = 'rv-peek';
     wrap.style.left = x + 'px';
     wrap.style.top = y + 'px';
-    wrap.style.transform = 'rotate(' + rot + 'deg)';
+    // Smaller on phones so a swarm doesn't cover the whole page.
+    var small = W < 640;
+    wrap.style.transform = 'rotate(' + rot + 'deg)' + (small ? ' scale(0.75)' : '');
     var body = document.createElement('div');
     body.className = 'rv-peek-body';
     body.innerHTML = PEEK_SVG;
@@ -278,7 +280,8 @@
       document.body.appendChild(bubble);
       var nx = edge === 'left' ? 1 : edge === 'right' ? -1 : 0;
       var ny = edge === 'top' ? 1 : edge === 'bottom' ? -1 : 0;
-      var bx = x + nx * 110, by = y + ny * 120;
+      var reach = small ? 0.75 : 1;
+      var bx = x + nx * 110 * reach, by = y + ny * 120 * reach;
       var bw = bubble.offsetWidth, bh = bubble.offsetHeight;
       bubble.style.left = Math.max(6, Math.min(W - bw - 6, bx - bw / 2)) + 'px';
       bubble.style.top = Math.max(6, Math.min(H - bh - 6, by - bh / 2)) + 'px';
