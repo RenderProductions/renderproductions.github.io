@@ -14,13 +14,13 @@ const FILE = path.join(__dirname, '..', '..', 'prices.json');
 const POINTS = 288; // history length kept per company (24 hours at 5 min per tick)
 
 // ---------- Market hours ----------
-// Open 9 AM to 9 PM Detroit time, Monday to Saturday.
-// Weeknights are "after hours": prices drift slowly, trading is closed, goals wait.
-// Sunday is fully closed: prices freeze and nothing is written.
+// Open 3 AM to 9 PM Detroit time, every day.
+// Nights are "after hours": prices drift slowly, trading is closed, goals wait.
+// Any day listed in CLOSED_DAYS is fully closed: prices freeze and nothing is written.
 const TZ = 'America/Detroit';
-const OPEN_HOUR = 9;
+const OPEN_HOUR = 3;
 const CLOSE_HOUR = 21;
-const CLOSED_DAYS = [0];        // 0 = Sunday
+const CLOSED_DAYS = [];         // e.g. [0] closes Sundays (0 = Sunday ... 6 = Saturday)
 const AFTER_HOURS_SCALE = 0.25; // after-hours moves are a quarter of normal
 
 // ---------- Goal tuning ----------
@@ -130,7 +130,7 @@ const market = {
     ? '🟢 **Market open** · closes ' + ts(nextChange)
     : status === 'after-hours'
       ? '🌙 **After hours** · prices drift, trading opens ' + ts(nextOpen)
-      : '⛔ **Closed for Sunday** · opens ' + ts(nextOpen)
+      : '⛔ **Market closed today** · opens ' + ts(nextOpen)
 };
 let news = Array.isArray(old.news) ? old.news.slice() : [];
 
@@ -387,7 +387,7 @@ const text = JSON.stringify(data, null, 2).replace(
   (m, inner) => '[' + inner.replace(/\s+/g, ' ') + ']'
 );
 
-// On Sunday, write once (to flip the status to closed), then leave the file alone.
+// On a closed day, write once (to flip the status to closed), then leave the file alone.
 if (status === 'closed' && old.market && old.market.status === 'closed') {
   console.log('Market closed; nothing to update.');
   process.exit(0);

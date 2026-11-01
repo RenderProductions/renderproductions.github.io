@@ -47,7 +47,7 @@ function embed(p) {
     if (p.status === 'after-hours') {
       return { color: COLORS.closed, description: '🌙 **Closing bell.** Trading is closed for the night. Prices drift until the market reopens ' + ts(p.nextOpen, 'R') + '.' };
     }
-    return { color: COLORS.closed, description: '⛔ **Closed for Sunday.** Prices are frozen until ' + ts(p.nextOpen, 'F') + '.' };
+    return { color: COLORS.closed, description: '⛔ **Market closed today.** Prices are frozen until ' + ts(p.nextOpen, 'F') + '.' };
   }
   if (p.kind === 'swing') {
     const up = p.move >= 0;
