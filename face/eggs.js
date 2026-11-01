@@ -177,6 +177,11 @@
       'I\'M NOT INSIDER TRADING! I\'M INSIDE!',
       'BUY BNW! BYE!'
     ] },
+    '/patch-notes/': { lines: [
+      'I WASN\'T ADDING MYSELF TO THE NOTES!',
+      'UNDOCUMENTED FEATURE! RUN!',
+      'FIXED: ME?! NO NO NO!'
+    ] },
     '/bot/': { lines: [
       'I WASN\'T READING YOUR MESSAGES!',
       'I\'M NOT THE BOT! I\'M NOT!',

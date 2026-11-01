@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patch Notes | Render Productions</title>
+<meta name="description" content="What's new on the Render Productions site and the Rend-Conomy Discord bot.">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<style>
+  .release { margin-bottom: 2rem; scroll-margin-top: 1rem; }
+  .release .label { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: baseline; }
+  .release .label a { color: var(--grey); }
+  .release .label a:hover { color: var(--bright); }
+  .release h2 { font-size: 18px; color: var(--bright); margin: 0.25rem 0 0.9rem; }
+  .release h3 { font-size: 13px; letter-spacing: 1px; color: var(--grey); font-weight: 500; margin: 1.1rem 0 0.4rem; }
+  .release ul { list-style: none; padding: 0; margin: 0; }
+  .release li { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.75rem; padding: 0.35rem 0; font-size: 14px; color: var(--lime); }
+  .release li + li { border-top: 1px dotted var(--line); }
+  .release li .tag { justify-self: start; align-self: start; margin-top: 2px; }
+  .release code { color: var(--bright); }
+  .tag.new { color: #050810; background: var(--bright); border-color: var(--bright); }
+  .tag.fix { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
+  @media (max-width: 640px) {
+    .release li { grid-template-columns: 1fr; gap: 0.3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/bot/">Bot</a></li>
+      <li><a href="/games/">Games</a></li>
+      <li><a href="/face/">Face</a></li>
+      <li><a href="/patch-notes/" aria-current="page">Patch Notes</a></li>
+      <li><a href="https://discord.gg/D2v4EsuZBU">Discord</a></li>
+    </ul>
+  </nav>
+
+  <h1 class="page-title">PATCH NOTES</h1>
+  <p class="meta">What's new on the site and in the Rend-Conomy bot, newest first. Got an idea? Drop it in <a href="https://discord.gg/D2v4EsuZBU">The Render Room</a>.</p>
+
+  <!--
+    To add an update: copy one <article class="log release"> block, paste it at the top,
+    and change the id, date, title and items. Tags: <span class="tag new">NEW</span>,
+    <span class="tag">CHANGED</span>, <span class="tag fix">FIXED</span>.
+  -->
+
+  <article class="log release" id="2026-11-01" aria-labelledby="r-2026-11-01">
+    <div class="label"><span class="tag live">LATEST</span><span>November 1, 2026</span><a href="#2026-11-01">#</a></div>
+    <h2 id="r-2026-11-01">The Payday Update</h2>
+
+    <h3>REND-CONOMY BOT</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span><strong>Jobs.</strong> Work for one of the four companies with <code>r!apply</code>, clock in with <code>r!work</code> every 45 minutes, and climb from Intern to Executive. Pay follows your company's stock price. Suggested by NachoBellGrande1065.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Shop.</strong> <code>r!shop</code> and <code>r!purchase</code>: coffee, overtime passes, mystery boxes, resumes, and custom titles. Stock is shared by every server and restocks hourly.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Dividends.</strong> Every share now pays out daily, and smaller companies pay more (BNW 2.5%, NACH 1.5%, BLU 1%, RRM 0.5%). Collect with <code>r!dividends</code>. Failed goals freeze a company's dividend for 24 hours; successful ones pay a bonus.</span></li>
+      <li><span class="tag">CHANGED</span><span>The market is now open every day, 3 AM to 9 PM Eastern. No more closed Sundays.</span></li>
+      <li><span class="tag">CHANGED</span><span><code>r!chart</code> charts now show times along the bottom.</span></li>
+    </ul>
+
+    <h3>THE RENDER ROOM</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span><strong>Market news feed.</strong> New goals, wins, failures, opening and closing bells, and big price swings now post in the server automatically.</span></li>
+    </ul>
+
+    <h3>SITE</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span>This page.</span></li>
+      <li><span class="tag">CHANGED</span><span>Company pages got some fancy upgrades.</span></li>
+      <li><span class="tag">CHANGED</span><span>Popups that dodge the close button now glide away instead of teleporting. They're smug about it.</span></li>
+      <li><span class="tag">CHANGED</span><span>The little faces show up more often and have things to say depending on the page. Catch one before it escapes and see what happens. The <a href="/face/">Face</a> keeps count.</span></li>
+    </ul>
+  </article>
+
+  <article class="log release" id="2026-10-30" aria-labelledby="r-2026-10-30">
+    <div class="label"><span>October 30, 2026</span><a href="#2026-10-30">#</a></div>
+    <h2 id="r-2026-10-30">The Company Update</h2>
+
+    <h3>REND-CONOMY</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span>Every company has its own page: <a href="/rend-conomy/rrm/">RRM</a>, <a href="/rend-conomy/nach/">NACH</a>, <a href="/rend-conomy/blu/">BLU</a>, <a href="/rend-conomy/bnw/">BNW</a>.</span></li>
+      <li><span class="tag new">NEW</span><span><code>r!chart &lt;ticker&gt;</code> shows a price chart right in Discord.</span></li>
+      <li><span class="tag new">NEW</span><span>Market hours and after-hours trading, where prices drift slowly overnight.</span></li>
+      <li><span class="tag new">NEW</span><span>Companies set goals with deadlines. Hit one and the price jumps; miss it and it drops.</span></li>
+    </ul>
+
+    <h3>SITE</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span>Render Vision popups, nearly everywhere, saying things that fit each page.</span></li>
+      <li><span class="tag new">NEW</span><span>The <a href="/face/">Face</a> can be poked, startled, and made dizzy.</span></li>
+      <li><span class="tag new">NEW</span><span>Something has started peeking in from the edges of the screen.</span></li>
+      <li><span class="tag">CHANGED</span><span>One menu on every page, so nothing is hard to find. Iso-Chess got restyled to match.</span></li>
+      <li><span class="tag fix">FIXED</span><span>A handful of site issues, and a much more interesting <a href="/does-not-exist/">404 page</a>.</span></li>
+    </ul>
+  </article>
+
+  <article class="log release" id="2026-10" aria-labelledby="r-2026-10">
+    <div class="label"><span>October 2026</span><a href="#2026-10">#</a></div>
+    <h2 id="r-2026-10">Rend-Conomy Relaunch</h2>
+    <ul>
+      <li><span class="tag new">NEW</span><span>Rend-Conomy is reborn as a fictional stock market with four companies: Render Room, De Nacho, Builder's League United, and Business Numbers Working.</span></li>
+      <li><span class="tag new">NEW</span><span>The Rend-Conomy bot goes live with <code>r!market</code>, <code>r!buy</code>, <code>r!sell</code>, <code>r!portfolio</code>, <code>r!daily</code>, and AI features. <a href="/bot/">Add it to your server.</a></span></li>
+      <li><span class="tag new">NEW</span><span>The live <a href="/rend-conomy/">market board</a>, plus the bot's <a href="/bot/privacy/">Privacy Policy</a> and <a href="/bot/terms/">Terms of Service</a>.</span></li>
+      <li><span class="tag">CHANGED</span><span>Varandia: Retold is cancelled.</span></li>
+    </ul>
+  </article>
+
+  <footer class="footer">
+    <span>Render Productions</span>
+    <span><a href="/bot/privacy/">Privacy Policy</a> &nbsp;|&nbsp; <a href="/bot/terms/">Terms of Service</a></span>
+  </footer>
+
+</div>
+<script src="/face/popup.js" data-odds="10"></script>
+</body>
+</html>

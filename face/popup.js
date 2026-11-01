@@ -61,6 +61,15 @@
       ],
       titles: ['Market Alert!', 'Trading Tip', 'System Alert!']
     },
+    '/patch-notes/': {
+      lines: [
+        'NOBODY READS THE PATCH NOTES. EXCEPT YOU. HI.',
+        'KNOWN ISSUE: ME.',
+        'I WROTE SOME OF THESE. GUESS WHICH.',
+        'FIXED: NOTHING. ADDED: MORE ME.'
+      ],
+      titles: ['Update Available!', 'Patch Installed', 'System Alert!']
+    },
     '/bot/': {
       lines: [
         'TYPE r!help. I\'LL WAIT.',
