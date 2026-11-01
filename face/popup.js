@@ -147,7 +147,7 @@
     RRM: ['RRM IS THE SERVER. THE SERVER IS WATCHING.', 'RRM TO THE MOON.']
   };
   var DODGE_LINES = ['NOPE.', 'MISSED ME.', 'TOO SLOW.', 'NICE TRY.'];
-  var DODGE_CHANCE = 0.35;   // chance the window jumps away instead of closing
+  var DODGE_CHANCE = 0.35;   // chance the window glides away instead of closing
   var MAX_OPEN = 5;
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -212,6 +212,7 @@
     '.rv-red .rv-title{background:linear-gradient(to bottom,#B01010 0%,#E83A2A 100%)}',
     '.rv-red .rv-msg{color:#7a0000}',
     '.rv-red .rv-body::before{background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,0,0,.12) 10px,rgba(255,0,0,.12) 20px)}',
+    '.rv-pop.rv-glide{transition:left .55s cubic-bezier(.2,1.25,.4,1),top .55s cubic-bezier(.2,1.25,.4,1)}',
     '@keyframes rvGlowRed{50%{box-shadow:4px 4px 0 rgba(0,0,0,.5),0 0 32px rgba(255,40,40,.8)}}',
     '@keyframes rvShake{0%,100%{translate:0 0}25%{translate:-4px 2px}50%{translate:3px -2px}75%{translate:-2px -3px}}',
     '@keyframes rvGlow{50%{box-shadow:4px 4px 0 rgba(0,0,0,.45),0 0 28px rgba(0,153,255,.7)}}',
@@ -248,6 +249,25 @@
     place(win,
       Math.random() * (window.innerWidth - win.offsetWidth),
       Math.random() * (window.innerHeight - win.offsetHeight));
+  }
+  // Dodge: slide to a spot well away from where the pointer just was.
+  // Picks the farthest of a few random spots so the escape is easy to see.
+  function glideAway(win) {
+    var w = win.offsetWidth, h = win.offsetHeight;
+    var fromX = win.offsetLeft, fromY = win.offsetTop, best = null, bestD = -1;
+    for (var i = 0; i < 6; i++) {
+      var x = clamp(Math.random() * (window.innerWidth - w), 4, window.innerWidth - w - 4);
+      var y = clamp(Math.random() * (window.innerHeight - h), 4, window.innerHeight - Math.min(h, 40) - 4);
+      var d = Math.hypot(x - fromX, y - fromY);
+      if (d > bestD) { bestD = d; best = [x, y]; }
+    }
+    if (reduce) { place(win, best[0], best[1]); return; }
+    win.classList.add('rv-glide');
+    void win.offsetWidth;
+    place(win, best[0], best[1]);
+    clearTimeout(win._glideT);
+    // Drop the transition afterwards so dragging stays instant.
+    win._glideT = setTimeout(function () { win.classList.remove('rv-glide'); }, 600);
   }
   function shake(win) {
     if (reduce) return;
@@ -320,8 +340,8 @@
           dodged++;
           msgEl.textContent = pick(DODGE_LINES);
           setMood(win, 'angry');
-          randomSpot(win);
-          shake(win);
+          glideAway(win);
+          setTimeout(function () { shake(win); }, reduce ? 0 : 550);
           setTimeout(function () { setMood(win, baseMood); }, 1200);
         } else {
           close(win);
@@ -333,6 +353,7 @@
     var bar = win.querySelector('.rv-title'), drag = null;
     bar.addEventListener('pointerdown', function (e) {
       if (e.target.closest('.rv-btn')) return;
+      win.classList.remove('rv-glide');
       drag = { dx: e.clientX - win.offsetLeft, dy: e.clientY - win.offsetTop };
       bar.setPointerCapture(e.pointerId);
     });
