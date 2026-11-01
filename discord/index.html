@@ -73,9 +73,6 @@
   .guild-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 45%); }
   .channels.has-banner .guild-banner { display: block; }
   .channels.has-banner .guild-head { position: absolute; top: 0; left: 0; right: 0; border-bottom: 0; box-shadow: none; z-index: 2; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
-  .welcome-banner { display: none; width: 100%; max-width: 440px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
-  .welcome-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .welcome-banner.on { display: block; }
   .chan-scroll { flex: 1; overflow-y: auto; padding: 8px 8px 16px; }
   .cat { margin: 16px 0 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; }
   .cat:first-child { margin-top: 4px; }
@@ -230,7 +227,6 @@
     <div class="chat-head"><span class="hash">#</span><b>welcome</b><span class="topic" id="topic">The community, the Rend-Conomy bot, and everything else.</span></div>
     <div class="msgs">
       <section class="welcome">
-        <div class="welcome-banner" id="w-banner"></div>
         <div class="big srv-icon-big" id="big">RR</div>
         <h1>Welcome to <span id="w-name">The Render Room</span></h1>
         <p id="w-desc">The Discord server where the community, the Rend-Conomy bot, and everything else lives.</p>
@@ -343,15 +339,13 @@
           };
           test.src = src;
         }
-        // Server banner (needs Boost Level 2 on Discord's side). Shown atop the channel list and the welcome message.
+        // Server banner (needs Boost Level 2 on Discord's side). Shown atop the channel list, like the app.
         if (g.id && g.banner) {
           var bsrc = 'https://cdn.discordapp.com/banners/' + g.id + '/' + g.banner + '.' + (g.banner.indexOf('a_') === 0 ? 'gif' : 'png') + '?size=1024';
           var bt = new Image();
           bt.onload = function () {
             $('g-banner').innerHTML = ''; $('g-banner').appendChild(iconImg(bsrc));
-            $('w-banner').innerHTML = ''; $('w-banner').appendChild(iconImg(bsrc));
             document.querySelector('.channels').classList.add('has-banner');
-            $('w-banner').classList.add('on');
           };
           bt.src = bsrc;
         }
