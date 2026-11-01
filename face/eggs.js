@@ -9,6 +9,8 @@
 // 3. PEEKING FACE: now and then a little Render Vision peeks in from an
 //    edge of the screen and stares. Touch him and he panics and runs off,
 //    yelling something that fits the page (FOUND_PAGES, FOUND_COMPANY...).
+//    Click him before he gets away and he bursts into 1s and 0s; /face/
+//    keeps count. (Console: RenderEggs.kills() for the count)
 //    Up to 12 at once. (Console: RenderEggs.peek() for one, RenderEggs.peek(12) for a swarm)
 // ==========================================================
 (function () {
@@ -285,6 +287,9 @@
     'padding:6px 10px;font:bold 12px Tahoma,Verdana,sans-serif;white-space:nowrap;box-shadow:3px 3px 0 rgba(0,0,0,.4);',
     'animation:rvPop .15s ease-out}',
     '@keyframes rvPop{from{transform:scale(.6);opacity:0}}',
+    '.rv-peek.dead .rv-peek-body{visibility:hidden}',
+    '.rv-bit{position:fixed;z-index:9972;pointer-events:none;color:#ffe600;font:bold 16px "Courier New",monospace;',
+    'text-shadow:0 0 8px rgba(255,230,0,.8),0 0 15px rgba(255,230,0,.4);will-change:transform,opacity}',
     '@media (prefers-reduced-motion:reduce){.rv-peek-body{transition:opacity .4s;transform:translateY(-52px);opacity:0}',
     '.rv-peek.up .rv-peek-body{opacity:1}.rv-peek.found .rv-peek-body{animation:none;opacity:0}.rv-bubble{animation:none}}'
   ].join('');
@@ -403,8 +408,21 @@
       setTimeout(function () { bubble.remove(); }, 1400);
       cleanup(900);
     }
+    // Click him while he's panicking and he's deleted: he bursts into 1s and 0s.
+    // Mouse: hovering scares him, so click quick. Touch: first tap scares, second tap gets him.
+    var dead = false;
+    function onKill() {
+      if (dead) return;
+      dead = true;
+      var box = body.getBoundingClientRect();
+      wrap.classList.add('dead');
+      binaryBurst(box.left + box.width / 2, box.top + box.height / 2);
+      addKill();
+    }
     body.addEventListener('pointerenter', onFound);
-    body.addEventListener('pointerdown', onFound);
+    body.addEventListener('pointerdown', function (e) {
+      if (found) { e.preventDefault(); onKill(); } else onFound();
+    });
 
     requestAnimationFrame(function () { requestAnimationFrame(function () { wrap.classList.add('up'); }); });
 
@@ -414,6 +432,41 @@
       wrap.classList.remove('up');
       cleanup(1000);
     }, PEEK_STAY);
+  }
+
+  // ---------- Deleting them ----------
+  // Same burst as the nodes in RFT: 1s and 0s fly out, drift, and fade.
+  function binaryBurst(x, y) {
+    var count = reduce ? 10 : 25;
+    for (var i = 0; i < count; i++) (function () {
+      var p = document.createElement('div');
+      p.className = 'rv-bit';
+      p.textContent = Math.random() > 0.5 ? '1' : '0';
+      p.style.left = x + 'px';
+      p.style.top = y + 'px';
+      document.body.appendChild(p);
+      var scale = 0.6 + Math.random() * 0.8;
+      var angle = Math.random() * Math.PI * 2, speed = reduce ? 0.6 : 2 + Math.random() * 5;
+      var vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed - 1;
+      var cx = 0, cy = 0, op = 1, rot = Math.random() * 360, spin = (Math.random() - 0.5) * 10;
+      (function step() {
+        cx += vx; cy += vy;
+        vx *= 0.96; vy *= 0.96; vy += 0.05;
+        rot += spin; op -= 0.018;
+        p.style.opacity = Math.max(0, op);
+        p.style.transform = 'translate(' + cx.toFixed(1) + 'px,' + cy.toFixed(1) + 'px) rotate(' + rot.toFixed(0) + 'deg) scale(' + scale + ')';
+        if (op > 0) requestAnimationFrame(step); else p.remove();
+      })();
+    })();
+  }
+
+  // The tally is kept in this browser and shown on /face/.
+  var KILLS_KEY = 'rvKills';
+  function kills() { try { return Number(localStorage.getItem(KILLS_KEY)) || 0; } catch (e) { return 0; } }
+  function addKill() {
+    var n = kills() + 1;
+    try { localStorage.setItem(KILLS_KEY, String(n)); } catch (e) {}
+    document.dispatchEvent(new CustomEvent('renderpeek:kill', { detail: { kills: n } }));
   }
 
   // Several at once, a moment apart. peek(12) for a swarm.
@@ -447,5 +500,5 @@
     else scheduleAt(due);                                          // pick up where the last page left off
   }
 
-  window.RenderEggs = { peek: peek, takeover: takeover };
+  window.RenderEggs = { peek: peek, takeover: takeover, kills: kills };
 })();

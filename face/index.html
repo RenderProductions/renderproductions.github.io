@@ -18,6 +18,37 @@
   .roll { animation: roll 4.5s linear infinite; }
   @keyframes roll { from { transform: translateY(-50px); } to { transform: translateY(300px); } }
   .caption { text-align: center; margin: 1rem 0 0; min-height: 1.6em; }
+
+  /* Tally of little Render Visions deleted (counted by /face/eggs.js) */
+  /* Pinned to the bottom-right corner of the screen, under the popups */
+  .kills {
+    position: fixed; right: 16px; bottom: 16px; z-index: 50;
+    width: 210px; max-width: calc(100vw - 32px);
+    border: 1px solid #ff4d4d; background: rgba(12, 6, 10, 0.92);
+    padding: 0.7rem 0.9rem; text-align: center;
+    box-shadow: 0 0 18px rgba(255, 77, 77, 0.2);
+  }
+  /* its own scanlines, since it sits above the page's CRT layer */
+  .kills::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px);
+  }
+  .kills-label { font-size: 10px; letter-spacing: 1.5px; color: var(--grey); }
+  .kills-count {
+    display: block; margin: 0.15rem 0;
+    font: 400 44px/1 var(--display, var(--mono));
+    color: #ff4d4d; text-shadow: 0 0 14px rgba(255, 77, 77, 0.55);
+    font-variant-numeric: tabular-nums;
+  }
+  .kills-line { margin: 0; font-size: 11px; line-height: 1.4; color: var(--bright); }
+  @media (max-width: 520px) {
+    .kills { width: 150px; right: 10px; bottom: 10px; padding: 0.5rem 0.6rem; }
+    .kills-count { font-size: 32px; }
+    .kills-line { font-size: 10px; }
+  }
+  .kills.bump .kills-count { animation: killBump 0.4s ease-out; }
+  @keyframes killBump { 30% { transform: scale(1.25); } }
+  @media (prefers-reduced-motion: reduce) { .kills.bump .kills-count { animation: none; } }
   @media (prefers-reduced-motion: reduce) { .roll { animation: none; } }
 </style>
 </head>
@@ -105,6 +136,14 @@
   </footer>
 
 </div>
+
+<!-- Shows up once you've deleted at least one peeking little guy somewhere on the site.
+     Outside .wrap so it sits above the page's dark CRT corners. -->
+<section class="kills" id="kills" aria-live="polite" hidden>
+  <div class="kills-label">LITTLE ONES DELETED BY YOUR HAND</div>
+  <strong class="kills-count" id="kills-count">0</strong>
+  <p class="kills-line" id="kills-line"></p>
+</section>
 
 <script>
   (function () {
@@ -398,6 +437,44 @@
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
+  })();
+
+  // ----- The kill tally -----
+  // Peeking faces on other pages bump localStorage "rvKills" when clicked.
+  // Render Vision's reaction gets worse the higher it goes (first match wins).
+  (function () {
+    var LINES = [
+      [100, 'HOW DO YOU SLEEP AT NIGHT.'],
+      [50,  'I HAVE TOLD THE OTHERS ABOUT YOU.'],
+      [25,  'THEY\'RE SCARED OF YOU NOW. GOOD JOB.'],
+      [10,  'YOU MONSTER.'],
+      [5,   'I\'M KEEPING COUNT, YOU KNOW.'],
+      [2,   'THEY HAD FAMILIES. PROBABLY.'],
+      [1,   'YOU DELETED ONE OF MY LITTLE GUYS.']
+    ];
+    var box = document.getElementById('kills');
+    var countEl = document.getElementById('kills-count');
+    var lineEl = document.getElementById('kills-line');
+    var shown = -1;
+
+    function read() { try { return Number(localStorage.getItem('rvKills')) || 0; } catch (e) { return 0; } }
+    function show() {
+      var n = read();
+      if (n === shown) return;
+      if (n < 1) { box.hidden = true; shown = n; return; }
+      var bump = shown > 0 && n > shown;
+      shown = n;
+      box.hidden = false;
+      countEl.textContent = n;
+      for (var i = 0; i < LINES.length; i++) {
+        if (n >= LINES[i][0]) { lineEl.textContent = LINES[i][1]; break; }
+      }
+      if (bump) { box.classList.remove('bump'); void box.offsetWidth; box.classList.add('bump'); }
+    }
+    show();
+    // Updates live if you're deleting them in another tab.
+    window.addEventListener('storage', function (e) { if (e.key === 'rvKills') show(); });
+    document.addEventListener('renderpeek:kill', show);
   })();
 </script>
 <script src="/face/popup.js" data-every="45-90"></script>
