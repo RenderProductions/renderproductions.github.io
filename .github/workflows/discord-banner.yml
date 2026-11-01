@@ -1,0 +1,39 @@
+name: Sync Discord banner
+
+on:
+  schedule:
+    - cron: '17 9 * * *'   # once a day (UTC); GitHub may run it a little late
+  workflow_dispatch:        # run by hand from the Actions tab right after changing the banner
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: market-prices      # shares the queue with the price ticks so pushes never collide
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch the server banner
+        run: node .github/scripts/discord-banner.js
+
+      - name: Commit if it changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "rend-conomy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add og/discord.png
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "Sync Discord banner"
+          git pull --rebase
+          git push
+          gh api -X POST repos/${{ github.repository }}/pages/builds || true
