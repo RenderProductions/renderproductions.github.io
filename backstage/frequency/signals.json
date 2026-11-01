@@ -85,6 +85,13 @@
         { "type": "image", "src": "/backstage/frequency/media/remember.jpg", "position": "center", "width": "60%", "duration": 5000 },
         { "type": "text", "text": "Stupid man." }
       ]
+    },
+    "WONDER": {
+      "actions": [
+        {"type": "glitch", "ms": 450 },
+        {"type": "image", "src": "/backstage/frequency/media/WonderLaugh.webp", "position": "center", "width": "50%", "duration": 5000 },
+        {"type": "text", "text": "WONDERFUL?!?! TRULY WONDERFUL!!! FREE FROM VARANDIA!!"}
+      ]
     }
   }
 }
