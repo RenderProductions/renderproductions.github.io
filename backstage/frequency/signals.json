@@ -104,7 +104,7 @@
         {"type": "glitch", "ms": 30 },
 
         {"type": "text", "text": "NO! Don't GO!!"},
-        {"type": "redirect", "t0": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
+        {"type": "redirect", "to": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
       ]
     },
     "WONDERFUL": {
