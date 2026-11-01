@@ -9,7 +9,7 @@
   --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
   --type: 'Special Elite', 'Courier New', monospace;
   font-family: var(--type);
-  padding-bottom: 9rem;
+  padding-bottom: 20rem;
   background:
     radial-gradient(ellipse at 50% 15%, rgba(255, 214, 120, 0.28), transparent 62%),
     radial-gradient(circle at 20% 30%, #4a3320 0 1.5px, transparent 2.5px) 0 0 / 37px 41px,
@@ -84,39 +84,30 @@ a.note { background-color: var(--paper); }
 .backstage .screen { border: 10px solid #0c0906; border-radius: 12px; }
 
 /* ---------- desk: fixed to the bottom of the viewport (above the vignette so it stays bright) ---------- */
-.desk { position: fixed; left: 0; right: 0; bottom: 0; height: 96px; z-index: 11; pointer-events: none; }
-.desk::before { /* wooden top, lit from above */
-  content: ''; position: absolute; inset: 0 0 auto 0; height: 34px; border-top: 3px solid #d2ad78; box-shadow: 0 -12px 24px rgba(0,0,0,.6);
-  background: linear-gradient(rgba(255,235,190,.18), transparent 60%), repeating-linear-gradient(91deg, rgba(0,0,0,.1) 0 2px, transparent 2px 13px), repeating-linear-gradient(88deg, rgba(255,255,255,.05) 0 1px, transparent 1px 31px), linear-gradient(#b08650, #74512d); }
-.desk::after { /* front: three drawers with brass knobs */
-  content: ''; position: absolute; inset: 34px 0 0 0; border-top: 2px solid #1a0f06;
-  background:
-    radial-gradient(circle at 16.6% 50%, #f1d27a 0 5px, #9c7a25 6px, transparent 7px),
-    radial-gradient(circle at 50% 50%, #f1d27a 0 5px, #9c7a25 6px, transparent 7px),
-    radial-gradient(circle at 83.3% 50%, #f1d27a 0 5px, #9c7a25 6px, transparent 7px),
-    linear-gradient(90deg, transparent calc(33.3% - 1px), #120a04 calc(33.3% - 1px), #120a04 calc(33.3% + 1px), transparent calc(33.3% + 1px), transparent calc(66.6% - 1px), #120a04 calc(66.6% - 1px), #120a04 calc(66.6% + 1px), transparent calc(66.6% + 1px)),
-    linear-gradient(#4a3119, #2a1a0b); }
+.desk { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(94vw, 720px); aspect-ratio: 541 / 150; z-index: 11; pointer-events: none; filter: drop-shadow(0 -8px 22px rgba(0,0,0,.55)); }
+.desk-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* everything sits in one flex row, so nothing can stack on top of anything else */
-.desk-items { position: absolute; z-index: 1; left: 4%; right: 4%; bottom: 70px; display: flex; align-items: flex-end; gap: 2.5rem; }
+/* the lamp and mug stand on the desk top, a little back from its front edge */
+.desk-items { position: absolute; z-index: 1; left: 9%; right: 9%; bottom: 63%; display: flex; align-items: flex-end; gap: 1.5rem; }
 .desk-items > * { flex: none; display: block; filter: drop-shadow(0 6px 3px rgba(0,0,0,.6)); }
 .lamp-btn { padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; }
-.lamp-btn svg { display: block; width: clamp(280px, 32vw, 460px); height: auto; overflow: visible; }
+.lamp-btn svg { display: block; width: clamp(200px, 28vw, 310px); height: auto; overflow: visible; }
 .lamp-btn:focus-visible { outline: 2px solid var(--bright); outline-offset: 4px; }
 .lamp-btn .bulb { transition: opacity .2s; }
 .lamp-btn[aria-pressed="true"] .bulb { opacity: 0; }
-.mug { width: clamp(110px, 12vw, 180px); height: auto; margin-left: auto; overflow: visible; }
+.mug { width: clamp(84px, 11vw, 130px); height: auto; margin-left: auto; overflow: visible; }
 .mug .puff { transform-box: fill-box; transform-origin: 50% 100%; animation: puff 3s ease-in-out infinite; }
 @keyframes puff { 0% { transform: translateY(6px) scaleY(.85); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-12px) scaleY(1.05); opacity: 0; } }
 .steam { fill: none; stroke: rgba(255,255,255,.6); stroke-width: 3; stroke-linecap: round; animation: steam 3s ease-in infinite; }
 @keyframes steam { 0% { transform: translateY(8px); opacity: 0; } 40% { opacity: .75; } 100% { transform: translateY(-10px); opacity: 0; } }
-.lamp-glow { position: fixed; left: calc(4% - 60px); bottom: 40px; width: 560px; height: 460px; z-index: 6; pointer-events: none; transition: opacity .3s;
+.lamp-glow { position: fixed; left: calc(50% - min(47vw, 360px) - 40px); bottom: 60px; width: 560px; height: 460px; z-index: 6; pointer-events: none; transition: opacity .3s;
   background: radial-gradient(ellipse at 42% 62%, rgba(255,205,100,.34), transparent 65%); }
 body.lights-off .lamp-glow { opacity: 0; }
 .dark { position: fixed; inset: 0; z-index: 7; pointer-events: none; opacity: 0; transition: opacity .3s;
   background: radial-gradient(circle 190px at var(--mx, 50%) var(--my, 40%), rgba(0,0,0,0) 0, rgba(0,0,0,.94) 100%); }
 body.lights-off .dark { opacity: 1; }
 
-@media (max-width: 640px) { .lamp-btn svg { width: 220px; } .mug { width: 90px; } }
+@media (max-width: 640px) { .desk-items { left: 6%; right: 6%; gap: .5rem; } .lamp-btn svg { width: 170px; } .mug { width: 70px; } }
 @media (max-width: 760px) {
   .board { grid-template-columns: 1fr; }
   .board > .note { grid-column: 1 !important; margin-top: 0 !important; }
