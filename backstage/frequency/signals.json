@@ -78,6 +78,13 @@
         {"type": "text", "text": "I DON't LIKE THIS game, SCott! Let me OUT! PLeaSE??" },
         {"type": "redirect", "to": "https://en.wikipedia.org/wiki/Evil"}
       ]
+    },
+    "44.4": {
+      "actions": [
+        { "type": "glitch", "ms": 400 },
+        { "type": "image", "src": "/backstage/frequency/media/remember.jpg", "position": "center", "width": "60%", "duration": 5000 },
+        { "type": "text", "text": "Stupid man." }
+      ]
     }
   }
 }
