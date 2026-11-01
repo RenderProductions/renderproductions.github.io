@@ -1,11 +1,11 @@
 {
-  "updated": "2026-11-01T03:55:12.099Z",
+  "updated": "2026-11-01T04:00:17.938Z",
   "market": {
-    "status": "after-hours",
+    "status": "closed",
     "open": false,
-    "nextChange": "2026-11-01T04:00:00.000Z",
+    "nextChange": "2026-11-02T05:00:00.000Z",
     "nextOpen": "2026-11-02T14:00:00.000Z",
-    "text": "🌙 **After hours** · prices drift, trading opens <t:1793628000:R>"
+    "text": "⛔ **Closed for Sunday** · opens <t:1793628000:R>"
   },
   "prices": {
     "RRM": 133.99,
