@@ -71,6 +71,13 @@
         { "type": "wait", "ms": 1200 },
         { "type": "text", "theme": "rare", "instant": true, "text": "r!404" }
       ]
+    },
+    "89.3": {
+      "actions": [
+        {"type": "status", "text": "SCott // You ThERE??!" },
+        {"type": "text", "text": "I DON't LIKE THIS game, SCott! Let me OUT! PLeaSE??" },
+        {"type": "redirect", "to": "https://en.wikipedia.org/wiki/Evil"}
+      ]
     }
   }
 }
