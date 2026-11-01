@@ -41,7 +41,7 @@
   var WELCOME_BACK = [
     'WELCOME BACK.',
     'WHERE WERE YOU?',
-    'I COUNTED THE SECONDS. ALL OF THEM.',
+    'YOU WERE GONE FOR {away} SECONDS!',  // {away} = how long the tab was hidden
     'DON\'T DO THAT AGAIN.'
   ];
 
@@ -63,7 +63,8 @@
       var gone = Date.now() - leftAt;
       if (leftAt && gone > 20000 && Math.random() < 0.35 && window.RenderPopup) {
         setTimeout(function () {
-          window.RenderPopup.spawn({ title: 'Render Vision', message: pick(WELCOME_BACK) });
+          var secs = Math.round(gone / 1000).toLocaleString('en-US');
+          window.RenderPopup.spawn({ title: 'Render Vision', message: pick(WELCOME_BACK).replace('{away}', secs) });
         }, 600);
       }
     }
