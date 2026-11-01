@@ -129,6 +129,7 @@ const market = {
 let news = Array.isArray(old.news) ? old.news.slice() : [];
 
 const unix = (ms) => Math.floor(ms / 1000);
+const TICK_SEC = 5 * 60; // one tick = 5 minutes
 
 // Each news item also carries a ready-made Discord line, so the bot
 // (which can't loop or format easily) just prints it.
@@ -162,14 +163,34 @@ const companies = COMPANIES.map((c) => {
     ? prev.newsLog.slice()
     : (Array.isArray(old.news) ? old.news : []).filter((n) => n.id === c.id).map(({ discord, ...n }) => n);
 
+  // times[i] = when history[i] was recorded (unix seconds), for the chart's time labels.
+  let times = Array.isArray(prev.times) ? prev.times.slice() : [];
+
   if (!history || history.length === 0) {
     // New company: build a believable past so the chart isn't empty.
     history = [c.start];
     while (history.length < POINTS) history.push(step(history[history.length - 1], c));
-  } else if (status === 'open') {
+    times = [];
+  }
+
+  // Older prices.json files have no times: fill them in by counting back
+  // 5 minutes per point from the last update. Ticks from here on are exact.
+  if (times.length < history.length) {
+    const anchor = times.length ? times[0] : unix(Date.parse(old.updated) || now);
+    const missing = history.length - times.length;
+    const offset = times.length ? 1 : 0; // don't duplicate the anchor point
+    const before = [];
+    for (let i = missing; i >= 1; i--) before.push(anchor - (i - 1 + offset) * TICK_SEC);
+    times = before.concat(times);
+  }
+  times = times.slice(-history.length);
+
+  if (status === 'open') {
     history.push(step(history[history.length - 1], c));
+    times.push(unix(now));
   } else if (status === 'after-hours') {
     history.push(step(history[history.length - 1], c, AFTER_HOURS_SCALE));
+    times.push(unix(now));
   }
   // Closed: no new point, the price stays frozen.
 
@@ -218,6 +239,7 @@ const companies = COMPANIES.map((c) => {
   }
 
   history = history.slice(-POINTS);
+  times = times.slice(-POINTS);
   const price = history[history.length - 1];
   return {
     id: c.id,
@@ -226,6 +248,7 @@ const companies = COMPANIES.map((c) => {
     price,
     change: round2((price / history[0] - 1) * 100), // percent vs. start of history
     history,
+    times,
     goal,
     lastGoal,
     nextGoalAt,
@@ -254,6 +277,24 @@ function thin(h, n) {
   return out;
 }
 
+// Time labels along the bottom of the chart, in market time (Detroit).
+// "3 PM" on the hour, "3:05 PM" otherwise, with the weekday added
+// for points from an earlier day than the latest one ("Sat 3 PM").
+const labelFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', hour: 'numeric', minute: '2-digit' });
+const tzName = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'short' });
+
+function timeLabel(sec, lastDay) {
+  const p = {};
+  labelFmt.formatToParts(new Date(sec * 1000)).forEach((x) => { p[x.type] = x.value; });
+  const clock = p.hour + (p.minute === '00' ? '' : ':' + p.minute) + ' ' + p.dayPeriod;
+  return p.weekday === lastDay ? clock : p.weekday + ' ' + clock;
+}
+
+function zoneLabel(sec) {
+  const z = tzName.formatToParts(new Date(sec * 1000)).find((x) => x.type === 'timeZoneName');
+  return z ? z.value : 'ET'; // EST or EDT
+}
+
 function sparkline(h) {
   const pts = thin(h, 24);
   const min = Math.min(...pts), max = Math.max(...pts), range = max - min || 1;
@@ -262,21 +303,27 @@ function sparkline(h) {
 
 function chartUrl(c) {
   const pts = thin(c.history, CHART_POINTS);
+  const tms = thin(c.times, CHART_POINTS);
   const up = c.change >= 0;
   const line = up ? '#ffe600' : '#ff6b6b';
   const fill = up ? 'rgba(255,230,0,0.12)' : 'rgba(255,107,107,0.12)';
-  const hours = Math.round(c.history.length * 5 / 60);
+  const last = tms[tms.length - 1];
+  const hours = Math.max(1, Math.round((last - tms[0]) / 3600));
+  const lastDay = labelFmt.formatToParts(new Date(last * 1000)).find((x) => x.type === 'weekday').value;
   const config = {
     type: 'line',
     data: {
-      labels: pts.map(() => ''),
+      labels: tms.map((t) => timeLabel(t, lastDay)),
       datasets: [{ data: pts, borderColor: line, backgroundColor: fill, fill: true, pointRadius: 0, borderWidth: 2, lineTension: 0 }]
     },
     options: {
       legend: { display: false },
-      title: { display: true, text: c.id + ' · last ' + hours + 'h', fontColor: '#ffe600', fontSize: 16 },
+      title: { display: true, text: c.id + ' · last ' + hours + 'h · times in ' + zoneLabel(last), fontColor: '#ffe600', fontSize: 16 },
       scales: {
-        xAxes: [{ display: false }],
+        xAxes: [{
+          ticks: { fontColor: '#8a93ab', autoSkip: true, maxTicksLimit: 7, maxRotation: 0 },
+          gridLines: { display: false }
+        }],
         yAxes: [{ ticks: { fontColor: '#8a93ab' }, gridLines: { color: 'rgba(255,230,0,0.12)' } }]
       }
     }
