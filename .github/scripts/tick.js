@@ -30,6 +30,16 @@ const JUMP = [0.15, 0.35];      // success/failure moves the price 15% to 35%
 const MAX_NEWS = 12;            // how many news items prices.json keeps
 const COMPANY_NEWS = 10;        // how many stories each company page keeps
 
+// ---------- Dividends ----------
+// Each company pays a daily percentage of its share price. Smaller companies pay more.
+// Every company has a dividend "meter" (divIndex): how much one share has earned in
+// total, ever. It grows while the market is open. The bot pays (meter now - meter at
+// your last claim) x shares, so unclaimed days pile up on their own.
+const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025 }; // per day
+const DIV_SUSPEND_HOURS = 24;   // a failed goal freezes that company's meter this long
+const DIV_BONUS_DAYS = 1;       // a successful goal drops this many days' worth on the meter
+const MAX_ACCRUE_MIN = 15;      // a late or missed tick adds at most this many minutes
+
 // ---------- Discord feed ----------
 // Big moves without news get announced in the Discord market channel.
 const SWING_PCT = 8;            // a move this big (in %) over the last hour counts as a swing
@@ -117,6 +127,8 @@ function nextTime(test) {
 }
 
 const status = statusAt(now);
+const OPEN_MS_PER_DAY = (CLOSE_HOUR - OPEN_HOUR) * HOUR;
+const sinceLastTick = old.updated ? now - Date.parse(old.updated) : 0;
 const nextChange = nextTime((st) => st !== status);
 const nextOpen = status === 'open' ? null : nextTime((st) => st === 'open');
 const ts = (ms) => '<t:' + Math.floor(ms / 1000) + ':R>';
@@ -156,8 +168,10 @@ function discordLine(item) {
   } else if (item.deadline) {
     extra = 'Deadline <t:' + unix(Date.parse(item.deadline)) + ':R>';
   }
+  const div = item.dividend === 'suspended' ? '\n💸 Dividend suspended for ' + DIV_SUSPEND_HOURS + ' hours'
+    : item.dividend === 'bonus' ? '\n🎉 Bonus dividend paid to shareholders' : '';
   return tag + ' · `' + item.id + '` · <t:' + unix(Date.parse(item.time)) + ':R>\n' +
-    item.headline + (extra ? '\n*' + extra + '*' : '');
+    item.headline + (extra ? '\n*' + extra + '*' : '') + div;
 }
 
 function addNews(item) {
@@ -208,6 +222,12 @@ const companies = COMPANIES.map((c) => {
   }
   // Closed: no new point, the price stays frozen.
 
+  // ---------- Dividend meter ----------
+  const yieldPerDay = YIELDS[c.id] || 0;
+  let divIndex = typeof prev.divIndex === 'number' ? prev.divIndex : 0;
+  let divSuspendedUntil = prev.divSuspendedUntil || null;
+  if (divSuspendedUntil && now >= Date.parse(divSuspendedUntil)) divSuspendedUntil = null;
+
   // ---------- Goals ----------
   const pool = GOALS[c.id] || [];
   let goal = prev.goal || null;
@@ -232,12 +252,17 @@ const companies = COMPANIES.map((c) => {
     const newPrice = Math.max(1, round2(price * (won ? 1 + jump : 1 - jump)));
     history[history.length - 1] = newPrice;
 
+    // Dividends react to the news: a bonus on success, a 24h freeze on failure.
+    if (won) divIndex += newPrice * yieldPerDay * DIV_BONUS_DAYS;
+    else divSuspendedUntil = new Date(now + DIV_SUSPEND_HOURS * HOUR).toISOString();
+
     newsLog.unshift(addNews({
       id: c.id,
       name: c.name,
       type: won ? 'success' : 'fail',
       headline: won ? tpl.win : tpl.lose,
-      move: round2((newPrice / price - 1) * 100)
+      move: round2((newPrice / price - 1) * 100),
+      dividend: won ? 'bonus' : 'suspended'
     }));
 
     lastGoal = goal.index;
@@ -251,6 +276,13 @@ const companies = COMPANIES.map((c) => {
     goal = { index, text: pool[index].goal, startPrice: history[history.length - 1], deadline };
     newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'goal', headline: pool[index].goal, deadline }));
   }
+
+  // The meter grows while the market is open and the dividend isn't suspended.
+  if (status === 'open' && !divSuspendedUntil && sinceLastTick > 0) {
+    const ms = Math.min(sinceLastTick, MAX_ACCRUE_MIN * 60 * 1000);
+    divIndex += history[history.length - 1] * yieldPerDay * (ms / OPEN_MS_PER_DAY);
+  }
+  divIndex = Math.round(divIndex * 10000) / 10000;
 
   // ---------- Swing alerts (for the Discord feed) ----------
   let swingAt = prev.swingAt || null;
@@ -283,6 +315,9 @@ const companies = COMPANIES.map((c) => {
     lastGoal,
     nextGoalAt,
     swingAt,
+    yield: yieldPerDay,
+    divIndex,
+    divSuspendedUntil,
     newsLog: newsLog.slice(0, COMPANY_NEWS)
   };
 });
@@ -293,6 +328,21 @@ news = news.slice(0, MAX_NEWS);
 const prices = {};
 const changes = {};
 companies.forEach((c) => { prices[c.id] = c.price; changes[c.id] = c.change; });
+
+// Dividend tables for r!dividends:
+//   dividends.RRM = the meter (lifetime earnings per share)
+//   divDaily.RRM  = what one share earns per day right now
+//   divText.RRM   = a ready-made status line
+const dividends = {};
+const divDaily = {};
+const divText = {};
+companies.forEach((c) => {
+  dividends[c.id] = c.divIndex;
+  divDaily[c.id] = Math.round(c.price * c.yield * 10000) / 10000;
+  divText[c.id] = c.divSuspendedUntil
+    ? '💸 Suspended, resumes <t:' + unix(Date.parse(c.divSuspendedUntil)) + ':R>'
+    : (c.yield * 100).toFixed(1).replace(/\.0$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
+});
 
 // ---------- Charts for r!chart ----------
 // The bot can't loop over history, so each company gets a ready-made
@@ -379,7 +429,7 @@ const newsText = withLines.length
   : 'No market news yet. Check back soon.';
 const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
 
-const data = { updated: nowIso, market, prices, changes, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
+const data = { updated: nowIso, market, prices, changes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(
