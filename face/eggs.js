@@ -7,7 +7,8 @@
 // 2. KONAMI CODE: up up down down left right left right B A on any
 //    page and Render Vision takes over the site for a few seconds.
 // 3. PEEKING FACE: now and then a little Render Vision peeks in from an
-//    edge of the screen and stares. Touch him and he panics and runs off.
+//    edge of the screen and stares. Touch him and he panics and runs off,
+//    yelling something that fits the page (FOUND_PAGES, FOUND_COMPANY...).
 //    Up to 12 at once. (Console: RenderEggs.peek() for one, RenderEggs.peek(12) for a swarm)
 // ==========================================================
 (function () {
@@ -149,14 +150,128 @@
   // ---------- 3. The peeking face ----------
   // Every so often a little Render Vision peeks in from an edge of the screen
   // and stares, sometimes with friends (up to 12). Touch one and he panics and flees.
-  var PEEK_FIRST = [25, 75];     // seconds before the first possible peek
-  var PEEK_AGAIN = [90, 200];    // seconds between later chances
-  var PEEK_CHANCE = 0.5;         // chance he actually shows up each time
+  var PEEK_FIRST = [6, 20];      // seconds before the first possible peek on someone's visit
+  var PEEK_AGAIN = [35, 90];     // seconds between later chances
+  var PEEK_CHANCE = 0.75;        // chance he actually shows up each time
+  var PEEK_LATE = [3, 8];        // a chance that came due while changing pages happens this soon
   var PEEK_STAY = 9000;          // he gives up and leaves after this long
   var MAX_PEEKS = 12;            // most that can be on screen at once
   var GROUP_SIZES = [1, 1, 1, 2, 2, 3, 4]; // how many show up together (picked at random)
   var SWARM_CHANCE = 0.05;       // rare: all 12 at once
   var FOUND_LINES = ['OH NO THEY FOUND ME!', 'ABORT! ABORT!', 'I WASN\'T HERE!', 'YOU SAW NOTHING!'];
+
+  // What he blurts out when caught, per part of the site (longest match wins,
+  // same idea as the popups). About 70% of the time he uses these; otherwise FOUND_LINES.
+  var FOUND_PAGES = {
+    '/': { exact: true, lines: [
+      'I WAS JUST CHECKING THE LIGHTS!',
+      'I DON\'T WORK HERE!',
+      'THE BIOS MADE ME DO IT!',
+      'NOT THE FACE! WAIT, I AM THE FACE!'
+    ] },
+    '/rend-conomy/': { lines: [
+      'I WASN\'T TOUCHING THE PRICES!',
+      'DON\'T TELL THE SEC!',
+      'I\'M NOT INSIDER TRADING! I\'M INSIDE!',
+      'BUY BNW! BYE!'
+    ] },
+    '/bot/': { lines: [
+      'I WASN\'T READING YOUR MESSAGES!',
+      'I\'M NOT THE BOT! I\'M NOT!',
+      'r!hide! r!HIDE!'
+    ] },
+    '/bot/privacy/': { lines: [
+      'I WASN\'T COLLECTING DATA! JUST LOOKING!',
+      'THIS ISN\'T IN THE POLICY! RUN!'
+    ] },
+    '/bot/terms/': { lines: [
+      'I DIDN\'T AGREE TO THIS!',
+      'SECTION 9: NO PEEKING! UH OH!'
+    ] },
+    '/games/': { lines: [
+      'I WASN\'T CHEATING!',
+      'PAUSE! PAUSE THE GAME!',
+      'GAME OVER! FOR ME! BYE!'
+    ] },
+    '/games/rft/': { lines: [
+      'I WASN\'T STEALING YOUR FILES!',
+      'THOSE FILES WERE ALREADY CORRUPTED!',
+      'DON\'T COUNT MY FILES!'
+    ] },
+    '/games/chess/': { lines: [
+      'I WASN\'T MOVING YOUR PIECES!',
+      'CHECK! NO, CHECK-OUT! BYE!',
+      'THE KNIGHT DID IT!'
+    ] },
+    '/backstage/': { lines: [
+      'I DIDN\'T PIN THAT THERE!',
+      'DON\'T PULL THE YARN!',
+      'YOU WEREN\'T SUPPOSED TO FIND ME BACK HERE!',
+      'IT\'S NOT A CONSPIRACY! IT\'S A BOARD!'
+    ] },
+    '/backstage/frequency/': { lines: [
+      'WRONG FREQUENCY! WRONG FREQUENCY!',
+      'I WASN\'T BROADCASTING!',
+      'KSSHHHT! I\'M STATIC! KSSHHHT!'
+    ] },
+    '404': { lines: [
+      'I\'M LOST TOO!',
+      'THIS PAGE ISN\'T HERE AND NEITHER AM I!',
+      'I DIDN\'T DELETE IT!'
+    ] }
+  };
+
+  // Company pages (body data-ticker="BNW"). {name} = the company's name from the page.
+  var FOUND_COMPANY = ['{name} IS STUPID ANYWAY!', 'I DON\'T EVEN OWN {ticker}!', 'I WASN\'T HERE! TELL {ticker} NOTHING!'];
+  var FOUND_UP = ['I DIDN\'T MAKE IT GO UP!', 'THAT GREEN WASN\'T ME!', 'I DIDN\'T PUMP {ticker}!'];
+  var FOUND_DOWN = ['I DIDN\'T MAKE IT GO DOWN!', 'I DIDN\'T SELL! I SWEAR!', 'THAT CRASH WASN\'T ME!'];
+
+  var foundLines = null;
+  var ticker = document.body && document.body.getAttribute('data-ticker');
+  if (ticker && ticker.indexOf('__') === 0) ticker = null; // the unfilled template page
+  var stockUp = null; // true/false once prices.json says which way the stock went
+
+  function pageFoundLines() {
+    var list = [];
+    // GitHub shows 404.html at whatever address was typed, so go by the
+    // data-page="404" on its popup.js tag rather than the address.
+    if (document.querySelector('script[data-page="404"]')) list = FOUND_PAGES['404'].lines;
+    else {
+      var path = location.pathname.replace(/index\.html$/, ''), bestLen = -1;
+      Object.keys(FOUND_PAGES).forEach(function (key) {
+        var pg = FOUND_PAGES[key];
+        if (key.charAt(0) !== '/') return;
+        var hit = pg.exact ? path === key : path.indexOf(key) === 0;
+        if (hit && key.length > bestLen) { list = pg.lines; bestLen = key.length; }
+      });
+    }
+    if (ticker) {
+      var h1 = document.querySelector('h1');
+      var name = h1 ? h1.textContent.trim().toUpperCase() : ticker;
+      var extra = stockUp === true ? FOUND_UP : stockUp === false ? FOUND_DOWN : [];
+      // On company pages the company lines come first: twice as likely as the market ones.
+      list = FOUND_COMPANY.concat(extra, FOUND_COMPANY, extra, list).map(function (l) {
+        return l.split('{ticker}').join(ticker).split('{name}').join(name);
+      });
+    }
+    return list;
+  }
+
+  function foundLine() {
+    if (!foundLines) foundLines = pageFoundLines();
+    return foundLines.length && Math.random() < 0.7 ? pick(foundLines) : pick(FOUND_LINES);
+  }
+
+  // Which way is this company's stock going? (only fetched on company pages)
+  if (ticker && window.fetch) {
+    fetch('/prices.json', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var ch = d && d.changes && d.changes[ticker];
+        if (typeof ch === 'number') { stockUp = ch >= 0; foundLines = null; }
+      })
+      .catch(function () {});
+  }
 
   var peekCss = [
     '.rv-peek{position:fixed;width:0;height:0;z-index:9970;pointer-events:none}',
@@ -276,7 +391,7 @@
       // Speech bubble, upright, a little inside the screen from where he was.
       var bubble = document.createElement('div');
       bubble.className = 'rv-bubble';
-      bubble.textContent = pick(FOUND_LINES);
+      bubble.textContent = foundLine();
       document.body.appendChild(bubble);
       var nx = edge === 'left' ? 1 : edge === 'right' ? -1 : 0;
       var ny = edge === 'top' ? 1 : edge === 'bottom' ? -1 : 0;
@@ -309,15 +424,28 @@
     }
   }
 
-  function schedulePeek(range) {
-    var ms = (range[0] + Math.random() * (range[1] - range[0])) * 1000;
+  // The countdown to the next chance is saved for the browser tab, so clicking
+  // to another page doesn't restart it. If it came due mid-click, he shows up soon after.
+  var NEXT_KEY = 'rvNextPeek';
+  function saveNext(at) { try { sessionStorage.setItem(NEXT_KEY, String(at)); } catch (e) {} }
+  function loadNext() { try { return Number(sessionStorage.getItem(NEXT_KEY)) || 0; } catch (e) { return 0; } }
+  function secs(range) { return (range[0] + Math.random() * (range[1] - range[0])) * 1000; }
+
+  function scheduleAt(at) {
+    saveNext(at);
     setTimeout(function () {
       if (Math.random() < PEEK_CHANCE) peek(Math.random() < SWARM_CHANCE ? MAX_PEEKS : pick(GROUP_SIZES));
-      schedulePeek(PEEK_AGAIN);
-    }, ms);
+      scheduleAt(Date.now() + secs(PEEK_AGAIN));
+    }, Math.max(0, at - Date.now()));
   }
+
   // The big face lives on /face/, so the little one stays away from there.
-  if (location.pathname.indexOf('/face/') !== 0) schedulePeek(PEEK_FIRST);
+  if (location.pathname.indexOf('/face/') !== 0) {
+    var due = loadNext();
+    if (!due) scheduleAt(Date.now() + secs(PEEK_FIRST));          // first page of the visit
+    else if (due <= Date.now()) scheduleAt(Date.now() + secs(PEEK_LATE)); // came due while changing pages
+    else scheduleAt(due);                                          // pick up where the last page left off
+  }
 
   window.RenderEggs = { peek: peek, takeover: takeover };
 })();
