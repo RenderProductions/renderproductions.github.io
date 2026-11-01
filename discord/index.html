@@ -14,159 +14,303 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#ffe600">
+<meta name="theme-color" content="#5865f2">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="/style.css">
 <style>
-  .server { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
-  .server-icon {
-    width: 112px; height: 112px; flex: none;
-    border: 2px solid var(--bright); background: var(--panel-2);
-    display: grid; place-items: center; overflow: hidden;
-    box-shadow: 0 0 18px rgba(255, 230, 0, 0.25);
+  /* This page borrows the look of a chat app on purpose. Self-contained: it doesn't use /style.css. */
+  :root {
+    --rail: #1e1f22; --side: #2b2d31; --main: #313338; --hover: #35373c; --active: #404249;
+    --text: #dbdee1; --muted: #949ba4; --head: #f2f3f5; --line: #3f4147;
+    --blurple: #5865f2; --blurple-h: #4752c4; --green: #23a55a; --idle: #f0b232; --dnd: #f23f43;
+    --link: #00a8fc; --embed: #2b2d31; --yellow: #ffe600;
+    --font: 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
   }
-  .server-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .server-icon span { font-family: var(--display); font-size: 56px; color: var(--bright); }
-  .server h1 { font-size: clamp(44px, 9vw, 80px); }
-  .server .tagline { margin: 0.5rem 0 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--rail); color: var(--text); font: 15px/1.375 var(--font); display: flex; flex-direction: column; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--blurple); outline-offset: 2px; }
+  [hidden] { display: none !important; }
 
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--line); background: var(--panel); }
-  .stat { padding: 1.1rem 1.25rem; }
-  .stat + .stat { border-left: 1px solid var(--line); }
-  .stat .k { font-size: 12px; color: var(--grey); letter-spacing: 1px; }
-  .stat .v { font-family: var(--display); font-size: 52px; line-height: 1; color: var(--bright); margin-top: 0.35rem; text-shadow: 0 0 10px rgba(255, 230, 0, 0.35); font-variant-numeric: tabular-nums; }
-  .stat .sub { font-size: 12px; color: var(--dim); margin-top: 0.25rem; }
-  .stat.online .v::before { content: '● '; font-size: 28px; vertical-align: middle; color: #57f287; text-shadow: 0 0 8px rgba(87, 242, 135, 0.6); }
+  /* Site menu, toned to match */
+  .topnav { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem 1rem; flex-wrap: wrap; padding: 0.55rem 1rem; background: var(--rail); border-bottom: 1px solid #111214; font-size: 13px; }
+  .topnav .brand { color: var(--yellow); font: 600 13px 'Courier New', monospace; letter-spacing: 2px; }
+  .topnav .brand:hover { text-decoration: none; }
+  .topnav ul { display: flex; flex-wrap: wrap; gap: 0.2rem 1.1rem; list-style: none; }
+  .topnav ul a { color: var(--muted); }
+  .topnav ul a:hover { color: var(--head); text-decoration: none; }
+  .topnav ul a[aria-current] { color: var(--head); font-weight: 600; }
 
-  .who { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
-  .who li { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; background: var(--panel); border: 1px solid var(--line); min-width: 0; }
-  .who .av { position: relative; width: 32px; height: 32px; flex: none; }
-  .who .av img { width: 32px; height: 32px; border-radius: 50%; display: block; background: var(--panel-2); }
-  .who .av i { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--panel); background: #57f287; }
-  .who .av i.idle { background: #f0b232; }
-  .who .av i.dnd { background: #f23f43; }
-  .who .nm { font-size: 13px; color: var(--lime); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .who .game { display: block; font-size: 11px; color: var(--grey); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app { flex: 1; min-height: 0; display: grid; grid-template-columns: 72px 240px 1fr 240px; }
 
-  .around { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-  .card { border: 1px solid var(--line); background: var(--panel); padding: 1.1rem 1.25rem; display: block; color: inherit; }
-  a.card:hover { background: rgba(255, 230, 0, 0.06); border-color: var(--line-strong); }
-  .card .k { font-size: 12px; color: var(--grey); letter-spacing: 1px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; gap: 0.5rem; }
-  .card p { font-size: 14px; color: var(--lime); }
-  .card strong { color: var(--bright); }
+  /* Server rail */
+  .rail { background: var(--rail); padding: 12px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; overflow-y: auto; }
+  .srv { position: relative; width: 48px; height: 48px; border-radius: 50%; background: var(--main); display: grid; place-items: center; color: var(--head); transition: border-radius .15s, background .15s; overflow: hidden; flex: none; }
+  .srv:hover, .srv.on { border-radius: 16px; background: var(--blurple); text-decoration: none; }
+  .srv svg { width: 26px; height: 26px; }
+  .srv img { width: 100%; height: 100%; object-fit: cover; }
+  .srv .txt { font: 700 15px var(--font); }
+  .srv-wrap { position: relative; }
+  .srv-wrap::before { content: ''; position: absolute; left: -12px; top: 50%; width: 4px; height: 8px; background: var(--head); border-radius: 0 4px 4px 0; transform: translateY(-50%) scale(0); transition: transform .15s, height .15s; }
+  .srv-wrap:hover::before { transform: translateY(-50%) scale(1); height: 20px; }
+  .srv-wrap.on::before { transform: translateY(-50%) scale(1); height: 40px; }
+  .srv.add { color: var(--green); background: var(--main); }
+  .srv.add:hover { background: var(--green); color: #fff; }
+  .rail hr { width: 32px; border: 0; border-top: 2px solid var(--active); margin: 2px 0; }
+  .tip { position: absolute; left: 62px; top: 50%; transform: translateY(-50%); background: #111214; color: var(--head); font-size: 14px; font-weight: 600; padding: 6px 10px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .1s; z-index: 20; }
+  .srv-wrap:hover .tip { opacity: 1; }
 
-  .skeleton { color: var(--dim); }
-  @media (max-width: 720px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .stat:nth-child(3) { border-left: 0; }
-    .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
-    .around { grid-template-columns: 1fr; }
-    .server-icon { width: 84px; height: 84px; }
+  /* Channel list */
+  .channels { background: var(--side); display: flex; flex-direction: column; min-height: 0; }
+  .guild-head { padding: 0 16px; height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #1f2023; box-shadow: 0 1px 0 rgba(0,0,0,.2); color: var(--head); font-weight: 600; }
+  .guild-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .boost { font-size: 11px; color: #ff73fa; font-weight: 700; white-space: nowrap; }
+  .chan-scroll { flex: 1; overflow-y: auto; padding: 8px 8px 16px; }
+  .cat { margin: 16px 0 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; }
+  .cat:first-child { margin-top: 4px; }
+  .chan { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 4px; color: var(--muted); font-weight: 500; }
+  .chan:hover { background: var(--hover); color: var(--text); text-decoration: none; }
+  .chan.on { background: var(--active); color: var(--head); }
+  .chan .ic { width: 20px; text-align: center; font-size: 18px; line-height: 1; opacity: .8; }
+  .voice-users { list-style: none; padding: 2px 0 4px 34px; }
+  .voice-users li { display: flex; align-items: center; gap: 8px; padding: 3px 4px; color: var(--muted); font-size: 14px; }
+  .voice-users img { width: 24px; height: 24px; border-radius: 50%; background: var(--main); }
+  .you { background: #232428; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .you p { font-size: 12px; color: var(--muted); }
+
+  /* Chat */
+  .chat { background: var(--main); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .chat-head { height: 48px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid #26272b; box-shadow: 0 1px 0 rgba(0,0,0,.15); }
+  .chat-head .hash { font-size: 22px; color: var(--muted); }
+  .chat-head b { color: var(--head); }
+  .chat-head .topic { color: var(--muted); font-size: 14px; border-left: 1px solid var(--line); padding-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msgs { flex: 1; overflow-y: auto; padding: 16px 0 8px; }
+  .welcome { padding: 8px 16px 24px; margin: 0 16px 16px; border-bottom: 1px solid var(--line); }
+  .welcome .big { width: 80px; height: 80px; border-radius: 50%; background: var(--blurple); display: grid; place-items: center; overflow: hidden; color: #fff; font-weight: 700; font-size: 28px; margin-bottom: 12px; }
+  .welcome .big img { width: 100%; height: 100%; object-fit: cover; }
+  .welcome h1 { font-size: 30px; line-height: 1.2; color: var(--head); font-weight: 800; }
+  .welcome p { color: var(--muted); margin-top: 6px; max-width: 60ch; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--blurple); color: #fff; font: 500 14px var(--font); padding: 0 16px; height: 38px; border-radius: 4px; border: 0; cursor: pointer; }
+  .btn:hover { background: var(--blurple-h); text-decoration: none; }
+  .btn.grey { background: #4e5058; }
+  .btn.grey:hover { background: #6d6f78; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+  .msg { display: grid; grid-template-columns: 40px 1fr; gap: 0 16px; padding: 4px 16px 4px 16px; margin-top: 14px; }
+  .msg:hover { background: #2e3035; }
+  .msg .av { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: var(--side); grid-row: span 2; }
+  .msg .av img, .msg .av svg { width: 100%; height: 100%; display: block; }
+  .msg .who { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .msg .name { color: var(--head); font-weight: 500; }
+  .msg .name.yellow { color: var(--yellow); }
+  .msg .name.green { color: #3ba55c; }
+  .badge { background: var(--blurple); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; position: relative; top: -1px; }
+  .msg time { color: var(--muted); font-size: 12px; }
+  .msg .body { color: var(--text); min-width: 0; }
+
+  .embed { margin-top: 4px; background: var(--embed); border-left: 4px solid var(--blurple); border-radius: 4px; padding: 10px 16px 14px 12px; max-width: 520px; }
+  .embed.yellow { border-left-color: var(--yellow); }
+  .embed.green { border-left-color: var(--green); }
+  .embed.grey { border-left-color: #80848e; }
+  .embed .t { color: var(--head); font-weight: 600; margin-bottom: 6px; display: block; }
+  .embed a.t { color: var(--link); }
+  .embed .d { font-size: 14px; }
+  .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; margin-top: 8px; }
+  .field .k { font-size: 13px; font-weight: 600; color: var(--head); }
+  .field .v { font-size: 22px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .field .v.load { color: var(--muted); }
+  .field .s { font-size: 12px; color: var(--muted); }
+  .field.online .v::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--green); margin-right: 8px; vertical-align: middle; position: relative; top: -2px; }
+  .embed .foot { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+  .composer { flex: none; padding: 0 16px 20px; }
+  .composer a { display: flex; align-items: center; gap: 12px; background: #383a40; border-radius: 8px; padding: 0 16px; height: 44px; color: var(--muted); }
+  .composer a:hover { text-decoration: none; color: var(--text); }
+  .composer .plus { width: 24px; height: 24px; border-radius: 50%; background: #b5bac1; color: #383a40; display: grid; place-items: center; font-weight: 700; flex: none; }
+
+  /* Members */
+  .members { background: var(--side); overflow-y: auto; padding: 16px 8px; }
+  .members h3 { margin: 4px 8px 6px; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+  .mem { display: flex; align-items: center; gap: 12px; padding: 5px 8px; border-radius: 4px; }
+  .mem:hover { background: var(--hover); }
+  .mem .pic { position: relative; width: 32px; height: 32px; flex: none; }
+  .mem .pic img { width: 32px; height: 32px; border-radius: 50%; background: var(--main); display: block; }
+  .mem .pic i { position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-radius: 50%; background: var(--green); border: 3px solid var(--side); }
+  .mem .pic i.idle { background: var(--idle); }
+  .mem .pic i.dnd { background: var(--dnd); }
+  .mem .nm { min-width: 0; color: var(--text); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mem .nm small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  .ph { display: grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700; font-size: 13px; text-transform: uppercase; }
+  .members .hint { margin: 8px; font-size: 13px; color: var(--muted); }
+
+  @media (max-width: 1100px) { .app { grid-template-columns: 72px 220px 1fr; } .members { display: none; } }
+  @media (max-width: 760px) {
+    html, body { height: auto; }
+    .app { display: block; }
+    .channels { min-width: 0; }
+    .msgs { overflow: visible; }
+    .composer { position: sticky; bottom: 0; background: var(--main); padding-top: 8px; }
+    .rail, .members { display: none; }
+    .channels { max-height: none; }
+    .chan-scroll { display: flex; gap: 6px; overflow-x: auto; padding: 8px; }
+    .cat, .voice-users, .you { display: none; }
+    .chan { white-space: nowrap; background: var(--main); }
+    .guild-head { height: 44px; }
+    .fields { grid-template-columns: repeat(2, 1fr); }
   }
+  @media (min-width: 761px) { body { height: 100vh; overflow: hidden; } }
+  @media (prefers-reduced-motion: reduce) { .srv, .srv-wrap::before { transition: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <nav class="nav" aria-label="Main">
-    <a class="brand" href="/">RENDER PRODUCTIONS</a>
-    <ul>
-      <li><a href="/">Home</a></li>
-      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
-      <li><a href="/bot/">Bot</a></li>
-      <li><a href="/games/">Games</a></li>
-      <li><a href="/face/">Face</a></li>
-      <li><a href="/patch-notes/">Patch Notes</a></li>
-      <li><a href="/discord/" aria-current="page">Discord</a></li>
-    </ul>
+<nav class="topnav" aria-label="Main">
+  <a class="brand" href="/">RENDER PRODUCTIONS</a>
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+    <li><a href="/bot/">Bot</a></li>
+    <li><a href="/games/">Games</a></li>
+    <li><a href="/face/">Face</a></li>
+    <li><a href="/patch-notes/">Patch Notes</a></li>
+    <li><a href="/discord/" aria-current="page">Discord</a></li>
+  </ul>
+</nav>
+
+<div class="app">
+
+  <!-- Server rail: The Render Room plus the other projects -->
+  <nav class="rail" aria-label="Projects">
+    <div class="srv-wrap on"><a class="srv on srv-icon" href="/discord/" aria-current="page" aria-label="The Render Room"><span class="txt">RR</span></a><span class="tip">The Render Room</span></div>
+    <hr>
+    <div class="srv-wrap"><a class="srv" href="/rend-conomy/" aria-label="Rend-Conomy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 14 21 6"/><polyline points="15 6 21 6 21 12"/></svg></a><span class="tip">Rend-Conomy</span></div>
+    <div class="srv-wrap"><a class="srv" href="/games/" aria-label="Games"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10a4 4 0 0 1 4 4l1 6a2 2 0 0 1-3.5 1.5L16 16H8l-2.5 2.5A2 2 0 0 1 2 17l1-6a4 4 0 0 1 4-4z"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r="1" fill="currentColor"/><circle cx="18" cy="13.5" r="1" fill="currentColor"/></svg></a><span class="tip">Games</span></div>
+    <div class="srv-wrap"><a class="srv" href="/patch-notes/" aria-label="Patch Notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></a><span class="tip">Patch Notes</span></div>
+    <div class="srv-wrap"><a class="srv" href="/" aria-label="Render Productions home"><span class="txt" style="color: var(--yellow);">RP</span></a><span class="tip">Render Productions</span></div>
+    <hr>
+    <div class="srv-wrap"><a class="srv add" href="/bot/" aria-label="Add the bot to your server"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></a><span class="tip">Add Rend-Conomy to your server</span></div>
   </nav>
 
-  <header class="hero">
-    <div class="server">
-      <div class="server-icon" id="icon"><span>RR</span></div>
-      <div>
-        <h1 id="name">THE RENDER ROOM</h1>
-        <p class="tagline" id="desc">The Discord server where the community, the Rend-Conomy bot, and everything else lives.</p>
-      </div>
+  <!-- Channel list -->
+  <aside class="channels" aria-label="Channels">
+    <div class="guild-head"><span id="g-name">The Render Room</span><span class="boost" id="g-boost" hidden></span></div>
+    <div class="chan-scroll">
+      <div class="cat">Information</div>
+      <a class="chan on" href="/discord/" aria-current="page"><span class="ic">#</span>welcome</a>
+      <a class="chan" href="/patch-notes/"><span class="ic">#</span>patch-notes</a>
+      <div class="cat">Rend-Conomy</div>
+      <a class="chan" href="/rend-conomy/"><span class="ic">#</span>market-news</a>
+      <a class="chan" href="/bot/"><span class="ic">#</span>bot-commands</a>
+      <div class="cat">Voice</div>
+      <a class="chan" href="https://discord.gg/D2v4EsuZBU" data-join><span class="ic">🔊</span>Lounge</a>
+      <ul class="voice-users" id="voice"></ul>
     </div>
-    <div class="btns" style="margin-top: 1.5rem;">
-      <a class="btn primary" href="https://discord.gg/D2v4EsuZBU" id="join">Join the Render Room</a>
-      <a class="btn" href="/bot/">Add the bot to your server</a>
+    <div class="you">
+      <p>You're looking in from outside.</p>
+      <a class="btn" href="https://discord.gg/D2v4EsuZBU" data-join>Join the server</a>
     </div>
-  </header>
+  </aside>
 
-  <section aria-labelledby="stats-title">
-    <div class="section-head">
-      <h2 id="stats-title">Live stats</h2>
-      <span class="tag" id="status">CONNECTING</span>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="k">MEMBERS</div><div class="v skeleton" id="members">---</div></div>
-      <div class="stat online"><div class="k">ONLINE NOW</div><div class="v skeleton" id="online">---</div></div>
-      <div class="stat"><div class="k">BOOSTS</div><div class="v skeleton" id="boosts">---</div><div class="sub" id="tier"></div></div>
-      <div class="stat"><div class="k">SERVER AGE</div><div class="v skeleton" id="age">---</div><div class="sub" id="since"></div></div>
-    </div>
-    <p class="empty" id="note">Fetching live numbers from Discord...</p>
-  </section>
+  <!-- Chat -->
+  <main class="chat">
+    <div class="chat-head"><span class="hash">#</span><b>welcome</b><span class="topic" id="topic">The community, the Rend-Conomy bot, and everything else.</span></div>
+    <div class="msgs">
+      <section class="welcome">
+        <div class="big srv-icon-big" id="big">RR</div>
+        <h1>Welcome to <span id="w-name">The Render Room</span></h1>
+        <p id="w-desc">The Discord server where the community, the Rend-Conomy bot, and everything else lives.</p>
+        <div class="btn-row">
+          <a class="btn" href="https://discord.gg/D2v4EsuZBU" data-join>Join the Render Room</a>
+          <a class="btn grey" href="/bot/">Add the bot to your server</a>
+        </div>
+      </section>
 
-  <section aria-labelledby="who-title" id="who-section" style="margin-top: 2.5rem;" hidden>
-    <div class="section-head">
-      <h2 id="who-title">Online right now</h2>
-      <span id="who-count"></span>
-    </div>
-    <ul class="who" id="who"></ul>
-  </section>
+      <article class="msg">
+        <div class="av"><svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" fill="#05070d"/><rect x="5" y="5" width="30" height="30" rx="6" fill="none" stroke="#ffe600" stroke-width="2.2"/><rect x="13" y="12" width="4" height="10" rx="1.2" fill="#ffe600"/><rect x="23" y="12" width="4" height="10" rx="1.2" fill="#ffe600"/><path d="M13 27 q7 4 14 0" fill="none" stroke="#ffe600" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="who"><span class="name yellow">Render Vision</span><span class="badge">Bot</span><time id="t1">Today</time></div>
+        <div class="body">
+          Here's how the server's doing right now.
+          <div class="embed yellow">
+            <span class="t">📊 Live server stats</span>
+            <div class="fields">
+              <div class="field"><div class="k">Members</div><div class="v load" id="members">···</div></div>
+              <div class="field online"><div class="k">Online now</div><div class="v load" id="online">···</div></div>
+              <div class="field"><div class="k">Boosts</div><div class="v load" id="boosts">···</div><div class="s" id="tier"></div></div>
+              <div class="field"><div class="k">Server age</div><div class="v load" id="age">···</div><div class="s" id="since"></div></div>
+            </div>
+            <div class="foot" id="note">Fetching live numbers…</div>
+          </div>
+        </div>
+      </article>
 
-  <section aria-labelledby="around-title" style="margin-top: 2.5rem;">
-    <div class="section-head">
-      <h2 id="around-title">Around the server</h2>
-    </div>
-    <div class="around">
-      <a class="card" href="/rend-conomy/">
-        <div class="k"><span>REND-CONOMY MARKET</span><span id="mkt-tag" class="tag">...</span></div>
-        <p id="mkt-head" class="skeleton">Checking the market...</p>
-      </a>
-      <a class="card" href="/patch-notes/">
-        <div class="k"><span>LATEST UPDATE</span><span class="tag">PATCH NOTES</span></div>
-        <p>See what's new in the bot and on the site, and whose ideas made it in.</p>
-      </a>
-    </div>
-  </section>
+      <article class="msg">
+        <div class="av"><img src="/bot/market-icon.png" alt=""></div>
+        <div class="who"><span class="name">Rend-Conomy Market</span><span class="badge">App</span><time id="t2">Today</time></div>
+        <div class="body">
+          <div class="embed grey" id="mkt">
+            <a class="t" href="/rend-conomy/" id="mkt-title">Checking the market…</a>
+            <div class="d" id="mkt-head">Four companies, fake money, real bragging rights.</div>
+          </div>
+        </div>
+      </article>
 
-  <footer class="footer">
-    <span>Render Productions</span>
-    <span><a href="/bot/privacy/">Privacy Policy</a> &nbsp;|&nbsp; <a href="/bot/terms/">Terms of Service</a></span>
-  </footer>
+      <article class="msg">
+        <div class="av"><svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" fill="#05070d"/><rect x="5" y="5" width="30" height="30" rx="6" fill="none" stroke="#ffe600" stroke-width="2.2"/><rect x="13" y="12" width="4" height="10" rx="1.2" fill="#ffe600"/><rect x="23" y="12" width="4" height="10" rx="1.2" fill="#ffe600"/><path d="M13 27 q7 4 14 0" fill="none" stroke="#ffe600" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="who"><span class="name yellow">Render Vision</span><span class="badge">Bot</span><time>Today</time></div>
+        <div class="body">
+          New stuff keeps landing. Some of it was your idea.
+          <div class="embed">
+            <a class="t" href="/patch-notes/">📜 Read the latest patch notes</a>
+            <div class="d">Jobs, the shop, dividends, TODD's loans, and whatever comes next.</div>
+          </div>
+        </div>
+      </article>
+    </div>
+    <div class="composer"><a href="https://discord.gg/D2v4EsuZBU" data-join><span class="plus">+</span>Join The Render Room to chat in #welcome</a></div>
+  </main>
+
+  <!-- Members -->
+  <aside class="members" aria-label="Members">
+    <h3 id="mem-head">ONLINE</h3>
+    <div id="mem-list"></div>
+    <p class="hint" id="mem-hint">Join the server to see who's around.</p>
+  </aside>
 
 </div>
 
 <script>
 (function () {
   // Live numbers come from Discord's public invite endpoint (no setup needed).
-  // "Online right now" also needs the server widget: Server Settings > Widget > Enable Server Widget.
+  // The online member list also needs the server widget: Server Settings > Widget > Enable Server Widget.
   var INVITE = 'D2v4EsuZBU';
   var REFRESH_MS = 60 * 1000;
   var $ = function (id) { return document.getElementById(id); };
   var fmt = new Intl.NumberFormat();
   var guildId = null;
+  var clock = function () { return 'Today at ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
 
-  function setStat(id, text) {
-    var el = $(id);
-    el.textContent = text;
-    el.classList.remove('skeleton');
-  }
-
-  // A Discord ID encodes when it was created.
-  function idToDate(id) {
-    try { return new Date(Number((BigInt(id) >> 22n) + 1420070400000n)); } catch (e) { return null; }
-  }
+  function setV(id, text) { var el = $(id); el.textContent = text; el.classList.remove('load'); }
+  function idToDate(id) { try { return new Date(Number((BigInt(id) >> 22n) + 1420070400000n)); } catch (e) { return null; } }
   function ageText(d) {
     var days = Math.floor((Date.now() - d) / 86400000);
-    if (days < 60) return days + 'D';
+    if (days < 60) return days + ' days';
     var months = Math.floor(days / 30.44);
-    if (months < 24) return months + 'MO';
-    return (days / 365.25).toFixed(1) + 'Y';
+    if (months < 24) return months + ' months';
+    return (days / 365.25).toFixed(1) + ' years';
   }
+  // A member's avatar, or a colored circle with their initial when they don't have one.
+  var PH_COLORS = ['#5865f2', '#3ba55c', '#faa61a', '#ed4245', '#eb459e', '#747f8d'];
+  function avatar(m, size) {
+    if (m.avatar_url) { var i = document.createElement('img'); i.alt = ''; i.loading = 'lazy'; i.src = m.avatar_url; return i; }
+    var d = document.createElement('span'); d.className = 'ph';
+    var n = m.username || '?';
+    d.style.width = d.style.height = size + 'px';
+    d.style.background = PH_COLORS[n.charCodeAt(0) % PH_COLORS.length];
+    d.textContent = n.charAt(0);
+    return d;
+  }
+  function iconImg(src) { var i = document.createElement('img'); i.alt = ''; i.src = src; return i; }
 
   function loadInvite() {
     return fetch('https://discord.com/api/v10/invites/' + INVITE + '?with_counts=true')
@@ -174,29 +318,31 @@
       .then(function (inv) {
         var g = inv.guild || {};
         guildId = g.id || guildId;
-        if (g.name) $('name').textContent = g.name.toUpperCase();
-        if (g.description) $('desc').textContent = g.description;
+        if (g.name) { $('g-name').textContent = g.name; $('w-name').textContent = g.name; document.title = g.name + ' | Render Productions'; }
+        if (g.description) { $('w-desc').textContent = g.description; $('topic').textContent = g.description; }
         if (g.id && g.icon) {
-          var ext = g.icon.indexOf('a_') === 0 ? 'gif' : 'png';
-          var img = document.createElement('img');
-          img.alt = '';
-          img.src = 'https://cdn.discordapp.com/icons/' + g.id + '/' + g.icon + '.' + ext + '?size=256';
-          img.onload = function () { $('icon').innerHTML = ''; $('icon').appendChild(img); };
+          var src = 'https://cdn.discordapp.com/icons/' + g.id + '/' + g.icon + '.' + (g.icon.indexOf('a_') === 0 ? 'gif' : 'png') + '?size=256';
+          var test = new Image();
+          test.onload = function () {
+            document.querySelectorAll('.srv-icon').forEach(function (el) { el.innerHTML = ''; el.appendChild(iconImg(src)); });
+            $('big').innerHTML = ''; $('big').appendChild(iconImg(src));
+          };
+          test.src = src;
         }
-        if (typeof inv.approximate_member_count === 'number') setStat('members', fmt.format(inv.approximate_member_count));
-        if (typeof inv.approximate_presence_count === 'number') setStat('online', fmt.format(inv.approximate_presence_count));
+        if (typeof inv.approximate_member_count === 'number') setV('members', fmt.format(inv.approximate_member_count));
+        if (typeof inv.approximate_presence_count === 'number') {
+          setV('online', fmt.format(inv.approximate_presence_count));
+          $('mem-head').textContent = 'ONLINE — ' + fmt.format(inv.approximate_presence_count);
+        }
         var boosts = g.premium_subscription_count || 0;
-        setStat('boosts', fmt.format(boosts));
-        $('tier').textContent = boosts >= 14 ? 'LEVEL 3' : boosts >= 7 ? 'LEVEL 2' : boosts >= 2 ? 'LEVEL 1' : 'NO LEVEL YET';
+        setV('boosts', fmt.format(boosts));
+        var lvl = boosts >= 14 ? 3 : boosts >= 7 ? 2 : boosts >= 2 ? 1 : 0;
+        $('tier').textContent = lvl ? 'Level ' + lvl : 'No level yet';
+        if (boosts) { $('g-boost').textContent = '◆ ' + boosts + ' boost' + (boosts === 1 ? '' : 's'); $('g-boost').hidden = false; }
         var made = g.id ? idToDate(g.id) : null;
-        if (made) {
-          setStat('age', ageText(made));
-          $('since').textContent = 'SINCE ' + made.toLocaleDateString([], { month: 'short', year: 'numeric' }).toUpperCase();
-        }
-        $('status').textContent = 'LIVE';
-        $('status').className = 'tag live';
-        $('note').textContent = 'Numbers come straight from Discord and refresh every minute. Last checked ' +
-          new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
+        if (made) { setV('age', ageText(made)); $('since').textContent = 'Since ' + made.toLocaleDateString([], { month: 'long', year: 'numeric' }); }
+        $('note').textContent = 'Live from Discord · refreshes every minute · ' + clock();
+        $('t1').textContent = clock();
       });
   }
 
@@ -205,33 +351,30 @@
     return fetch('https://discord.com/api/guilds/' + guildId + '/widget.json')
       .then(function (r) { if (!r.ok) throw new Error('widget ' + r.status); return r.json(); })
       .then(function (w) {
-        var list = (w.members || []).slice(0, 48);
+        var list = (w.members || []).slice(0, 60);
         if (!list.length) return;
-        var ul = $('who');
-        ul.innerHTML = '';
-        list.forEach(function (m) {
-          var li = document.createElement('li');
-          var av = document.createElement('span'); av.className = 'av';
-          var img = document.createElement('img'); img.alt = ''; img.loading = 'lazy';
-          if (m.avatar_url) img.src = m.avatar_url;
-          var dot = document.createElement('i');
-          if (m.status === 'idle' || m.status === 'dnd') dot.className = m.status;
-          av.appendChild(img); av.appendChild(dot);
-          var nm = document.createElement('span'); nm.className = 'nm';
-          nm.textContent = m.username || 'someone';
-          if (m.game && m.game.name) {
-            var gm = document.createElement('span'); gm.className = 'game';
-            gm.textContent = m.game.name;
-            nm.appendChild(gm);
+        var box = $('mem-list'); box.innerHTML = '';
+        var voice = $('voice'); voice.innerHTML = '';
+        list.forEach(function (m, i) {
+          var row = document.createElement('div'); row.className = 'mem';
+          var pic = document.createElement('span'); pic.className = 'pic';
+          var img = avatar(m, 32);
+          var dot = document.createElement('i'); if (m.status === 'idle' || m.status === 'dnd') dot.className = m.status;
+          pic.appendChild(img); pic.appendChild(dot);
+          var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = m.username || 'someone';
+          if (m.game && m.game.name) { var s = document.createElement('small'); s.textContent = 'Playing ' + m.game.name; nm.appendChild(s); }
+          row.appendChild(pic); row.appendChild(nm); box.appendChild(row);
+          if (m.channel_id && voice.children.length < 6) {
+            var li = document.createElement('li');
+            var vi = avatar(m, 24);
+            li.appendChild(vi); li.appendChild(document.createTextNode(m.username || 'someone'));
+            voice.appendChild(li);
           }
-          li.appendChild(av); li.appendChild(nm);
-          ul.appendChild(li);
         });
-        $('who-count').textContent = list.length + (w.presence_count > list.length ? ' of ' + w.presence_count : '') + ' shown';
-        if (w.instant_invite) $('join').href = w.instant_invite;
-        $('who-section').hidden = false;
+        $('mem-hint').hidden = true;
+        if (w.instant_invite) document.querySelectorAll('[data-join]').forEach(function (a) { a.href = w.instant_invite; });
       })
-      .catch(function () { /* widget turned off: the section just stays hidden */ });
+      .catch(function () { /* widget off: the member list keeps its hint */ });
   }
 
   function loadMarket() {
@@ -239,31 +382,20 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var m = d.market || {};
-        var tag = $('mkt-tag');
-        tag.textContent = m.status === 'open' ? 'OPEN' : m.status === 'after-hours' ? 'AFTER HOURS' : 'CLOSED';
-        tag.className = 'tag' + (m.status === 'open' ? ' live' : m.status === 'closed' ? ' off' : '');
-        var p = $('mkt-head');
-        p.classList.remove('skeleton');
-        p.textContent = '';
-        if (d.headline) {
-          var s = document.createElement('strong'); s.textContent = 'Latest: ';
-          p.appendChild(s);
-          p.appendChild(document.createTextNode(d.headline));
-        } else {
-          p.textContent = 'Four companies, fake money, real bragging rights.';
-        }
+        var e = $('mkt');
+        e.className = 'embed ' + (m.status === 'open' ? 'green' : m.status === 'after-hours' ? 'yellow' : 'grey');
+        $('mkt-title').textContent = m.status === 'open' ? '🟢 The market is open' : m.status === 'after-hours' ? '🌙 After hours, trading opens soon' : '⛔ The market is closed';
+        $('mkt-head').textContent = d.headline ? 'Latest: ' + d.headline : 'Four companies, fake money, real bragging rights.';
+        $('t2').textContent = clock();
       })
-      .catch(function () { $('mkt-head').textContent = 'Four companies, fake money, real bragging rights.'; });
+      .catch(function () {});
   }
 
   function refresh() {
-    loadInvite()
-      .then(loadWidget)
-      .catch(function () {
-        $('status').textContent = 'OFFLINE';
-        $('status').className = 'tag off';
-        $('note').textContent = "Couldn't reach Discord right now. The server is still there, so jump in!";
-      });
+    loadInvite().then(loadWidget).catch(function () {
+      ['members', 'online', 'boosts', 'age'].forEach(function (id) { if ($(id).classList.contains('load')) $(id).textContent = '—'; });
+      $('note').textContent = "Couldn't reach Discord right now. The server's still there, so jump in!";
+    });
     loadMarket();
   }
 
