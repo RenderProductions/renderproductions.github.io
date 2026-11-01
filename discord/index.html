@@ -142,7 +142,6 @@
   .mem .nm { min-width: 0; color: var(--text); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mem .nm small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
   .ph { display: grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700; font-size: 13px; text-transform: uppercase; }
-  .crown { color: #f0b232; font-size: 13px; margin-left: 4px; }
   .members .hint { margin: 8px; font-size: 13px; color: var(--muted); }
 
   @media (max-width: 1100px) { .app { grid-template-columns: 72px 220px 1fr; } .members { display: none; } }
@@ -273,11 +272,6 @@
 
   <!-- Members -->
   <aside class="members" aria-label="Members">
-    <div id="owner" hidden>
-      <h3>OWNER</h3>
-      <div class="mem"><span class="pic" id="owner-pic"></span><span class="nm" id="owner-name"></span></div>
-      <div style="height: 14px;"></div>
-    </div>
     <h3 id="mem-head">ONLINE</h3>
     <div id="mem-list"></div>
     <p class="hint" id="mem-hint">Join the server to see who's around.</p>
@@ -334,18 +328,6 @@
             $('big').innerHTML = ''; $('big').appendChild(iconImg(src));
           };
           test.src = src;
-        }
-        // The invite's creator (the owner's account) comes back with the invite, avatar included.
-        var u = inv.inviter;
-        if (u && u.id) {
-          var face = u.avatar
-            ? { avatar_url: 'https://cdn.discordapp.com/avatars/' + u.id + '/' + u.avatar + '.' + (u.avatar.indexOf('a_') === 0 ? 'gif' : 'png') + '?size=128', username: u.global_name || u.username }
-            : { username: u.global_name || u.username };
-          var pic = $('owner-pic'); pic.innerHTML = ''; pic.appendChild(avatar(face, 32));
-          var nm = $('owner-name'); nm.textContent = face.username || 'Owner';
-          var cr = document.createElement('span'); cr.className = 'crown'; cr.textContent = '👑'; cr.title = 'Server owner';
-          nm.appendChild(cr);
-          $('owner').hidden = false;
         }
         if (typeof inv.approximate_member_count === 'number') setV('members', fmt.format(inv.approximate_member_count));
         if (typeof inv.approximate_presence_count === 'number') {
