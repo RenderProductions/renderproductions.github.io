@@ -165,7 +165,7 @@
     RRM: ['RRM IS THE SERVER. THE SERVER IS WATCHING.', 'RRM TO THE MOON.']
   };
   var DODGE_LINES = ['NOPE.', 'MISSED ME.', 'TOO SLOW.', 'NICE TRY.'];
-  var DODGE_CHANCE = 0.35;   // chance the window glides away instead of closing
+  var DODGE_CHANCE = 0.45;   // first chance the window glides away instead of closing; halves after every dodge
   var MAX_OPEN = 5;
 
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -348,15 +348,16 @@
 
     // Buttons
     var dodged = 0;
-    // Console test: RenderPopup.spawn({ dodge: 1 }) always dodges (still gives up after two).
+    // Console test: RenderPopup.spawn({ dodge: 1 }) sets the starting chance (100%, then 50%, 25%...).
     var dodgeChance = typeof opts.dodge === 'number' ? opts.dodge : DODGE_CHANCE;
     win.querySelector('.rv-btns').addEventListener('click', function (e) {
       var act = e.target.getAttribute('data-act');
       if (act === 'min') win.classList.toggle('rv-min');
       if (act === 'max') { win.classList.toggle('rv-big'); place(win, win.offsetLeft, win.offsetTop); }
       if (act === 'close') {
-        // Sometimes it runs away instead. It gives up after two dodges.
-        if (dodged < 2 && Math.random() < dodgeChance) {
+        // Sometimes it runs away instead. No limit on dodges, but each one
+        // halves the odds of the next (45%, 22.5%, 11.25%...), so it always tires out.
+        if (Math.random() < dodgeChance * Math.pow(0.5, dodged)) {
           dodged++;
           msgEl.textContent = pick(DODGE_LINES);
           setMood(win, 'angry');
