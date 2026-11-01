@@ -70,6 +70,15 @@
       ],
       titles: ['Update Available!', 'Patch Installed', 'System Alert!']
     },
+    '/discord/': {
+      lines: [
+        'COUNT THE GREEN DOTS. I DO. ALL DAY.',
+        'JOIN THE RENDER ROOM. I\'LL BE THERE. I\'M ALWAYS THERE.',
+        'I KNOW WHO\'S ONLINE. DO YOU?',
+        'MEMBER COUNT GO UP. PLEASE.'
+      ],
+      titles: ['Server Status', 'Ping!', 'System Alert!']
+    },
     '/bot/': {
       lines: [
         'TYPE r!help. I\'LL WAIT.',

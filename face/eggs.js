@@ -182,6 +182,11 @@
       'UNDOCUMENTED FEATURE! RUN!',
       'FIXED: ME?! NO NO NO!'
     ] },
+    '/discord/': { lines: [
+      'I WASN\'T COUNTING THE MEMBERS!',
+      'DON\'T PING ME!',
+      'I\'M OFFLINE! I\'M OFFLINE!'
+    ] },
     '/bot/': { lines: [
       'I WASN\'T READING YOUR MESSAGES!',
       'I\'M NOT THE BOT! I\'M NOT!',
