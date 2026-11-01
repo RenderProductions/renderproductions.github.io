@@ -79,6 +79,13 @@
       </li>
       <li>
         <div class="project">
+          <h3>TODD Loans</h3>
+          <p>Lost it all? TODD will bail you out with 500 Polygons, for a price. Pay him back before you go near the slots again. He'll remember. (Mostly.)</p>
+          <span class="tag">DEBT</span>
+        </div>
+      </li>
+      <li>
+        <div class="project">
           <h3>Portfolio</h3>
           <p>Check your cash, the shares you own, and your total net worth at any time.</p>
           <span class="tag">TRACKING</span>
@@ -120,7 +127,7 @@
         <tr><td class="name">r!buy &lt;ticker&gt; &lt;amount&gt;</td><td>Buys shares, for example <code>r!buy RRM 5</code>.</td></tr>
         <tr><td class="name">r!sell &lt;ticker&gt; &lt;amount or all&gt;</td><td>Sells shares you own.</td></tr>
         <tr><td class="name">r!chart &lt;ticker&gt;</td><td>Shows a price chart for one company, for example <code>r!chart BLU</code>.</td></tr>
-        <tr><td class="name">r!portfolio</td><td>Shows your cash, shares, net worth, and title.</td></tr>
+        <tr><td class="name">r!portfolio [@user]</td><td>Shows your cash, shares, debt, net worth, and title. Mention someone to see theirs.</td></tr>
         <tr><td class="name">r!daily</td><td>Claims your free daily Polygons.</td></tr>
         <tr><td class="name">r!dividends</td><td>Collects the dividends your shares have earned. Shares you buy start earning after your next claim.</td></tr>
       </tbody>
@@ -135,6 +142,15 @@
         <tr><td class="name">r!shop</td><td>Shows items, prices, stock left, and the next restock.</td></tr>
         <tr><td class="name">r!purchase &lt;item&gt;</td><td>Buys an item: <code>coffee</code>, <code>overtime</code>, <code>mystery</code>, <code>resume</code>, or <code>title</code>. One of each per restock.</td></tr>
         <tr><td class="name">r!settitle &lt;text&gt;</td><td>Sets the custom title you bought (32 characters max).</td></tr>
+      </tbody>
+      <tbody>
+        <tr><th scope="rowgroup" colspan="2">TODD</th></tr>
+        <tr><td class="name">r!bailout</td><td>Broke? If your net worth is under 100, TODD lends you 500 Polygons. You owe him 600.</td></tr>
+        <tr><td class="name">r!repay &lt;amount or all&gt;</td><td>Pays TODD back. While you owe him anything, <code>r!slots</code> is off limits.</td></tr>
+      </tbody>
+      <tbody>
+        <tr><th scope="rowgroup" colspan="2">GAMES OF CHANCE</th></tr>
+        <tr><td class="name">r!slots</td><td>Try your luck at the slot machine. Not available while you owe TODD.</td></tr>
       </tbody>
       <tbody>
         <tr><th scope="rowgroup" colspan="2">AI</th></tr>
