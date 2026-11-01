@@ -330,13 +330,15 @@
 
     // Buttons
     var dodged = 0;
+    // Console test: RenderPopup.spawn({ dodge: 1 }) always dodges (still gives up after two).
+    var dodgeChance = typeof opts.dodge === 'number' ? opts.dodge : DODGE_CHANCE;
     win.querySelector('.rv-btns').addEventListener('click', function (e) {
       var act = e.target.getAttribute('data-act');
       if (act === 'min') win.classList.toggle('rv-min');
       if (act === 'max') { win.classList.toggle('rv-big'); place(win, win.offsetLeft, win.offsetTop); }
       if (act === 'close') {
         // Sometimes it runs away instead. It gives up after two dodges.
-        if (dodged < 2 && Math.random() < DODGE_CHANCE) {
+        if (dodged < 2 && Math.random() < dodgeChance) {
           dodged++;
           msgEl.textContent = pick(DODGE_LINES);
           setMood(win, 'angry');
