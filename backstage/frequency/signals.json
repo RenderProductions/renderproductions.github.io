@@ -102,8 +102,8 @@
         {"type": "glitch", "ms": 30 },
         {"type": "text", "text": "I KNEW YOU WOULD!!!"},
         {"type": "glitch", "ms": 30 },
-        {"type": "text", "text": "NO! Don't GO!!"}
-        {"type": "redirect", "t0": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
+        {"type": "text", "text": "NO! Don't GO!!"},
+        {"type": "redirect", "to": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
       ]
     }
   }
