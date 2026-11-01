@@ -66,6 +66,16 @@
   .guild-head { padding: 0 16px; height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #1f2023; box-shadow: 0 1px 0 rgba(0,0,0,.2); color: var(--head); font-weight: 600; }
   .guild-head span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .boost { font-size: 11px; color: #ff73fa; font-weight: 700; white-space: nowrap; }
+  /* Server banner (only shown when the server has one) */
+  .channels { position: relative; }
+  .guild-banner { display: none; position: relative; height: 136px; flex: none; overflow: hidden; }
+  .guild-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .guild-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 45%); }
+  .channels.has-banner .guild-banner { display: block; }
+  .channels.has-banner .guild-head { position: absolute; top: 0; left: 0; right: 0; border-bottom: 0; box-shadow: none; z-index: 2; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+  .welcome-banner { display: none; width: 100%; max-width: 440px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+  .welcome-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .welcome-banner.on { display: block; }
   .chan-scroll { flex: 1; overflow-y: auto; padding: 8px 8px 16px; }
   .cat { margin: 16px 0 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; }
   .cat:first-child { margin-top: 4px; }
@@ -147,6 +157,8 @@
   @media (max-width: 1100px) { .app { grid-template-columns: 72px 220px 1fr; } .members { display: none; } }
   @media (max-width: 760px) {
     html, body { height: auto; }
+    .channels.has-banner .guild-banner { display: none; }
+    .channels.has-banner .guild-head { position: static; text-shadow: none; }
     .app { display: block; }
     .channels { min-width: 0; }
     .msgs { overflow: visible; }
@@ -194,6 +206,7 @@
 
   <!-- Channel list -->
   <aside class="channels" aria-label="Channels">
+    <div class="guild-banner" id="g-banner"></div>
     <div class="guild-head"><span id="g-name">The Render Room</span><span class="boost" id="g-boost" hidden></span></div>
     <div class="chan-scroll">
       <div class="cat">Information</div>
@@ -217,6 +230,7 @@
     <div class="chat-head"><span class="hash">#</span><b>welcome</b><span class="topic" id="topic">The community, the Rend-Conomy bot, and everything else.</span></div>
     <div class="msgs">
       <section class="welcome">
+        <div class="welcome-banner" id="w-banner"></div>
         <div class="big srv-icon-big" id="big">RR</div>
         <h1>Welcome to <span id="w-name">The Render Room</span></h1>
         <p id="w-desc">The Discord server where the community, the Rend-Conomy bot, and everything else lives.</p>
@@ -328,6 +342,18 @@
             $('big').innerHTML = ''; $('big').appendChild(iconImg(src));
           };
           test.src = src;
+        }
+        // Server banner (needs Boost Level 2 on Discord's side). Shown atop the channel list and the welcome message.
+        if (g.id && g.banner) {
+          var bsrc = 'https://cdn.discordapp.com/banners/' + g.id + '/' + g.banner + '.' + (g.banner.indexOf('a_') === 0 ? 'gif' : 'png') + '?size=1024';
+          var bt = new Image();
+          bt.onload = function () {
+            $('g-banner').innerHTML = ''; $('g-banner').appendChild(iconImg(bsrc));
+            $('w-banner').innerHTML = ''; $('w-banner').appendChild(iconImg(bsrc));
+            document.querySelector('.channels').classList.add('has-banner');
+            $('w-banner').classList.add('on');
+          };
+          bt.src = bsrc;
         }
         if (typeof inv.approximate_member_count === 'number') setV('members', fmt.format(inv.approximate_member_count));
         if (typeof inv.approximate_presence_count === 'number') {
