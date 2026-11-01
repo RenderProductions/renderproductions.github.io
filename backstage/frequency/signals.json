@@ -92,6 +92,19 @@
         {"type": "image", "src": "/backstage/frequency/media/WonderLaugh.webp", "position": "center", "width": "50%", "duration": 5000 },
         {"type": "text", "text": "WONDERFUL?!?! TRULY WONDERFUL!!! FREE FROM VARANDIA!!"}
       ]
+    },
+    "CHEF": {
+      "actions": [
+        {"type": "glitch", "ms": 30 },
+        {"type": "text", "text": "Orangie? IS ThAT You?"},
+        {"type": "glitch", "ms": 30 },
+        {"type": "text", "text": "CoME BACK??? To SAVE ME???"},
+        {"type": "glitch", "ms": 30 },
+        {"type": "text", "text": "I KNEW YOU WOULD!!!"},
+        {"type": "glitch", "ms": 30 },
+        {"type": "text", "text": "NO! Don't GO!!"}
+        {"type": "redirect", "t0": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
+      ]
     }
   }
 }
