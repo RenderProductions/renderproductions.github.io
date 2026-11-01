@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rend-Conomy Bot | Render Productions</title>
-<meta name="description" content="Rend-Conomy is a Discord bot with a fictional stock market, daily rewards, and AI features. Add it to your server.">
+<meta name="description" content="Rend-Conomy is a Discord bot with a fictional stock market, jobs, a shop, daily rewards, and AI features. Add it to your server.">
 <link rel="icon" type="image/x-icon" href="../favicon.ico">
 <link rel="stylesheet" href="../style.css">
 </head>
@@ -25,7 +25,7 @@
 
   <header class="hero">
     <h1>REND-CONOMY<br>BOT</h1>
-    <p class="tagline">A Discord bot with a fictional stock market, daily rewards, and built-in AI features. Add it to your server in a couple of clicks.</p>
+    <p class="tagline">A Discord bot with a fictional stock market, company jobs, a shop, daily rewards, and built-in AI features. Add it to your server in a couple of clicks.</p>
     <div class="btns">
       <a class="btn primary" href="https://discord.com/oauth2/authorize?client_id=1557561329273929800" target="_blank" rel="noopener">Add to your server</a>
       <a class="btn" href="https://discord.gg/D2v4EsuZBU">Join the Render Room</a>
@@ -43,6 +43,20 @@
           <h3>Stock market</h3>
           <p>Buy and sell shares in four fictional companies. Prices move every few minutes, and everything uses fake money. Trading is open 9 AM to 9 PM Eastern, Monday to Saturday.</p>
           <span class="tag">TRADING</span>
+        </div>
+      </li>
+      <li>
+        <div class="project">
+          <h3>Jobs</h3>
+          <p>Work for one of the four companies with quick in-chat tasks every 45 minutes. Pay follows your company's stock price, and loyal workers get promoted all the way to Executive.</p>
+          <span class="tag">EARNING</span>
+        </div>
+      </li>
+      <li>
+        <div class="project">
+          <h3>Shop</h3>
+          <p>Spend Polygons on coffee, overtime passes, mystery boxes, and custom titles. Stock is shared across every server and restocks hourly, so the good stuff goes fast.</p>
+          <span class="tag">SPENDING</span>
         </div>
       </li>
       <li>
@@ -84,16 +98,97 @@
         </tr>
       </thead>
       <tbody>
+        <tr><th scope="rowgroup" colspan="2">MARKET</th></tr>
         <tr><td class="name">r!market</td><td>Shows current prices and 24-hour changes.</td></tr>
         <tr><td class="name">r!buy &lt;ticker&gt; &lt;amount&gt;</td><td>Buys shares, for example <code>r!buy RRM 5</code>.</td></tr>
         <tr><td class="name">r!sell &lt;ticker&gt; &lt;amount or all&gt;</td><td>Sells shares you own.</td></tr>
         <tr><td class="name">r!chart &lt;ticker&gt;</td><td>Shows a price chart for one company, for example <code>r!chart BLU</code>.</td></tr>
-        <tr><td class="name">r!portfolio</td><td>Shows your cash, shares, and net worth.</td></tr>
+        <tr><td class="name">r!portfolio</td><td>Shows your cash, shares, net worth, and title.</td></tr>
         <tr><td class="name">r!daily</td><td>Claims your free daily Polygons.</td></tr>
+      </tbody>
+      <tbody>
+        <tr><th scope="rowgroup" colspan="2">JOBS</th></tr>
+        <tr><td class="name">r!apply &lt;ticker&gt;</td><td>Joins a company as an Intern, for example <code>r!apply NACH</code>. You can work for one company at a time.</td></tr>
+        <tr><td class="name">r!work</td><td>Starts a shift. Answer the quick task within 20 seconds for full pay. Wrong or slow answers still earn 40%. Every 45 minutes.</td></tr>
+        <tr><td class="name">r!quit</td><td>Leaves your job. Locked for 24 hours after you're hired, and your rank resets.</td></tr>
+      </tbody>
+      <tbody>
+        <tr><th scope="rowgroup" colspan="2">SHOP</th></tr>
+        <tr><td class="name">r!shop</td><td>Shows items, prices, stock left, and the next restock.</td></tr>
+        <tr><td class="name">r!purchase &lt;item&gt;</td><td>Buys an item: <code>coffee</code>, <code>overtime</code>, <code>mystery</code>, <code>resume</code>, or <code>title</code>. One of each per restock.</td></tr>
+        <tr><td class="name">r!settitle &lt;text&gt;</td><td>Sets the custom title you bought (32 characters max).</td></tr>
+      </tbody>
+      <tbody>
+        <tr><th scope="rowgroup" colspan="2">OTHER</th></tr>
         <tr><td class="name">r!help</td><td>Lists the commands in Discord.</td></tr>
+        <tr><td class="name">r!cleartitle @user</td><td>Moderators only. Removes someone's custom title.</td></tr>
       </tbody>
     </table>
     <p class="empty">Live prices are on the <a href="/rend-conomy/">Rend-Conomy market page</a>, and each company has its own page: <a href="/rend-conomy/rrm/">RRM</a>, <a href="/rend-conomy/nach/">NACH</a>, <a href="/rend-conomy/blu/">BLU</a>, <a href="/rend-conomy/bnw/">BNW</a>.</p>
+  </section>
+
+  <section aria-labelledby="jobs-title" style="margin-top: 2.5rem;">
+    <div class="section-head">
+      <h2 id="jobs-title">Jobs and ranks</h2>
+    </div>
+
+    <table class="board" aria-label="Company jobs">
+      <thead>
+        <tr>
+          <th scope="col">Company</th>
+          <th scope="col">Your shift</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><div class="name">Render Room<span class="tkr">RRM</span></div></td><td>Moderation duty. Read a member's message and decide: <code>ban</code> or <code>ok</code>.</td></tr>
+        <tr><td><div class="name">De Nacho<span class="tkr">NACH</span></div></td><td>The nacho line. Type the order back exactly as it came in.</td></tr>
+        <tr><td><div class="name">Builder's League United<span class="tkr">BLU</span></div></td><td>The build crew. Put scrambled build steps in the right order.</td></tr>
+        <tr><td><div class="name">Business Numbers Working<span class="tkr">BNW</span></div></td><td>Number crunching. Solve the sum before the deadline.</td></tr>
+      </tbody>
+    </table>
+
+    <table class="board" aria-label="Job ranks" style="margin-top: 1rem;">
+      <thead>
+        <tr>
+          <th scope="col">Rank</th>
+          <th scope="col" class="num">Shifts worked</th>
+          <th scope="col" class="num">Pay</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="name">Intern</td><td class="num">0</td><td class="num">1×</td></tr>
+        <tr><td class="name">Employee</td><td class="num">10</td><td class="num">1.25×</td></tr>
+        <tr><td class="name">Manager</td><td class="num">25</td><td class="num">1.5×</td></tr>
+        <tr><td class="name">Executive</td><td class="num">50</td><td class="num">2×</td></tr>
+      </tbody>
+    </table>
+    <p class="empty">Pay rises and falls with your company's stock price. Quitting resets your rank to Intern.</p>
+  </section>
+
+  <section aria-labelledby="shop-title" style="margin-top: 2.5rem;">
+    <div class="section-head">
+      <h2 id="shop-title">Shop items</h2>
+      <span>Restocks hourly</span>
+    </div>
+
+    <table class="board" aria-label="Shop items">
+      <thead>
+        <tr>
+          <th scope="col">Item</th>
+          <th scope="col">Effect</th>
+          <th scope="col" class="num">Price</th>
+          <th scope="col" class="num hide-sm">Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="name">Coffee</td><td>Resets your work cooldown.</td><td class="num">45</td><td class="num hide-sm">5</td></tr>
+        <tr><td class="name">Overtime</td><td>Your next shift pays double.</td><td class="num">60</td><td class="num hide-sm">3</td></tr>
+        <tr><td class="name">Mystery</td><td>Random Polygons or an Overtime pass, with a small jackpot chance.</td><td class="num">100</td><td class="num hide-sm">5</td></tr>
+        <tr><td class="name">Resume</td><td>Skips the 24-hour quit lock.</td><td class="num">400</td><td class="num hide-sm">2</td></tr>
+        <tr><td class="name">Title</td><td>A custom title on your portfolio. Moderators can remove titles.</td><td class="num">1,500</td><td class="num hide-sm">1</td></tr>
+      </tbody>
+    </table>
+    <p class="empty">Stock is shared by every server running the bot. Balances stay separate per server.</p>
   </section>
 
   <section aria-labelledby="add-title" style="margin-top: 2.5rem;">
