@@ -20,20 +20,32 @@
   .caption { text-align: center; margin: 1rem 0 0; min-height: 1.6em; }
 
   /* Tally of little Render Visions deleted (counted by /face/eggs.js) */
+  /* Pinned to the bottom-right corner of the screen, under the popups */
   .kills {
-    width: fit-content; max-width: 100%; margin: 1.5rem auto 0;
-    border: 1px solid #ff4d4d; background: rgba(255, 77, 77, 0.06);
-    padding: 0.9rem 1.4rem; text-align: center;
-    box-shadow: 0 0 18px rgba(255, 77, 77, 0.15);
+    position: fixed; right: 16px; bottom: 16px; z-index: 50;
+    width: 210px; max-width: calc(100vw - 32px);
+    border: 1px solid #ff4d4d; background: rgba(12, 6, 10, 0.92);
+    padding: 0.7rem 0.9rem; text-align: center;
+    box-shadow: 0 0 18px rgba(255, 77, 77, 0.2);
   }
-  .kills-label { font-size: 12px; letter-spacing: 2px; color: var(--grey); }
+  /* its own scanlines, since it sits above the page's CRT layer */
+  .kills::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0, rgba(0,0,0,0.22) 1px, transparent 1px, transparent 3px);
+  }
+  .kills-label { font-size: 10px; letter-spacing: 1.5px; color: var(--grey); }
   .kills-count {
-    display: block; margin: 0.2rem 0;
-    font: 400 clamp(40px, 9vw, 64px)/1 var(--display, var(--mono));
+    display: block; margin: 0.15rem 0;
+    font: 400 44px/1 var(--display, var(--mono));
     color: #ff4d4d; text-shadow: 0 0 14px rgba(255, 77, 77, 0.55);
     font-variant-numeric: tabular-nums;
   }
-  .kills-line { margin: 0; font-size: 13px; color: var(--bright); }
+  .kills-line { margin: 0; font-size: 11px; line-height: 1.4; color: var(--bright); }
+  @media (max-width: 520px) {
+    .kills { width: 150px; right: 10px; bottom: 10px; padding: 0.5rem 0.6rem; }
+    .kills-count { font-size: 32px; }
+    .kills-line { font-size: 10px; }
+  }
   .kills.bump .kills-count { animation: killBump 0.4s ease-out; }
   @keyframes killBump { 30% { transform: scale(1.25); } }
   @media (prefers-reduced-motion: reduce) { .kills.bump .kills-count { animation: none; } }
@@ -116,13 +128,6 @@
     </div>
 
     <p class="meta caption" id="caption">RENDER VISION // WATCHING</p>
-
-    <!-- Shows up once you've deleted at least one peeking little guy somewhere on the site -->
-    <section class="kills" id="kills" aria-live="polite" hidden>
-      <div class="kills-label">LITTLE ONES DELETED BY YOUR HAND</div>
-      <strong class="kills-count" id="kills-count">0</strong>
-      <p class="kills-line" id="kills-line"></p>
-    </section>
   </main>
 
   <footer class="footer">
@@ -131,6 +136,14 @@
   </footer>
 
 </div>
+
+<!-- Shows up once you've deleted at least one peeking little guy somewhere on the site.
+     Outside .wrap so it sits above the page's dark CRT corners. -->
+<section class="kills" id="kills" aria-live="polite" hidden>
+  <div class="kills-label">LITTLE ONES DELETED BY YOUR HAND</div>
+  <strong class="kills-count" id="kills-count">0</strong>
+  <p class="kills-line" id="kills-line"></p>
+</section>
 
 <script>
   (function () {
