@@ -30,6 +30,12 @@ const JUMP = [0.15, 0.35];      // success/failure moves the price 15% to 35%
 const MAX_NEWS = 12;            // how many news items prices.json keeps
 const COMPANY_NEWS = 10;        // how many stories each company page keeps
 
+// ---------- Discord feed ----------
+// Big moves without news get announced in the Discord market channel.
+const SWING_PCT = 8;            // a move this big (in %) over the last hour counts as a swing
+const SWING_TICKS = 12;         // "the last hour" = 12 ticks of 5 minutes
+const SWING_COOLDOWN_HOURS = 3; // a company gets at most one swing alert per this long
+
 // To add, remove, or rename a company, edit this list.
 // volatility = how far a price can move in one tick (0.04 = up to 4%)
 const COMPANIES = [
@@ -127,6 +133,14 @@ const market = {
       : '⛔ **Closed for Sunday** · opens ' + ts(nextOpen)
 };
 let news = Array.isArray(old.news) ? old.news.slice() : [];
+
+// Things to announce in Discord this tick. Written to a queue file that the
+// workflow posts only after prices.json is pushed (see post-news.js).
+const posts = [];
+const oldStatus = old.market && old.market.status;
+if (oldStatus && oldStatus !== status) {
+  posts.push({ kind: 'market', status, nextChange: market.nextChange, nextOpen: market.nextOpen });
+}
 
 const unix = (ms) => Math.floor(ms / 1000);
 const TICK_SEC = 5 * 60; // one tick = 5 minutes
@@ -238,6 +252,22 @@ const companies = COMPANIES.map((c) => {
     newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'goal', headline: pool[index].goal, deadline }));
   }
 
+  // ---------- Swing alerts (for the Discord feed) ----------
+  let swingAt = prev.swingAt || null;
+  if (status === 'open' && history.length > SWING_TICKS) {
+    const nowPrice = history[history.length - 1];
+    const hourAgo = history[history.length - 1 - SWING_TICKS];
+    const move = round2((nowPrice / hourAgo - 1) * 100);
+    // Skip if a success/failure in the last hour caused it; that already made the news.
+    const recentNews = newsLog.some((n) => (n.type === 'success' || n.type === 'fail') &&
+      now - Date.parse(n.time) < SWING_TICKS * TICK_SEC * 1000);
+    const cooled = !swingAt || now - Date.parse(swingAt) >= SWING_COOLDOWN_HOURS * HOUR;
+    if (Math.abs(move) >= SWING_PCT && !recentNews && cooled) {
+      swingAt = nowIso;
+      posts.push({ kind: 'swing', id: c.id, name: c.name, move, price: nowPrice });
+    }
+  }
+
   history = history.slice(-POINTS);
   times = times.slice(-POINTS);
   const price = history[history.length - 1];
@@ -252,6 +282,7 @@ const companies = COMPANIES.map((c) => {
     goal,
     lastGoal,
     nextGoalAt,
+    swingAt,
     newsLog: newsLog.slice(0, COMPANY_NEWS)
   };
 });
@@ -360,6 +391,18 @@ const text = JSON.stringify(data, null, 2).replace(
 if (status === 'closed' && old.market && old.market.status === 'closed') {
   console.log('Market closed; nothing to update.');
   process.exit(0);
+}
+
+// News made this tick goes to Discord too (oldest first, so it reads in order).
+news.filter((n) => n.time === nowIso).reverse().forEach((n) => {
+  posts.push({ kind: 'news', id: n.id, type: n.type, discord: n.discord, price: prices[n.id] });
+});
+
+// The queue lives in the runner's temp folder, never in the repo.
+if (process.env.RUNNER_TEMP) {
+  const queue = path.join(process.env.RUNNER_TEMP, 'market-posts.json');
+  fs.writeFileSync(queue, JSON.stringify(posts));
+  if (posts.length) console.log('Queued ' + posts.length + ' Discord post(s).');
 }
 
 fs.writeFileSync(FILE, text + '\n');

@@ -46,3 +46,11 @@ jobs:
           else
             gh api -X POST repos/${{ github.repository }}/pages/builds
           fi
+
+      # Announce this tick's news, market bells, and big moves in Discord.
+      # Only runs if the push above worked. Does nothing until the
+      # DISCORD_WEBHOOK secret exists (Settings > Secrets and variables > Actions).
+      - name: Post market news to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: node .github/scripts/post-news.js
