@@ -95,7 +95,7 @@
       document.body.classList.add('sipping');
       setTimeout(function () {   // a beat later, so the sound matches the mug reaching your mouth
         try { gulp.currentTime = 0; var p = gulp.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
-      }, 300);
+      }, 500);
     });
     sip.addEventListener('animationend', function () {
       document.body.classList.remove('sipping');
