@@ -317,6 +317,28 @@
     '<circle class="pk-o" cx="40" cy="66" r="5" fill="none" stroke="#ffe600" stroke-width="3" opacity="0"/>' +
     '</svg>';
 
+  // ---------- Little guy sounds ----------
+  // A cute robot chirp when one pops up and a crunchy explosion when one is deleted.
+  // Each plays its own copy so a swarm overlaps, with a little random pitch so they don't all
+  // sound identical. Sound only works after the visitor has clicked or pressed something.
+  // Shares the on/off switch with the popups: RenderPopup.sound(false) silences these too.
+  var sfxPlaying = 0;
+  function sfx(src, volume, maxAtOnce) {
+    try { if (localStorage.getItem('rvPopupSound') === 'off') return; } catch (e) {}
+    if (sfxPlaying >= maxAtOnce) return;
+    try {
+      var a = new Audio(src);
+      a.volume = volume;
+      a.preservesPitch = false;
+      a.playbackRate = 0.9 + Math.random() * 0.25;
+      sfxPlaying++;
+      var done = function () { sfxPlaying = Math.max(0, sfxPlaying - 1); };
+      a.addEventListener('ended', done);
+      var p = a.play();
+      if (p && p.catch) p.catch(done);
+    } catch (e) {}
+  }
+
   var peeks = [];   // { wrap, x, y } for each one on screen
 
   function peekOne() {
@@ -428,6 +450,7 @@
       var box = body.getBoundingClientRect();
       wrap.classList.add('dead');
       binaryBurst(box.left + box.width / 2, box.top + box.height / 2);
+      sfx('/face/media/delete.mp3', 0.6, 6);
       addKill();
     }
     body.addEventListener('pointerenter', onFound);
@@ -435,7 +458,10 @@
       if (found) { e.preventDefault(); onKill(); } else onFound();
     });
 
-    requestAnimationFrame(function () { requestAnimationFrame(function () { wrap.classList.add('up'); }); });
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      wrap.classList.add('up');
+      sfx('/face/media/peek.mp3', 0.45, 5);
+    }); });
 
     // Nobody noticed him: he slowly sinks back out of view.
     var leaveTimer = setTimeout(function () {
