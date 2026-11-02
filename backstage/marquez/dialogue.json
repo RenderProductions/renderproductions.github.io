@@ -19,8 +19,9 @@
           "speed": 48
         },
         "Not many find their way down here. Fewer still think to knock.",
+        "How did you get here, anyway? Well, no, you're here to ask me questions.",
         {
-          "text": "Sit, if you like. I don't get up for anyone anymore.",
+          "text": "Sit, if you'd like.",
           "face": "smile"
         }
       ],
@@ -29,7 +30,7 @@
     "again": {
       "say": [
         {
-          "text": "Back again.^2 Good.",
+          "text": "Back again.^2 Good to see you're alive!",
           "face": "smile"
         },
         "I wondered if you would be."
@@ -38,7 +39,7 @@
     },
     "ask": {
       "say": [
-        "What would you like to know?"
+        "How can I help you?"
       ],
       "choices": [
         {
@@ -73,11 +74,11 @@
     "who": {
       "say": [
         {
-          "text": "Marquez.^3 For now, anyway.",
+          "text": "Marquez.^3 Mr. Marquez",
           "face": "smile"
         },
-        "I keep track of things. Stories, mostly.^2 Where they start, and where they've been stitched together wrong.",
-        "[gray](Placeholder.)[/]"
+        "Any other names attract too much noise.",
+        "I used to be a shopkeep before everything went to hell. Now I reside where nothing can find me."
       ],
       "next": "ask"
     },
@@ -95,18 +96,17 @@
           "text": "You'll earn the other one.",
           "face": "smile"
         },
-        "[gray](Placeholder.)[/]"
+        "[yellow]Sooner than you think, friend.[/]"
       ],
       "next": "ask"
     },
     "place": {
       "say": [
-        "The part of the building nobody put on the map.",
+        "We are in the back-backstage![/]^5 [shake][gray]I think, anyway.",
         {
-          "text": "Everything up there is on display. Everything down here is [gold]kept[/].",
+          "text": "Everything up there is on display.[/]^10 Everything down here is [gold]abandoned[/].",
           "face": "point"
-        },
-        "[gray](Placeholder.)[/]"
+        }
       ],
       "next": "ask"
     },
@@ -137,34 +137,37 @@
     "adv_freq": {
       "say": [
         {
-          "text": "Someone is always broadcasting. The trick is knowing what to dial.",
+          "text": "Ah, yes, that thing!",
+          "face": "smile"
+        },
+        {
+          "text": "Names. Places. Things that shouldn't have been said out loud.",
           "face": "point"
         },
-        "Names. Places. Things that shouldn't have been said out loud.",
-        "[gray](Placeholder hint.)[/]"
+        "Well, I haven't seen that thing in so long, I couldn't tell you with any sort of certainty what it does.",
+        "[gray]Unless... [yellow]No, he didn't[/]"
       ],
       "next": "advice"
     },
     "adv_board": {
       "say": [
-        "Whoever pinned all that up was close.^3 Closer than they knew.",
-        "Follow the yarn, not the notes.",
-        "[gray](Placeholder hint.)[/]"
+        "The board! Yes! That's my doing!",
+        "[gray]I wish I could help you more.[/]"
       ],
       "next": "advice"
     },
     "adv_todd": {
       "say": [
         {
-          "text": "[shake]Him.[/]",
+          "text": "[shake]Todd.[/]",
           "face": "angry"
         },
         {
-          "text": "He doesn't belong here, you know. He came from somewhere else and grabbed hold.",
+          "text": "He [red]ruined [grey]everything.",
           "face": "angry"
         },
-        "Don't take his money.^2 Or do. Just know he never forgets a debt.",
-        "[gray](Placeholder hint.)[/]"
+        "Don't listen to him. Ever! He lies!",
+        "[gray]Lies.[/]"
       ],
       "next": "advice"
     },
@@ -175,14 +178,14 @@
           "text": "Not yet, I think.^3 Come back when your hands are shaking.",
           "face": "smile"
         },
-        "[gray](Placeholder: this is where finding things will matter.)[/]"
+        "You'll know soon enough, young one.[/]"
       ],
       "next": "ask"
     },
     "bye": {
       "say": [
         {
-          "text": "Mind the stairs.^2 They're darker on the way up.",
+          "text": "Try and find the door... It moves a lot!",
           "face": "smile"
         },
         "(He settles back into the dark.)"
