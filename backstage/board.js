@@ -41,6 +41,27 @@
     });
   }
 
+  // Look down at the desk (drawers come into view) and back up at the board.
+  var look = document.getElementById('look-btn');
+  if (look) {
+    var text = look.querySelector('.look-text');
+    var setLook = function (down) {
+      document.body.classList.toggle('looking-down', down);
+      look.setAttribute('aria-pressed', down ? 'true' : 'false');
+      look.setAttribute('aria-label', down ? 'Look back up at the board' : 'Look down at the desk');
+      if (text) text.textContent = down ? 'LOOK UP' : 'LOOK DOWN';
+    };
+    look.addEventListener('click', function () { setLook(!document.body.classList.contains('looking-down')); });
+    document.addEventListener('keydown', function (e) {
+      if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
+      var down = document.body.classList.contains('looking-down');
+      var atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (e.key === 'Escape' && down) { setLook(false); }
+      else if (e.key === 'ArrowUp' && down) { e.preventDefault(); setLook(false); }
+      else if (e.key === 'ArrowDown' && !down && atBottom) { e.preventDefault(); setLook(true); }
+    });
+  }
+
   // Take a sip: the desk mug lifts away while the first-person mug rises and tips. Just for fun.
   var mug = document.getElementById('mug-btn');
   var sip = document.getElementById('sip');

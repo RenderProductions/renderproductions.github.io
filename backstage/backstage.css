@@ -9,7 +9,10 @@
   --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
   --type: 'Special Elite', 'Courier New', monospace;
   font-family: var(--type);
-  padding-bottom: 26rem;
+  --desk-w: clamp(640px, 125vw, 1400px);
+  --desk-h: calc(var(--desk-w) * 0.2767);   /* the desk drawing is 541 x 150 */
+  --tilt: calc(var(--desk-h) * 0.55);        /* how far the view moves when looking down */
+  padding-bottom: 19rem;
   background:
     radial-gradient(ellipse at 50% 15%, rgba(255, 214, 120, 0.28), transparent 62%),
     radial-gradient(circle at 20% 30%, #4a3320 0 1.5px, transparent 2.5px) 0 0 / 37px 41px,
@@ -84,8 +87,23 @@ a.note { background-color: var(--paper); }
 .backstage .screen { border: 10px solid #0c0906; border-radius: 12px; }
 
 /* ---------- desk: fixed to the bottom of the viewport (above the vignette so it stays bright) ---------- */
-.desk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 30%); width: clamp(640px, 125vw, 1400px); aspect-ratio: 541 / 150; container-type: inline-size; z-index: 11; pointer-events: none; filter: drop-shadow(0 -8px 22px rgba(0,0,0,.55)); }
+/* Looking at the board, only the desk top shows. "Look down" tilts the view so the drawers come up. */
+.desk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 55%); transition: transform .6s cubic-bezier(.3,.7,.3,1); width: var(--desk-w); aspect-ratio: 541 / 150; container-type: inline-size; z-index: 11; pointer-events: none; filter: drop-shadow(0 -8px 22px rgba(0,0,0,.55)); }
 .desk-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+body.looking-down .desk { transform: translate(-50%, 0); }
+.backstage .wrap { transition: transform .6s cubic-bezier(.3,.7,.3,1); }
+body.looking-down .wrap { transform: translateY(calc(var(--tilt) * -1)); }
+body.looking-down .lamp-glow { transform: translateY(calc(var(--tilt) * -1)); }
+
+/* the tab on the desk's front edge that tilts the view down and back up */
+.look-btn { position: absolute; left: 50%; top: 29%; transform: translateX(-50%); z-index: 2; pointer-events: auto; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .45rem; padding: 4px 14px 5px; border: 2px solid #6b4321; border-radius: 0 0 10px 10px;
+  background: linear-gradient(#5a3518, #3b210d); color: #f1d27a; font: 13px var(--type); letter-spacing: 1px;
+  box-shadow: 0 4px 8px rgba(0,0,0,.45); }
+.look-btn:hover { background: linear-gradient(#6b4120, #47290f); }
+.look-btn:focus-visible { outline: 2px solid var(--bright); outline-offset: 3px; }
+.look-btn .arrow { display: inline-block; transition: transform .3s; }
+body.looking-down .look-btn .arrow { transform: rotate(180deg); }
 /* everything sits in one flex row, so nothing can stack on top of anything else */
 /* the lamp and mug stand toward the back of the desk top (the desk runs a little off the bottom of the screen) */
 .desk-items { position: absolute; z-index: 1; left: 19%; right: 19%; bottom: 85%; display: flex; align-items: flex-end; gap: 1.5rem; }
@@ -116,7 +134,7 @@ body.sipping .sip { animation: sip 2.6s ease-in-out forwards; }
 @keyframes puff { 0% { transform: translateY(6px) scaleY(.85); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-12px) scaleY(1.05); opacity: 0; } }
 .steam { fill: none; stroke: rgba(255,255,255,.6); stroke-width: 3; stroke-linecap: round; animation: steam 3s ease-in infinite; }
 @keyframes steam { 0% { transform: translateY(8px); opacity: 0; } 40% { opacity: .75; } 100% { transform: translateY(-10px); opacity: 0; } }
-.lamp-glow { position: fixed; left: calc(50% - clamp(560px, 112vw, 1180px) * 0.31 - 120px); bottom: 110px; width: 560px; height: 460px; z-index: 6; pointer-events: none; transition: opacity .3s;
+.lamp-glow { position: fixed; left: calc(50% - var(--desk-w) * 0.31 - 120px); bottom: 20px; width: 560px; height: 460px; z-index: 6; pointer-events: none; transition: opacity .3s, transform .6s cubic-bezier(.3,.7,.3,1);
   background: radial-gradient(ellipse at 42% 62%, rgba(255,205,100,.34), transparent 65%); }
 body.lights-off .lamp-glow { opacity: 0; }
 .dark { position: fixed; inset: 0; z-index: 7; pointer-events: none; opacity: 0; transition: opacity .3s;
@@ -130,7 +148,7 @@ body.lights-off .dark { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lamp::before, .steam { animation: none; }
-  .note, .dark, .lamp-glow { transition: none; }
+  .note, .dark, .lamp-glow, .desk, .backstage .wrap, .look-btn .arrow { transition: none; }
   .mug .puff { animation: none; }
   body.sipping .sip { animation: sip-still 1.6s linear forwards; }
   @keyframes sip-still { 0%, 100% { transform: translate(-50%, 110%); } 1%, 99% { transform: translate(-50%, 38%); } }
