@@ -22,9 +22,9 @@ body { background: var(--desk); color: var(--ink); font-family: var(--type); ove
   box-shadow: 0 2px 2px rgba(0,0,0,.25), 0 8px 14px -6px rgba(0,0,0,.6); }
 .shut:hover, .shut:focus-visible { transform: rotate(0deg) translateY(-2px); outline: none; }
 
-/* the drawing, as large as fits (it is 480 x 372) */
-.drawer { position: relative; z-index: 1; aspect-ratio: 480 / 372;
-  width: min(980px, 100%, calc((100dvh - 32px) * 480 / 372)); container-type: inline-size; }
+/* the drawing, as large as fits (it is 480 x 388; the knob hangs below the 372-tall frame) */
+.drawer { position: relative; z-index: 1; aspect-ratio: 480 / 388;
+  width: min(980px, 100%, calc((100dvh - 32px) * 480 / 388)); container-type: inline-size; }
 .art, .art svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .art .desk-bg { stroke: none; }   /* the page continues the desk, so no border around it */
 .art .label-text { font-family: Helvetica, Arial, sans-serif; }
@@ -50,7 +50,7 @@ body { background: var(--desk); color: var(--ink); font-family: var(--type); ove
 .empty[hidden] { display: none; }
 
 /* what you're looking at: a paper slip laid on the front panel, beside the knob (never over it) */
-.slip { position: absolute; top: 72.5%; width: 37%; z-index: 60; background: var(--paper); padding: .6em .9em .7em;
+.slip { position: absolute; top: 69.5%; width: 36%; z-index: 60; background: var(--paper); padding: .6em .9em .7em;
   box-shadow: 0 2px 2px rgba(0,0,0,.25), 0 12px 22px -8px rgba(0,0,0,.7); pointer-events: none; animation: slip-in .2s ease-out;
   left: 2.5%; transform: rotate(-1.2deg); }
 .slip.right { left: auto; right: 2.5%; transform: rotate(1.2deg); }

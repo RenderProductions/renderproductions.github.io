@@ -11,15 +11,15 @@
   var slipName = document.getElementById('slip-name');
   var slipDesc = document.getElementById('slip-desc');
 
-  // The visible floor in art/drawer.svg (480 x 372 units): from the bottom of the back wall
+  // The visible floor in art/drawer.svg (480 x 388 units): from the bottom of the back wall
   // to the top of the front panel, between the two floor edges, which lean outward toward you.
-  var W = 480, H = 372;
+  var W = 480, H = 388;
   var FLOOR = { back: 160.5, front: 260, cx: 240, backHalf: 130.6, lean: 0.37443 };
   function halfAt(y) { return FLOOR.backHalf + FLOOR.lean * (y - FLOOR.back); }
   var ITEM = 0.12;   // an item's width, as a share of the drawing's width (before size and depth)
 
   // Put the drawing in the page (inline, so the page's fonts and styles reach it).
-  fetch('art/drawer.svg?v=3')
+  fetch('art/drawer.svg?v=4')
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
     .then(function (svg) { art.innerHTML = svg; var el = art.querySelector('svg'); if (el) { el.removeAttribute('width'); el.removeAttribute('height'); } })
     .catch(function (e) { console.warn('[drawer] art/drawer.svg did not load', e); });
