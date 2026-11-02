@@ -1,0 +1,26 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="480" height="372" viewBox="0 0 480 372">
+  <!-- The open drawer, looking down into it (cleaned-up version of the hand drawing).
+       Everything is centred on x = 240. The inside is drawn in one-point perspective:
+       the rim edges and the floor edges all run toward the same vanishing point (240, -188.3),
+       so the walls meet the back wall and the rim exactly.
+       The page (drawer.js) places items on the visible floor: between y 160.5 (bottom of the
+       back wall) and y 260 (top of the front panel), inside the two floor edges.
+       If you move these shapes, update FLOOR at the top of drawer.js to match. -->
+  <g fill-rule="nonzero" stroke-width="2.5" stroke-linejoin="miter" stroke-miterlimit="10">
+    <!-- the desk around the drawer -->
+    <rect class="desk-bg" x="1.25" y="1.25" width="477.5" height="369.5" fill="#a65f23" stroke="#7c471a"/>
+    <!-- the drawer's opening (dark inside) -->
+    <path class="opening" stroke-linejoin="round" d="M109.4,95H370.6L449.1,265.3H30.9Z" fill="#39200c" stroke="#7c471a"/>
+    <!-- back wall -->
+    <path class="wall back" stroke-linejoin="round" d="M109.4,95H370.6V160.5H109.4Z" fill="#7a451a" stroke="#573112"/>
+    <!-- side walls: top edge on the rim, bottom edge on the floor -->
+    <path class="wall left" stroke-linejoin="round" d="M109.4,95L30.9,265.3H70.2L109.4,160.5Z" fill="#7a451a" stroke="#573112"/>
+    <path class="wall right" stroke-linejoin="round" d="M370.6,95L449.1,265.3H409.8L370.6,160.5Z" fill="#7a451a" stroke="#573112"/>
+    <!-- front panel and its knob -->
+    <rect class="front" x="5" y="260" width="470" height="110.75" fill="#d79967" stroke="#996d4a"/>
+    <circle class="knob" cx="240" cy="315.4" r="44" fill="#d6c227" stroke="#726b37"/>
+    <!-- the label -->
+    <path class="label" d="M8,8H147.6L134,18.3L146.3,45.1L82.2,40.7L10.6,46.7Z" fill="#7a451a" stroke="#573112" stroke-linecap="round"/>
+    <text class="label-text" x="14" y="33" font-size="20" font-family="Helvetica, Arial, sans-serif" fill="#573112">The Drawer</text>
+  </g>
+</svg>
