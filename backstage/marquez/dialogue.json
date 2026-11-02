@@ -102,9 +102,9 @@
     },
     "place": {
       "say": [
-        "We are in the back-backstage![/]^5 [shake][gray]I think, anyway.",
+        "We are in the back-backstage![/]^5 [grey]I think, anyway.",
         {
-          "text": "Everything up there is on display.[/]^10 Everything down here is [gold]abandoned[/].",
+          "text": "Everything up there is on display.[/]^9 Everything down here is [gold]abandoned[/].",
           "face": "point"
         }
       ],
@@ -163,11 +163,12 @@
           "face": "angry"
         },
         {
-          "text": "He [red]ruined [grey]everything.",
+          "text": "He [red]ruined",
           "face": "angry"
         },
+        "[shake][grey] E V E R Y T H I N G ! ! ! !",
         "Don't listen to him. Ever! He lies!",
-        "[gray]Lies.[/]"
+        "[gray]Lies . . .[/]"
       ],
       "next": "advice"
     },
