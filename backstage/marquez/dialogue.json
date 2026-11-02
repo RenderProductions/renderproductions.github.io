@@ -18,19 +18,27 @@
           "text": "...^4 Ah.^3 A visitor.",
           "speed": 48
         },
-        "[gray]How might Ihelp you, young one?[/]"
+        "Not many find their way down here. Fewer still think to knock.",
+        {
+          "text": "Sit, if you like. I don't get up for anyone anymore.",
+          "face": "smile"
+        }
       ],
       "next": "ask"
     },
     "again": {
       "say": [
-        "Back again.^2 [gray](placeholder)[/]"
+        {
+          "text": "Back again.^2 Good.",
+          "face": "smile"
+        },
+        "I wondered if you would be."
       ],
       "next": "ask"
     },
     "ask": {
       "say": [
-        "How may I help you?"
+        "What would you like to know?"
       ],
       "choices": [
         {
@@ -38,13 +46,23 @@
           "to": "who"
         },
         {
-          "text": "The story",
-          "to": "story"
+          "text": "What is this place?",
+          "to": "place"
         },
         {
-          "text": "???",
-          "to": "secret",
-          "needs": "who"
+          "text": "Any advice?",
+          "to": "advice"
+        },
+        {
+          "text": "Your real name?",
+          "to": "name",
+          "needs": "who",
+          "once": true
+        },
+        {
+          "text": "I found something.",
+          "to": "found",
+          "needs": "advice"
         },
         {
           "text": "Leave",
@@ -55,33 +73,119 @@
     "who": {
       "say": [
         {
-          "text": "[shake]...[/]^3 Me? My name is Mr. Marquez.[/]^2 I come from a land, far, far away. But very connected to here. [/]^2 You didn't come here for my story, did you, young one?[/]",
+          "text": "Marquez.^3 For now, anyway.",
           "face": "smile"
-        }
-      ],
-      "next": "him"
-    },
-    "story": {
-      "say": [
-        {
-          "text": "[gold]Ah. Him. I remember him. Good old times, him and I.[/]",
-          "face": "smile"
-        }
+        },
+        "I keep track of things. Stories, mostly.^2 Where they start, and where they've been stitched together wrong.",
+        "[gray](Placeholder.)[/]"
       ],
       "next": "ask"
     },
-    "secret": {
+    "name": {
       "say": [
         {
-          "text": "[shake]...[/]^3 [blue]Okay buddy, that's not appropriate to say.[/]",
+          "text": "...^4",
+          "speed": 80
+        },
+        {
+          "text": "One name at a time, friend.",
           "face": "angry"
+        },
+        {
+          "text": "You'll earn the other one.",
+          "face": "smile"
+        },
+        "[gray](Placeholder.)[/]"
+      ],
+      "next": "ask"
+    },
+    "place": {
+      "say": [
+        "The part of the building nobody put on the map.",
+        {
+          "text": "Everything up there is on display. Everything down here is [gold]kept[/].",
+          "face": "point"
+        },
+        "[gray](Placeholder.)[/]"
+      ],
+      "next": "ask"
+    },
+    "advice": {
+      "say": [
+        "Advice.^2 Hm.",
+        "Pick a thread and I'll tell you what I can."
+      ],
+      "choices": [
+        {
+          "text": "The frequency",
+          "to": "adv_freq"
+        },
+        {
+          "text": "The board",
+          "to": "adv_board"
+        },
+        {
+          "text": "TODD",
+          "to": "adv_todd"
+        },
+        {
+          "text": "Never mind",
+          "to": "ask"
         }
+      ]
+    },
+    "adv_freq": {
+      "say": [
+        {
+          "text": "Someone is always broadcasting. The trick is knowing what to dial.",
+          "face": "point"
+        },
+        "Names. Places. Things that shouldn't have been said out loud.",
+        "[gray](Placeholder hint.)[/]"
+      ],
+      "next": "advice"
+    },
+    "adv_board": {
+      "say": [
+        "Whoever pinned all that up was close.^3 Closer than they knew.",
+        "Follow the yarn, not the notes.",
+        "[gray](Placeholder hint.)[/]"
+      ],
+      "next": "advice"
+    },
+    "adv_todd": {
+      "say": [
+        {
+          "text": "[shake]Him.[/]",
+          "face": "angry"
+        },
+        {
+          "text": "He doesn't belong here, you know. He came from somewhere else and grabbed hold.",
+          "face": "angry"
+        },
+        "Don't take his money.^2 Or do. Just know he never forgets a debt.",
+        "[gray](Placeholder hint.)[/]"
+      ],
+      "next": "advice"
+    },
+    "found": {
+      "say": [
+        "Did you, now.",
+        {
+          "text": "Not yet, I think.^3 Come back when your hands are shaking.",
+          "face": "smile"
+        },
+        "[gray](Placeholder: this is where finding things will matter.)[/]"
       ],
       "next": "ask"
     },
     "bye": {
       "say": [
-        "[white] Well, you know where to find me![/]"
+        {
+          "text": "Mind the stairs.^2 They're darker on the way up.",
+          "face": "smile"
+        },
+        "(He settles back into the dark.)"
       ]
     }
   }
