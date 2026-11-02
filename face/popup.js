@@ -312,22 +312,23 @@
     document.dispatchEvent(new CustomEvent('renderpopup:close'));
   }
 
-  // The XP error "bum" when a popup appears. Browsers only allow it after the visitor has
-  // clicked or pressed something on the page, so the very first popup may be silent.
+  // The XP error "bum" when a popup appears. Each popup gets its own copy, so they overlap
+  // and stack up. Browsers only allow sound after the visitor has clicked or pressed something
+  // on the page, so the very first popup may be silent.
   // Turn it off from the console with RenderPopup.sound(false) (remembered in this browser).
-  var SOUND_KEY = 'rvPopupSound', soundOn = true, lastBum = 0, bum = null;
+  var SOUND_KEY = 'rvPopupSound', soundOn = true, playing = 0, MAX_BUMS = 8;
+  var BUM_SRC = '/face/media/xp-error.mp3';
   try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) {}
+  try { new Audio(BUM_SRC).preload = 'auto'; } catch (e) {}
   function playBum() {
-    if (!soundOn) return;
-    var now = Date.now();
-    if (now - lastBum < 350) return;          // a burst of popups (the Konami code) only bums once
-    lastBum = now;
+    if (!soundOn || playing >= MAX_BUMS) return;   // a cap so a huge burst can't blow out ears
     try {
-      bum = bum || new Audio('/face/media/xp-error.mp3');
-      bum.volume = 0.55;
-      bum.currentTime = 0;
-      var p = bum.play();
-      if (p && p.catch) p.catch(function () {});
+      var a = new Audio(BUM_SRC);
+      a.volume = 0.55;
+      playing++;
+      a.addEventListener('ended', function () { playing--; });
+      var p = a.play();
+      if (p && p.catch) p.catch(function () { playing--; });
     } catch (e) {}
   }
 
