@@ -114,4 +114,23 @@
       document.body.style.setProperty('--my', e.clientY + 'px');
     });
   }
+
+  // The door to Marquez. "Try and find the door... It moves a lot!" So it does:
+  // a new spot along the wall every visit. Clicking swings it open first, then goes through
+  // (on touch screens there's no hover, so this is the only way to see it open).
+  var door = document.getElementById('door');
+  if (door) {
+    var spots = [10, 26, 50, 74, 90];
+    door.style.setProperty('--x', spots[Math.floor(Math.random() * spots.length)] + '%');
+    var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    door.addEventListener('click', function (e) {
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;   // let "open in new tab" work normally
+      e.preventDefault();
+      var wasOpen = door.matches(':hover') || door.classList.contains('open');
+      door.classList.add('open');
+      setTimeout(function () { location.href = door.href; }, still ? 0 : (wasOpen ? 150 : 600));
+    });
+    // Coming back with the browser's back button: shut it again.
+    window.addEventListener('pageshow', function () { door.classList.remove('open'); });
+  }
 })();
