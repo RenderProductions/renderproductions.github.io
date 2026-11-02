@@ -93,7 +93,9 @@
     mug.addEventListener('click', function () {
       if (document.body.classList.contains('sipping')) return;
       document.body.classList.add('sipping');
-      try { gulp.currentTime = 0; var p = gulp.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+      setTimeout(function () {   // a beat later, so the sound matches the mug reaching your mouth
+        try { gulp.currentTime = 0; var p = gulp.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+      }, 300);
     });
     sip.addEventListener('animationend', function () {
       document.body.classList.remove('sipping');
