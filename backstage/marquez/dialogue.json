@@ -102,7 +102,8 @@
     },
     "place": {
       "say": [
-        "We are in the back-backstage![/]^5 [grey]I think, anyway.",
+        "We are in the back-backstage![/]^5",
+        "[grey] I think, anyway...",
         {
           "text": "Everything up there is on display.[/]^9 Everything down here is [gold]abandoned[/].",
           "face": "point"
@@ -140,8 +141,9 @@
           "text": "Ah, yes, that thing!",
           "face": "smile"
         },
+        "That thing has so much to offer! I brought it here from my shop!",
         {
-          "text": "Names. Places. Things that shouldn't have been said out loud.",
+          "text": "You can do anything you set your mind to with it!",
           "face": "point"
         },
         "Well, I haven't seen that thing in so long, I couldn't tell you with any sort of certainty what it does.",
@@ -151,8 +153,12 @@
     },
     "adv_board": {
       "say": [
-        "The board! Yes! That's my doing!",
-        "[gray]I wish I could help you more.[/]"
+        {
+          "text": "The board! Yes! That's my doing!",
+          "face": "smile"
+        },
+        "[gray]I wish I could help you more.[/]",
+        "I don't remember anything on that board, I've been here for so long..."
       ],
       "next": "advice"
     },
