@@ -262,6 +262,12 @@
       return Promise.resolve();
     },
 
+    // {"type":"item","id":"brass_key"} puts an item in the visitor's drawer (see /items.json).
+    item: function (a) {
+      if (a.id && window.RPInventory) RPInventory.give(a.id, { quiet: !!a.quiet });
+      return Promise.resolve();
+    },
+
     wait: function (a) { return sleep(a.ms || 1000); },
 
     clear: function () {
@@ -517,6 +523,7 @@
   if (!reduce) { setTimeout(launch, 6000 + Math.random() * 8000); requestAnimationFrame(frame); }
 })();
 </script>
+<script src="/inventory.js?v=1"></script>
 <script src="/face/popup.js" data-every="40-80"></script>
 </body>
 </html>

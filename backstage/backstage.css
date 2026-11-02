@@ -262,3 +262,13 @@ body.lights-off .dark { opacity: 1; }
 .wall-row[hidden] { display: none; }
 .door .door-live { position: absolute; left: 0; top: 0; width: 100%; height: auto; display: block; overflow: visible; }
 .door.tweened img { display: none; }   /* JS morphs one drawing into the other instead of swapping */
+
+/* ---------- the open drawer on the desk (leads to /backstage/drawer/) ---------- */
+/* Sits over the pulled-out drawer in the desk drawing (x 360-512, y 74-141 of its 541 x 150 box).
+   Only reachable when looking down, since that's when the drawers are on screen. */
+.drawer-link { position: absolute; left: 66.5%; top: 49.2%; width: 28.1%; height: 44.9%; z-index: 2; pointer-events: auto; cursor: pointer;
+  border-radius: 3px; background: radial-gradient(ellipse 60% 55% at 46% 45%, rgba(255,226,150,0), transparent 70%); transition: background .25s, box-shadow .25s; }
+.drawer-link:hover, .drawer-link:focus-visible { outline: none;
+  background: radial-gradient(ellipse 60% 55% at 46% 45%, rgba(255,226,150,.28), transparent 75%); }
+.drawer-link:focus-visible { box-shadow: 0 0 0 2px #ffe25c; }
+body:not(.looking-down) .drawer-link { pointer-events: none; }

@@ -70,7 +70,14 @@
       look.setAttribute('aria-pressed', down ? 'true' : 'false');
       look.setAttribute('aria-label', down ? 'Look back up at the board' : 'Look down at the desk');
       if (text) text.textContent = down ? 'LOOK UP' : 'LOOK DOWN';
+      var dl = document.getElementById('drawer-link');
+      if (dl) dl.tabIndex = down ? 0 : -1;   // the drawer is only on screen while looking down
     };
+    // Coming back from the drawer (/backstage/#desk): still looking down at the desk.
+    if (location.hash === '#desk') {
+      setLook(true);
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    }
     look.addEventListener('click', function () { setLook(!document.body.classList.contains('looking-down')); });
     document.addEventListener('keydown', function (e) {
       if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
