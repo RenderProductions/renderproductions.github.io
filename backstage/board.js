@@ -41,6 +41,20 @@
     });
   }
 
+  // Take a sip: the desk mug lifts away while the first-person mug rises and tips. Just for fun.
+  var mug = document.getElementById('mug-btn');
+  var sip = document.getElementById('sip');
+  if (mug && sip) {
+    mug.addEventListener('click', function () {
+      if (document.body.classList.contains('sipping')) return;
+      document.body.classList.add('sipping');
+    });
+    sip.addEventListener('animationend', function () {
+      document.body.classList.remove('sipping');
+      mug.focus({ preventScroll: true });
+    });
+  }
+
   var btn = document.getElementById('lamp-btn');
   if (btn) {
     btn.addEventListener('click', function () {

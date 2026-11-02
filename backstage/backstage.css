@@ -9,7 +9,7 @@
   --marker: 'Permanent Marker', 'Comic Sans MS', cursive;
   --type: 'Special Elite', 'Courier New', monospace;
   font-family: var(--type);
-  padding-bottom: 24rem;
+  padding-bottom: 26rem;
   background:
     radial-gradient(ellipse at 50% 15%, rgba(255, 214, 120, 0.28), transparent 62%),
     radial-gradient(circle at 20% 30%, #4a3320 0 1.5px, transparent 2.5px) 0 0 / 37px 41px,
@@ -84,18 +84,34 @@ a.note { background-color: var(--paper); }
 .backstage .screen { border: 10px solid #0c0906; border-radius: 12px; }
 
 /* ---------- desk: fixed to the bottom of the viewport (above the vignette so it stays bright) ---------- */
-.desk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 22%); width: clamp(560px, 112vw, 1180px); aspect-ratio: 541 / 150; z-index: 11; pointer-events: none; filter: drop-shadow(0 -8px 22px rgba(0,0,0,.55)); }
+.desk { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 30%); width: clamp(640px, 125vw, 1400px); aspect-ratio: 541 / 150; container-type: inline-size; z-index: 11; pointer-events: none; filter: drop-shadow(0 -8px 22px rgba(0,0,0,.55)); }
 .desk-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* everything sits in one flex row, so nothing can stack on top of anything else */
 /* the lamp and mug stand toward the back of the desk top (the desk runs a little off the bottom of the screen) */
 .desk-items { position: absolute; z-index: 1; left: 19%; right: 19%; bottom: 85%; display: flex; align-items: flex-end; gap: 1.5rem; }
 .desk-items > * { flex: none; display: block; filter: drop-shadow(0 6px 3px rgba(0,0,0,.6)); }
 .lamp-btn { padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; }
-.lamp-btn svg { display: block; width: clamp(200px, 28vw, 380px); height: auto; overflow: visible; }
+.lamp-btn svg { display: block; width: 30cqw; height: auto; overflow: visible; }
 .lamp-btn:focus-visible { outline: 2px solid var(--bright); outline-offset: 4px; }
 .lamp-btn .bulb { transition: opacity .2s; }
 .lamp-btn[aria-pressed="true"] .bulb { opacity: 0; }
-.mug { width: clamp(84px, 11vw, 160px); height: auto; margin-left: auto; overflow: visible; }
+.mug-btn { margin-left: auto; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; transition: opacity .2s; }
+.mug-btn:focus-visible { outline: 2px solid var(--bright); outline-offset: 4px; }
+.mug { display: block; width: 12.5cqw; height: auto; overflow: visible; }
+body.sipping .mug-btn { opacity: 0; pointer-events: none; }
+
+/* the sip: the mug rises from below the screen like it's held up to your face, tips, then goes back */
+.sip { position: fixed; left: 50%; bottom: 0; width: min(64vw, 560px); z-index: 13; pointer-events: none; transform: translate(-50%, 110%); }
+.sip svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 -10px 30px rgba(0,0,0,.55)); }
+body.sipping .sip { animation: sip 2.6s ease-in-out forwards; }
+@keyframes sip {
+  0%   { transform: translate(-50%, 110%) rotate(0deg); }
+  28%  { transform: translate(-50%, 42%) rotate(-4deg); }
+  45%  { transform: translate(-50%, 34%) rotate(7deg); }
+  62%  { transform: translate(-50%, 36%) rotate(5deg); }
+  78%  { transform: translate(-50%, 44%) rotate(-2deg); }
+  100% { transform: translate(-50%, 110%) rotate(0deg); }
+}
 .mug .puff { transform-box: fill-box; transform-origin: 50% 100%; animation: puff 3s ease-in-out infinite; }
 @keyframes puff { 0% { transform: translateY(6px) scaleY(.85); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-12px) scaleY(1.05); opacity: 0; } }
 .steam { fill: none; stroke: rgba(255,255,255,.6); stroke-width: 3; stroke-linecap: round; animation: steam 3s ease-in infinite; }
@@ -107,7 +123,7 @@ body.lights-off .lamp-glow { opacity: 0; }
   background: radial-gradient(circle 190px at var(--mx, 50%) var(--my, 40%), rgba(0,0,0,0) 0, rgba(0,0,0,.94) 100%); }
 body.lights-off .dark { opacity: 1; }
 
-@media (max-width: 640px) { .desk-items { left: 20%; right: 20%; gap: .5rem; } .lamp-btn svg { width: 170px; } .mug { width: 70px; } }
+@media (max-width: 640px) { .desk-items { left: 20%; right: 20%; gap: .5rem; } .sip { width: 88vw; } }
 @media (max-width: 760px) {
   .board { grid-template-columns: 1fr; }
   .board > .note { grid-column: 1 !important; margin-top: 0 !important; }
@@ -116,4 +132,6 @@ body.lights-off .dark { opacity: 1; }
   .lamp::before, .steam { animation: none; }
   .note, .dark, .lamp-glow { transition: none; }
   .mug .puff { animation: none; }
+  body.sipping .sip { animation: sip-still 1.6s linear forwards; }
+  @keyframes sip-still { 0%, 100% { transform: translate(-50%, 110%); } 1%, 99% { transform: translate(-50%, 38%); } }
 }
