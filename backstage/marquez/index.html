@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>...</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="marquez.css?v=1">
+</head>
+<body>
+<!-- A dark room. Marquez sits in it. Dialogue lives in dialogue.json; art goes in art/. -->
+<main class="room" id="room">
+  <div class="light" aria-hidden="true"></div>
+
+  <figure class="him" id="him">
+    <!-- Real art: drop art/marquez.png in (and art/marquez-<face>.png for expressions). Until then, the silhouette shows. -->
+    <img id="art" alt="Marquez" hidden>
+    <svg id="shade" class="shade" viewBox="0 0 200 260" aria-label="A gentleman, sitting in the dark">
+      <defs>
+        <radialGradient id="rim" cx="50%" cy="0%" r="90%">
+          <stop offset="0" stop-color="#3a3a44"/><stop offset="1" stop-color="#0b0b0e"/>
+        </radialGradient>
+      </defs>
+      <!-- chair back -->
+      <path d="M38 120 Q40 70 100 64 Q160 70 162 120 L166 250 L34 250 Z" fill="#0e0e12"/>
+      <!-- shoulders and coat -->
+      <path d="M48 250 L54 176 Q58 146 100 140 Q142 146 146 176 L152 250 Z" fill="url(#rim)"/>
+      <path d="M100 142 L88 196 L100 250 L112 196 Z" fill="#050507"/>
+      <path d="M96 150 L100 160 L104 150 Z" fill="#6d1b22"/>
+      <!-- head and hat -->
+      <ellipse cx="100" cy="112" rx="21" ry="25" fill="#16161b"/>
+      <rect x="80" y="62" width="40" height="30" rx="3" fill="#0c0c10"/>
+      <ellipse cx="100" cy="92" rx="36" ry="6" fill="#121217"/>
+      <!-- eyes, barely -->
+      <g class="eyes" fill="#d9d4c4"><circle cx="92" cy="112" r="1.7"/><circle cx="108" cy="112" r="1.7"/></g>
+    </svg>
+  </figure>
+
+  <div class="prompt" id="prompt">[ Z ] or tap to approach</div>
+
+  <section class="box" id="box" hidden aria-live="polite">
+    <div class="text" id="text"></div>
+    <ul class="choices" id="choices" hidden></ul>
+    <span class="more" id="more" aria-hidden="true">&#9660;</span>
+  </section>
+
+  <button class="mute" id="mute" type="button" aria-pressed="false" title="Sound (M)">SOUND: ON</button>
+  <a class="leave" href="/backstage/">&larr; back</a>
+</main>
+<noscript><p class="nojs">* (It's too dark to talk without JavaScript.)</p></noscript>
+<script src="marquez.js?v=1"></script>
+</body>
+</html>
