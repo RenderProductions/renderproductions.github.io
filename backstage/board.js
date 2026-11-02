@@ -120,8 +120,60 @@
   // (on touch screens there's no hover, so this is the only way to see it open).
   var door = document.getElementById('door');
   if (door) {
-    var spots = [10, 26, 50, 74, 90];
-    door.style.setProperty('--x', spots[Math.floor(Math.random() * spots.length)] + '%');
+    // Each visit it turns up somewhere different: set into the corkboard among the notes,
+    // on the wall above or below the board, or (on wide screens) in the gap beside the board.
+    // Add ?door=board / above / below / side to the URL to force a spot while testing.
+    var wallRow = door.parentNode, wrap = wallRow.parentNode, corkboard = document.querySelector('.corkboard');
+    var DOOR_W = 160, GAP = 28;   // px: the door's width (10rem) and breathing room
+    function rnd(n) { return Math.floor(Math.random() * n); }
+    function sideRoom() { return wrap.getBoundingClientRect().left; }   // wall showing left of the page
+    function reset() {
+      door.classList.remove('on-board', 'on-side');
+      door.style.removeProperty('top'); door.style.removeProperty('left'); door.style.removeProperty('right');
+      door.style.removeProperty('--r');
+      if (door.parentNode !== wallRow) wallRow.appendChild(door);
+      wallRow.hidden = false;
+    }
+    function placeDoor(spot) {
+      reset();
+      if (spot === 'board' && board) {
+        // a random slot among the notes (never ahead of the poster)
+        var kids = [].filter.call(board.children, function (el) { return !el.classList.contains('yarn'); });
+        var at = kids[1 + rnd(Math.max(1, kids.length - 1))] || null;
+        board.insertBefore(door, at);
+        door.classList.add('on-board');
+        door.style.setProperty('--r', (rnd(7) - 3) + 'deg');
+        wallRow.hidden = true;
+      } else if (spot === 'side' && corkboard && sideRoom() >= DOOR_W + GAP * 2) {
+        var cb = corkboard.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+        var top = cb.top - wr.top, room = Math.max(0, cb.height - DOOR_W * 1.5);
+        door.classList.add('on-side');
+        door.style.top = Math.round(top + Math.random() * room) + 'px';
+        if (Math.random() < 0.5) door.style.left = -(DOOR_W + GAP) + 'px';
+        else door.style.left = 'calc(100% + ' + GAP + 'px)';
+        wrap.appendChild(door);
+        wallRow.hidden = true;
+      } else {
+        if (spot === 'above' && corkboard) corkboard.parentNode.insertBefore(wallRow, corkboard);
+        else if (corkboard && wallRow.previousElementSibling !== corkboard) corkboard.parentNode.insertBefore(wallRow, corkboard.nextSibling);
+        door.style.setProperty('--x', [10, 26, 50, 74, 90][rnd(5)] + '%');
+        spot = spot === 'above' ? 'above' : 'below';
+      }
+      door.dataset.spot = door.classList.contains('on-board') ? 'board' : door.classList.contains('on-side') ? 'side' : spot;
+      yarn();
+    }
+    var forced = (/[?&]door=(board|above|below|side)\b/.exec(location.search) || [])[1];
+    var pickSpot = forced || (function () {
+      var r = Math.random();
+      if (r < 0.4) return 'board';
+      if (r < 0.65 && sideRoom() >= DOOR_W + GAP * 2) return 'side';
+      return r < 0.82 ? 'above' : 'below';
+    })();
+    placeDoor(pickSpot);
+    // If the window gets too narrow for the side gap, move it back onto the wall.
+    window.addEventListener('resize', function () {
+      if (door.dataset.spot === 'side' && sideRoom() < DOOR_W + GAP * 2) placeDoor('below');
+    });
     var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     door.addEventListener('click', function (e) {
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;   // let "open in new tab" work normally

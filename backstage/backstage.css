@@ -232,6 +232,7 @@ body.lights-off .dark { opacity: 1; }
   .board > * { grid-column: span 2 !important; margin-top: 0 !important; }
   .board > .calendar, .board > .polaroid, .board > .deco.small { grid-column: span 1 !important; }
   .board > .torn { display: none; }
+  .board > .door.on-board { grid-column: span 1 !important; width: 8.5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lamp::before, .steam { animation: none; }
@@ -253,5 +254,11 @@ body.lights-off .dark { opacity: 1; }
 .door .door-open { visibility: hidden; }
 .door:hover .door-shut, .door:focus-visible .door-shut, .door.open .door-shut { visibility: hidden; }
 .door:hover .door-open, .door:focus-visible .door-open, .door.open .door-open { visibility: visible; }
+/* set into the corkboard: takes a grid slot like a note, tilted a little */
+.board > .door.on-board { position: relative; left: auto; bottom: auto; grid-column: span 2; justify-self: center; align-self: start;
+  margin-top: 1.5rem; transform: rotate(var(--r, 0deg)); z-index: 2; }
+/* in the wall gap beside the board (wide screens only) */
+.door.on-side { bottom: auto; transform: none; }
+.wall-row[hidden] { display: none; }
 .door .door-live { position: absolute; left: 0; top: 0; width: 100%; height: auto; display: block; overflow: visible; }
 .door.tweened img { display: none; }   /* JS morphs one drawing into the other instead of swapping */
