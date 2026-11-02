@@ -13,13 +13,13 @@
   --desk-h: calc(var(--desk-w) * 0.2767);   /* the desk drawing is 541 x 150 */
   --tilt: calc(var(--desk-h) * 0.55);        /* how far the view moves when looking down */
   padding-bottom: 19rem;
+  /* a dim plaster wall; the cork lives on the framed board */
   background:
-    radial-gradient(ellipse at 50% 15%, rgba(255, 214, 120, 0.28), transparent 62%),
-    radial-gradient(circle at 20% 30%, #4a3320 0 1.5px, transparent 2.5px) 0 0 / 37px 41px,
-    radial-gradient(circle at 70% 60%, #b08a5a 0 2px, transparent 3px) 0 0 / 53px 47px,
-    radial-gradient(circle at 40% 80%, #5b4129 0 1px, transparent 2px) 0 0 / 23px 29px,
-    #8a6a43;
+    radial-gradient(ellipse at 50% 0%, rgba(255, 214, 140, 0.16), transparent 60%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='w'><feTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.14  0 0 0 0 0.1  0 0 0 0.9 -0.25'/></filter><rect width='100%' height='100%' filter='url(%23w)'/></svg>"),
+    #4a3d33;
 }
+.backstage .wrap { max-width: min(1480px, 96vw); }
 /* lamp-lit edges instead of CRT scanlines */
 .backstage::after { background: radial-gradient(ellipse at 50% 30%, transparent 35%, rgba(10, 6, 2, 0.7) 100%); }
 
@@ -35,50 +35,118 @@
 .lamp::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: #ff6b6b; box-shadow: 0 0 10px 2px rgba(255,107,107,.7); animation: lamp 2.4s ease-in-out infinite; }
 @keyframes lamp { 50% { opacity: .35; box-shadow: 0 0 3px rgba(255,107,107,.4); } }
 
-/* ---------- the board ---------- */
-.board { width: auto; border: 0; background: none; position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2.25rem 1.75rem; align-items: start; padding: 1.5rem 0.5rem; }
-/* Layout repeats every 4 notes (widths 2, 4, 3, 3 of 6 columns), so you can add as many notes as you like. */
-.board > .note:nth-child(4n+1) { grid-column: span 2; }
-.board > .note:nth-child(4n+2) { grid-column: span 4; margin-top: 1.5rem; }
-.board > .note:nth-child(4n+3) { grid-column: span 3; }
-.board > .note:nth-child(4n+4) { grid-column: span 3; margin-top: 1.25rem; }
-.note:nth-child(odd) { --r: -1.8deg; } .note:nth-child(even) { --r: 1.6deg; } /* default tilt; style="--r: ..." overrides it */
+/* ---------- the cork board ---------- */
+/* light pine frame with a bevel, hung on the wall */
+.corkboard { position: relative; padding: clamp(14px, 1.6vw, 24px); border-radius: 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(120,72,24,.10) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, transparent 1px 13px),
+    linear-gradient(135deg, #f0cf98, #d9a865 40%, #c08848 70%, #e2b77a);
+  box-shadow: inset 2px 2px 0 rgba(255,245,220,.55), inset -2px -2px 0 rgba(90,50,15,.45), 0 24px 40px -12px rgba(0,0,0,.75), 0 4px 10px rgba(0,0,0,.4); }
+
+/* dense speckled cork: base colour + dark grains + light grains + soft patches */
+.board { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-flow: row dense; gap: 2rem 1.75rem; align-items: start;
+  padding: clamp(1.25rem, 2.5vw, 2.5rem); border-radius: 2px; min-height: 60vh;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='d'><feTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.33  0 0 0 0 0.19  0 0 0 0 0.07  0 0 0 2.4 -1.05'/></filter><rect width='100%' height='100%' filter='url(%23d)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='l'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.96  0 0 0 0 0.8  0 0 0 0 0.56  0 0 0 2.2 -1.05'/></filter><rect width='100%' height='100%' filter='url(%23l)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.27  0 0 0 0 0.12  0 0 0 0.9 -0.35'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+    #c48d58;
+  box-shadow: inset 0 0 0 2px rgba(90,55,20,.55), inset 0 8px 16px rgba(0,0,0,.35), inset 0 -2px 10px rgba(0,0,0,.2); }
 .yarn { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; overflow: visible; }
 
+/* where things sit on the 12-column board (the dense flow fills gaps) */
+.board > .poster { grid-column: 1 / span 5; }
+.board > .calendar { grid-column: span 2; margin-top: 2.5rem; }
+.board > .note { grid-column: span 3; }
+.board > .note.index { grid-column: span 4; margin-top: 1rem; }
+.board > .note.yellow { margin-top: 1.5rem; }
+.board > .polaroid { grid-column: span 2; margin-top: 2rem; }
+.board > .note.pink { margin-top: 2.5rem; }
+.board > .deco.small { grid-column: span 2; margin-top: 3rem; justify-self: center; }
+.board > .torn { grid-column: span 3; margin-top: 3.5rem; }
+.board > .note.empty { margin-top: .5rem; }
+
+/* ---------- paper ---------- */
+.note, .poster, .deco { position: relative; display: block; color: var(--ink); transform: rotate(var(--r, 0deg)); z-index: 1; }
 .note, .poster {
-  position: relative; display: block; padding: 1.5rem 1.25rem 1.25rem; color: var(--ink);
-  background: var(--paper); transform: rotate(var(--r, 0deg)); z-index: 1;
-  box-shadow: 0 1px 1px rgba(0,0,0,.3), 0 12px 18px -8px rgba(0,0,0,.6); transition: transform .5s cubic-bezier(.34, 1.7, .5, 1), box-shadow .25s ease;
-}
-.note.yellow { background: #ffe94d; } .note.pink { background: #ffb3c1; } .note.blue { background: #a9d6ff; }
-.note.index { background: repeating-linear-gradient(#f6f1e0 0 23px, #b9d3e8 23px 24px); padding-top: 2rem; }
+  padding: 1.5rem 1.25rem 1.25rem; background: var(--paper);
+  background-image: linear-gradient(165deg, rgba(255,255,255,.4), transparent 35%, rgba(0,0,0,.05));
+  box-shadow: 0 1px 1px rgba(0,0,0,.25), 3px 10px 14px -6px rgba(0,0,0,.55);
+  transition: transform .5s cubic-bezier(.34, 1.7, .5, 1), box-shadow .25s ease; }
+.note:nth-child(odd) { --r: -1.8deg; } .note:nth-child(even) { --r: 1.6deg; } /* default tilt; style="--r: ..." overrides it */
+
+/* sticky notes: square-ish, bright, with the bottom corner lifting off the cork */
+.note.sticky, .deco.sticky { min-height: 11rem; border-radius: 0 0 2px 18px / 0 0 2px 6px;
+  box-shadow: 0 1px 1px rgba(0,0,0,.2), 6px 14px 14px -8px rgba(0,0,0,.6); }
+.note.sticky::after, .deco.sticky::after { content: ''; position: absolute; right: 0; bottom: 0; width: 45%; height: 26px; pointer-events: none;
+  background: linear-gradient(to top left, rgba(0,0,0,.14), transparent 65%); border-bottom-right-radius: 18px 6px; }
+.yellow { background-color: #ffe25c; } .pink { background-color: #ff9fbd; } .blue { background-color: #8fd0ff; }
+.teal { background-color: #8ee6d6; } .green { background-color: #a6e36b; }
+.deco.sticky.small { width: 7rem; min-height: 7rem; }
+
+/* lined index card: blue rules, a red margin and punch holes */
+.note.index { padding: 2rem 1.5rem 1.25rem 3.5rem;
+  background:
+    radial-gradient(circle at 1.25rem 2.5rem, #c48d58 0 6px, transparent 7px),
+    radial-gradient(circle at 1.25rem 50%, #c48d58 0 6px, transparent 7px),
+    radial-gradient(circle at 1.25rem calc(100% - 2.5rem), #c48d58 0 6px, transparent 7px),
+    linear-gradient(90deg, transparent 2.6rem, rgba(214,60,60,.55) 2.6rem 2.7rem, transparent 2.7rem),
+    repeating-linear-gradient(transparent 0 23px, #b9d3e8 23px 24px),
+    #fbf8ee; }
+
 .note h2, .note h3, .poster h1 { font-family: var(--marker); font-weight: 400; color: var(--ink); text-shadow: none; letter-spacing: 1px; }
 .note h2, .note h3 { font-size: 22px; margin-bottom: .5rem; }
 .note p { font-size: 14px; color: var(--ink); margin-bottom: .6rem; }
 .note .label { font-size: 12px; color: #6b5d3a; margin-bottom: .4rem; }
-.note:hover, .note:focus-visible { transform: rotate(0deg) translateY(-12px) scale(1.07); z-index: 6;
-  box-shadow: 0 2px 2px rgba(0,0,0,.25), 0 26px 30px -10px rgba(0,0,0,.7); }
-a.note:hover, a.note:focus-visible { background-color: #fff6a8; outline: 2px solid var(--ink); background-image: none; }
-a.note { background-color: var(--paper); }
+.note:hover, .note:focus-visible { transform: rotate(0deg) translateY(-12px) scale(1.06); z-index: 6;
+  box-shadow: 0 2px 2px rgba(0,0,0,.25), 10px 28px 30px -12px rgba(0,0,0,.7); }
+a.note:hover, a.note:focus-visible { outline: 2px solid var(--ink); }
 .ch { display: inline-block; margin-bottom: .6rem; padding: 2px 8px; background: #111; color: #fff; font-size: 12px; letter-spacing: 2px; }
 
-/* empty slot: a blank note waiting for the next room */
-.note.empty { background: rgba(241,234,214,.28); border: 2px dashed rgba(43,36,18,.55); box-shadow: none; color: #3a2e18; }
-.note.empty h2, .note.empty p { color: #3a2e18; opacity: .75; }
+/* empty slot: a pale outline where the next room's note will go */
+.note.empty { background: rgba(241,234,214,.32); background-image: none; border: 2px dashed rgba(43,36,18,.55); box-shadow: none; color: #3a2e18; }
+.note.empty h2, .note.empty p { color: #3a2e18; opacity: .8; }
 .note.empty .ch { background: transparent; color: #3a2e18; border: 1px dashed rgba(43,36,18,.6); }
-.note.empty .pin { opacity: .85; }
 
-/* pushpin (real element so the yarn can find it) */
-.pin { position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; z-index: 5;
+/* pushpins: .pin (linked by yarn) and .tack (decoration) look the same; colours via class */
+.pin, .tack { position: absolute; top: -9px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; z-index: 5;
   background: radial-gradient(circle at 35% 30%, #ff9a90, #c62828 55%, #7f1010); box-shadow: 2px 6px 5px rgba(0,0,0,.45); }
+.pin::after, .tack::after { content: ''; position: absolute; left: 5px; top: 4px; width: 5px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.7); }
+.tack.blue { background: radial-gradient(circle at 35% 30%, #9ccaff, #1e6fd0 55%, #0d3b78); }
+.tack.yellow { background: radial-gradient(circle at 35% 30%, #fff3a0, #e0b100 55%, #8a6a00); }
+.tack.green { background: radial-gradient(circle at 35% 30%, #b8f5a0, #2e9e2e 55%, #155c15); }
+.tack.red { background: radial-gradient(circle at 35% 30%, #ff9a90, #c62828 55%, #7f1010); }
+
+/* masking tape strips */
+.strip { position: absolute; top: -12px; left: 18%; width: 96px; height: 26px; z-index: 3; background: rgba(238,228,186,.82);
+  box-shadow: 0 1px 2px rgba(0,0,0,.2); transform: rotate(-4deg); }
+
 /* red rubber stamp */
 .rubber { display: inline-block; padding: 1px 10px; border: 3px solid #b3261e; border-radius: 3px; color: #b3261e; font: 16px var(--marker); letter-spacing: 2px; transform: rotate(-6deg); opacity: .85; }
 
-/* poster headline */
-.poster { max-width: 520px; margin-bottom: 2.5rem; --r: -1.2deg; }
-.poster h1 { font-size: clamp(44px, 10vw, 84px); line-height: .95; }
+/* poster headline, taped to the board */
+.poster { --r: -1.2deg; padding: 1.75rem 1.75rem 1.5rem; }
+.poster h1 { font-size: clamp(44px, 7vw, 92px); line-height: .95; }
 .poster .tagline { color: var(--ink); margin: .75rem 0 0; }
-.poster::before { content: ''; position: absolute; top: -12px; left: 18%; width: 90px; height: 24px; background: rgba(235,225,180,.8); transform: rotate(-4deg); }
+
+/* decorations: no hover, never in the way */
+.deco { pointer-events: none; }
+.calendar { padding: .6rem .6rem .7rem; background: #fdfbf3; box-shadow: 0 1px 1px rgba(0,0,0,.2), 3px 10px 12px -6px rgba(0,0,0,.5); font: 11px var(--type); }
+.cal-head { font: 18px var(--marker); text-align: center; color: #b3261e; margin: .2rem 0 .3rem; letter-spacing: 2px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-grid span, .cal-grid b { aspect-ratio: 1; display: grid; place-items: center; font-weight: 400; color: #6b5d3a; border: 1px solid #e3dccb; position: relative; font-size: 9px; }
+.cal-grid b::after { content: '\00d7'; position: absolute; inset: 0; display: grid; place-items: center; font: 22px/1 var(--marker); color: rgba(179,38,30,.8); }
+.polaroid { padding: .6rem .6rem 0; background: #fbfbf6; box-shadow: 0 1px 1px rgba(0,0,0,.2), 4px 12px 14px -6px rgba(0,0,0,.55); }
+.polaroid .photo { aspect-ratio: 1; background: radial-gradient(circle at 50% 45%, #2a2f3a, #0b0d12 70%); position: relative; filter: blur(1.2px); }
+.polaroid .photo i { position: absolute; top: 34%; width: 11%; height: 26%; background: #ffe600; border-radius: 2px; box-shadow: 0 0 10px rgba(255,230,0,.8); }
+.polaroid .photo i:first-child { left: 32%; } .polaroid .photo i:last-child { right: 32%; }
+.polaroid .caption { font: 18px var(--marker); text-align: center; color: #2b2412; padding: .35rem 0 .5rem; }
+.torn { filter: drop-shadow(2px 8px 6px rgba(0,0,0,.45)); }
+.torn-paper { height: 3.2rem; background: repeating-linear-gradient(transparent 0 15px, #c7d9ea 15px 16px), #fbf8ee;
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 8px repeat-x;
+          mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat, conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 14px 8px repeat-x; }
+.torn .tack { top: 10px; }
 
 /* ---------- frequency page: dark equipment taped to the cork ---------- */
 .backstage .hero { background: #1c150d; border: 1px solid #000; box-shadow: 0 14px 22px -10px rgba(0,0,0,.75); }
@@ -119,7 +187,8 @@ body.looking-down .look-btn .arrow { transform: rotate(180deg); }
 body.sipping .mug-btn { opacity: 0; pointer-events: none; }
 
 /* the sip: the mug rises from below the screen like it's held up to your face, tips, then goes back */
-.sip { position: fixed; left: 50%; bottom: 0; width: min(64vw, 560px); z-index: 13; pointer-events: none; transform: translate(-50%, 110%); }
+.sip { position: fixed; left: 50%; bottom: 0; width: min(64vw, 560px); z-index: 13; pointer-events: none; transform: translate(-50%, 110%); visibility: hidden; }
+body.sipping .sip { visibility: visible; }
 .sip svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 -10px 30px rgba(0,0,0,.55)); }
 body.sipping .sip { animation: sip 2.6s ease-in-out forwards; }
 @keyframes sip {
@@ -142,9 +211,16 @@ body.lights-off .lamp-glow { opacity: 0; }
 body.lights-off .dark { opacity: 1; }
 
 @media (max-width: 640px) { .desk-items { left: 20%; right: 20%; gap: .5rem; } .sip { width: 88vw; } }
-@media (max-width: 760px) {
-  .board { grid-template-columns: 1fr; }
-  .board > .note { grid-column: 1 !important; margin-top: 0 !important; }
+@media (max-width: 900px) {
+  .board { grid-template-columns: repeat(6, 1fr); }
+  .board > .poster, .board > .note.index { grid-column: span 6; }
+  .board > .note { grid-column: span 3; }
+}
+@media (max-width: 560px) {
+  .board { grid-template-columns: 1fr 1fr; gap: 1.5rem 1rem; }
+  .board > * { grid-column: span 2 !important; margin-top: 0 !important; }
+  .board > .calendar, .board > .polaroid, .board > .deco.small { grid-column: span 1 !important; }
+  .board > .torn { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lamp::before, .steam { animation: none; }

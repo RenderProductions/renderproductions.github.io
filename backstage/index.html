@@ -27,22 +27,33 @@
 
   <div class="tape" role="presentation"></div>
 
-  <header class="poster">
-    <div class="lamp">ON AIR</div>
-    <h1>BACK<br>STAGE</h1>
-    <p class="tagline">WELcomE, to THE BACKstAGE?!!</p>
-  </header>
-
-  <!-- Notes are linked with yarn in the order they appear here (each .pin gets a string to the next). -->
+  <!-- The cork board. Notes with a .pin are linked by red yarn in the order they appear.
+       Decorative bits use .tack instead of .pin so the yarn skips them. -->
+  <div class="corkboard">
   <section class="board" aria-label="Evidence board">
 
-    <div class="note yellow" style="--r: -2.5deg">
+    <header class="poster">
+      <span class="strip" aria-hidden="true"></span>
+      <div class="lamp">ON AIR</div>
+      <h1>BACK<br>STAGE</h1>
+      <p class="tagline">WELcomE, to THE BACKstAGE?!!</p>
+    </header>
+
+    <div class="deco calendar" aria-hidden="true" style="--r: 3deg">
+      <i class="tack blue"></i>
+      <div class="cal-head">OCT</div>
+      <div class="cal-grid"><span></span><span></span><span></span><span></span><b>1</b><b>2</b><b>3</b><b>4</b><b>5</b><b>6</b><b>7</b><b>8</b><b>9</b><b>10</b><b>11</b><b>12</b><b>13</b><b>14</b><b>15</b><b>16</b><b>17</b><b>18</b><b>19</b><b>20</b><b>21</b><b>22</b><b>23</b><b>24</b><b>25</b><b>26</b><b>27</b><b>28</b><b>29</b><b>30</b><b>31</b></div>
+    </div>
+
+    <div class="note sticky yellow" style="--r: -2.5deg">
       <i class="pin"></i>
       <h2>Archive</h2>
       <p>YOU're NOT SUppoSED TO be HERE? INtruDER!!!?</p>
       <div class="label">Log reference only. Data stream SEC_01</div>
       <p>&gt; DISCord STUFF HAPPENING?! ConnECTING TO MainFRAME!!!<br>&gt; BACKstAGE?! YeAHHH!!!?</p>
     </div>
+
+    <div class="deco sticky teal small" aria-hidden="true" style="--r: 4deg"><i class="tack yellow"></i></div>
 
     <a class="note index" style="--r: 1.5deg" href="/backstage/frequency/">
       <i class="pin"></i>
@@ -53,18 +64,26 @@
     </a>
     <!-- Next room: copy the <a class="note"> block above, change CH number, title, text and href. -->
 
-    <div class="note blue" style="--r: -1.2deg">
+    <div class="deco polaroid" aria-hidden="true" style="--r: -5deg">
+      <span class="strip"></span>
+      <div class="photo"><i></i><i></i></div>
+      <div class="caption">him???</div>
+    </div>
+
+    <div class="note sticky blue" style="--r: -1.2deg">
       <i class="pin"></i>
       <h2>Access codes</h2>
       <p>NOTHING OVERRIDIng ME now?! YEAH Baby!!! Were cooking with BABIES NOW!!!</p>
     </div>
 
-    <div class="note pink" style="--r: 2.2deg">
+    <div class="note sticky pink" style="--r: 2.2deg">
       <i class="pin"></i>
       <h2>Host</h2>
       <p>TODD.OS</p>
       <span class="rubber">CLASSIFIED</span>
     </div>
+
+    <div class="deco torn" aria-hidden="true" style="--r: -2deg"><div class="torn-paper"></div><i class="tack green"></i></div>
 
     <!-- EMPTY SLOT. To open a new room, change <div> to <a href="/backstage/your-page/"> (and </div> to </a>),
          remove the word "empty" from the class, and edit the text. -->
@@ -74,9 +93,11 @@
       <h2>Unpatched</h2>
       <p>Nothing connected yet.</p>
     </div>
-  </section>
 
-  <div class="tape thin" role="presentation"></div>
+    <div class="deco sticky green small" aria-hidden="true" style="--r: -6deg"><i class="tack red"></i></div>
+  </section>
+  </div>
+
 
   <footer class="footer">
     <span>Render Productions</span>
