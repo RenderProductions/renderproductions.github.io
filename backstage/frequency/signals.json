@@ -111,6 +111,12 @@
       "actions": [
         {"type": "text", "text": "I HATE!!! The WOlF."}
       ]
+    },
+    "CEDAR": {
+      "actions": [
+        {"type": "sound", "src": "/backstage/audio/2xzb.mp3", "await": "true" },
+        {"type": "redirect", "to": "/"}
+      ]
     }
   }
 }
