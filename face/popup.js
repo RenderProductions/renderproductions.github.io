@@ -312,6 +312,25 @@
     document.dispatchEvent(new CustomEvent('renderpopup:close'));
   }
 
+  // The XP error "bum" when a popup appears. Browsers only allow it after the visitor has
+  // clicked or pressed something on the page, so the very first popup may be silent.
+  // Turn it off from the console with RenderPopup.sound(false) (remembered in this browser).
+  var SOUND_KEY = 'rvPopupSound', soundOn = true, lastBum = 0, bum = null;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) {}
+  function playBum() {
+    if (!soundOn) return;
+    var now = Date.now();
+    if (now - lastBum < 350) return;          // a burst of popups (the Konami code) only bums once
+    lastBum = now;
+    try {
+      bum = bum || new Audio('/face/media/xp-error.mp3');
+      bum.volume = 0.55;
+      bum.currentTime = 0;
+      var p = bum.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
   function spawn(opts) {
     opts = opts || {};
     if (open.length >= MAX_OPEN) return null;
@@ -339,6 +358,7 @@
     msgEl.textContent = fill(opts.message || pick(local ? page.lines : MESSAGES));
     document.body.appendChild(win);
     open.push(win);
+    if (!opts.silent) playBum();
     if (typeof opts.x === 'number') place(win, opts.x, opts.y); else randomSpot(win);
     if (baseMood === 'angry') setMood(win, 'angry');
     shake(win);
@@ -400,7 +420,15 @@
     if (e.key === 'Escape' && open.length) close(open[open.length - 1]);
   });
 
-  window.RenderPopup = { spawn: spawn, count: function () { return open.length; } };
+  window.RenderPopup = {
+    spawn: spawn,
+    count: function () { return open.length; },
+    sound: function (on) {
+      soundOn = on !== false;
+      try { localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off'); } catch (e) {}
+      return soundOn;
+    }
+  };
 
   // Load the Easter eggs (come-back titles, Konami code) on every page that has popups.
   var eggs = document.createElement('script');
