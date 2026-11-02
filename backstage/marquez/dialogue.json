@@ -147,7 +147,7 @@
           "face": "point"
         },
         "Well, I haven't seen that thing in so long, I couldn't tell you with any sort of certainty what it does.",
-        "[gray]Unless... [yellow]No, he didn't[/]"
+        "Unless... [yellow]No, he didn't[/]"
       ],
       "next": "advice"
     },
@@ -172,7 +172,7 @@
           "text": "He [red]ruined",
           "face": "angry"
         },
-        "[shake][red] E V E R Y T H I N G ! ! ! !",
+        "[red][shake] E V E R Y T H I N G ! ! ! !",
         "Don't listen to him. Ever! He lies!",
         "[gray]Lies . . .[/]"
       ],
