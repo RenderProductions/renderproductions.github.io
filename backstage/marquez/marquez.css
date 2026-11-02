@@ -16,9 +16,9 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 
 /* Marquez behind the desk: the desk covers him from the chest down */
 .scene { position: absolute; left: 50%; bottom: calc(22px + var(--boxh) + 10px); transform: translateX(-50%);
-  width: min(620px, 94vw, calc((100dvh - var(--boxh) - 80px) * 1.42)); aspect-ratio: 541 / 246; }
+  width: min(620px, 94vw, calc((100dvh - var(--boxh) - 80px) * 1.27)); aspect-ratio: 541 / 246; }
 .scene .desk { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; display: block; filter: drop-shadow(0 18px 24px rgba(0,0,0,.7)); }
-.scene .him { position: absolute; left: 50%; bottom: 37%; width: 40%; transform: translateX(-50%); transform-origin: 50% 100%;
+.scene .him { position: absolute; left: 50%; bottom: 47%; width: 40%; transform: translateX(-50%); transform-origin: 50% 100%;
   filter: brightness(.8) drop-shadow(0 0 30px rgba(0,0,0,.6)); animation: breathe 4.5s ease-in-out infinite; }
 @keyframes breathe { 50% { transform: translateX(-50%) scaleY(1.012) } }
 .room.talking .scene .him { animation: talk .3s steps(2) infinite; }
