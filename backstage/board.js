@@ -86,9 +86,14 @@
   var mug = document.getElementById('mug-btn');
   var sip = document.getElementById('sip');
   if (mug && sip) {
+    // Sip and swallow sound (owlstorm on Freesound). The swallow lands right after the mug tips.
+    var gulp = new Audio('/backstage/media/sip.mp3');
+    gulp.preload = 'auto';
+    gulp.volume = 0.8;
     mug.addEventListener('click', function () {
       if (document.body.classList.contains('sipping')) return;
       document.body.classList.add('sipping');
+      try { gulp.currentTime = 0; var p = gulp.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
     });
     sip.addEventListener('animationend', function () {
       document.body.classList.remove('sipping');
