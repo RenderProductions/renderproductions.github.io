@@ -10,6 +10,7 @@
   var him = document.getElementById('him');
   var prompt = document.getElementById('prompt');
   var box = document.getElementById('box');
+  var plate = document.getElementById('plate');
   var textEl = document.getElementById('text');
   var choicesEl = document.getElementById('choices');
   var muteBtn = document.getElementById('mute');
@@ -35,22 +36,21 @@
     });
   }
 
-  // ---- art: art/marquez.svg normally; art/marquez-<face>.svg (or .png) for expressions ----
-  var current = '';
-  function useArt(face) {
-    face = face || '';
-    if (face === current) return;
-    current = face;
-    if (!face) { him.src = 'art/marquez.svg'; return; }
-    var exts = ['svg', 'png'];
-    (function tryNext() {
-      var ext = exts.shift();
-      if (!ext) { if (current === face) him.src = 'art/marquez.svg'; return; }
-      var src = 'art/marquez-' + face + '.' + ext, probe = new Image();
-      probe.onload = function () { if (current === face) him.src = src; };
-      probe.onerror = tryNext;
-      probe.src = src;
-    })();
+  // ---- art ----
+  // art/marquez.svg is his normal look; art/marquez-<face>.svg are expressions.
+  // While he talks with his normal face, his mouth flaps between talk1 and talk2.
+  var face = '', mouth = 0, flapAt = 0;
+  function artSrc(f) { return 'art/marquez' + (f ? '-' + f : '') + '.svg'; }
+  ['', 'talk1', 'talk2', 'smile', 'angry', 'point'].forEach(function (f) { new Image().src = artSrc(f); });
+  him.addEventListener('error', function () { if (him.getAttribute('src') !== artSrc('')) him.src = artSrc(''); });
+  function show(f) { var src = artSrc(f); if (him.getAttribute('src') !== src) him.src = src; }
+  function useArt(f) { face = f || ''; show(face); }
+  function flap() {
+    if (face) return;                       // expressions hold still; only his normal face talks
+    var now = Date.now();
+    if (now - flapAt < 90) return;
+    flapAt = now; mouth = (mouth + 1) % 2;
+    show(mouth ? 'talk1' : 'talk2');
   }
 
   // ---- voice: a short blip per letter, like Undertale ----
@@ -122,6 +122,7 @@
     if (shown >= chars.length) { finishTyping(); return; }
     var c = chars[shown++];
     c.el.classList.add('on');
+    if (/[A-Za-z0-9]/.test(c.ch)) flap(); else if (c.wait && !face) show('');
     if (/[A-Za-z0-9]/.test(c.ch) && shown % ((DATA.voice && DATA.voice.every) || 2) === 1) blip();
     timer = setTimeout(typeNext, speed + c.wait);
   }
@@ -131,6 +132,7 @@
     shown = chars.length;
     typing = false;
     room.classList.remove('talking');
+    show(face);
     if (!queue.length && node && node.choices) showChoices();
     else box.classList.add('done');
   }
@@ -139,6 +141,7 @@
   function say(line) {
     if (typeof line === 'string') line = { text: line };
     useArt(line.face || (node && node.face) || '');
+    plate.textContent = line.name || (node && node.name) || DATA.name || 'MARQUEZ';
     speed = reduce ? 0 : (line.speed || (node && node.speed) || DATA.speed || 32);
     box.classList.remove('done', 'choosing');
     var t = (line.text || '').trim();
