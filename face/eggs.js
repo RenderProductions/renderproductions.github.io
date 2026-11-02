@@ -323,14 +323,14 @@
   // sound identical. Sound only works after the visitor has clicked or pressed something.
   // Shares the on/off switch with the popups: RenderPopup.sound(false) silences these too.
   var sfxPlaying = 0;
-  function sfx(src, volume, maxAtOnce) {
+  function sfx(src, volume, maxAtOnce, rate) {
     try { if (localStorage.getItem('rvPopupSound') === 'off') return; } catch (e) {}
     if (sfxPlaying >= maxAtOnce) return;
     try {
       var a = new Audio(src);
       a.volume = volume;
       a.preservesPitch = false;
-      a.playbackRate = 0.9 + Math.random() * 0.25;
+      a.playbackRate = (rate || 1) * (0.9 + Math.random() * 0.25);
       sfxPlaying++;
       var done = function () { sfxPlaying = Math.max(0, sfxPlaying - 1); };
       a.addEventListener('ended', done);
@@ -425,6 +425,8 @@
       body.querySelector('.pk-o').setAttribute('opacity', '1');
       body.querySelector('.pk-led').setAttribute('fill', '#ff4d4d');
       wrap.classList.add('found');
+      // Spotted: his own chirp, sped way up into a startled "eep!"
+      sfx('/face/media/peek.mp3', 0.5, 5, 1.75);
 
       // Speech bubble, upright, a little inside the screen from where he was.
       var bubble = document.createElement('div');
