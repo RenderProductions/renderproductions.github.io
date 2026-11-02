@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>...</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="marquez.css?v=4">
+<link rel="stylesheet" href="marquez.css?v=5">
 </head>
 <body>
 <!-- A dark room. Marquez sits behind his desk. Dialogue lives in dialogue.json; art goes in art/. -->
@@ -29,6 +29,12 @@
     <div class="plate" id="plate">MARQUEZ</div>
     <div class="text" id="text"></div>
     <ul class="choices" id="choices" hidden></ul>
+    <form class="answer" id="answer" hidden autocomplete="off">
+      <label class="sr-only" for="answer-in">What did you find?</label>
+      <span class="caret" aria-hidden="true">&rsaquo;</span>
+      <input id="answer-in" type="text" maxlength="40" spellcheck="false" autocapitalize="characters" placeholder="what did you find?">
+      <button type="submit">SHOW HIM</button>
+    </form>
     <span class="more" id="more" aria-hidden="true">&#9662;</span>
   </section>
 
@@ -36,6 +42,6 @@
   <a class="leave" href="/backstage/">&larr; back</a>
 </main>
 <noscript><p class="nojs">(It's too dark to talk without JavaScript.)</p></noscript>
-<script src="marquez.js?v=4"></script>
+<script src="marquez.js?v=5"></script>
 </body>
 </html>

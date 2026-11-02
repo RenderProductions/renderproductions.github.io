@@ -1,5 +1,5 @@
 {
-  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then either 'choices' (a menu), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.png or type slower. A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked).  A line wrapped in (parentheses) is narration: no nameplate, in italics. Faces: smile, angry, point. Each face talks on its own using its -talk1/-talk2 art. 'name' is the nameplate; a line or node can set its own \\\"name\\\". 'returning' is where he starts for someone who has talked to him before.",
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use).",
   "name": "MARQUEZ",
   "voice": {
     "pitch": 92,
@@ -10,6 +10,19 @@
   "speed": 34,
   "start": "hello",
   "returning": "again",
+  "finds": {
+    "CEDAR": "find_cedar",
+    "CEDAR MARQUEZ": "find_cedar",
+    "TODD": "find_todd",
+    "TODD.OS": "find_todd",
+    "HELLO": "find_todd",
+    "HELP": "find_todd",
+    "LEAVE": "find_todd",
+    "WHAT HAPPENED?": "find_todd",
+    "404": "find_404",
+    "R!404": "find_404"
+  },
+  "findMiss": "found_nothing",
   "nodes": {
     "hello": {
       "say": [
@@ -74,7 +87,7 @@
     "who": {
       "say": [
         {
-          "text": "Marquez.^3 Mr. Marquez",
+          "text": "Marquez.^3 Mr. Marquez.",
           "face": "smile"
         },
         "Any other names attract too much noise.",
@@ -102,10 +115,10 @@
     },
     "place": {
       "say": [
-        "We are in the back-backstage![/]^5",
-        "[grey] I think, anyway...",
+        "We are in the back-backstage!^5",
+        "[gray]I think, anyway...[/]",
         {
-          "text": "Everything up there is on display.[/]^9 Everything down here is [gold]abandoned[/].",
+          "text": "Everything up there is on display.^9 Everything down here is [gold]abandoned[/].",
           "face": "point"
         }
       ],
@@ -147,7 +160,7 @@
           "face": "point"
         },
         "Well, I haven't seen that thing in so long, I couldn't tell you with any sort of certainty what it does.",
-        "Unless... [yellow]No, he didn't[/]"
+        "Unless...^3 [yellow]No, he didn't.[/]"
       ],
       "next": "advice"
     },
@@ -165,14 +178,17 @@
     "adv_todd": {
       "say": [
         {
-          "text": "[shake]Todd.[/]",
+          "text": "[shake]TODD.[/]",
           "face": "angry"
         },
         {
-          "text": "He [red]ruined",
+          "text": "He [red]ruined[/]...",
           "face": "angry"
         },
-        "[red][shake] E V E R Y T H I N G ! ! ! !",
+        {
+          "text": "[red][shake]E V E R Y T H I N G ! ! ! ![/]",
+          "face": "angry"
+        },
         "Don't listen to him. Ever! He lies!",
         "[gray]Lies . . .[/]"
       ],
@@ -182,12 +198,11 @@
       "say": [
         "Did you, now.",
         {
-          "text": "Not yet, I think.^3 Come back when your hands are shaking.",
-          "face": "smile"
-        },
-        "You'll know soon enough, young one.[/]"
+          "text": "Go on, then.^2 Show me.",
+          "face": "point"
+        }
       ],
-      "next": "ask"
+      "ask": "ask"
     },
     "bye": {
       "say": [
@@ -197,6 +212,79 @@
         },
         "(He settles back into the dark.)"
       ]
+    },
+    "found_nothing": {
+      "say": [
+        "...^3 Hm.",
+        {
+          "text": "Not yet, I think.^3 Come back when your hands are shaking.",
+          "face": "smile"
+        },
+        "You'll know soon enough, young one."
+      ],
+      "next": "ask"
+    },
+    "find_cedar": {
+      "flag": "marquez_cedar",
+      "repeat": "find_cedar_again",
+      "say": [
+        "(He goes very still.)",
+        {
+          "text": "...^5 Where did you hear that?",
+          "face": "angry",
+          "speed": 56
+        },
+        "No.^2 Don't tell me. Someone's been talking on that frequency again.",
+        {
+          "text": "Cedar.^4 Yes.^3 That was me, once.",
+          "speed": 46
+        },
+        {
+          "text": "Keep it between us, would you? [yellow]Names carry, down here.[/]",
+          "face": "smile"
+        }
+      ],
+      "next": "ask"
+    },
+    "find_cedar_again": {
+      "say": [
+        {
+          "text": "Once was enough, friend.",
+          "face": "angry"
+        },
+        {
+          "text": "[gray]Names carry.[/]",
+          "face": "smile"
+        }
+      ],
+      "next": "ask"
+    },
+    "find_todd": {
+      "say": [
+        {
+          "text": "...^3 That's his voice. I'd know it anywhere.",
+          "face": "angry"
+        },
+        "Whatever he said, he wants something from you.",
+        {
+          "text": "[red]Don't give it to him.[/]",
+          "face": "point"
+        }
+      ],
+      "next": "ask"
+    },
+    "find_404": {
+      "say": [
+        {
+          "text": "The page that isn't there!^2 Ha!",
+          "face": "smile"
+        },
+        {
+          "text": "Did it tell you to go somewhere?^2 Then go. It doesn't say that to just anyone.",
+          "face": "point"
+        }
+      ],
+      "next": "ask"
     }
   }
 }

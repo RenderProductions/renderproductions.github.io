@@ -68,6 +68,7 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 @keyframes nudge { 50% { transform: translateY(3px) } }
 
 .choices { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 26px; margin-top: 14px; font-size: clamp(17px, 3vw, 21px); }
+.choices[hidden] { display: none; }
 .choices li { position: relative; padding: 3px 0 3px 22px; cursor: pointer; color: #9c917e; transition: color .12s; }
 .choices li::before { content: '\203A'; position: absolute; left: 4px; top: 1px; color: var(--amber); opacity: 0; transition: opacity .12s, transform .12s; transform: translateX(-4px); }
 .choices li.sel { color: #f3e7cc; }
@@ -87,3 +88,16 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 @media (prefers-reduced-motion: reduce) {
   .light, .prompt, .scene .him, .scene .pocket, .room.talking .scene .him, .text .shake.on, .text .wave.on, .box.done .more { animation: none; }
 }
+
+/* "I found something": the visitor types what they found */
+.answer { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(230,184,103,.25); cursor: text; }
+.answer[hidden] { display: none; }
+.answer .caret { color: var(--amber); font-size: 22px; line-height: 1; }
+.answer input { flex: 1; min-width: 0; background: transparent; border: 0; border-bottom: 1px solid rgba(230,184,103,.35); padding: 4px 2px;
+  font: clamp(17px, 3vw, 21px) var(--type); color: #f3e7cc; letter-spacing: 2px; text-transform: uppercase; caret-color: var(--amber); }
+.answer input::placeholder { color: #5c5345; text-transform: none; letter-spacing: 0; }
+.answer input:focus { outline: none; border-bottom-color: var(--amber); }
+.answer button { font: 500 11px var(--mono); letter-spacing: 3px; color: #2a1b08; background: linear-gradient(180deg, #f1d28e, #b88a3e);
+  border: 1px solid #6e4f1c; border-radius: 2px; padding: 6px 10px; cursor: pointer; }
+.answer button:hover, .answer button:focus-visible { filter: brightness(1.12); outline: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }

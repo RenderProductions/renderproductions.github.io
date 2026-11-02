@@ -3,6 +3,7 @@
 //
 // Controls: Z / Enter / Space = next or pick, X / Shift = finish the line now,
 // arrow keys = move between choices, M = sound on or off. Tapping works too.
+// When he asks what you found, type it and press Enter (Esc or an empty answer backs out).
 (function () {
   'use strict';
 
@@ -13,6 +14,8 @@
   var plate = document.getElementById('plate');
   var textEl = document.getElementById('text');
   var choicesEl = document.getElementById('choices');
+  var answerEl = document.getElementById('answer');
+  var answerIn = document.getElementById('answer-in');
   var muteBtn = document.getElementById('mute');
 
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -20,6 +23,7 @@
   var queue = [], node = null;      // lines left in the current node
   var chars = [], shown = 0, timer = 0, typing = false, speed = 32;
   var options = [], sel = 0;
+  var asking = false;               // waiting for the visitor to type something
 
   // ---- memory: what this visitor has already heard (their browser only) ----
   var SEEN_KEY = 'rvMarquezSeen', MUTE_KEY = 'rvMarquezMute';
@@ -34,6 +38,15 @@
     return [].concat(req).every(function (r) {
       return r.charAt(0) === '!' ? !seen[r.slice(1)] : !!seen[r];
     });
+  }
+
+  // ---- shared flags (same 'rp_flags' the frequency scanner and RFT use) ----
+  function setFlag(name) {
+    if (!name) return;
+    try {
+      var f = JSON.parse(localStorage.getItem('rp_flags')) || {};
+      if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); }
+    } catch (e) {}
   }
 
   // ---- art ----
@@ -94,6 +107,7 @@
       var ch = str.charAt(i);
       if (ch === '[') {
         var end = str.indexOf(']', i), tag = end > 0 ? str.slice(i + 1, end) : '';
+        if (tag === 'grey') tag = 'gray';
         if (tag === '/') { stack.pop(); i = end + 1; continue; }
         if (STYLES[tag]) { stack.push(tag); i = end + 1; continue; }
       }
@@ -143,7 +157,8 @@
     typing = false;
     room.classList.remove('talking');
     show(face);
-    if (!queue.length && node && node.choices) showChoices();
+    if (!queue.length && node && node.ask) openAnswer();
+    else if (!queue.length && node && node.choices) showChoices();
     else box.classList.add('done');
   }
 
@@ -154,6 +169,7 @@
     plate.textContent = line.name || (node && node.name) || DATA.name || 'MARQUEZ';
     speed = reduce ? 0 : (line.speed || (node && node.speed) || DATA.speed || 32);
     box.classList.remove('done', 'choosing');
+    closeAnswer();
     var t = (line.text || '').trim();
     box.classList.toggle('narrate', line.narrate != null ? !!line.narrate : (t.charAt(0) === '(' && t.charAt(t.length - 1) === ')'));
     choicesEl.hidden = true;
@@ -166,7 +182,9 @@
   function go(id) {
     var n = DATA.nodes[id];
     if (!n) { console.warn('[marquez] no node called "' + id + '"'); return end(); }
-    node = n; options = []; remember(id);
+    // Already heard it, and there's a shorter version for next time? Use that instead.
+    if (n.repeat && seen[id] && DATA.nodes[n.repeat] && n.repeat !== id) return go(n.repeat);
+    node = n; options = []; remember(id); setFlag(n.flag);
     queue = [].concat(n.say || []);
     if (!queue.length) queue = [''];
     say(queue.shift());
@@ -206,6 +224,45 @@
     if (c) go(c.to);
   }
 
+  // ---- "I found something": the visitor types what they found ----
+  // A node with "ask" opens a text box after its lines. What they type is looked up in
+  // DATA.finds (code -> node). No match goes to DATA.findMiss. Typing nothing goes back to "ask".
+  function norm(v) { return String(v || '').trim().replace(/\s+/g, ' ').toUpperCase(); }
+  var FINDS = null;
+  function findsTable() {
+    if (FINDS) return FINDS;
+    FINDS = {};
+    Object.keys(DATA.finds || {}).forEach(function (k) { FINDS[norm(k)] = DATA.finds[k]; });
+    return FINDS;
+  }
+  function openAnswer() {
+    asking = true;
+    box.classList.add('choosing');
+    answerIn.value = '';
+    answerEl.hidden = false;
+    setTimeout(function () { try { answerIn.focus({ preventScroll: true }); } catch (e) { answerIn.focus(); } }, 0);
+  }
+  function closeAnswer() {
+    asking = false;
+    answerEl.hidden = true;
+    if (document.activeElement === answerIn) answerIn.blur();
+  }
+  function submitAnswer() {
+    if (!asking) return;
+    var v = norm(answerIn.value);
+    var back = node.ask === true ? 'ask' : node.ask;
+    closeAnswer();
+    if (!v) return go(back || DATA.returning || DATA.start);
+    var to = findsTable()[v] || (v.replace(/[.!?]+$/, '') && findsTable()[v.replace(/[.!?]+$/, '')]);
+    go(to || DATA.findMiss || back);
+  }
+  answerEl.addEventListener('submit', function (e) { e.preventDefault(); e.stopPropagation(); submitAnswer(); });
+  answerEl.addEventListener('click', function (e) { e.stopPropagation(); });
+  answerIn.addEventListener('keydown', function (e) {
+    e.stopPropagation();   // typing Z, M or space here is just typing
+    if (e.key === 'Escape') { e.preventDefault(); answerIn.value = ''; submitAnswer(); }
+  });
+
   function start() {
     if (!DATA || talking) return;
     talking = true;
@@ -216,6 +273,7 @@
   }
   function end() {
     talking = false; node = null; queue = [];
+    closeAnswer();
     box.hidden = true;
     useArt('');
     prompt.textContent = 'press Z or tap to talk again';
@@ -226,31 +284,36 @@
   function primary() {
     if (!talking) return start();
     if (typing) return finishTyping();
+    if (asking) return;
     if (box.classList.contains('choosing')) return choose();
     advance();
   }
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    var k = e.key.toLowerCase();
+    if (e.target.closest && e.target.closest('a, button, input')) return;   // let Enter follow "back", etc.
+    var k = (e.key || '').toLowerCase();
     if (k === 'm') { toggleMute(); return; }
     if (k === 'z' || k === 'enter' || k === ' ') { e.preventDefault(); if (!e.repeat) primary(); return; }
     if ((k === 'x' || k === 'shift') && typing) { finishTyping(); return; }
-    if (box.classList.contains('choosing')) {
+    if (box.classList.contains('choosing') && !asking) {
       var cols = getComputedStyle(choicesEl).gridTemplateColumns.split(' ').length;
       var d = { arrowleft: -1, arrowright: 1, arrowup: -cols, arrowdown: cols }[k];
       if (d) { e.preventDefault(); pick(sel + d); }
     }
   });
   room.addEventListener('click', function (e) {
-    if (e.target.closest('a, button')) return;
+    if (e.target.closest('a, button, form')) return;
+    // While choosing, only a tap on a choice itself picks (handled on the <li>),
+    // so a stray tap on the room can't choose the highlighted option by accident.
+    if (talking && !typing && box.classList.contains('choosing')) return;
     primary();
   });
   muteBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleMute(); });
 
   // ---- load his words ----
   fetch('dialogue.json?v=' + Date.now())
-    .then(function (r) { return r.json(); })
-    .then(function (d) { DATA = d; })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (d) { DATA = d; FINDS = null; })
     .catch(function (e) {
       console.warn('[marquez] dialogue.json did not load', e);
       prompt.textContent = '(He doesn\'t seem to want to talk right now.)';
