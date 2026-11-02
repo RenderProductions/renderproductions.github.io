@@ -70,10 +70,13 @@
       <div class="caption">him???</div>
     </div>
 
-    <div class="note sticky blue" style="--r: -1.2deg">
+    <!-- A notepad each visitor can write on. Saved in their own browser only (localStorage), never sent anywhere. -->
+    <div class="note sticky blue codes" style="--r: -1.2deg">
       <i class="pin"></i>
-      <h2>Access codes</h2>
-      <p>NOTHING OVERRIDIng ME now?! YEAH Baby!!! Were cooking with BABIES NOW!!!</p>
+      <h2><label for="codes-pad">Access codes</label></h2>
+      <p class="todd">NOTHING OVERRIDIng ME now?! YEAH Baby!!! Were cooking with BABIES NOW!!!</p>
+      <textarea id="codes-pad" class="pad" rows="5" maxlength="600" spellcheck="false" placeholder="jot down codes you find..."></textarea>
+      <div class="saved" id="codes-saved" aria-live="polite"></div>
     </div>
 
     <div class="note sticky pink" style="--r: 2.2deg">

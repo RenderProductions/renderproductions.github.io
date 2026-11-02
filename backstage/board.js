@@ -37,8 +37,28 @@
   }
   if (board && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     board.querySelectorAll('.note').forEach(function (n) {
-      ['pointerenter', 'pointerleave', 'focus', 'blur'].forEach(function (ev) { n.addEventListener(ev, track); });
+      ['pointerenter', 'pointerleave', 'focus', 'blur', 'focusin', 'focusout'].forEach(function (ev) { n.addEventListener(ev, track); });
     });
+  }
+
+  // Access codes notepad: whatever a visitor writes is kept in their own browser (never uploaded).
+  var pad = document.getElementById('codes-pad');
+  if (pad) {
+    var KEY = 'rvAccessCodes', saved = document.getElementById('codes-saved'), t = 0, hide = 0;
+    try { pad.value = localStorage.getItem(KEY) || ''; } catch (e) {}
+    pad.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(function () {
+        try {
+          localStorage.setItem(KEY, pad.value);
+          if (saved) { saved.textContent = 'saved'; saved.classList.add('on'); clearTimeout(hide); hide = setTimeout(function () { saved.classList.remove('on'); }, 1200); }
+        } catch (e) {
+          if (saved) { saved.textContent = "can't save in this browser"; saved.classList.add('on'); }
+        }
+      }, 400);
+    });
+    // Typing shouldn't trigger the desk's arrow-key shortcuts or Escape-to-look-up.
+    pad.addEventListener('keydown', function (e) { e.stopPropagation(); });
   }
 
   // Look down at the desk (drawers come into view) and back up at the board.
