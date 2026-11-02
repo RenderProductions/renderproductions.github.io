@@ -161,7 +161,7 @@
   var MAX_PEEKS = 12;            // most that can be on screen at once
   var GROUP_SIZES = [1, 1, 1, 2, 2, 3, 4]; // how many show up together (picked at random)
   var SWARM_CHANCE = 0.05;       // rare: all 12 at once
-  var FOUND_LINES = ['OH NO THEY FOUND ME!', 'ABORT! ABORT!', 'I WASN\'T HERE!', 'YOU SAW NOTHING!'];
+  var FOUND_LINES = ['OH NO THEY FOUND ME!', 'ABORT! ABORT!', 'I WASN\'T HERE!', 'YOU SAW NOTHING!', 'I WAS LOOKING AT THE SCENERY! I SWEAR!'];
 
   // What he blurts out when caught, per part of the site (longest match wins,
   // same idea as the popups). About 70% of the time he uses these; otherwise FOUND_LINES.
