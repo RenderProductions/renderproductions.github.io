@@ -1,53 +1,78 @@
 {
-  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then either 'choices' (a menu), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.png or type slower. A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before.",
-
-  "voice": { "pitch": 92, "wave": "square", "every": 2, "volume": 0.045 },
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then either 'choices' (a menu), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.png or type slower. A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked).  A line wrapped in (parentheses) is narration: no nameplate, in italics. 'returning' is where he starts for someone who has talked to him before.",
+  "voice": {
+    "pitch": 92,
+    "wave": "square",
+    "every": 2,
+    "volume": 0.045
+  },
   "speed": 34,
   "start": "hello",
   "returning": "again",
-
   "nodes": {
     "hello": {
       "say": [
-        "* (A gentleman is sitting in the dark.)",
-        { "text": "* ...^4 Ah.^3 A visitor.", "speed": 48 },
-        "* [gray](Placeholder. Render is writing what he says.)[/]"
+        "(A gentleman sits behind a desk in the dark.)",
+        {
+          "text": "...^4 Ah.^3 A visitor.",
+          "speed": 48
+        },
+        "[gray](Placeholder. Render is writing what he says.)[/]"
       ],
       "next": "ask"
     },
-
     "again": {
-      "say": ["* Back again.^2 [gray](placeholder)[/]"],
+      "say": [
+        "Back again.^2 [gray](placeholder)[/]"
+      ],
       "next": "ask"
     },
-
     "ask": {
-      "say": ["* What would you like to know?"],
+      "say": [
+        "What would you like to know?"
+      ],
       "choices": [
-        { "text": "Who are you?", "to": "who" },
-        { "text": "The story", "to": "story" },
-        { "text": "???", "to": "secret", "needs": "who" },
-        { "text": "Leave", "to": "bye" }
+        {
+          "text": "Who are you?",
+          "to": "who"
+        },
+        {
+          "text": "The story",
+          "to": "story"
+        },
+        {
+          "text": "???",
+          "to": "secret",
+          "needs": "who"
+        },
+        {
+          "text": "Leave",
+          "to": "bye"
+        }
       ]
     },
-
     "who": {
-      "say": ["* [gray](Placeholder: who he is.)[/]"],
+      "say": [
+        "[gray](Placeholder: who he is.)[/]"
+      ],
       "next": "ask"
     },
-
     "story": {
-      "say": ["* [gray](Placeholder: a hint about the story.)[/]"],
+      "say": [
+        "[gray](Placeholder: a hint about the story.)[/]"
+      ],
       "next": "ask"
     },
-
     "secret": {
-      "say": ["* [shake]...[/]^3 [gray](Placeholder: unlocked after asking who he is.)[/]"],
+      "say": [
+        "[shake]...[/]^3 [gray](Placeholder: unlocked after asking who he is.)[/]"
+      ],
       "next": "ask"
     },
-
     "bye": {
-      "say": ["* [gray](Placeholder goodbye.)[/]"]
+      "say": [
+        "[gray](Placeholder goodbye.)[/]"
+      ]
     }
   }
 }

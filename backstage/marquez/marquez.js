@@ -1,4 +1,4 @@
-// Marquez: an Undertale-style conversation in a dark room.
+// Marquez: a conversation with the gentleman behind the desk.
 // All of his words live in dialogue.json. This file only knows how to say them.
 //
 // Controls: Z / Enter / Space = next or pick, X / Shift = finish the line now,
@@ -8,8 +8,6 @@
 
   var room = document.getElementById('room');
   var him = document.getElementById('him');
-  var art = document.getElementById('art');
-  var shade = document.getElementById('shade');
   var prompt = document.getElementById('prompt');
   var box = document.getElementById('box');
   var textEl = document.getElementById('text');
@@ -37,20 +35,23 @@
     });
   }
 
-  // ---- art: art/marquez.png if it exists, the silhouette if not ----
-  var baseArt = false;
+  // ---- art: art/marquez.svg normally; art/marquez-<face>.svg (or .png) for expressions ----
+  var current = '';
   function useArt(face) {
-    var src = 'art/marquez' + (face ? '-' + face : '') + '.png';
-    if (art.dataset.src === src) return;
-    var probe = new Image();
-    probe.onload = function () {
-      art.src = src; art.dataset.src = src; art.hidden = false; shade.style.display = 'none';
-      if (!face) baseArt = true;
-    };
-    probe.onerror = function () { if (face) useArt(''); };
-    probe.src = src;
+    face = face || '';
+    if (face === current) return;
+    current = face;
+    if (!face) { him.src = 'art/marquez.svg'; return; }
+    var exts = ['svg', 'png'];
+    (function tryNext() {
+      var ext = exts.shift();
+      if (!ext) { if (current === face) him.src = 'art/marquez.svg'; return; }
+      var src = 'art/marquez-' + face + '.' + ext, probe = new Image();
+      probe.onload = function () { if (current === face) him.src = src; };
+      probe.onerror = tryNext;
+      probe.src = src;
+    })();
   }
-  useArt('');
 
   // ---- voice: a short blip per letter, like Undertale ----
   var actx = null, muted = false;
@@ -129,7 +130,7 @@
     chars.forEach(function (c) { c.el.classList.add('on'); });
     shown = chars.length;
     typing = false;
-    him.classList.remove('talking');
+    room.classList.remove('talking');
     if (!queue.length && node && node.choices) showChoices();
     else box.classList.add('done');
   }
@@ -140,10 +141,12 @@
     useArt(line.face || (node && node.face) || '');
     speed = reduce ? 0 : (line.speed || (node && node.speed) || DATA.speed || 32);
     box.classList.remove('done', 'choosing');
+    var t = (line.text || '').trim();
+    box.classList.toggle('narrate', line.narrate != null ? !!line.narrate : (t.charAt(0) === '(' && t.charAt(t.length - 1) === ')'));
     choicesEl.hidden = true;
     render(parse(line.text || ''));
     typing = true;
-    him.classList.add('talking');
+    room.classList.add('talking');
     if (speed === 0) finishTyping(); else typeNext();
   }
 
@@ -202,7 +205,7 @@
     talking = false; node = null; queue = [];
     box.hidden = true;
     useArt('');
-    prompt.textContent = '[ Z ] or tap to talk again';
+    prompt.textContent = 'press Z or tap to talk again';
     prompt.hidden = false;
   }
 
@@ -237,6 +240,6 @@
     .then(function (d) { DATA = d; })
     .catch(function (e) {
       console.warn('[marquez] dialogue.json did not load', e);
-      prompt.textContent = '* (He doesn\'t seem to want to talk right now.)';
+      prompt.textContent = '(He doesn\'t seem to want to talk right now.)';
     });
 })();
