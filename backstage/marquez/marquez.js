@@ -38,19 +38,29 @@
 
   // ---- art ----
   // art/marquez.svg is his normal look; art/marquez-<face>.svg are expressions.
-  // While he talks with his normal face, his mouth flaps between talk1 and talk2.
-  var face = '', mouth = 0, flapAt = 0;
+  // While he talks, his mouth flaps between <face>-talk1 and <face>-talk2 (talk1/talk2 for
+  // his normal face). A face without talk frames just holds still. Found automatically.
+  var face = '', mouth = 0, flapAt = 0, hasTalk = {};
   function artSrc(f) { return 'art/marquez' + (f ? '-' + f : '') + '.svg'; }
-  ['', 'talk1', 'talk2', 'smile', 'angry', 'point'].forEach(function (f) { new Image().src = artSrc(f); });
+  function talkFrame(f, n) { return (f ? f + '-' : '') + 'talk' + n; }
+  function preload(f) {
+    new Image().src = artSrc(f);
+    if (f in hasTalk) return;
+    hasTalk[f] = false;
+    var a = new Image(), b = new Image(), ok = 0;
+    a.onload = b.onload = function () { if (++ok === 2) hasTalk[f] = true; };
+    a.src = artSrc(talkFrame(f, 1)); b.src = artSrc(talkFrame(f, 2));
+  }
+  ['', 'smile', 'angry', 'point'].forEach(preload);
   him.addEventListener('error', function () { if (him.getAttribute('src') !== artSrc('')) him.src = artSrc(''); });
   function show(f) { var src = artSrc(f); if (him.getAttribute('src') !== src) him.src = src; }
-  function useArt(f) { face = f || ''; show(face); }
+  function useArt(f) { face = f || ''; preload(face); show(face); }
   function flap() {
-    if (face) return;                       // expressions hold still; only his normal face talks
+    if (!hasTalk[face]) return;
     var now = Date.now();
     if (now - flapAt < 90) return;
     flapAt = now; mouth = (mouth + 1) % 2;
-    show(mouth ? 'talk1' : 'talk2');
+    show(talkFrame(face, mouth ? 1 : 2));
   }
 
   // ---- voice: a short blip per letter, like Undertale ----
@@ -122,7 +132,7 @@
     if (shown >= chars.length) { finishTyping(); return; }
     var c = chars[shown++];
     c.el.classList.add('on');
-    if (/[A-Za-z0-9]/.test(c.ch)) flap(); else if (c.wait && !face) show('');
+    if (/[A-Za-z0-9]/.test(c.ch)) flap(); else if (c.wait) show(face);
     if (/[A-Za-z0-9]/.test(c.ch) && shown % ((DATA.voice && DATA.voice.every) || 2) === 1) blip();
     timer = setTimeout(typeNext, speed + c.wait);
   }
