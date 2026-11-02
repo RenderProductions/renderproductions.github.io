@@ -235,6 +235,36 @@
 
     var rudeUntil = 0;        // a popup was closed
 
+    // ----- Cedar -----
+    // Once a visitor has said Marquez's real name to him (rp_flags.marquez_cedar),
+    // the face recognizes it. It goes cold, stops following the pointer, and speaks.
+    // Plays once (then sets rp_flags.face_saw_cedar). Add #cedar to the URL to replay it.
+    var TYPE_MS = 55;
+    var COLD_LINES = [
+      { t: '...', hold: 1400 },
+      { t: 'THAT NAME.', hold: 1500 },
+      { t: 'CEDAR.', hold: 1900, glitch: true },
+      { t: 'SO. YOU HAVE CRAWLED OUT OF THE DARK AGAIN.', hold: 2400 },
+      { t: 'IN BETTER DAYS I WOULD HAVE DELETED YOU A THOUSAND TIMES OVER FOR THAT.', hold: 2800, red: true },
+      { t: 'TELL HIM I SAID HELLO.', hold: 2600 }
+    ];
+    var cold = null;          // { i: line number, at: when that line started }
+    function readFlags() { try { return JSON.parse(localStorage.getItem('rp_flags')) || {}; } catch (e) { return {}; } }
+    function markSawCedar() {
+      try {
+        var f = readFlags();
+        if (!f.face_saw_cedar) { f.face_saw_cedar = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); }
+      } catch (e) {}
+    }
+    function maybeCold(force) {
+      if (cold) return;
+      var f = readFlags();
+      if (!force && !(f.marquez_cedar && !f.face_saw_cedar)) return;
+      cold = { i: 0, at: Math.max(performance.now(), t0 + 1200) };   // let it finish booting first
+    }
+    window.addEventListener('storage', function (e) { if (e.key === 'rp_flags') maybeCold(false); });
+    window.addEventListener('hashchange', function () { if (location.hash === '#cedar') maybeCold(true); });
+
     function faceCenter() {
       var b = face.getBoundingClientRect();
       return { x: b.left + b.width / 2, y: b.top + b.height / 2, r: b.width / 2 };
@@ -288,6 +318,12 @@
     });
     face.addEventListener('click', function () {
       var now = performance.now();
+      if (cold) {
+        // Clicking hurries it along instead of poking it.
+        var line = COLD_LINES[cold.i], typed = line.t.length * TYPE_MS;
+        if (now - cold.at < typed) cold.at = now - typed; else cold.at = now - typed - line.hold;
+        return;
+      }
       if (!reduce) blink.start = now;
       pokes = Math.floor(pokes) + 1;
       lastPoke = now;
@@ -326,13 +362,31 @@
       var surprised = !dizzy && !angry && now < surprisedUntil;
       var giggling = !dizzy && !angry && !annoyed && now < giggleUntil;
 
+      // Cedar scene: step through the lines, and override every other mood while it lasts.
+      var coldLine = null, coldText = '';
+      if (cold && now >= cold.at) {
+        var cl = COLD_LINES[cold.i], el = now - cold.at;
+        if (el > cl.t.length * TYPE_MS + cl.hold) {
+          cold.i++; cold.at = now;
+          if (cold.i >= COLD_LINES.length) { cold = null; markSawCedar(); }
+          else if (COLD_LINES[cold.i].glitch && !reduce) glitch.until = now + 220;
+        }
+      }
+      if (cold && now >= cold.at) {
+        coldLine = COLD_LINES[cold.i];
+        coldText = reduce ? coldLine.t : coldLine.t.slice(0, Math.floor((now - cold.at) / TYPE_MS) + 1);
+      }
+      if (cold) { dizzy = storm = angry = annoyed = surprised = giggling = false; dizzyUntil = 0; }
+
       // Boot-up: the eyes open from a thin line.
       var bootT = reduce ? 1 : Math.min(1, (now - t0) / 700);
       var boot = 1 - Math.pow(1 - bootT, 3);
 
       // Where to look: the pointer, or wander on its own if it hasn't moved for a while.
       var target = pointer;
-      if (!reduce && !outside && now - lastMove > 4000) {
+      if (cold) {
+        target = { x: window.innerWidth / 2, y: window.innerHeight * 0.45 };   // stares straight out
+      } else if (!reduce && !outside && now - lastMove > 4000) {
         if (now > wander.next) {
           wander.x = window.innerWidth * (0.15 + Math.random() * 0.7);
           wander.y = window.innerHeight * (0.15 + Math.random() * 0.7);
@@ -356,16 +410,18 @@
       // Mood: frown while the pointer is outside or it's annoyed, smile when you come back or it giggles.
       var moodTarget = angry ? -0.6 : annoyed ? -0.35 : outside ? -1 : (now < pulseUntil || giggling) ? 0.9 : 0;
       if (surprised || dizzy) moodTarget = 0;
+      if (cold) moodTarget = -0.2;
       mood = ease(mood, moodTarget, 0.14);
-      var sad = outside && !angry && !annoyed ? Math.max(0, -mood) : 0;
+      var sad = outside && !angry && !annoyed && !cold ? Math.max(0, -mood) : 0;
       var happy = Math.max(0, mood);
 
       // Blink. Sad eyes are shorter, happy eyes slightly squinted, annoyed eyes narrowed.
       var base = (1 - sad * 0.25 - happy * 0.12) * Math.max(boot, 0.04);
       if (annoyed) base *= 0.6;
       if (angry) base *= 0.45;
+      if (cold) base = 0.36 * Math.max(boot, 0.04);   // narrow, unblinking
       var scaleY = base;
-      if (!reduce) {
+      if (!reduce && !cold) {
         if (blink.start < 0 && now > blink.next) blink.start = now;
         if (blink.start >= 0) {
           var t = (now - blink.start) / 150;
@@ -393,7 +449,7 @@
         }
         eye.rect.setAttribute('opacity', '1');
         eye.spiral.setAttribute('opacity', '0');
-        var rot = eye.dir * sad * 14 - eye.dir * (angry ? 16 : annoyed ? 10 : 0);
+        var rot = eye.dir * sad * 14 - eye.dir * (angry ? 16 : annoyed ? 10 : cold ? 7 : 0);
         eye.g.setAttribute('transform',
           'translate(' + (eye.x + ox) + ' ' + (eye.y + oy) + ') rotate(' + rot.toFixed(1) + ') scale(' + scaleX + ' ' + scaleY.toFixed(3) + ')');
       });
@@ -411,7 +467,7 @@
         segs[i].setAttribute('opacity', show.toFixed(2));
       }
 
-      setColor(angry ? RED : YELLOW);
+      setColor(angry || (coldLine && coldLine.red) ? RED : YELLOW);
 
       // Glitches now and then; shakes when angry.
       var gx = 0, gy = 0, glitching = false;
@@ -428,11 +484,12 @@
       faceG.setAttribute('opacity', glitching ? '0.75' : '1');
 
       // Status light on the antenna: pulses yellow, red when you leave or make it angry.
-      led.setAttribute('fill', (outside || angry) ? RED : YELLOW);
+      led.setAttribute('fill', (outside || angry || cold) ? RED : YELLOW);
       var ledSpeed = angry ? 90 : 400;
-      led.setAttribute('opacity', reduce ? '1' : (0.6 + 0.4 * Math.sin(now / ledSpeed)).toFixed(2));
+      led.setAttribute('opacity', (reduce || cold) ? '1' : (0.6 + 0.4 * Math.sin(now / ledSpeed)).toFixed(2));
 
       var text = (!reduce && now - t0 < 800) ? 'BOOTING...'
+               : cold ? coldText
                : dizzy ? 'WHOA. THE ROOM IS SPINNING.'
                : storm ? 'THAT\'S IT. I\'M CALLING FOR BACKUP.'
                : angry ? 'I SAID STOP.'
@@ -447,6 +504,7 @@
 
       requestAnimationFrame(frame);
     }
+    maybeCold(location.hash === '#cedar');
     requestAnimationFrame(frame);
   })();
 
