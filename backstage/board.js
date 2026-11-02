@@ -128,7 +128,7 @@
       e.preventDefault();
       var wasOpen = door.matches(':hover') || door.classList.contains('open');
       door.classList.add('open');
-      setTimeout(function () { location.href = door.href; }, still ? 0 : (wasOpen ? 150 : 600));
+      setTimeout(function () { location.href = door.href; }, still ? 0 : (wasOpen ? 120 : 400));
     });
     // Coming back with the browser's back button: shut it again.
     window.addEventListener('pageshow', function () { door.classList.remove('open'); });
