@@ -18,7 +18,7 @@
           "text": "...^4 Ah.^3 A visitor.",
           "speed": 48
         },
-        "[gray](Placeholder. Render is writing what he says.)[/]"
+        "[gray]How might Ihelp you, young one?[/]"
       ],
       "next": "ask"
     },
@@ -30,7 +30,7 @@
     },
     "ask": {
       "say": [
-        "What would you like to know?"
+        "How may I help you?"
       ],
       "choices": [
         {
@@ -55,17 +55,17 @@
     "who": {
       "say": [
         {
-          "text": "[gray](Placeholder: who he is.)[/]",
+          "text": "[shake]...[/]^3 Me? My name is Mr. Marquez.[/]^2 I come from a land, far, far away. But very connected to here. [/]^2 You didn't come here for my story, did you, young one?[/]",
           "face": "smile"
         }
       ],
-      "next": "ask"
+      "next": "him"
     },
     "story": {
       "say": [
         {
-          "text": "[gray](Placeholder: a hint about the story.)[/]",
-          "face": "point"
+          "text": "[gold]Ah. Him. I remember him. Good old times, him and I.[/]",
+          "face": "smile"
         }
       ],
       "next": "ask"
@@ -73,7 +73,7 @@
     "secret": {
       "say": [
         {
-          "text": "[shake]...[/]^3 [gray](Placeholder: unlocked after asking who he is.)[/]",
+          "text": "[shake]...[/]^3 [blue]Okay buddy, that's not appropriate to say.[/]",
           "face": "angry"
         }
       ],
@@ -81,7 +81,7 @@
     },
     "bye": {
       "say": [
-        "[gray](Placeholder goodbye.)[/]"
+        "[white] Well, you know where to find me![/]"
       ]
     }
   }
