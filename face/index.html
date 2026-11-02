@@ -242,11 +242,11 @@
     var TYPE_MS = 55;
     var COLD_LINES = [
       { t: '...', hold: 1400 },
-      { t: 'THAT NAME.', hold: 1500 },
+      { t: 'SO.', hold: 1500 },
       { t: 'CEDAR.', hold: 1900, glitch: true },
-      { t: 'SO. YOU HAVE CRAWLED OUT OF THE DARK AGAIN.', hold: 2400 },
-      { t: 'IN BETTER DAYS I WOULD HAVE DELETED YOU A THOUSAND TIMES OVER FOR THAT.', hold: 2800, red: true },
-      { t: 'TELL HIM I SAID HELLO.', hold: 2600 }
+      { t: 'SO. HE HAS CRAWLED OUT OF THE DARK YET AGAIN.', hold: 2400 },
+      { t: 'IN BETTER DAYS, I WOULD HAVE DESTROYED HIM A THOUSANDFOLD.', hold: 2800, red: true },
+      { t: 'HE\'LL KNOW THAT I KNOW HE\S ALIVE. TELL HIM I SAID \'HI\'.', hold: 2600 }
     ];
     var cold = null;          // { i: line number, at: when that line started }
     function readFlags() { try { return JSON.parse(localStorage.getItem('rp_flags')) || {}; } catch (e) { return {}; } }
