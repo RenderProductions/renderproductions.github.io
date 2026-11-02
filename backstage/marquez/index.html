@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>...</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="marquez.css?v=3">
+<link rel="stylesheet" href="marquez.css?v=4">
 </head>
 <body>
 <!-- A dark room. Marquez sits behind his desk. Dialogue lives in dialogue.json; art goes in art/. -->
@@ -15,8 +15,12 @@
 
   <div class="scene">
     <!-- art/marquez.svg is his normal look. Expressions: art/marquez-<face>.svg (or .png). -->
-    <img class="him" id="him" src="art/marquez.svg" alt="Marquez, sitting behind a desk">
+    <div class="him">
+      <img id="him" src="art/marquez.svg" alt="Marquez, sitting behind a desk">
+      <span class="pocket" aria-hidden="true"></span>
+    </div>
     <svg class="desk" viewBox="0 0 541.08 149.71" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><defs><linearGradient x1="238.5" y1="268" x2="238.5" y2="299" gradientUnits="userSpaceOnUse" id="deskShade"><stop offset="0" stop-color="#0d0702"/><stop offset="1" stop-color="#0d0702" stop-opacity="0"/></linearGradient></defs><g transform="translate(30.51028,-223.15)" fill-rule="nonzero" stroke-width="2.5" stroke-linejoin="miter" stroke-miterlimit="10"><path d="M-15,264.6l92,-36.2h325l92,36.2l1,107l-509.7423,-2.72829z" fill="#3f2410" stroke="#24140a" stroke-linecap="butt"/><path d="M-17.5,299v-31h512v31z" fill="url(#deskShade)" stroke="none" stroke-linecap="butt"/><path d="M-29.24581,262.62235l97.13966,-38.22235h343.15642l97.13966,38.22235l1.05587,18.97765l-538.21952,-2.8807z" fill="#5e3b22" stroke="#3b2516" stroke-linecap="butt"/><path d="M490.5,263l-497,0" fill="none" stroke="#3b2516" stroke-linecap="round"/></g></svg>
+    <div class="shroud" aria-hidden="true"></div>
   </div>
 
   <div class="prompt" id="prompt">press Z or tap to approach</div>

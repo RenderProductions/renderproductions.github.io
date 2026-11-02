@@ -18,6 +18,7 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 .scene { position: absolute; left: 50%; bottom: calc(22px + var(--boxh) + 10px); transform: translateX(-50%);
   width: min(620px, 94vw, calc((100dvh - var(--boxh) - 80px) * 1.27)); aspect-ratio: 541 / 246; }
 .scene .desk { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; display: block; filter: drop-shadow(0 18px 24px rgba(0,0,0,.7)); }
+.scene .him img { display: block; width: 100%; height: auto; }
 .scene .him { position: absolute; left: 50%; bottom: 47%; width: 58.04%; transform: translateX(-34.45%); transform-origin: 34.45% 100%;
   filter: brightness(.8) drop-shadow(0 0 30px rgba(0,0,0,.6)); animation: breathe 4.5s ease-in-out infinite; }
 @keyframes breathe { 50% { transform: translateX(-34.45%) scaleY(1.012) } }
@@ -26,6 +27,19 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 @keyframes talk {
   from { transform: translateX(-34.45%) translateY(0) scale(1.015, .985) }
   to   { transform: translateX(-34.45%) translateY(-7px) scale(.99, 1.012) } }
+
+/* something in his pocket, glowing a dark gold */
+.scene .pocket { position: absolute; left: 50.5%; top: 80%; width: 8.5%; aspect-ratio: 1.15; transform: translate(-50%, -30%); pointer-events: none; }
+.scene .pocket::before { content: ''; position: absolute; inset: -160% -130% -10%; pointer-events: none; z-index: 1; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 34% 30% at 50% 58%, rgba(240,190,84,.9), rgba(196,138,44,.5) 40%, rgba(150,100,28,.18) 70%, rgba(120,80,20,0) 100%);
+  animation: ember 5.5s ease-in-out infinite; }
+.scene .pocket::after { content: ''; position: absolute; inset: 22% 4% -40%; border-radius: 1px 1px 3px 3px;
+  background: linear-gradient(180deg, #8a5a2c, #5f3d1d); border: 1.5px solid #3e2713; box-shadow: inset 0 3px 3px -1px rgba(255,200,90,.55); }
+@keyframes ember { 0%,100% { opacity: .8 } 40% { opacity: 1 } 70% { opacity: .62 } }
+
+/* the bottom of the desk fades into the dark */
+.scene .shroud { position: absolute; left: -8%; right: -8%; bottom: -2px; height: 52%; pointer-events: none;
+  background: linear-gradient(180deg, rgba(5,4,3,0) 0%, rgba(5,4,3,.65) 45%, #050403 88%); }
 
 .prompt { position: absolute; bottom: 44px; left: 0; right: 0; text-align: center; font: 13px var(--mono); letter-spacing: 3px; text-transform: uppercase; color: #6d6252; animation: fade 2.6s ease-in-out infinite; }
 @keyframes fade { 50% { opacity: .35 } }
@@ -71,5 +85,5 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
   .choices { grid-template-columns: 1fr; gap: 0; margin-top: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .light, .prompt, .scene .him, .room.talking .scene .him, .text .shake.on, .text .wave.on, .box.done .more { animation: none; }
+  .light, .prompt, .scene .him, .scene .pocket, .room.talking .scene .him, .text .shake.on, .text .wave.on, .box.done .more { animation: none; }
 }
