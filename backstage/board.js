@@ -128,9 +128,105 @@
       e.preventDefault();
       var wasOpen = door.matches(':hover') || door.classList.contains('open');
       door.classList.add('open');
-      setTimeout(function () { location.href = door.href; }, still ? 0 : (wasOpen ? 120 : 400));
+      setTimeout(function () { location.href = door.href; }, still ? 0 : (wasOpen ? 150 : 520));
     });
     // Coming back with the browser's back button: shut it again.
-    window.addEventListener('pageshow', function () { door.classList.remove('open'); });
+    window.addEventListener('pageshow', function () { door.classList.remove('open'); if (door.tween) door.tween(); });
+
+    // ---- Tween between the two drawings ----
+    // Reads m-door.svg (shut) and m-door-open.svg (open) and slides every point of each shape
+    // from one to the other. Shapes are paired by colour and point count, in order. Anything
+    // in the open drawing with no partner (the black doorway) just sits behind the door.
+    // If the drawings ever stop matching, it quietly keeps the instant image swap instead.
+    var SHUT_SRC = '/backstage/media/m-door.svg', OPEN_SRC = '/backstage/media/m-door-open.svg';
+    var NUM = /-?\d*\.?\d+(?:e[-+]?\d+)?/gi;
+    function grab(url) { return fetch(url).then(function (r) { if (!r.ok) throw new Error(url); return r.text(); }); }
+    function shift(svg) {   // the drawing's own translate(x,y) on its first group
+      var g = svg.querySelector('g[transform]'), m = g && /translate\(\s*([-\d.e]+)[ ,]+([-\d.e]+)/i.exec(g.getAttribute('transform'));
+      return m ? [+m[1], +m[2]] : [0, 0];
+    }
+    function shapes(svg) {
+      return [].map.call(svg.querySelectorAll('path'), function (el) {
+        var d = el.getAttribute('d') || '';
+        return { el: el, d: d, nums: (d.match(NUM) || []).map(Number), key: (el.getAttribute('fill') || '') + '|' + (el.getAttribute('stroke') || '') };
+      });
+    }
+    // Only the opening M is absolute in these drawings; everything after it is relative.
+    function simple(d) { return /^\s*M/.test(d) && !/[A-LN-Z]/.test(d.replace(/^\s*M/, '')); }
+
+    Promise.all([grab(SHUT_SRC), grab(OPEN_SRC)]).then(function (txt) {
+      var parser = new DOMParser();
+      var shutDoc = parser.parseFromString(txt[0], 'image/svg+xml').documentElement;
+      var openDoc = parser.parseFromString(txt[1], 'image/svg+xml').documentElement;
+      if (shutDoc.nodeName !== 'svg' || openDoc.nodeName !== 'svg') return;
+      var a = shift(shutDoc), b = shift(openDoc), dx = b[0] - a[0], dy = b[1] - a[1];   // open coords -> shut coords
+
+      var shut = shapes(shutDoc), open = shapes(openDoc), used = {}, pairs = [], extras = [];
+      open.forEach(function (o) {
+        var match = -1;
+        for (var i = 0; i < shut.length; i++) {
+          if (!used[i] && shut[i].key === o.key && shut[i].nums.length === o.nums.length) { match = i; break; }
+        }
+        var nums = o.nums.slice();
+        if (!simple(o.d)) throw new Error('door: unsupported path');
+        nums[0] += dx; nums[1] += dy;
+        if (match < 0) { extras.push({ o: o, nums: nums }); return; }
+        if (!simple(shut[match].d)) throw new Error('door: unsupported path');
+        used[match] = 1;
+        pairs.push({ s: shut[match], from: shut[match].nums, to: nums, parts: shut[match].d.split(NUM) });
+      });
+      if (Object.keys(used).length !== shut.length) return;   // something in the shut door has no partner
+
+      // Build one live SVG from the shut drawing: doorway extras go right after the frame.
+      var live = shutDoc;
+      live.removeAttribute('width'); live.removeAttribute('height');
+      live.setAttribute('class', 'door-live'); live.setAttribute('aria-hidden', 'true');
+      var first = pairs.length ? pairs[0].s.el : null;
+      extras.forEach(function (x) {
+        var el = document.importNode(x.o.el, true);
+        el.setAttribute('d', x.o.d.split(NUM).reduce(function (out, part, i) { return out + part + (i < x.nums.length ? +x.nums[i].toFixed(3) : ''); }, ''));
+        if (first && first.parentNode) first.parentNode.insertBefore(el, first.nextSibling);
+      });
+      live = document.importNode(live, true);
+      // importNode copied the paths, so find them again inside the copy, in the same order.
+      var copies = live.querySelectorAll('path'), k = 0;
+      pairs.forEach(function (p) {
+        while (k < copies.length && copies[k].getAttribute('d') !== p.s.d) k++;
+        p.el = copies[k++];
+      });
+      if (pairs.some(function (p) { return !p.el; })) return;
+
+      door.insertBefore(live, door.firstChild);
+      door.classList.add('tweened');
+
+      var t = 0, goal = 0, raf = 0, last = 0;
+      function ease(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+      function draw() {
+        var e = ease(t);
+        pairs.forEach(function (p) {
+          var d = '';
+          for (var i = 0; i < p.parts.length; i++) {
+            d += p.parts[i];
+            if (i < p.from.length) d += +(p.from[i] + (p.to[i] - p.from[i]) * e).toFixed(3);
+          }
+          p.el.setAttribute('d', d);
+        });
+      }
+      function step(now) {
+        var dt = Math.min(64, now - (last || now)); last = now;
+        var speed = goal ? 1 / 420 : 1 / 340;   // ms: opening is a touch slower than shutting
+        t = goal > t ? Math.min(goal, t + dt * speed) : Math.max(goal, t - dt * speed);
+        draw();
+        if (t !== goal) raf = requestAnimationFrame(step); else { raf = 0; last = 0; }
+      }
+      door.tween = function () {
+        goal = (door.matches(':hover') || door.matches(':focus-visible') || door.classList.contains('open')) ? 1 : 0;
+        if (still) { t = goal; draw(); return; }
+        if (!raf && t !== goal) { last = 0; raf = requestAnimationFrame(step); }
+      };
+      ['pointerenter', 'pointerleave', 'focus', 'blur'].forEach(function (ev) { door.addEventListener(ev, function () { setTimeout(door.tween, 0); }); });
+      door.addEventListener('click', function () { setTimeout(door.tween, 0); });
+      draw();
+    }).catch(function (err) { console.warn('[door] kept the plain swap:', err); });
   }
 })();

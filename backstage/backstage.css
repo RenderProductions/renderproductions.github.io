@@ -253,3 +253,5 @@ body.lights-off .dark { opacity: 1; }
 .door .door-open { visibility: hidden; }
 .door:hover .door-shut, .door:focus-visible .door-shut, .door.open .door-shut { visibility: hidden; }
 .door:hover .door-open, .door:focus-visible .door-open, .door.open .door-open { visibility: visible; }
+.door .door-live { position: absolute; left: 0; top: 0; width: 100%; height: auto; display: block; overflow: visible; }
+.door.tweened img { display: none; }   /* JS morphs one drawing into the other instead of swapping */
