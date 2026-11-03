@@ -288,4 +288,37 @@
       draw();
     }).catch(function (err) { console.warn('[door] kept the plain swap:', err); });
   }
+
+  // CH 02: locked. The rusted key opens it (and it stays open after that).
+  // Without the key it rattles and stays shut.
+  var ch02 = document.getElementById('ch02');
+  if (ch02) {
+    var line = document.getElementById('ch02-line');
+    var calm = line ? line.textContent : '';
+    var readFlags = function () { try { return JSON.parse(localStorage.getItem('rp_flags')) || {}; } catch (e) { return {}; } };
+    var isOpen = function () { return !!readFlags().wonder_unlocked; };
+    var paintOpen = function () {
+      ch02.classList.add('unlocked');
+      ch02.setAttribute('aria-label', 'CH 02. The lock hangs open.');
+      if (line) line.textContent = 'The lock hangs open.';
+    };
+    if (isOpen()) paintOpen();
+    var hideAt = 0;
+    ch02.addEventListener('click', function (e) {
+      if (isOpen()) return;   // already open: just a link
+      e.preventDefault();
+      var hasKey = !!(window.RPInventory && RPInventory.has('rusted_key'));
+      if (hasKey) {
+        try { var f = readFlags(); f.wonder_unlocked = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); } catch (err) {}
+        ch02.classList.add('turning');
+        if (line) line.textContent = 'The rusted key turns.';
+        setTimeout(function () { paintOpen(); location.href = ch02.href; }, 1100);
+      } else {
+        ch02.classList.remove('rattle'); void ch02.offsetWidth; ch02.classList.add('rattle');
+        if (line) line.textContent = 'Locked. The keyhole is rusted.';
+        clearTimeout(hideAt);
+        hideAt = setTimeout(function () { if (!isOpen() && line) line.textContent = calm; }, 2600);
+      }
+    });
+  }
 })();

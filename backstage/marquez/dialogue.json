@@ -366,9 +366,10 @@
         "This opened a front door, once. Warm inside. Somebody waiting up.",
         "Nobody remembers which street.^3 Not even the door.",
         {
-          "text": "[gray]Keep it.^2 Somebody ought to remember.[/]",
+          "text": "[gray]Keep it.^2 Bring it to someone who knows.[/]",
           "face": "smile"
-        }
+        },
+        "(His eyes flick up, past you, toward the board.)"
       ],
       "repeat": "show_again",
       "next": "found_more"
@@ -387,9 +388,10 @@
         "This opened a front door, once. Warm inside. Somebody waiting up.",
         "Nobody remembers which street.^3 Not even the door.",
         {
-          "text": "[gray]Keep it.^2 Somebody ought to remember.[/]",
+          "text": "[gray]Keep it.^2 Bring it to someone who knows.[/]",
           "face": "smile"
-        }
+        },
+        "(His eyes flick up, past you, toward the board.)"
       ],
       "repeat": "show_again",
       "next": "found_more"
