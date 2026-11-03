@@ -95,14 +95,13 @@
     },
     "CHEF": {
       "actions": [
-        {"type": "glitch", "ms": 30 },
+        {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "Orangie? IS ThAT You?"},
-        {"type": "glitch", "ms": 30 },
+        {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "CoME BACK??? To SAVE ME???"},
-        {"type": "glitch", "ms": 30 },
+        {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "I KNEW YOU WOULD!!!"},
-        {"type": "glitch", "ms": 30 },
-
+        {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "NO! Don't GO!!"},
         {"type": "redirect", "to": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
       ]
@@ -116,6 +115,19 @@
       "actions": [
         {"type": "sound", "src": "/backstage/audio/2xzb.mp3", "await": "true" },
         {"type": "redirect", "to": "/"}
+      ]
+    },
+    "75.40": {
+      "actions": [
+        {"type": "text", "text": "Big PApa." },
+        {"type": "glitch", "ms": 100 },
+        {"type": "text", "text": "I CouLD NEver Be LIKe HiM.." },
+        {"type": "glitch", "ms": 100 },
+        {"type": "text", "text": "HE BUIlt THis worlD FROM NOTHING!" },
+        {"type": "glitch", "ms": 100 },
+        {"type": "text", "text": "ALL I SAY IS forsooth and THOUH ART." },
+        {"type": "glitch", "ms": 100 },
+        {"type": "text", "text": "I DON'T EVEN KNOW WHAT A FORSOoTH IS!!" }
       ]
     }
   }
