@@ -2,7 +2,9 @@
 //  1. The lock: he's only here for someone who has the rusted key, or who already
 //     unlocked the CH 02 note with it (rp_flags.wonder_unlocked). Anyone else finds nothing.
 //  2. Settings for the engine (window.TALK), so it speaks as Wonder, not Marquez.
-//  3. The drift: he floats around the dark on his own, and stays above the dialogue box while he talks.
+//  3. The drift: he floats, bounces and tumbles around the dark the whole time, talking or not,
+//     and he never holds still: he hates standing still.
+//     While the dialogue box is open he just keeps to the space above it.
 //  4. The limbs: art/wonder.svg is put in the page inline, and each limb (tagged data-part="arm-l",
 //     "arm-r", "leg-l", "leg-r") swings on its shoulder or hip, trailing behind wherever he drifts.
 (function () {
@@ -155,33 +157,43 @@
     var b = bounds();
     goal.x = rand(b.x0, b.x1);
     goal.y = rand(b.y0, b.y1);
-    nextGoal = now + rand(3500, 8000);
-    spinVel += rand(-0.012, 0.012);   // a lazy push into a slow turn now and then
+    nextGoal = now + rand(1500, 3500);
+    spinVel += rand(-0.02, 0.02);     // and a push into a turn every time
   }
 
   function frame(now) {
     var dt = Math.min(64, now - last) / 16.67; last = now;
     var talking = !box.hidden;
     var b = bounds();
-    if (now > nextGoal) pickGoal(now);
-    // While talking he hangs above the box, near the middle, so you can see who's speaking.
-    if (talking) { goal.x = (W - w) / 2 + Math.sin(now / 2300) * Math.min(120, W * 0.15); goal.y = Math.min(b.y1, Math.max(b.y0, b.y1 * 0.35)); }
+    // A new spot every couple of seconds, or as soon as he's nearly there: he never arrives anywhere.
+    if (now > nextGoal || Math.hypot(goal.x - pos.x, goal.y - pos.y) < Math.max(60, w * 0.5)) pickGoal(now);
+    // He picks his own spots the whole time; while the box is open they just have to be above it.
     goal.x = Math.min(b.x1, Math.max(b.x0, goal.x));
     goal.y = Math.min(b.y1, Math.max(b.y0, goal.y));
 
     // Floaty spring toward the goal, heavily damped: drifting, never darting.
-    var k = talking ? 0.0009 : 0.00035, damp = talking ? 0.94 : 0.975;
+    var k = 0.0005, damp = 0.972;
     vel.x = (vel.x + (goal.x - pos.x) * k * dt) * Math.pow(damp, dt);
     vel.y = (vel.y + (goal.y - pos.y) * k * dt) * Math.pow(damp, dt);
+    // Never still: if he slows down too much, he gets a shove toward wherever he's headed.
+    var speed = Math.hypot(vel.x, vel.y), MIN_SPEED = 1.1;
+    if (speed < MIN_SPEED) {
+      var gx = goal.x - pos.x, gy = goal.y - pos.y, gl = Math.hypot(gx, gy) || 1;
+      vel.x += (gx / gl) * 0.12 * dt; vel.y += (gy / gl) * 0.12 * dt;
+    }
+    // Bounce off the edges of the dark instead of sticking to them.
+    if ((pos.x <= b.x0 && vel.x < 0) || (pos.x >= b.x1 && vel.x > 0)) vel.x *= -0.7;
+    if ((pos.y <= b.y0 && vel.y < 0)) vel.y *= -0.7;
+    // When the box opens under him, he floats up out of its way instead of snapping there.
+    if (pos.y > b.y1) vel.y -= Math.min(4, (pos.y - b.y1) * 0.01) * dt;
     pos.x += vel.x * dt; pos.y += vel.y * dt;
     pos.x = Math.min(b.x1, Math.max(b.x0, pos.x));
-    pos.y = Math.min(Math.max(b.y1, b.y0), Math.max(b.y0, pos.y));
+    pos.y = Math.max(b.y0, Math.min(pos.y, Math.max(b.y1, b.y0) + (talking ? h * 0.6 : 0)));   // never more than a little behind the box
 
-    // A slow tumble that settles upright while he talks, plus a gentle bob.
-    spinVel *= Math.pow(0.995, dt);
+    // A slow tumble and a gentle bob, talking or not.
+    spinVel *= Math.pow(0.996, dt);
     spin += spinVel * dt;
-    var tilt = talking ? Math.sin((now - t0) / 900) * 4 : Math.sin((now - t0) / 2600) * 14 + spin * 57.3;
-    if (talking) spin *= Math.pow(0.9, dt);
+    var tilt = Math.sin((now - t0) / 2600) * 14 + spin * 57.3;
     var bob = Math.sin((now - t0) / 1300) * 6;
     drifter.style.transform = 'translate(' + pos.x.toFixed(1) + 'px,' + (pos.y + bob).toFixed(1) + 'px) rotate(' + tilt.toFixed(2) + 'deg)';
     swingLimbs(now, dt, tilt);
