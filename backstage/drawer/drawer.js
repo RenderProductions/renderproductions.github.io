@@ -1,7 +1,7 @@
 // The drawer: draws art/drawer.svg and lays out everything this visitor has found on its floor.
 // Each item always lands in the same spot (worked out from its id), so the drawer looks lived-in
 // rather than reshuffled on every visit. Items further back sit a little smaller, for depth.
-// Hover, focus or tap an item to read its slip.
+// Hover, focus or tap an item to read its tag (art/tag.svg).
 (function () {
   'use strict';
   var art = document.getElementById('art');
@@ -10,6 +10,17 @@
   var slip = document.getElementById('slip');
   var slipName = document.getElementById('slip-name');
   var slipDesc = document.getElementById('slip-desc');
+  var slipWords = document.getElementById('slip-words');
+
+  // Long descriptions: shrink the writing until it fits on the tag.
+  function fit() {
+    var f = 1;
+    slipWords.style.setProperty('--fit', f);
+    while (f > 0.55 && slipWords.scrollHeight > slipWords.clientHeight + 1) {
+      f -= 0.05;
+      slipWords.style.setProperty('--fit', f.toFixed(2));
+    }
+  }
 
   // The visible floor in art/drawer.svg (480 x 388 units): from the bottom of the back wall
   // to the top of the front panel, between the two floor edges, which lean outward toward you.
@@ -49,6 +60,7 @@
     slipDesc.hidden = !item.desc;
     slip.classList.toggle('right', onLeft);   // the slip goes on the side away from the item
     slip.hidden = false;
+    fit();
   }
   function hide(btn) {
     if (btn && selected !== btn) return;
@@ -100,7 +112,11 @@
         } else {
           var tag = document.createElement('span');
           tag.className = 'tag';
-          tag.textContent = item.name || id.replace(/_/g, ' ');
+          var blank = new Image();
+          blank.src = 'art/tag.svg'; blank.alt = ''; blank.draggable = false;
+          var word = document.createElement('span');
+          word.textContent = item.name || id.replace(/_/g, ' ');
+          tag.appendChild(blank); tag.appendChild(word);
           btn.appendChild(tag);
         }
         var onLeft = best.x < FLOOR.cx;

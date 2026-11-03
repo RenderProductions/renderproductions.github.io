@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>The Drawer</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="drawer.css?v=4">
+<link rel="stylesheet" href="drawer.css?v=5">
 </head>
 <body>
 <!-- Looking down into the open desk drawer. The drawing is art/drawer.svg (drawer.js puts it in).
@@ -21,13 +21,12 @@
       <p class="empty" id="empty" hidden>nothing in here.</p>
     </div>
     <div class="slip" id="slip" aria-live="polite" hidden>
-      <b id="slip-name"></b>
-      <p id="slip-desc"></p>
+      <div class="words" id="slip-words"><b id="slip-name"></b><p id="slip-desc"></p></div>
     </div>
   </div>
 </main>
 <script src="/inventory.js?v=1"></script>
-<script src="drawer.js?v=4"></script>
+<script src="drawer.js?v=5"></script>
 <script src="/face/popup.js" data-every="45-90"></script>
 </body>
 </html>
