@@ -309,7 +309,7 @@
           "face": "smile"
         },
         {
-          "text": "Did it tell you to go somewhere?^2 Then go. It doesn't say that to just anyone.",
+          "text": "The page hides something from a time long forgotten... What was it called? The project?",
           "face": "point"
         }
       ],
@@ -328,11 +328,11 @@
       "say": [
         "(He turns the pail over in his hands. A single drop falls out.)",
         "A pail.^2 Empty.",
-        "Somebody went up a hill for water with this, once.",
         {
-          "text": "They came tumbling back down.^3 The pail didn't.",
+          "text": "Somebody went up a hill for water with this, once.",
           "face": "smile"
         },
+        "Poor kids... They never deserved that...",
         "Hold on to it. Never know what you'll need to carry."
       ],
       "repeat": "show_again",
