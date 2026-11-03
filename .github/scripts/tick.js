@@ -35,7 +35,7 @@ const COMPANY_NEWS = 10;        // how many stories each company page keeps
 // Every company has a dividend "meter" (divIndex): how much one share has earned in
 // total, ever. It grows while the market is open. The bot pays (meter now - meter at
 // your last claim) x shares, so unclaimed days pile up on their own.
-const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025, BSTG: 0 }; // per day (BSTG pays nothing: every Polygon goes into the next game)
+const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025, BSTG: 0.03 }; // per day (BSTG: the riskiest stock pays the most)
 const DIV_SUSPEND_HOURS = 24;   // a failed goal freezes that company's meter this long
 const DIV_BONUS_DAYS = 1;       // a successful goal drops this many days' worth on the meter
 const MAX_ACCRUE_MIN = 15;      // a late or missed tick adds at most this many minutes
@@ -385,7 +385,7 @@ companies.forEach((c) => {
   dividends[c.id] = c.divIndex;
   divDaily[c.id] = Math.round(c.price * c.yield * 10000) / 10000;
   divText[c.id] = !c.yield
-    ? '🚫 No dividend · every Polygon goes into the next game'
+    ? '🚫 No dividend'
     : c.divSuspendedUntil
     ? '💸 Suspended, resumes <t:' + unix(Date.parse(c.divSuspendedUntil)) + ':R>'
     : (c.yield * 100).toFixed(1).replace(/\.0$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
