@@ -18,19 +18,21 @@
       "name": "Tiny Tombstone",
       "desc": "For the little ones. Twenty-five of them, and counting.\nSomeone carved GONE BUT NOT FORGOTTEN. Someone else scratched out the NOT.",
       "size": 0.75,
-      "found": "for the little ones"
+      "found": "for the little ones",
+      "art": "/backstage/drawer/art/tiny_tombstone.svg"
     },
     "popup_shard": {
       "name": "Popup Shard",
       "desc": "A sliver of a window that wouldn't close.\nStill warm. Still blinking, a little.",
-      "size": 0.7,
-      "found": "caught one"
+      "size": 0.6,
+      "found": "caught one",
+      "art": "/backstage/drawer/art/popup_shard.svg"
     },
     "dead_bulb": {
       "name": "Dead Bulb",
       "desc": "Burnt out. Found in the dark, which is the only place you'd ever find it.\nShake it and something rattles.",
       "art": "/backstage/drawer/art/dead_bulb.svg",
-      "size": 0.75
+      "size": 0.7
     },
     "polaroid": {
       "name": "Polaroid",
@@ -42,13 +44,15 @@
       "name": "TODD's Floppy Disk",
       "desc": "TODD.OS BOOT DISK 1 OF ??\nThe label is in all caps, then no caps, then all caps again.",
       "size": 0.8,
-      "found": "he wants it back"
+      "found": "he wants it back",
+      "art": "/backstage/drawer/art/todd_floppy.svg"
     },
     "static_cassette": {
       "name": "Static Cassette",
       "desc": "No label. Play it and you'd only hear static.\nProbably.",
-      "size": 0.8,
-      "found": "recorded off the air"
+      "size": 0.95,
+      "found": "recorded off the air",
+      "art": "/backstage/drawer/art/static_cassette.svg"
     }
   }
 }
