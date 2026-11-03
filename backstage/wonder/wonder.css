@@ -10,10 +10,11 @@ body { background: #000; color: #f2f2f2; font-family: var(--type); overflow: hid
   padding: 16px 16px 22px; user-select: none; cursor: pointer; overflow: hidden; }
 
 /* Wonder, drifting. wonder.js moves .drifter around; the img only bobs when he talks. */
-.drifter { position: absolute; left: 0; top: 0; height: min(40vh, 330px); aspect-ratio: 170 / 305; will-change: transform; pointer-events: none;
+.drifter { position: absolute; left: 0; top: 0; height: min(40vh, 330px); aspect-ratio: 256 / 325; will-change: transform; pointer-events: none;
   filter: drop-shadow(0 0 18px rgba(255,255,255,.06)); }
-.drifter img { display: block; width: 100%; height: 100%; }
-.room.talking .drifter img { animation: chatter .22s ease-in-out infinite alternate; }
+.drifter img, .drifter svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.drifter img.swapped { display: none; }
+.room.talking .drifter img, .room.talking .drifter svg { animation: chatter .22s ease-in-out infinite alternate; }
 @keyframes chatter { from { transform: translateY(0) scale(1.01, .99); } to { transform: translateY(-6px) scale(.99, 1.015); } }
 .room.empty .drifter { display: none; }
 

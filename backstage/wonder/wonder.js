@@ -3,6 +3,8 @@
 //     unlocked the CH 02 note with it (rp_flags.wonder_unlocked). Anyone else finds nothing.
 //  2. Settings for the engine (window.TALK), so it speaks as Wonder, not Marquez.
 //  3. The drift: he floats around the dark on his own, and stays above the dialogue box while he talks.
+//  4. The limbs: art/wonder.svg is put in the page inline, and each limb (tagged data-part="arm-l",
+//     "arm-r", "leg-l", "leg-r") swings on its shoulder or hip, trailing behind wherever he drifts.
 (function () {
   'use strict';
   var room = document.getElementById('room');
@@ -61,6 +63,59 @@
   }
   function rand(a, b) { return a + Math.random() * (b - a); }
 
+  // ---- 4. the limbs ----
+  // Shoulders and hips, in the drawing's own coordinates (art/wonder.svg). Move these if he's redrawn.
+  // out = which way a limb rotates to swing outward (+ = clockwise). max = furthest outward swing,
+  // inMax = furthest inward swing (kept small so legs don't cross and arms don't fold over his chest).
+  var PIVOTS = {
+    'arm-l': { x: 214, y: 124, out: 1,  reach: 1,    max: 55, inMax: 20, phase: 0 },
+    'arm-r': { x: 311, y: 124, out: -1, reach: 1,    max: 55, inMax: 20, phase: 1.7 },
+    'leg-l': { x: 244, y: 181, out: 1,  reach: 0.55, max: 30, inMax: 10, phase: 3.1 },
+    'leg-r': { x: 283, y: 181, out: -1, reach: 0.55, max: 30, inMax: 10, phase: 4.6 }
+  };
+  var limbs = [];
+  var img = document.getElementById('him');
+  fetch(img.getAttribute('src') + '?v=2')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(function (text) {
+      var svg = new DOMParser().parseFromString(text, 'image/svg+xml').documentElement;
+      if (svg.nodeName !== 'svg') return;
+      svg.removeAttribute('width'); svg.removeAttribute('height');
+      svg.setAttribute('class', 'body'); svg.setAttribute('aria-hidden', 'true');
+      svg = document.importNode(svg, true);
+      Object.keys(PIVOTS).forEach(function (part) {
+        var els = svg.querySelectorAll('[data-part="' + part + '"]');
+        if (els.length) limbs.push({ els: els, p: PIVOTS[part], a: 0, v: 0 });
+      });
+      drifter.insertBefore(svg, img);
+      img.classList.add('swapped');   // the plain picture stays in the page (the talk engine uses it), just hidden
+    })
+    .catch(function (e) { console.warn('[wonder] limbs not loaded, using the still picture', e); });
+
+  var lastTilt = 0;
+  function swingLimbs(now, dt, tilt) {
+    if (!limbs.length) return;
+    // His drift, turned into his own frame of reference (he may be upside down).
+    var r = -tilt * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+    var vx = vel.x * c - vel.y * s, vy = vel.x * s + vel.y * c;
+    var turn = (tilt - lastTilt) / Math.max(dt, 0.001);   // degrees per frame
+    lastTilt = tilt;
+    limbs.forEach(function (L) {
+      var p = L.p;
+      var target = vx * 10 * p.reach                  // trail behind sideways motion
+                 + vy * 7 * p.reach * p.out          // drag lifts them outward when he sinks
+                 - turn * 4 * p.reach                // lag behind his tumble
+                 + Math.sin(now / 1700 + p.phase) * 7 * p.reach;   // a little idle sway
+      var outward = Math.max(-p.inMax, Math.min(p.max, target * p.out));   // limit in outward/inward terms
+      target = outward * p.out;
+      // A loose spring: swings past, comes back, settles. Floaty, like underwater.
+      L.v = (L.v + (target - L.a) * 0.018 * dt) * Math.pow(0.9, dt);
+      L.a += L.v * dt;
+      var tf = 'rotate(' + L.a.toFixed(2) + ' ' + p.x + ' ' + p.y + ')';
+      for (var i = 0; i < L.els.length; i++) L.els[i].setAttribute('transform', tf);
+    });
+  }
+
   var b0 = bounds();
   var pos = { x: (W - w) / 2, y: Math.min(b0.y1, H * 0.18) };
   var vel = { x: 0, y: 0 };
@@ -100,6 +155,7 @@
     if (talking) spin *= Math.pow(0.9, dt);
     var bob = Math.sin((now - t0) / 1300) * 6;
     drifter.style.transform = 'translate(' + pos.x.toFixed(1) + 'px,' + (pos.y + bob).toFixed(1) + 'px) rotate(' + tilt.toFixed(2) + 'deg)';
+    swingLimbs(now, dt, tilt);
     requestAnimationFrame(frame);
   }
 
