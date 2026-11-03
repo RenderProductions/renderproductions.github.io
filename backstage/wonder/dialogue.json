@@ -1539,7 +1539,7 @@
     },
     "show_hill_marker_again": {
       "say": [
-        "I took miss VARANDIA!^2 BUT here is fine, TOO!"
+        "I too miss VARANDIA!^2 BUT here is fine, TOO!"
       ],
       "next": "found_more"
     }
