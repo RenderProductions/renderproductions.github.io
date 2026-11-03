@@ -260,7 +260,7 @@
         <div class="body">
           <div class="embed grey" id="mkt">
             <a class="t" href="/rend-conomy/" id="mkt-title">Checking the market…</a>
-            <div class="d" id="mkt-head">Four companies, fake money, real bragging rights.</div>
+            <div class="d" id="mkt-head">Five companies, fake money, real bragging rights.</div>
           </div>
         </div>
       </article>
@@ -405,7 +405,7 @@
         var e = $('mkt');
         e.className = 'embed ' + (m.status === 'open' ? 'green' : m.status === 'after-hours' ? 'yellow' : 'grey');
         $('mkt-title').textContent = m.status === 'open' ? '🟢 The market is open' : m.status === 'after-hours' ? '🌙 After hours, trading opens soon' : '⛔ The market is closed';
-        $('mkt-head').textContent = d.headline ? 'Latest: ' + d.headline : 'Four companies, fake money, real bragging rights.';
+        $('mkt-head').textContent = d.headline ? 'Latest: ' + d.headline : 'Five companies, fake money, real bragging rights.';
         $('t2').textContent = clock();
       })
       .catch(function () {});
