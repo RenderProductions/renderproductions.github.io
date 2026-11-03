@@ -1,6 +1,6 @@
 {
   "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/wonder-smile.svg (once that art exists and is listed in wonder.js) or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. EFFECTS: a line can have \"fx\": \"stars\" (Wonder's page lights up the void with stars as he says it). A node with \"pick\": 1 says just one of its lines at random. Repeats: items share items_again ('SEEN it ALREADY'), memes/pop culture/light words share stale_again, lore ones have their own <name>_again.",
-  "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js). The found/give/tell nodes and the tell_* reactions were drafted by Claude; rewrite freely. Typed words are matched through 'finds' (any case). The pop_* reactions (pop culture words typed into 'Tell him something') are Claude's drafts too. The meme_* reactions are Claude's drafts too. The sig_*, co_* and site_* reactions (frequency codes, companies, and the site itself) are Claude's drafts too; the 75.40 line keeps Big Papa a mystery on purpose.",
+  "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js). The found/give/tell nodes and the tell_* reactions were drafted by Claude; rewrite freely. Typed words are matched through 'finds' (any case). The pop_* reactions (pop culture words typed into 'Tell him something') are Claude's drafts too. The meme_* reactions are Claude's drafts too. The sig_*, co_* and site_* reactions (frequency codes, companies, and the site itself) are Claude's drafts too; the 75.40 reaction uses the user's Big Papa line.",
   "name": "WONDER",
   "voice": {
     "pitch": 215,
@@ -1055,12 +1055,13 @@
     },
     "sig_7540": {
       "say": [
-        "FORSOOTH!!^2 THOU ART!!",
-        "(He bows so low he flips all the way over.)",
-        "...^3 I don't know WHAT a forsooth is either!",
+        "BIG PAPA.",
+        "I could NEVER be like him!",
+        "He built this WORLD from NOTHING!",
+        "ALL I say is FORSOOTH and THOU ART.",
         {
-          "text": "[gray]Big Papa, though...^3 We don't talk about Big Papa. Not HERE.[/]",
-          "speed": 44
+          "text": "...^3 I don't even KNOW what a forsooth IS!!",
+          "speed": 40
         }
       ],
       "next": "found_more",
@@ -1336,9 +1337,9 @@
     },
     "sig_7540_again": {
       "say": [
-        "FORSOOTH AGAIN?!",
+        "BIG PAPA!!^2 Still the GREATEST!",
         {
-          "text": "[gray]...Leave Big Papa ALONE. He built everything. Even the NOTHING.[/]",
+          "text": "[gray]...I'll never be like him. I've made my PEACE with it. Mostly.[/]",
           "speed": 44
         }
       ],
