@@ -429,9 +429,24 @@ function sparkline(h) {
   return pts.map((v) => SPARK[Math.round(((v - min) / range) * (SPARK.length - 1))]).join('');
 }
 
+// Discord drops a whole embed if its image link is longer than 2048 characters,
+// so the link is kept under MAX_URL: only the labels that are actually shown are sent
+// (the rest are blank), and if it's still too long, fewer points are used.
+const MAX_URL = 2000;
+const LABELS_SHOWN = 6;
+
 function chartUrl(c) {
-  const pts = thin(c.history, CHART_POINTS);
-  const tms = thin(c.times, CHART_POINTS);
+  for (let n = CHART_POINTS; n >= 12; n -= 6) {
+    const url = buildChartUrl(c, n);
+    if (url.length <= MAX_URL) return url;
+  }
+  return buildChartUrl(c, 12);
+}
+
+function buildChartUrl(c, n) {
+  const pts = thin(c.history, n);
+  const tms = thin(c.times, n);
+  const every = Math.ceil((tms.length - 1) / LABELS_SHOWN);
   const up = c.change >= 0;
   const line = up ? '#ffe600' : '#ff6b6b';
   const fill = up ? 'rgba(255,230,0,0.12)' : 'rgba(255,107,107,0.12)';
@@ -441,7 +456,7 @@ function chartUrl(c) {
   const config = {
     type: 'line',
     data: {
-      labels: tms.map((t) => timeLabel(t, lastDay)),
+      labels: tms.map((t, i) => (i % every === 0 || i === tms.length - 1 ? timeLabel(t, lastDay) : '')),
       datasets: [{ data: pts, borderColor: line, backgroundColor: fill, fill: true, pointRadius: 0, borderWidth: 2, lineTension: 0 }]
     },
     options: {
@@ -449,7 +464,7 @@ function chartUrl(c) {
       title: { display: true, text: c.id + ' · last ' + hours + 'h · times in ' + zoneLabel(last), fontColor: '#ffe600', fontSize: 16 },
       scales: {
         xAxes: [{
-          ticks: { fontColor: '#8a93ab', autoSkip: true, maxTicksLimit: 7, maxRotation: 0 },
+          ticks: { fontColor: '#8a93ab', autoSkip: false, maxRotation: 0 },
           gridLines: { display: false }
         }],
         yAxes: [{ ticks: { fontColor: '#8a93ab' }, gridLines: { color: 'rgba(255,230,0,0.12)' } }]
