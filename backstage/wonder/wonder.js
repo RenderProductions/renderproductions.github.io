@@ -7,6 +7,7 @@
 //     While the dialogue box is open he just keeps to the space above it.
 //  4. The limbs: art/wonder.svg is put in the page inline, and each limb (tagged data-part="arm-l",
 //     "arm-r", "leg-l", "leg-r") swings on its shoulder or hip, trailing behind wherever he drifts.
+//     His head (data-part="head") wobbles on his neck like a bobblehead.
 (function () {
   'use strict';
   var room = document.getElementById('room');
@@ -112,6 +113,9 @@
   // outward and back below FLIP_BACK, and turns through edge-on on the way, like an arm rolling.
   var FLIP_AT = 28, FLIP_BACK = 20;
   var limbs = [];
+  // The head: a bouncier spring on the neck, lagging behind his drift and his tumble.
+  var NECK = { x: 262, y: 112, max: 16 };
+  var head = null;
   var img = document.getElementById('him');
   fetch(img.getAttribute('src') + '?v=2')
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
@@ -128,6 +132,8 @@
         var axis = pv.tip ? Math.atan2(pv.tip[1] - pv.y, pv.tip[0] - pv.x) * 180 / Math.PI : 0;
         if (els.length) limbs.push({ els: els, p: pv, a: 0, v: 0, roll: 1, flipped: false, axis: axis });
       });
+      var hs = svg.querySelectorAll('[data-part="head"]');
+      if (hs.length) head = { els: hs, a: 0, v: 0 };
       drifter.insertBefore(svg, img);
       img.classList.add('swapped');   // the plain picture stays in the page (the talk engine uses it), just hidden
     })
@@ -135,12 +141,21 @@
 
   var lastTilt = 0;
   function swingLimbs(now, dt, tilt) {
-    if (!limbs.length) return;
+    if (!limbs.length && !head) return;
     // His drift, turned into his own frame of reference (he may be upside down).
     var r = -tilt * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
     var vx = vel.x * c - vel.y * s, vy = vel.x * s + vel.y * c;
     var turn = (tilt - lastTilt) / Math.max(dt, 0.001);   // degrees per frame
     lastTilt = tilt;
+    if (head) {
+      // Above the neck, lagging means the top of his head tips back the way he came.
+      var ht = -vx * 4 - turn * 3 + Math.sin(now / 1100) * 3 + Math.sin(now / 430) * 1.2;
+      ht = Math.max(-NECK.max, Math.min(NECK.max, ht));
+      head.v = (head.v + (ht - head.a) * 0.05 * dt) * Math.pow(0.86, dt);   // springy: it bobbles past and back
+      head.a = Math.max(-NECK.max - 4, Math.min(NECK.max + 4, head.a + head.v * dt));
+      var htf = 'rotate(' + head.a.toFixed(2) + ' ' + NECK.x + ' ' + NECK.y + ')';
+      for (var hi = 0; hi < head.els.length; hi++) head.els[hi].setAttribute('transform', htf);
+    }
     limbs.forEach(function (L) {
       var p = L.p;
       var target = vx * 10 * p.reach                  // trail behind sideways motion
