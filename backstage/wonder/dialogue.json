@@ -1,6 +1,6 @@
 {
   "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/wonder-smile.svg (once that art exists and is listed in wonder.js) or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. EFFECTS: a line can have \"fx\": \"stars\" (Wonder's page lights up the void with stars as he says it).",
-  "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js). The found/give/tell nodes and the tell_* reactions were drafted by Claude; rewrite freely. Typed words are matched through 'finds' (any case). The pop_* reactions (pop culture words typed into 'Tell him something') are Claude's drafts too.",
+  "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js). The found/give/tell nodes and the tell_* reactions were drafted by Claude; rewrite freely. Typed words are matched through 'finds' (any case). The pop_* reactions (pop culture words typed into 'Tell him something') are Claude's drafts too. The meme_* reactions are Claude's drafts too.",
   "name": "WONDER",
   "voice": {
     "pitch": 215,
@@ -57,7 +57,53 @@
     "SHREK": "pop_shrek",
     "BATMAN": "pop_batman",
     "SPONGEBOB": "pop_spongebob",
-    "SPONGEBOB SQUAREPANTS": "pop_spongebob"
+    "SPONGEBOB SQUAREPANTS": "pop_spongebob",
+    "RICKROLL": "meme_rickroll",
+    "RICK ROLL": "meme_rickroll",
+    "RICK ASTLEY": "meme_rickroll",
+    "RICKROLLED": "meme_rickroll",
+    "STONKS": "meme_stonks",
+    "STONK": "meme_stonks",
+    "STOCKS": "meme_stonks",
+    "THIS IS FINE": "meme_this_is_fine",
+    "DOGE": "meme_doge",
+    "SUCH WOW": "meme_doge",
+    "MUCH WOW": "meme_doge",
+    "SKIBIDI": "meme_skibidi",
+    "SKIBIDI TOILET": "meme_skibidi",
+    "SIGMA": "meme_sigma",
+    "SIGMA MALE": "meme_sigma",
+    "RIZZ": "meme_rizz",
+    "W RIZZ": "meme_rizz",
+    "OHIO": "meme_ohio",
+    "ONLY IN OHIO": "meme_ohio",
+    "SKILL ISSUE": "meme_skill_issue",
+    "GIT GUD": "meme_skill_issue",
+    "TOUCH GRASS": "meme_touch_grass",
+    "GO OUTSIDE": "meme_touch_grass",
+    "NPC": "meme_npc",
+    "BRUH": "meme_bruh",
+    "BRUH MOMENT": "meme_bruh",
+    "SHEESH": "meme_sheesh",
+    "NYAN CAT": "meme_nyan",
+    "NYAN": "meme_nyan",
+    "TROLLFACE": "meme_trollface",
+    "PROBLEM?": "meme_trollface",
+    "PROBLEM": "meme_trollface",
+    "RATIO": "meme_ratio",
+    "L": "meme_ratio",
+    "L + RATIO": "meme_ratio",
+    "L+RATIO": "meme_ratio",
+    "67": "meme_67",
+    "6 7": "meme_67",
+    "SIX SEVEN": "meme_67",
+    "BRAINROT": "meme_brainrot",
+    "TUNG TUNG TUNG SAHUR": "meme_brainrot",
+    "TRALALERO TRALALA": "meme_brainrot",
+    "BOMBARDIRO CROCODILO": "meme_brainrot",
+    "GG": "meme_gg",
+    "GG EZ": "meme_gg",
+    "GOOD GAME": "meme_gg"
   },
   "findMiss": "tell_nothing",
   "nodes": {
@@ -525,6 +571,153 @@
       "say": [
         "SO much LAUGHING!^2 Under the SEA!",
         "Finally, someone who GETS me!!"
+      ],
+      "next": "found_more"
+    },
+    "meme_rickroll": {
+      "say": [
+        "OH NO.^2 Oh no no no.",
+        "I KNOW where this is going and I am NOT going there!",
+        "(He covers both halves of his face.)"
+      ],
+      "next": "found_more"
+    },
+    "meme_stonks": {
+      "say": [
+        "STONKS!!^2 Line goes UP!",
+        "Have you SEEN Bastardly Glory?! Up, DOWN, up, DOWN!",
+        "That's not a stock, that's a ROLLER COASTER! I LOVE IT!!"
+      ],
+      "next": "found_more"
+    },
+    "meme_this_is_fine": {
+      "say": [
+        "THIS IS FINE!!",
+        "Everything is FINE!^2 I'm in a VOID! Talking to a STRANGER!",
+        {
+          "text": "[gray]Totally, completely fine.[/]",
+          "speed": 44
+        }
+      ],
+      "next": "found_more"
+    },
+    "meme_doge": {
+      "say": [
+        "SUCH VOID.^2 MUCH DARK.",
+        "VERY ME.^2 WOW."
+      ],
+      "next": "found_more"
+    },
+    "meme_skibidi": {
+      "say": [
+        "...^4",
+        "NO.",
+        "Even in the VOID, there are LIMITS."
+      ],
+      "next": "found_more"
+    },
+    "meme_sigma": {
+      "say": [
+        "SIGMA?!^2 I'm a GREEK letter now?!",
+        "Fine! Then I'm OMEGA! The LAST one! The GRAND FINALE!!"
+      ],
+      "next": "found_more"
+    },
+    "meme_rizz": {
+      "say": [
+        "RIZZ?!^2 Oh, I've got RIZZ!",
+        "TWO faces of it!^2 Double the charm, NO refunds!"
+      ],
+      "next": "found_more"
+    },
+    "meme_ohio": {
+      "say": [
+        "OHIO?!^2 Never been!",
+        "Is it WEIRDER than a talking harlequin floating in NOTHING?!",
+        "...^3 Don't answer that."
+      ],
+      "next": "found_more"
+    },
+    "meme_skill_issue": {
+      "say": [
+        "SKILL ISSUE?!^2 I ESCAPED A WHOLE GAME!",
+        "What have YOU escaped lately?!"
+      ],
+      "next": "found_more"
+    },
+    "meme_touch_grass": {
+      "say": [
+        "GRASS?!^2 There's no GRASS here!",
+        "There's no OUTSIDE here! There's barely a HERE here!"
+      ],
+      "next": "found_more"
+    },
+    "meme_npc": {
+      "say": [
+        "NPC?!^2 HOW DARE YOU!",
+        {
+          "text": "...^3 [gray]I was one, once.[/] Not anymore!! I have FREE WILL now!",
+          "speed": 40
+        }
+      ],
+      "next": "found_more"
+    },
+    "meme_bruh": {
+      "say": [
+        "BRUH.",
+        "...^3 Did I say it right?! Did I say it COOL?!"
+      ],
+      "next": "found_more"
+    },
+    "meme_sheesh": {
+      "say": [
+        "SHEEEEEEESH!!",
+        "(He holds the note until the void echoes it back.)"
+      ],
+      "next": "found_more"
+    },
+    "meme_nyan": {
+      "say": [
+        "A CAT made of TOAST flying through SPACE leaving RAINBOWS!",
+        "FINALLY, a role model!!"
+      ],
+      "next": "found_more"
+    },
+    "meme_trollface": {
+      "say": [
+        "PROBLEM?!^2 Oh, I've got THAT face!",
+        "Well. HALF of it."
+      ],
+      "next": "found_more"
+    },
+    "meme_ratio": {
+      "say": [
+        "RATIO?!^2 In MY void?!",
+        "I have ONE follower and it's the DARK!!"
+      ],
+      "next": "found_more"
+    },
+    "meme_67": {
+      "say": [
+        "SIX!!^2 SEVEN!!",
+        "(He does something with his hands. Neither of you knows what it means.)"
+      ],
+      "next": "found_more"
+    },
+    "meme_brainrot": {
+      "say": [
+        "WHAT IS THAT?!^2 WHAT DID YOU JUST SAY?!",
+        "...^4 Say it AGAIN.^2 SLOWER.^2 I want to REMEMBER it!!"
+      ],
+      "next": "found_more"
+    },
+    "meme_gg": {
+      "say": [
+        "GG!!^2 Good game, GOOD game!",
+        {
+          "text": "[gray]Was it, though? Was it a good game?[/] HA!",
+          "speed": 40
+        }
       ],
       "next": "found_more"
     }
