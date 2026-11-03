@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@500&display=swap');
+
+/* The void: pitch black, nothing at all. Everything here is black and white, like him. */
+:root { --type: 'Special Elite', 'Courier New', monospace; --mono: 'IBM Plex Mono', 'Courier New', monospace; --boxh: 172px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #000; color: #f2f2f2; font-family: var(--type); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+
+.room { position: relative; height: 100vh; height: 100dvh; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding: 16px 16px 22px; user-select: none; cursor: pointer; overflow: hidden; }
+
+/* Wonder, drifting. wonder.js moves .drifter around; the img only bobs when he talks. */
+.drifter { position: absolute; left: 0; top: 0; height: min(40vh, 330px); aspect-ratio: 170 / 305; will-change: transform; pointer-events: none;
+  filter: drop-shadow(0 0 18px rgba(255,255,255,.06)); }
+.drifter img { display: block; width: 100%; height: 100%; }
+.room.talking .drifter img { animation: chatter .22s ease-in-out infinite alternate; }
+@keyframes chatter { from { transform: translateY(0) scale(1.01, .99); } to { transform: translateY(-6px) scale(.99, 1.015); } }
+.room.empty .drifter { display: none; }
+
+.prompt { position: absolute; bottom: 44px; left: 0; right: 0; text-align: center; font: 13px var(--mono); letter-spacing: 3px; text-transform: uppercase; color: #4a4a4a;
+  animation: fade 2.6s ease-in-out infinite; }
+@keyframes fade { 50% { opacity: .3 } }
+
+/* the dialogue box: a harlequin card, black with a white edge; the nameplate is split half and half like his face */
+.box { position: relative; width: min(780px, 100%); min-height: var(--boxh); z-index: 2; padding: 26px 30px 20px; background: #000;
+  border: 2px solid #f2f2f2; border-radius: 2px; box-shadow: 0 0 0 4px #000, 0 0 0 6px #2a2a2a; }
+.plate { position: absolute; top: -15px; left: 22px; padding: 4px 14px 3px; font: 500 12px var(--mono); letter-spacing: 4px; border: 2px solid #f2f2f2;
+  color: transparent; background: linear-gradient(90deg, #f2f2f2 50%, #000 50%); }
+/* the name is drawn again on top, black over the white half and white over the black half (wonder.js copies it into data-name) */
+.plate::after { content: attr(data-name); position: absolute; inset: 0; padding: 4px 14px 3px; white-space: nowrap;
+  color: transparent; background: linear-gradient(90deg, #000 50%, #f2f2f2 50%); -webkit-background-clip: text; background-clip: text; }
+.box.narrate .plate { visibility: hidden; }
+.box.narrate .text { font-style: italic; color: #8a8a8a; }
+
+.text { font-size: clamp(19px, 3.4vw, 25px); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.text .c { visibility: hidden; }
+.text .c.on { visibility: visible; }
+.text .shake.on { display: inline-block; animation: jit .12s steps(2) infinite; }
+@keyframes jit { 0% { transform: translate(0,0) } 50% { transform: translate(1px,-1px) } 100% { transform: translate(-1px,1px) } }
+.text .wave.on { display: inline-block; animation: wav 1.1s ease-in-out infinite; animation-delay: calc(var(--i) * -80ms); }
+@keyframes wav { 50% { transform: translateY(-3px) } }
+/* Wonder's world has no colour, so the colour tags become shades */
+.red { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,.55); } .yellow { color: #fff; font-weight: bold; } .blue { color: #b8b8b8; }
+.gray { color: #6e6e6e; } .gold { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+
+.more { position: absolute; right: 16px; bottom: 8px; font-size: 16px; color: #f2f2f2; opacity: 0; }
+.box.done .more { opacity: .9; animation: nudge 1s ease-in-out infinite; }
+.box.choosing .more { opacity: 0 !important; }
+@keyframes nudge { 50% { transform: translateY(3px) } }
+
+.choices { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 26px; margin-top: 14px; font-size: clamp(17px, 3vw, 21px); }
+.choices[hidden] { display: none; }
+.choices li { position: relative; padding: 3px 0 3px 22px; cursor: pointer; color: #7a7a7a; transition: color .12s; }
+.choices li::before { content: '\25D0'; position: absolute; left: 0; top: 2px; font-size: .85em; color: #f2f2f2; opacity: 0; transition: opacity .12s, transform .12s; transform: translateX(-4px) rotate(-90deg); }
+.choices li.sel { color: #fff; }
+.choices li.sel::before { opacity: 1; transform: rotate(0deg); }
+
+.answer { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 10px; border-top: 1px dashed #444; cursor: text; }
+.answer[hidden] { display: none; }
+.answer .caret { color: #fff; font-size: 22px; line-height: 1; }
+.answer input { flex: 1; min-width: 0; background: transparent; border: 0; border-bottom: 1px solid #555; padding: 4px 2px;
+  font: clamp(17px, 3vw, 21px) var(--type); color: #fff; letter-spacing: 2px; text-transform: uppercase; caret-color: #fff; }
+.answer input::placeholder { color: #444; text-transform: none; letter-spacing: 0; }
+.answer input:focus { outline: none; border-bottom-color: #fff; }
+.answer button { font: 500 11px var(--mono); letter-spacing: 3px; color: #000; background: #f2f2f2; border: 0; padding: 7px 10px; cursor: pointer; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.mute, .leave { position: absolute; top: 14px; font: 11px var(--mono); color: #333; background: none; border: 0; text-decoration: none; cursor: pointer; letter-spacing: 2px; z-index: 3; }
+.mute { right: 16px; } .leave { left: 16px; }
+.mute:hover, .leave:hover, .mute:focus-visible, .leave:focus-visible { color: #bbb; outline: none; }
+
+.nojs { position: fixed; inset: auto 0 40px; text-align: center; font: italic 20px var(--type); color: #555; }

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>...</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="wonder.css?v=2">
+</head>
+<body>
+<!-- The void. Pitch black, nothing in it but Wonder, drifting.
+     Only reachable with the rusted key (the locked CH 02 note on the backstage board).
+     His words live in dialogue.json; the conversation engine is /backstage/marquez/marquez.js,
+     set up for Wonder by window.TALK in wonder.js, which also handles the lock and makes him drift. -->
+<main class="room" id="room">
+  <div class="drifter" id="drifter">
+    <img id="him" src="art/wonder.svg" alt="Wonder, drifting in the dark" draggable="false">
+  </div>
+
+  <div class="prompt" id="prompt">press Z or tap to call out</div>
+
+  <section class="box" id="box" hidden aria-live="polite">
+    <div class="plate" id="plate">WONDER</div>
+    <div class="text" id="text"></div>
+    <ul class="choices" id="choices" hidden></ul>
+    <form class="answer" id="answer" hidden autocomplete="off">
+      <label class="sr-only" for="answer-in">What do you say?</label>
+      <span class="caret" aria-hidden="true">&rsaquo;</span>
+      <input id="answer-in" type="text" maxlength="40" spellcheck="false" autocapitalize="characters" placeholder="say something">
+      <button type="submit">SAY IT</button>
+    </form>
+    <span class="more" aria-hidden="true">&#9662;</span>
+  </section>
+
+  <button class="mute" id="mute" type="button" aria-pressed="false" title="Sound (M)">SOUND: ON</button>
+  <a class="leave" href="/backstage/">&larr; back</a>
+</main>
+<noscript><p class="nojs">(Nothing. Not even an echo.)</p></noscript>
+<script src="/inventory.js?v=1"></script>
+<script src="wonder.js?v=2"></script>
+<script src="/backstage/marquez/marquez.js?v=9"></script>
+</body>
+</html>

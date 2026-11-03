@@ -1,0 +1,165 @@
+{
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/wonder-smile.svg (once that art exists and is listed in wonder.js) or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it.",
+  "_note": "DRAFT LINES. Everything Wonder says below is a placeholder written by Claude in the voice of his frequency signals; rewrite freely.",
+  "name": "WONDER",
+  "voice": {
+    "pitch": 215,
+    "wave": "triangle",
+    "every": 2,
+    "volume": 0.05,
+    "wobble": 0.35
+  },
+  "speed": 28,
+  "start": "hello",
+  "returning": "again",
+  "nodes": {
+    "hello": {
+      "say": [
+        "(Something pale turns over in the dark. Half a grin. Then the other half.)",
+        {
+          "text": "A VISITOR?!^3 In MY nothing?!"
+        },
+        "WONDERFUL!!^2 TRULY WONDERFUL!!",
+        {
+          "text": "...^4 You've got a key on you. [wave]I can smell the rust.[/]",
+          "speed": 40
+        }
+      ],
+      "next": "ask"
+    },
+    "again": {
+      "say": [
+        "BACK AGAIN?!^2 The nothing missed you!!",
+        {
+          "text": "[gray]I didn't.^4 I did.[/]",
+          "speed": 40
+        }
+      ],
+      "next": "ask"
+    },
+    "ask": {
+      "say": [
+        "Well?^2 Go on!! Ask me ANYTHING!!"
+      ],
+      "choices": [
+        {
+          "text": "Who are you?",
+          "to": "who"
+        },
+        {
+          "text": "Where are we?",
+          "to": "where"
+        },
+        {
+          "text": "Varandia?",
+          "to": "varandia",
+          "needs": "where"
+        },
+        {
+          "text": "The wolf?",
+          "to": "wolf",
+          "needs": "varandia",
+          "once": true
+        },
+        {
+          "text": "The key",
+          "to": "key",
+          "has": "rusted_key"
+        },
+        {
+          "text": "Leave",
+          "to": "bye"
+        }
+      ]
+    },
+    "who": {
+      "say": [
+        "WONDER!!^2 Just Wonder!",
+        "One name, two faces, NO refunds!",
+        "(He rolls slowly head over heels. Both halves are still grinning when he comes back around.)"
+      ],
+      "next": "ask"
+    },
+    "where": {
+      "say": [
+        "NOWHERE!!^3 Isn't it MARVELOUS?!",
+        "No walls. No floor. No strings.",
+        {
+          "text": "[gray]No wolf.[/]",
+          "speed": 44
+        }
+      ],
+      "next": "ask"
+    },
+    "varandia": {
+      "say": [
+        "(He stops drifting.)",
+        {
+          "text": "[shake]Shhh.[/]^4 Don't say it so LOUD.",
+          "speed": 44
+        },
+        "I got OUT, you see!! Out, out, OUT!!",
+        "Don't ask me how. I don't remember.",
+        {
+          "text": "[gray]I don't WANT to.[/]",
+          "speed": 44
+        }
+      ],
+      "next": "ask"
+    },
+    "wolf": {
+      "say": [
+        "(The grin flickers.)",
+        {
+          "text": "[shake]We don't TALK about the wolf.[/]",
+          "speed": 40
+        },
+        "We don't talk about the wolf.",
+        {
+          "text": "[gray]We don't talk about the wolf.[/]",
+          "speed": 60
+        },
+        "...^4 NEXT QUESTION!!"
+      ],
+      "next": "ask"
+    },
+    "key": {
+      "repeat": "key_again",
+      "say": [
+        "THAT KEY!!^2 Hold it up, hold it UP!",
+        "(He drifts in close. Closer than you'd like.)",
+        "Oh, I know THAT door. Little house. Warm inside. Somebody always waiting up.",
+        {
+          "text": "...^5",
+          "speed": 80
+        },
+        {
+          "text": "[gray]Nobody's waiting now.[/]",
+          "speed": 44
+        },
+        "But it opened MY door, didn't it?!^2 HA!! WONDERFUL!!"
+      ],
+      "next": "ask"
+    },
+    "key_again": {
+      "say": [
+        "Still got it?^2 GOOD.",
+        {
+          "text": "[gray]Don't lose it. Things get lost so easily.[/]",
+          "speed": 44
+        }
+      ],
+      "next": "ask"
+    },
+    "bye": {
+      "say": [
+        "LEAVING?!^2 Fine!! FINE!!",
+        {
+          "text": "[gray]...Come back, though.[/]",
+          "speed": 44
+        },
+        "(He tumbles away into the dark, laughing, until even the laughing is gone.)"
+      ]
+    }
+  }
+}

@@ -1,6 +1,11 @@
 // Marquez: a conversation with the gentleman behind the desk.
 // All of his words live in dialogue.json. This file only knows how to say them.
 //
+// Other characters can use this same file: set window.TALK before loading it, e.g.
+//   window.TALK = { name: 'WONDER', art: 'art/wonder', faces: [], talkFrames: false,
+//                   seenKey: 'rvWonderSeen', muteKey: 'rvWonderMute', canTalk: function () { return true; } };
+// Anything left out keeps Marquez's settings. The page needs the same element ids as marquez/index.html.
+//
 // Controls: Z / Enter / Space = next or pick, X / Shift = finish the line now,
 // arrow keys = move between choices, M = sound on or off. Tapping works too.
 // When he asks what you found, type it and press Enter (Esc or an empty answer backs out).
@@ -18,6 +23,12 @@
   var answerIn = document.getElementById('answer-in');
   var muteBtn = document.getElementById('mute');
 
+  var CFG = window.TALK || {};
+  var ART = CFG.art || 'art/marquez';
+  var FACES = CFG.faces || ['smile', 'angry', 'point'];
+  var TALK_FRAMES = CFG.talkFrames !== false;
+  var WHO = CFG.name || 'MARQUEZ';
+
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var DATA = null, talking = false;
   var queue = [], node = null;      // lines left in the current node
@@ -26,7 +37,7 @@
   var asking = false;               // waiting for the visitor to type something
 
   // ---- memory: what this visitor has already heard (their browser only) ----
-  var SEEN_KEY = 'rvMarquezSeen', MUTE_KEY = 'rvMarquezMute';
+  var SEEN_KEY = CFG.seenKey || 'rvMarquezSeen', MUTE_KEY = CFG.muteKey || 'rvMarquezMute';
   var seen = {};
   try { (JSON.parse(localStorage.getItem(SEEN_KEY)) || []).forEach(function (k) { seen[k] = 1; }); } catch (e) {}
   function remember(id) {
@@ -71,17 +82,18 @@
   // While he talks, his mouth flaps between <face>-talk1 and <face>-talk2 (talk1/talk2 for
   // his normal face). A face without talk frames just holds still. Found automatically.
   var face = '', mouth = 0, flapAt = 0, hasTalk = {};
-  function artSrc(f) { return 'art/marquez' + (f ? '-' + f : '') + '.svg'; }
+  function artSrc(f) { return ART + (f ? '-' + f : '') + '.svg'; }
   function talkFrame(f, n) { return (f ? f + '-' : '') + 'talk' + n; }
   function preload(f) {
     new Image().src = artSrc(f);
     if (f in hasTalk) return;
     hasTalk[f] = false;
+    if (!TALK_FRAMES) return;
     var a = new Image(), b = new Image(), ok = 0;
     a.onload = b.onload = function () { if (++ok === 2) hasTalk[f] = true; };
     a.src = artSrc(talkFrame(f, 1)); b.src = artSrc(talkFrame(f, 2));
   }
-  ['', 'smile', 'angry', 'point'].forEach(preload);
+  [''].concat(FACES).forEach(preload);
   him.addEventListener('error', function () { if (him.getAttribute('src') !== artSrc('')) him.src = artSrc(''); });
   function show(f) { var src = artSrc(f); if (him.getAttribute('src') !== src) him.src = src; }
   function useArt(f) { face = f || ''; preload(face); show(face); }
@@ -183,7 +195,7 @@
   function say(line) {
     if (typeof line === 'string') line = { text: line };
     useArt(line.face || (node && node.face) || '');
-    plate.textContent = line.name || (node && node.name) || (known() ? DATA.knownName : DATA.name) || 'MARQUEZ';
+    plate.textContent = line.name || (node && node.name) || (known() ? DATA.knownName : DATA.name) || WHO;
     speed = reduce ? 0 : (line.speed || (node && node.speed) || DATA.speed || 32);
     box.classList.remove('done', 'choosing');
     closeAnswer();
@@ -198,7 +210,7 @@
 
   function go(id) {
     var n = DATA.nodes[id];
-    if (!n) { console.warn('[marquez] no node called "' + id + '"'); return end(); }
+    if (!n) { console.warn('[' + WHO.toLowerCase() + '] no node called "' + id + '"'); return end(); }
     // Already heard it, and there's a shorter version for next time? Use that instead.
     if (n.repeat && seen[id] && DATA.nodes[n.repeat] && n.repeat !== id) return go(n.repeat);
     node = n; options = []; remember(id); setFlag(n.flag);
@@ -284,6 +296,7 @@
 
   function start() {
     if (!DATA || talking) return;
+    if (CFG.canTalk && !CFG.canTalk()) return;
     talking = true;
     prompt.hidden = true;
     box.hidden = false;
@@ -334,7 +347,7 @@
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (d) { DATA = d; FINDS = null; })
     .catch(function (e) {
-      console.warn('[marquez] dialogue.json did not load', e);
+      console.warn('[' + WHO.toLowerCase() + '] dialogue.json did not load', e);
       prompt.textContent = '(He doesn\'t seem to want to talk right now.)';
     });
 })();

@@ -272,3 +272,16 @@ body.lights-off .dark { opacity: 1; }
   background: radial-gradient(ellipse 60% 55% at 46% 45%, rgba(255,226,150,.28), transparent 75%); }
 .drawer-link:focus-visible { box-shadow: 0 0 0 2px #ffe25c; }
 body:not(.looking-down) .drawer-link { pointer-events: none; }
+
+/* ---------- CH 02: the locked note (opened by the rusted key) ---------- */
+.note.locked { cursor: pointer; }
+.note.locked .keyhole { position: absolute; right: 14px; bottom: 12px; width: 34px; height: 44px; border-radius: 6px;
+  background: radial-gradient(circle at 35% 30%, #a0643a, #6e3c1c 60%, #3e2110); border: 2px solid #2e180b; box-shadow: 1px 2px 3px rgba(0,0,0,.45); }
+.note.locked .keyhole::before { content: ''; position: absolute; left: 50%; top: 9px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #0b0604; }
+.note.locked .keyhole::after { content: ''; position: absolute; left: 50%; top: 16px; width: 6px; height: 15px; margin-left: -3px; background: #0b0604; clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); }
+.note.locked.rattle { animation: rattle .45s; }
+@keyframes rattle { 15%, 55% { transform: rotate(var(--r)) translateX(-4px); } 35%, 75% { transform: rotate(var(--r)) translateX(4px); } }
+.note.locked.turning .keyhole::after { transform: rotate(90deg); transition: transform .5s ease-in; }
+.note.locked.unlocked .keyhole { opacity: .55; transform: rotate(-24deg) translateY(6px); }
+.note.locked.unlocked .keyhole::after { transform: rotate(90deg); }
+.note.locked .lock-line { font-style: italic; padding-right: 44px; }
