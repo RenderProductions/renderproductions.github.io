@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>...</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="marquez.css?v=5">
+<link rel="stylesheet" href="marquez.css?v=6">
 </head>
 <body>
 <!-- A dark room. Marquez sits behind his desk. Dialogue lives in dialogue.json; art goes in art/. -->
@@ -22,6 +22,21 @@
     <svg class="desk" viewBox="0 0 541.08 149.71" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><defs><linearGradient x1="238.5" y1="268" x2="238.5" y2="299" gradientUnits="userSpaceOnUse" id="deskShade"><stop offset="0" stop-color="#0d0702"/><stop offset="1" stop-color="#0d0702" stop-opacity="0"/></linearGradient></defs><g transform="translate(30.51028,-223.15)" fill-rule="nonzero" stroke-width="2.5" stroke-linejoin="miter" stroke-miterlimit="10"><path d="M-15,264.6l92,-36.2h325l92,36.2l1,107l-509.7423,-2.72829z" fill="#3f2410" stroke="#24140a" stroke-linecap="butt"/><path d="M-17.5,299v-31h512v31z" fill="url(#deskShade)" stroke="none" stroke-linecap="butt"/><path d="M-29.24581,262.62235l97.13966,-38.22235h343.15642l97.13966,38.22235l1.05587,18.97765l-538.21952,-2.8807z" fill="#5e3b22" stroke="#3b2516" stroke-linecap="butt"/><path d="M490.5,263l-497,0" fill="none" stroke="#3b2516" stroke-linecap="round"/></g></svg>
     <div class="shroud" aria-hidden="true"></div>
   </div>
+
+  <!-- Cedar's workbench (bench.js): opens when he says the "craft" node. Recipes are in /items.json. -->
+  <section class="bench" id="bench" data-panel hidden aria-label="Workbench">
+    <div class="bench-bulb" aria-hidden="true"><img src="/backstage/drawer/art/bright_bulb.svg" alt="" draggable="false"></div>
+    <div class="bench-slots">
+      <button class="slot" type="button" aria-label="Empty spot"></button>
+      <span class="plus" aria-hidden="true">+</span>
+      <button class="slot" type="button" aria-label="Empty spot"></button>
+    </div>
+    <div class="bench-tray" id="bench-tray"></div>
+    <div class="bench-acts">
+      <button id="bench-no" type="button" class="quiet">NOT NOW</button>
+      <button id="bench-go" type="button" disabled>PUT THEM TOGETHER</button>
+    </div>
+  </section>
 
   <div class="prompt" id="prompt">press Z or tap to approach</div>
 
@@ -42,7 +57,8 @@
   <a class="leave" href="/backstage/">&larr; back</a>
 </main>
 <noscript><p class="nojs">(It's too dark to talk without JavaScript.)</p></noscript>
-<script src="/inventory.js?v=1"></script>
-<script src="marquez.js?v=13"></script>
+<script src="/inventory.js?v=2"></script>
+<script src="marquez.js?v=14"></script>
+<script src="bench.js?v=1"></script>
 </body>
 </html>
