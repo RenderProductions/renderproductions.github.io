@@ -292,3 +292,8 @@ body:not(.looking-down) .drawer-link { pointer-events: none; }
 /* the dead bulb sits on the desk, but you only notice it in the dark */
 .desk-items .bulb-item { width: clamp(22px, 2.6cqw, 34px); height: auto; align-self: flex-end; cursor: pointer; pointer-events: auto; opacity: 0; visibility: hidden; transition: opacity .3s; }
 body.lights-off .desk-items .bulb-item { opacity: 1; visibility: visible; }
+
+/* the polaroid on the board is the user's drawing (the same picture you get in the drawer) */
+.polaroid:has(.snap) { padding: 0; background: none; box-shadow: none; }
+.polaroid .snap { display: block; width: 100%; height: auto; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)) drop-shadow(4px 10px 10px rgba(0,0,0,.45)); }
+.polaroid:has(.snap) .strip { left: 30%; top: -6px; }
