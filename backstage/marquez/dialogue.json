@@ -515,9 +515,9 @@
           "mark": "said_dear_god"
         },
         "(He turns the bulb over. Something rattles inside.)",
-        "Burnt out.^2 Like most things down here.",
+        "Burnt out?^2 For now.",
         {
-          "text": "Keep it anyway. Things that went dark have a way of lighting back up.",
+          "text": "It'll glow eventually.^2 Everything does!",
           "face": "smile"
         }
       ],
@@ -537,15 +537,11 @@
           ],
           "mark": "said_dear_god"
         },
-        "(He looks at the photo for a long, long time.)",
+        "(He looks at the photo, then up at you.)",
+        "...^3 Is this from my board?",
         {
-          "text": "...^4 Where did you get this?",
-          "face": "angry",
-          "speed": 46
-        },
-        "\"Don't trust the...\"^3 Torn. Of course it's torn.",
-        {
-          "text": "[gray]Whoever wrote that knew something. I'd like to know what.[/]"
+          "text": "I took a good photo.",
+          "face": "smile"
         }
       ],
       "mark": "any_shown",
@@ -565,14 +561,13 @@
           "mark": "said_dear_god"
         },
         {
-          "text": "[shake]Put that down.[/]",
+          "text": "[shake]Destroy that.[/]",
           "face": "angry"
         },
         {
-          "text": "...^3 No. Keep it.^2 But don't you DARE put it in anything.",
+          "text": "Don't put it in anything. Don't keep it in a drawer.^3 Destroy it.",
           "face": "angry"
-        },
-        "That's a piece of him.^3 The less of him running, the better."
+        }
       ],
       "mark": "any_shown",
       "repeat": "show_floppy_again",
@@ -591,9 +586,9 @@
           "mark": "said_dear_god"
         },
         "A tape.^2 No label.",
-        "I used to sell these in my shop. People recorded the strangest things off the air.",
+        "I used to sell these in my shop.",
         {
-          "text": "Some things only make sense the second time you hear them.",
+          "text": "Something will let it play.^2 Something always does.",
           "face": "point"
         }
       ],
@@ -619,7 +614,7 @@
           "face": "smile"
         },
         {
-          "text": "[gray]Keep it close.[/]"
+          "text": "[gray]Wherever that house was, nobody's going back.^3 Not from here.[/]"
         }
       ],
       "next": "found_more"
@@ -631,7 +626,7 @@
           "face": "point"
         },
         {
-          "text": "...^3 Good.^2 Every one you put down is one less pair of eyes on us.",
+          "text": "Good.^2 Keep killing them.",
           "face": "smile"
         }
       ],
@@ -641,28 +636,31 @@
       "say": [
         "Another window that won't be watching anyone.",
         {
-          "text": "Careful.^2 The edges are sharper than they look.",
-          "face": "point"
+          "text": "Keep killing them.^2 Every one counts.",
+          "face": "smile"
         }
       ],
       "next": "found_more"
     },
     "show_bulb_again": {
       "say": [
-        "(He holds it up to his own weak light, as if that might help.)",
-        "Still dark.",
+        "Still dark?^2 Give it time.",
         {
-          "text": "[gray]...Still rattling, too.^3 Have you ever wondered what's in there?[/]"
+          "text": "It'll glow eventually. Everything does.",
+          "face": "smile"
+        },
+        {
+          "text": "[gray]...Still rattling, too. Have you ever wondered what's in there?[/]"
         }
       ],
       "next": "found_more"
     },
     "show_polaroid_again": {
       "say": [
-        "(He doesn't look at it this time.)",
+        "My photo again.",
         {
-          "text": "I know what's in that picture.^3 I'd rather not see it twice.",
-          "face": "angry"
+          "text": "Still a good one, if I say so myself.",
+          "face": "smile"
         }
       ],
       "next": "found_more"
@@ -670,19 +668,22 @@
     "show_floppy_again": {
       "say": [
         {
-          "text": "You still have that.",
+          "text": "You STILL have that?",
           "face": "angry"
         },
-        "He'll want it back, you know.^3 He always wants things back."
+        {
+          "text": "Destroy it.",
+          "face": "angry"
+        }
       ],
       "next": "found_more"
     },
     "show_cassette_again": {
       "say": [
         "Have you listened to it yet?",
-        "No, of course not.^2 Nothing down here plays it.",
+        "No, of course not. Nothing down here plays it.",
         {
-          "text": "Not yet.",
+          "text": "Something will let it play, though.^2 Wait and see.",
           "face": "point"
         }
       ],
