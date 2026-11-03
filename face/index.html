@@ -19,7 +19,7 @@
 <style>
   .stage { perspective: 1100px; }
   /* The face, plus anything tucked behind it (the rusted key: an item, see /inventory.js) */
-  .face-box { position: relative; width: min(100%, 78vh); margin: 0 auto; }
+  .face-box { position: relative; width: min(100%, 78vh); margin: 0 auto; perspective: 1100px; }   /* the face turns in 3D inside this box */
   .face-box .face { position: relative; z-index: 1; }
   .behind { position: absolute; z-index: 0; left: 92.5%; top: 86%; width: 24%; height: auto; transform: translate(-50%, -50%) rotate(-22deg);
     filter: brightness(.75) drop-shadow(0 4px 4px rgba(0,0,0,.6)); transition: filter .2s, transform .2s; }
