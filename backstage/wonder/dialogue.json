@@ -107,7 +107,7 @@
     "where": {
       "say": [
         "NOWHERE!!^3 Isn't it MARVELOUS?!",
-        "NOTHING BUTME! NOTHING TO hold me back.",
+        "NOTHING BUT ME! NOTHING TO hold me back.",
         {
           "text": "[gray]No wolf.[/]",
           "speed": 44
@@ -117,7 +117,6 @@
     },
     "varandia": {
       "say": [
-        "(He stops drifting.)",
         {
           "text": "[shake]SHHH.[/]^4 Don't say it so LOUD.",
           "speed": 44
