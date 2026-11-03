@@ -421,6 +421,11 @@
           "has": "popup_shard"
         },
         {
+          "text": "Show him the Bright Bulb",
+          "to": "show_bright",
+          "has": "bright_bulb"
+        },
+        {
           "text": "Show him the Dead Bulb",
           "to": "show_bulb",
           "has": "dead_bulb"
@@ -439,6 +444,21 @@
           "text": "Show him the Cassette",
           "to": "show_cassette",
           "has": "static_cassette"
+        },
+        {
+          "text": "Show him the Clear Polaroid",
+          "to": "show_clear_polaroid",
+          "has": "clear_polaroid"
+        },
+        {
+          "text": "Show him the Dubbed Tape",
+          "to": "show_dubbed_tape",
+          "has": "dubbed_tape"
+        },
+        {
+          "text": "Show him the Hill Marker",
+          "to": "show_hill_marker",
+          "has": "hill_marker"
         },
         {
           "text": "Never mind",
@@ -1458,6 +1478,68 @@
         "Hold it up to your EAR!",
         "(He holds his own ear to the void.)",
         "...^3 STATIC.^2 MAGNIFICENT, LOUD STATIC."
+      ],
+      "next": "found_more"
+    },
+    "show_bright": {
+      "say": [
+        "IT'S GLOWING!!!",
+        {
+          "text": "THE DARK BULB GOT BRIGHT!!^2 It's SHINING!!^2 Like a STAR!!",
+          "fx": "stars"
+        },
+        "Did OLD BOY do this?^2 He's ALWAYS fixing things!! [gray]Mostly.[/]"
+      ],
+      "repeat": "show_bright_again",
+      "next": "found_more"
+    },
+    "show_bright_again": {
+      "say": [
+        "STILL BRIGHT!!",
+        "Don't let it go dark AGAIN, okay?? OKAY?!"
+      ],
+      "next": "found_more"
+    },
+    "show_clear_polaroid": {
+      "say": [
+        "OH JOYOUS!^2 THE POPUP IS WHOLE AGAIN!",
+        {
+          "text": "It's not evil though...",
+          "speed": 44
+        }
+      ],
+      "repeat": "show_clear_polaroid_again",
+      "next": "found_more"
+    },
+    "show_clear_polaroid_again": {
+      "say": [
+        "DEFEAT EVIL WITH IT'S OWN TRICKS!"
+      ],
+      "next": "found_more"
+    },
+    "show_dubbed_tape": {
+      "say": [
+        "YOU DIDN'T EAT IT,^2 but turned it into BEAUTY!!!"
+      ],
+      "repeat": "show_dubbed_tape_again",
+      "next": "found_more"
+    },
+    "show_dubbed_tape_again": {
+      "say": [
+        "I really wanted to eat it,^2 but that WORKS SO MUCH BETTER!"
+      ],
+      "next": "found_more"
+    },
+    "show_hill_marker": {
+      "say": [
+        "Cedar MADE THIS!!^2 I KNOW he did!^2 Justice served!"
+      ],
+      "repeat": "show_hill_marker_again",
+      "next": "found_more"
+    },
+    "show_hill_marker_again": {
+      "say": [
+        "I took miss VARANDIA!^2 BUT here is fine, TOO!"
       ],
       "next": "found_more"
     }

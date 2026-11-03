@@ -16,34 +16,54 @@
 //   RPInventory.take('brass_key')        -> removes it (for trades and puzzles)
 //   RPInventory.list()                   -> ['brass_key', ...] in the order they were found
 //   RPInventory.catalog()                -> Promise of the items.json "items" object
+//   RPInventory.recipes()                -> Promise of the items.json "recipes" list (Cedar's workbench)
+//
+// Once found, always found: an item that's been used up (crafted, or turned into something else)
+// doesn't come back. Its pickup stays gone and give() won't hand it out again (give(id, { again: true }) will).
+//
+// Items that change with time: an item in items.json with
+//   "ripens": { "into": "other_id", "hours": 3, "chance": 0.3333 }
+// gets one roll every <hours> after it was found; on a hit it's replaced by <into> (with a found slip).
+// The rolls happen on any page that loads this file, and each window is only rolled once ("rp_ripen").
 //   document.addEventListener('rp:items', ...)   fires whenever the inventory changes
 (function () {
   'use strict';
   if (window.RPInventory) return;
 
-  var KEY = 'rp_items';
-  var catalogP = null;
+  var KEY = 'rp_items', HAD = 'rp_items_had', RIPE = 'rp_ripen';
+  var dataP = null;
 
-  function read() {
-    try { var v = JSON.parse(localStorage.getItem(KEY)); return v && typeof v === 'object' ? v : {}; }
+  function load(k) {
+    try { var v = JSON.parse(localStorage.getItem(k)); return v && typeof v === 'object' ? v : {}; }
     catch (e) { return {}; }
   }
-  function write(v) {
-    try { localStorage.setItem(KEY, JSON.stringify(v)); return true; } catch (e) { return false; }
+  function save(k, v) {
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; }
+  }
+  function read() { return load(KEY); }
+  function write(v) { return save(KEY, v); }
+  // everything they've ever had (so used-up items don't reappear)
+  function had() {
+    var h = load(HAD), v = read(), add = false;
+    Object.keys(v).forEach(function (id) { if (!h[id]) { h[id] = v[id]; add = true; } });
+    if (add) save(HAD, h);
+    return h;
   }
   function changed(detail) {
     try { document.dispatchEvent(new CustomEvent('rp:items', { detail: detail })); } catch (e) {}
   }
 
-  function catalog() {
-    if (!catalogP) {
-      catalogP = fetch('/items.json?v=' + Date.now())
+  function data() {
+    if (!dataP) {
+      dataP = fetch('/items.json?v=' + Date.now())
         .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function (d) { return (d && d.items) || {}; })
+        .then(function (d) { return d || {}; })
         .catch(function (e) { console.warn('[inventory] items.json did not load', e); return {}; });
     }
-    return catalogP;
+    return dataP;
   }
+  function catalog() { return data().then(function (d) { return d.items || {}; }); }
+  function recipes() { return data().then(function (d) { return d.recipes || []; }); }
 
   function has(id) { return !!read()[id]; }
   function list() {
@@ -54,8 +74,11 @@
     if (!id) return false;
     var v = read();
     if (v[id]) return false;
+    var h = had();
+    if (h[id] && !(opts && opts.again)) return false;
     v[id] = Date.now();
     if (!write(v)) return false;
+    h[id] = v[id]; save(HAD, h);
     changed({ id: id, action: 'give' });
     if (!(opts && opts.quiet)) slip(id);
     return true;
@@ -63,6 +86,7 @@
   function take(id) {
     var v = read();
     if (!v[id]) return false;
+    had();   // make sure it's remembered as had before it goes
     delete v[id];
     write(v);
     changed({ id: id, action: 'take' });
@@ -127,7 +151,7 @@
     [].forEach.call((root || document).querySelectorAll('[data-item]:not([data-item-wired])'), function (el) {
       var id = el.getAttribute('data-item');
       el.setAttribute('data-item-wired', '');
-      if (has(id) && !el.hasAttribute('data-item-keep')) { el.hidden = true; el.style.display = 'none'; return; }
+      if ((has(id) || had()[id]) && !el.hasAttribute('data-item-keep')) { el.hidden = true; el.style.display = 'none'; return; }
       if (!el.hasAttribute('tabindex') && !/^(A|BUTTON)$/.test(el.tagName)) el.setAttribute('tabindex', '0');
       function grab(e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -142,11 +166,31 @@
     });
   }
 
+  // ---- items that change with time (items.json "ripens") ----
+  function ripen() {
+    if (!list().length) return Promise.resolve([]);
+    return catalog().then(function (cat) {
+      var v = read(), r = load(RIPE), now = Date.now(), done = [];
+      Object.keys(v).forEach(function (id) {
+        var rule = cat[id] && cat[id].ripens;
+        if (!rule || !rule.into) return;
+        var every = (rule.hours || 3) * 3600000, chance = rule.chance == null ? 1 / 3 : rule.chance;
+        var win = Math.floor((now - v[id]) / every), last = r[id] || 0, hit = false;
+        while (last < win && !hit) { last++; hit = Math.random() < chance; }
+        r[id] = last;
+        if (hit) { delete r[id]; take(id); give(rule.into, { again: true }); done.push(rule.into); }
+      });
+      save(RIPE, r);
+      return done;
+    });
+  }
+
   // Another tab gave or took something: tell this page too.
   window.addEventListener('storage', function (e) { if (e.key === KEY) changed({ action: 'sync' }); });
 
-  window.RPInventory = { give: give, take: take, has: has, list: list, catalog: catalog, wire: wire };
+  window.RPInventory = { give: give, take: take, has: has, list: list, catalog: catalog, recipes: recipes, wire: wire, ripen: ripen };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { wire(); });
-  else wire();
+  function boot() { had(); wire(); ripen(); setInterval(ripen, 60000); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();

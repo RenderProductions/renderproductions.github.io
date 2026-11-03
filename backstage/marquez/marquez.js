@@ -36,6 +36,7 @@
   var chars = [], shown = 0, timer = 0, typing = false, speed = 32;
   var options = [], sel = 0;
   var asking = false;               // waiting for the visitor to type something
+  var paneled = false;              // a page panel (e.g. Cedar's workbench) has the floor
 
   // ---- memory: what this visitor has already heard (their browser only) ----
   var SEEN_KEY = CFG.seenKey || 'rvMarquezSeen', MUTE_KEY = CFG.muteKey || 'rvMarquezMute';
@@ -187,7 +188,8 @@
     typing = false;
     room.classList.remove('talking');
     show(face);
-    if (!queue.length && node && node.ask) openAnswer();
+    if (!queue.length && node && node.panel) openPanel();
+    else if (!queue.length && node && node.ask) openAnswer();
     else if (!queue.length && node && node.choices) showChoices();
     else box.classList.add('done');
   }
@@ -304,6 +306,19 @@
     if (e.key === 'Escape') { e.preventDefault(); answerIn.value = ''; submitAnswer(); }
   });
 
+  // ---- panels: a node with "panel": "name" hands over to the page after its lines ----
+  // The page hears 'talk:panel' ({ panel, node }) and answers with TALKER.go('nodeId') or TALKER.end().
+  function openPanel() {
+    paneled = true;
+    box.classList.add('choosing');
+    try { document.dispatchEvent(new CustomEvent('talk:panel', { detail: { panel: node.panel, node: node } })); } catch (e) {}
+  }
+  window.TALKER = {
+    go: function (id) { if (!DATA) return; paneled = false; if (!talking) { talking = true; prompt.hidden = true; box.hidden = false; } go(id); },
+    end: function () { paneled = false; end(); },
+    seen: function (id) { return !!seen[id]; }
+  };
+
   function start() {
     if (!DATA || talking) return;
     if (CFG.canTalk && !CFG.canTalk()) return;
@@ -314,6 +329,7 @@
     go(first);
   }
   function end() {
+    paneled = false;
     talking = false; node = null; queue = [];
     closeAnswer();
     box.hidden = true;
@@ -326,7 +342,7 @@
   function primary() {
     if (!talking) return start();
     if (typing) return finishTyping();
-    if (asking) return;
+    if (asking || paneled) return;
     if (box.classList.contains('choosing')) return choose();
     advance();
   }
@@ -337,14 +353,14 @@
     if (k === 'm') { toggleMute(); return; }
     if (k === 'z' || k === 'enter' || k === ' ') { e.preventDefault(); if (!e.repeat) primary(); return; }
     if ((k === 'x' || k === 'shift') && typing) { finishTyping(); return; }
-    if (box.classList.contains('choosing') && !asking) {
+    if (box.classList.contains('choosing') && !asking && !paneled) {
       var cols = getComputedStyle(choicesEl).gridTemplateColumns.split(' ').length;
       var d = { arrowleft: -1, arrowright: 1, arrowup: -cols, arrowdown: cols }[k];
       if (d) { e.preventDefault(); pick(sel + d); }
     }
   });
   room.addEventListener('click', function (e) {
-    if (e.target.closest('a, button, form')) return;
+    if (e.target.closest('a, button, form, [data-panel]')) return;
     // While choosing, only a tap on a choice itself picks (handled on the <li>),
     // so a stray tap on the room can't choose the highlighted option by accident.
     if (talking && !typing && box.classList.contains('choosing')) return;

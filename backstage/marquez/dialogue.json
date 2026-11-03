@@ -1,5 +1,5 @@
 {
-  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. A line can have \"needs\" (and \"has\"), with the same rules as choices: it's skipped unless they hold. A line or node can have \"mark\": \"word\" to remember that word (for needs) once it's said/heard. 'Dear God... Is there more?' plays once: on the second item ever shown (needs any_shown, marks said_dear_god). Items: the second time an item is shown he gives an alternate telling (<node>_again), and keeps giving it after that.",
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. A line can have \"needs\" (and \"has\"), with the same rules as choices: it's skipped unless they hold. A line or node can have \"mark\": \"word\" to remember that word (for needs) once it's said/heard. 'Dear God... Is there more?' plays once: on the second item ever shown (needs any_shown, marks said_dear_god). Items: the second time an item is shown he gives an alternate telling (<node>_again), and keeps giving it after that. WORKBENCH: a node with \"panel\": \"bench\" opens Cedar's workbench after its lines (bench.js). The recipes are in /items.json; after a match he says that recipe's \"say\" node. The bench also uses craft_miss (no recipe), craft_key (the rusted key is in a slot), craft_empty (fewer than two things to work with) and craft_cancel (they walk away). Showing him the Bright Bulb marks can_craft, which puts \"Make something\" in his menus.",
   "name": "MARQUEZ",
   "voice": {
     "pitch": 92,
@@ -86,6 +86,12 @@
           "text": "I found something.",
           "to": "found",
           "needs": "advice"
+        },
+        {
+          "text": "Make something",
+          "to": "craft",
+          "needs": "can_craft",
+          "has": "bright_bulb"
         },
         {
           "text": "Leave",
@@ -393,6 +399,12 @@
           "to": "found_tell"
         },
         {
+          "text": "Make something",
+          "to": "craft",
+          "needs": "can_craft",
+          "has": "bright_bulb"
+        },
+        {
           "text": "Never mind",
           "to": "ask"
         }
@@ -433,6 +445,11 @@
           "has": "popup_shard"
         },
         {
+          "text": "Show him the Bright Bulb",
+          "to": "show_bright",
+          "has": "bright_bulb"
+        },
+        {
           "text": "Show him the Dead Bulb",
           "to": "show_bulb",
           "has": "dead_bulb"
@@ -451,6 +468,21 @@
           "text": "Show him the Cassette",
           "to": "show_cassette",
           "has": "static_cassette"
+        },
+        {
+          "text": "Show him the Clear Polaroid",
+          "to": "show_clear_polaroid",
+          "has": "clear_polaroid"
+        },
+        {
+          "text": "Show him the Dubbed Tape",
+          "to": "show_dubbed_tape",
+          "has": "dubbed_tape"
+        },
+        {
+          "text": "Show him the Hill Marker",
+          "to": "show_hill_marker",
+          "has": "hill_marker"
         },
         {
           "text": "Never mind",
@@ -688,6 +720,201 @@
         }
       ],
       "next": "found_more"
+    },
+    "show_bright": {
+      "say": [
+        {
+          "text": "[shake]Dear God...[/]^5 Is there more?",
+          "face": "angry",
+          "speed": 52,
+          "needs": [
+            "any_shown",
+            "!said_dear_god"
+          ],
+          "mark": "said_dear_god"
+        },
+        "(The bulb is glowing in his hand. He squints at it, then grins.)",
+        {
+          "text": "Told you.^2 Everything does!",
+          "face": "smile"
+        },
+        "Light like that,^2 we can finally get some work done.",
+        {
+          "text": "Bring me two things.^2 Let's see what they make together.",
+          "face": "point"
+        }
+      ],
+      "mark": [
+        "any_shown",
+        "can_craft"
+      ],
+      "repeat": "show_bright_again",
+      "next": "found_more"
+    },
+    "show_bright_again": {
+      "say": [
+        "Still glowing.^2 Good.",
+        {
+          "text": "Whenever you want to make something, I'm here.",
+          "face": "smile"
+        }
+      ],
+      "next": "found_more"
+    },
+    "show_clear_polaroid": {
+      "say": [
+        {
+          "text": "[shake]Dear God...[/]^5 Is there more?",
+          "face": "angry",
+          "speed": 52,
+          "needs": [
+            "any_shown",
+            "!said_dear_god"
+          ],
+          "mark": "said_dear_god"
+        },
+        "An eye for an eye.^2 Use his eyes against him."
+      ],
+      "mark": "any_shown",
+      "repeat": "show_clear_polaroid_again",
+      "next": "found_more"
+    },
+    "show_clear_polaroid_again": {
+      "say": [
+        "Use the eye to defeat the eyes!"
+      ],
+      "next": "found_more"
+    },
+    "show_dubbed_tape": {
+      "say": [
+        {
+          "text": "[shake]Dear God...[/]^5 Is there more?",
+          "face": "angry",
+          "speed": 52,
+          "needs": [
+            "any_shown",
+            "!said_dear_god"
+          ],
+          "mark": "said_dear_god"
+        },
+        "It is destroyed.^2 Now, find somewhere to play it.",
+        "It might take some time,^2 but it will come."
+      ],
+      "mark": "any_shown",
+      "repeat": "show_dubbed_tape_again",
+      "next": "found_more"
+    },
+    "show_dubbed_tape_again": {
+      "say": [
+        "It is destroyed.^2 Now, find somewhere to play it.",
+        "It might take some time,^2 but it will come."
+      ],
+      "next": "found_more"
+    },
+    "show_hill_marker": {
+      "say": [
+        {
+          "text": "[shake]Dear God...[/]^5 Is there more?",
+          "face": "angry",
+          "speed": 52,
+          "needs": [
+            "any_shown",
+            "!said_dear_god"
+          ],
+          "mark": "said_dear_god"
+        },
+        "The only justice I can give to those kids.^2 And to everyone who was lost in Varandia."
+      ],
+      "mark": "any_shown",
+      "repeat": "show_hill_marker_again",
+      "next": "found_more"
+    },
+    "show_hill_marker_again": {
+      "say": [
+        "I miss the Varandian days."
+      ],
+      "next": "found_more"
+    },
+    "craft": {
+      "say": [
+        "Set them down under the light."
+      ],
+      "panel": "bench"
+    },
+    "craft_more": {
+      "say": [
+        "Anything else?"
+      ],
+      "choices": [
+        {
+          "text": "Make something else",
+          "to": "craft"
+        },
+        {
+          "text": "That's all",
+          "to": "ask"
+        }
+      ]
+    },
+    "craft_miss": {
+      "say": [
+        "(He turns them over under the bulb. Nothing fits.)",
+        "Those don't go together, friend."
+      ],
+      "next": "craft_more"
+    },
+    "craft_key": {
+      "say": [
+        {
+          "text": "Not the key.",
+          "face": "angry"
+        },
+        "You'll want that where you're going."
+      ],
+      "next": "craft_more"
+    },
+    "craft_empty": {
+      "say": [
+        "Two things, friend.^2 You'll need to go find more."
+      ],
+      "next": "ask"
+    },
+    "craft_cancel": {
+      "say": [
+        "Another time, then."
+      ],
+      "next": "ask"
+    },
+    "craft_clear_polaroid": {
+      "say": [
+        "(He holds the shard over the photo. It blinks, once.)",
+        "There.^2 One of his eyes,^2 looking where he didn't want it to.",
+        {
+          "text": "Use them against him for once.",
+          "face": "point"
+        }
+      ],
+      "next": "craft_more"
+    },
+    "craft_dubbed_tape": {
+      "say": [
+        "(He pries the disk open and winds something out of it onto the tape.)",
+        {
+          "text": "There.^2 It's destroyed.",
+          "face": "smile"
+        },
+        "...Mostly.",
+        "Something will let it play.^2 Not yet, though."
+      ],
+      "next": "craft_more"
+    },
+    "craft_hill_marker": {
+      "say": [
+        "(He tips the pail over the little stone. When he lifts it, the stone has gone green, shaped like a hill. He scratches two names into it.)",
+        "Jack.^2 Jill.",
+        "Someone should remember them too."
+      ],
+      "next": "craft_more"
     }
   },
   "knownName": "CEDAR",

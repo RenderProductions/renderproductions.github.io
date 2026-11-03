@@ -101,3 +101,54 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
   border: 1px solid #6e4f1c; border-radius: 2px; padding: 6px 10px; cursor: pointer; }
 .answer button:hover, .answer button:focus-visible { filter: brightness(1.12); outline: none; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* ---- the Bright Bulb: once he's seen it, his desk is lit. Its light is the art's pale cyan (#bef7ff), cool against his amber room ---- */
+.room.lit .light { background: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(190,247,255,.16), rgba(120,220,255,.05) 55%, transparent 78%); animation: none; }
+.room.lit .scene .him { filter: brightness(.95) saturate(.9) drop-shadow(0 0 30px rgba(0,0,0,.6)); }
+
+/* ---- Cedar's workbench (bench.js) ---- */
+.bench { position: absolute; left: 50%; bottom: calc(22px + var(--boxh) + 10px); z-index: 4; width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - var(--boxh) - 70px); display: flex; flex-direction: column; gap: 10px; padding: 44px 16px 12px; cursor: default;
+  background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(190,247,255,.2), rgba(190,247,255,0) 70%), linear-gradient(180deg, #4a2c15, #2c190b);
+  border: 1px solid #6e4f1c; border-radius: 4px; box-shadow: 0 0 0 4px rgba(0,0,0,.55), 0 24px 60px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,220,150,.18);
+  opacity: 0; transform: translate(-50%, 16px); transition: opacity .2s, transform .25s cubic-bezier(.3,1.3,.5,1); }
+.bench[hidden] { display: none; }
+.bench.on { opacity: 1; transform: translate(-50%, 0); }
+.bench-bulb { position: absolute; left: 50%; top: -40px; width: 74px; transform: translateX(-50%); pointer-events: none; }
+.bench-bulb::before { content: ''; position: absolute; left: 50%; top: 42%; width: 260px; height: 200px; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(190,247,255,.36), rgba(15,226,255,0)); animation: glow 3.2s ease-in-out infinite; }
+.bench-bulb img { position: relative; display: block; width: 100%; height: auto; filter: drop-shadow(0 0 8px rgba(190,247,255,.8)); }
+@keyframes glow { 50% { opacity: .75 } }
+.bench.flash .bench-bulb::before { animation: none; opacity: 1; background: radial-gradient(closest-side, rgba(235,253,255,.95), rgba(15,226,255,0)); }
+
+.bench-slots { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.bench .slot { width: 84px; height: 84px; display: grid; place-items: center; padding: 10px; cursor: pointer;
+  background: rgba(0,0,0,.28); border: 1.5px dashed rgba(230,184,103,.45); border-radius: 3px; transition: border-color .15s, background .15s; }
+.bench .slot.full { border-style: solid; border-color: rgba(230,184,103,.7); background: rgba(190,247,255,.07); }
+.bench .slot:hover, .bench .slot:focus-visible { border-color: var(--amber); outline: none; }
+.bench .slot img, .bench .thing .pic img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 3px 3px rgba(0,0,0,.5)); }
+.bench .plus { font: 26px var(--mono); color: var(--amber); }
+.bench.flash .slot.full { animation: fuse .38s ease-in forwards; }
+.bench.flash .slot.full:first-child { --dx: 40px; } .bench.flash .slot.full:last-child { --dx: -40px; }
+@keyframes fuse { to { transform: translateX(var(--dx)) scale(.4); opacity: 0; } }
+
+.bench-tray { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; min-height: 0; padding: 2px 2px 6px; scrollbar-width: thin; scrollbar-color: #6e4f1c transparent; }
+.bench .thing { flex: 0 0 82px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; cursor: pointer; background: rgba(0,0,0,.22);
+  border: 1px solid rgba(230,184,103,.18); border-radius: 3px; color: #c9bc9f; font: 11px var(--mono); letter-spacing: .5px; transition: border-color .12s, opacity .12s; }
+.bench .thing .pic { width: 46px; height: 46px; display: grid; place-items: center; }
+.bench .thing .pic img { max-width: 46px; max-height: 46px; }
+.bench .slot img { max-width: 64px; max-height: 64px; }
+.bench .thing .label { text-align: center; line-height: 1.2; }
+.bench .thing:hover, .bench .thing:focus-visible { border-color: var(--amber); color: #f3e7cc; outline: none; }
+.bench .thing.used { opacity: .35; }
+.bench .tagonly { display: grid; place-items: center; width: 100%; height: 100%; padding: 4px; background: #f1ead6; color: #2b2412; font: 10px var(--type);
+  text-align: center; line-height: 1.1; border-radius: 2px; transform: rotate(-3deg); box-shadow: 0 2px 3px rgba(0,0,0,.4); }
+
+.bench-acts { display: flex; justify-content: space-between; gap: 10px; }
+.bench-acts button { font: 500 11px var(--mono); letter-spacing: 3px; color: #2a1b08; background: linear-gradient(180deg, #f1d28e, #b88a3e);
+  border: 1px solid #6e4f1c; border-radius: 2px; padding: 8px 12px; cursor: pointer; }
+.bench-acts button.quiet { color: #c9bc9f; background: none; border-color: rgba(230,184,103,.3); }
+.bench-acts button:disabled { opacity: .4; cursor: default; }
+.bench-acts button:not(:disabled):hover, .bench-acts button:focus-visible { filter: brightness(1.12); outline: none; }
+@media (max-width: 560px) { .bench .slot { width: 76px; height: 76px; } .bench { padding-top: 46px; bottom: calc(22px + var(--boxh) + 24px); } }
+@media (prefers-reduced-motion: reduce) { .bench, .bench-bulb::before, .bench.flash .slot.full { transition: none; animation: none; } }
