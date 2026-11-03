@@ -15,10 +15,9 @@
   "nodes": {
     "hello": {
       "say": [
-        "(Something pale tumbles out of the dark, grinning with both halves of its face.)",
         "FINALLY! You ARRIVED!",
         "IT TOOK YOU WAYY TOO LONG!",
-        "Did you speak with OLD BOY MARQUEZ to find me?"
+        "Did you speak with OLD BOY MARQUEZ to find me??"
       ],
       "choices": [
         {
@@ -100,15 +99,14 @@
     "who": {
       "say": [
         "WONDER!!^2 Just WONDER!",
-        "ONE name, TWO faces, NO refunds!",
-        "(He rolls slowly head over heels. Both halves are still grinning when he comes back around.)"
+        "YOU LOVE ME! Everyone loves me.",
       ],
       "next": "ask"
     },
     "where": {
       "say": [
         "NOWHERE!!^3 Isn't it MARVELOUS?!",
-        "No WALLS. No FLOOR. No STRINGS.",
+        "NOTHING BUTME! NOTHING TO hold me back.",
         {
           "text": "[gray]No wolf.[/]",
           "speed": 44
@@ -124,7 +122,7 @@
           "speed": 44
         },
         "I got OUT, you see!! OUT, OUT, OUT!!",
-        "DON'T ask me how. I don't REMEMBER.",
+        "DON'T ask me how. I don't REMEMBER!!!",
         {
           "text": "[gray]I don't WANT to.[/]",
           "speed": 44
@@ -134,7 +132,6 @@
     },
     "wolf": {
       "say": [
-        "(The grin flickers.)",
         {
           "text": "[shake]We DON'T talk about the WOLF.[/]",
           "speed": 40
@@ -152,17 +149,16 @@
       "repeat": "key_again",
       "say": [
         "THAT KEY!!^2 Hold it UP, hold it UP!",
-        "(He drifts in close. Closer than you'd like.)",
-        "OH, I know THAT door. LITTLE house. WARM inside. SOMEBODY always waiting up.",
+        "OH, I know THAT door! I ONCE LIVED THERE!!!",
         {
           "text": "...^5",
           "speed": 80
         },
         {
-          "text": "[gray]Nobody's waiting now.[/]",
+          "text": "[gray]I want to go home.[/]",
           "speed": 44
         },
-        "But it opened MY door, didn't it?!^2 HA!! WONDERFUL!!"
+        "But it opened MY NEW door, didn't it?!^2 HA!! WONDERFUL!!"
       ],
       "next": "ask"
     },
@@ -182,8 +178,7 @@
         {
           "text": "[gray]...COME BACK, though.[/]",
           "speed": 44
-        },
-        "(He tumbles away into the dark, laughing, until even the laughing is gone.)"
+        }
       ]
     }
   }
