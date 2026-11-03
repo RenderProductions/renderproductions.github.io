@@ -35,7 +35,7 @@ const COMPANY_NEWS = 10;        // how many stories each company page keeps
 // Every company has a dividend "meter" (divIndex): how much one share has earned in
 // total, ever. It grows while the market is open. The bot pays (meter now - meter at
 // your last claim) x shares, so unclaimed days pile up on their own.
-const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025 }; // per day
+const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025, BSTG: 0 }; // per day (BSTG pays nothing: every Polygon goes into the next game)
 const DIV_SUSPEND_HOURS = 24;   // a failed goal freezes that company's meter this long
 const DIV_BONUS_DAYS = 1;       // a successful goal drops this many days' worth on the meter
 const MAX_ACCRUE_MIN = 15;      // a late or missed tick adds at most this many minutes
@@ -52,7 +52,11 @@ const COMPANIES = [
   { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00, volatility: 0.016 },
   { id: 'NACH', name: 'De Nacho',                 description: 'Nachos, at scale.',                     start: 45.50,  volatility: 0.020 },
   { id: 'BLU',  name: "Builder's League United",  description: 'Building things together, allegedly.',  start: 78.25,  volatility: 0.014 },
-  { id: 'BNW',  name: 'Business Numbers Working', description: 'Numbers. Business. Working, mostly.',   start: 12.80,  volatility: 0.025 }
+  { id: 'BNW',  name: 'Business Numbers Working', description: 'Numbers. Business. Working, mostly.',   start: 12.80,  volatility: 0.025 },
+  // Bastardly Glory runs on moods, not on the gentle random walk above (see wildStep below).
+  // It can sit at 400 one day and 2 the next. jump/swingPct override the market-wide settings.
+  { id: 'BSTG', name: 'Bastardly Glory',          description: 'Games. Glorious ones, occasionally.',    start: 50.00,  volatility: 0.025,
+    wild: { min: 2, max: 400, moodHours: [18, 42], chase: 0.05, flip: 0.75 }, jump: [0.35, 0.75], swingPct: 35 }
 ];
 
 // Goals per company. goal = the announcement, win/lose = the outcome headlines.
@@ -73,6 +77,13 @@ const GOALS = {
     { goal: "Builder's League United tries to agree on a single blueprint.", win: 'BLU agrees on a blueprint. Historians stunned.', lose: 'BLU blueprint talks end in shouting.' },
     { goal: "Builder's League United pledges to fix the old bridge.", win: 'BLU fixes the bridge. It holds!', lose: 'BLU bridge repair somehow makes the bridge worse.' }
   ],
+  BSTG: [
+    { goal: 'Bastardly Glory announces its next game will launch on time.', win: 'Bastardly Glory ships on time! Reviews call it "glorious, somehow."', lose: 'Bastardly Glory delays the game indefinitely. Fans riot in the forums.' },
+    { goal: 'Bastardly Glory promises a launch day with zero server crashes.', win: 'Launch day servers hold! Bastardly Glory players are actually playing!', lose: 'Bastardly Glory servers melt on launch day. Queue times reach eleven hours.' },
+    { goal: 'Bastardly Glory teases a sequel nobody asked for.', win: 'The sequel nobody asked for is a smash hit!', lose: 'The sequel nobody asked for is exactly what everybody feared.' },
+    { goal: 'Bastardly Glory enters crunch to finish the big update.', win: 'Bastardly Glory big update lands, and it fixes everything!', lose: 'Bastardly Glory update deletes everyone\'s save files.' },
+    { goal: 'Bastardly Glory is chasing a perfect review score.', win: 'Bastardly Glory scores a perfect 10. Critics weeping.', lose: 'Bastardly Glory review score leaks: 2 out of 10.' }
+  ],
   BNW: [
     { goal: 'Business Numbers Working sets out to make the numbers work.', win: 'BNW confirms: the numbers are working!', lose: 'BNW admits the numbers are not working.' },
     { goal: 'Business Numbers Working promises a quarterly report on time.', win: 'BNW publishes its report, and it adds up!', lose: 'BNW report missing several pages and most of the numbers.' },
@@ -91,6 +102,31 @@ function step(price, c, scale = 1) {
   const shock = (Math.random() - 0.5) * 2 * c.volatility * scale;
   const pull = ((c.start - price) / c.start) * 0.0035;
   return Math.max(1, round2(price * (1 + shock + pull)));
+}
+
+// Wild companies (BSTG): a hidden mood picks a target price anywhere between min and max
+// (leaning toward the extremes) and holds it for moodHours; the price charges toward it with
+// noise (chase = how hard). When the mood changes it usually (flip) swings to the opposite
+// side, so a glorious day tends to be followed by a disastrous one, and vice versa.
+// Works in log space, so 2 -> 4 is as big a move as 200 -> 400.
+function pickMood(c, prev) {
+  const w = c.wild;
+  const lmin = Math.log(w.min), lmax = Math.log(w.max);
+  let u = Math.random() * 2 - 1;                                        // -1 .. 1
+  if (prev && Math.random() < (w.flip || 0)) {
+    const wasHigh = Math.log(prev.target) > (lmin + lmax) / 2;
+    u = (wasHigh ? -1 : 1) * Math.abs(u);
+  }
+  const t = 0.5 + 0.5 * Math.sign(u) * Math.pow(Math.abs(u), 0.55);   // pushed toward 0 and 1
+  return { target: round2(Math.exp(lmin + t * (lmax - lmin))),
+           until: new Date(Date.now() + between(w.moodHours[0], w.moodHours[1]) * HOUR).toISOString() };
+}
+function wildStep(price, c, mood, scale = 1) {
+  const w = c.wild;
+  const lp = Math.log(price), lt = Math.log(mood.target);
+  const shock = (Math.random() - 0.5) * 2 * c.volatility;
+  const next = Math.exp(lp + (lt - lp) * w.chase * scale + shock * scale);
+  return round2(clamp(next, w.min * 0.75, w.max * 1.1));
 }
 
 let old = {};
@@ -194,12 +230,20 @@ const companies = COMPANIES.map((c) => {
   // times[i] = when history[i] was recorded (unix seconds), for the chart's time labels.
   let times = Array.isArray(prev.times) ? prev.times.slice() : [];
 
+  // Wild companies keep a hidden mood (target price and when it changes).
+  let mood = c.wild ? (prev.mood && prev.mood.target ? prev.mood : pickMood(c)) : null;
+  const move = (p, scale) => (c.wild ? wildStep(p, c, mood, scale) : step(p, c, scale));
+
   if (!history || history.length === 0) {
     // New company: build a believable past so the chart isn't empty.
     history = [c.start];
-    while (history.length < POINTS) history.push(step(history[history.length - 1], c));
+    while (history.length < POINTS) {
+      if (c.wild && Math.random() < 1 / 300) mood = pickMood(c, mood);   // a mood swing or two in its made-up past
+      history.push(move(history[history.length - 1], 1));
+    }
     times = [];
   }
+  if (c.wild && now >= Date.parse(mood.until)) mood = pickMood(c, mood);
 
   // Older prices.json files have no times: fill them in by counting back
   // 5 minutes per point from the last update. Ticks from here on are exact.
@@ -214,10 +258,10 @@ const companies = COMPANIES.map((c) => {
   times = times.slice(-history.length);
 
   if (status === 'open') {
-    history.push(step(history[history.length - 1], c));
+    history.push(move(history[history.length - 1], 1));
     times.push(unix(now));
   } else if (status === 'after-hours') {
-    history.push(step(history[history.length - 1], c, AFTER_HOURS_SCALE));
+    history.push(move(history[history.length - 1], AFTER_HOURS_SCALE));
     times.push(unix(now));
   }
   // Closed: no new point, the price stays frozen.
@@ -248,7 +292,7 @@ const companies = COMPANIES.map((c) => {
     // 50/50 by default; a stock that rose during the goal is more likely to succeed.
     const odds = clamp(0.5 + (price / goal.startPrice - 1) * 3, 0.25, 0.75);
     const won = Math.random() < odds;
-    const jump = between(JUMP[0], JUMP[1]);
+    const jump = between((c.jump || JUMP)[0], (c.jump || JUMP)[1]);
     const newPrice = Math.max(1, round2(price * (won ? 1 + jump : 1 - jump)));
     history[history.length - 1] = newPrice;
 
@@ -289,14 +333,14 @@ const companies = COMPANIES.map((c) => {
   if (status === 'open' && history.length > SWING_TICKS) {
     const nowPrice = history[history.length - 1];
     const hourAgo = history[history.length - 1 - SWING_TICKS];
-    const move = round2((nowPrice / hourAgo - 1) * 100);
+    const swing = round2((nowPrice / hourAgo - 1) * 100);
     // Skip if a success/failure in the last hour caused it; that already made the news.
     const recentNews = newsLog.some((n) => (n.type === 'success' || n.type === 'fail') &&
       now - Date.parse(n.time) < SWING_TICKS * TICK_SEC * 1000);
     const cooled = !swingAt || now - Date.parse(swingAt) >= SWING_COOLDOWN_HOURS * HOUR;
-    if (Math.abs(move) >= SWING_PCT && !recentNews && cooled) {
+    if (Math.abs(swing) >= (c.swingPct || SWING_PCT) && !recentNews && cooled) {
       swingAt = nowIso;
-      posts.push({ kind: 'swing', id: c.id, name: c.name, move, price: nowPrice });
+      posts.push({ kind: 'swing', id: c.id, name: c.name, move: swing, price: nowPrice });
     }
   }
 
@@ -315,6 +359,7 @@ const companies = COMPANIES.map((c) => {
     lastGoal,
     nextGoalAt,
     swingAt,
+    mood: mood || undefined,
     yield: yieldPerDay,
     divIndex,
     divSuspendedUntil,
@@ -339,7 +384,9 @@ const divText = {};
 companies.forEach((c) => {
   dividends[c.id] = c.divIndex;
   divDaily[c.id] = Math.round(c.price * c.yield * 10000) / 10000;
-  divText[c.id] = c.divSuspendedUntil
+  divText[c.id] = !c.yield
+    ? '🚫 No dividend · every Polygon goes into the next game'
+    : c.divSuspendedUntil
     ? '💸 Suspended, resumes <t:' + unix(Date.parse(c.divSuspendedUntil)) + ':R>'
     : (c.yield * 100).toFixed(1).replace(/\.0$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
 });

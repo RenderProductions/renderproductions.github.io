@@ -176,7 +176,8 @@
       'I WASN\'T TOUCHING THE PRICES!',
       'DON\'T TELL THE SEC!',
       'I\'M NOT INSIDER TRADING! I\'M INSIDE!',
-      'BUY BNW! BYE!'
+      'BUY BNW! BYE!',
+      'I DIDN\'T CRASH BSTG! IT DOES THAT ON ITS OWN!'
     ] },
     '/patch-notes/': { lines: [
       'I WASN\'T ADDING MYSELF TO THE NOTES!',
