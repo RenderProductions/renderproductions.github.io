@@ -41,7 +41,8 @@
     talkFrames: false,  // no mouth-flap frames yet
     seenKey: 'rvWonderSeen',
     muteKey: 'rvWonderMute',
-    canTalk: function () { return open; }
+    canTalk: function () { return open; },
+    autoStart: 1400     // the first time you arrive, he notices you before you say a word
   };
   if (!open) return;
 
@@ -69,11 +70,15 @@
   // inMax = furthest inward swing. Limbs never fold in across his body: a swing that would go inward
   // is flipped to go outward instead, and inMax is only a few degrees of give for the idle sway.
   var PIVOTS = {
-    'arm-l': { x: 214, y: 124, out: 1,  reach: 1,    max: 55, inMax: 6, phase: 0 },
-    'arm-r': { x: 311, y: 124, out: -1, reach: 1,    max: 55, inMax: 6, phase: 1.7 },
+    'arm-l': { x: 214, y: 124, out: 1,  reach: 1,    max: 55, inMax: 6, phase: 0,   tip: [160, 224] },
+    'arm-r': { x: 311, y: 124, out: -1, reach: 1,    max: 55, inMax: 6, phase: 1.7, tip: [370, 224] },
     'leg-l': { x: 244, y: 181, out: 1,  reach: 0.55, max: 30, inMax: 4, phase: 3.1 },
     'leg-r': { x: 283, y: 181, out: -1, reach: 0.55, max: 30, inMax: 4, phase: 4.6 }
   };
+  // Arms (anything with a tip) also roll over when raised high: the drawing mirrors along the arm,
+  // so the glove bends down naturally instead of kinking upward. It flips past FLIP_AT degrees
+  // outward and back below FLIP_BACK, and turns through edge-on on the way, like an arm rolling.
+  var FLIP_AT = 28, FLIP_BACK = 20;
   var limbs = [];
   var img = document.getElementById('him');
   fetch(img.getAttribute('src') + '?v=2')
@@ -86,7 +91,10 @@
       svg = document.importNode(svg, true);
       Object.keys(PIVOTS).forEach(function (part) {
         var els = svg.querySelectorAll('[data-part="' + part + '"]');
-        if (els.length) limbs.push({ els: els, p: PIVOTS[part], a: 0, v: 0 });
+        var pv = PIVOTS[part];
+        // the arm's own direction at rest (shoulder to hand), for mirroring along it
+        var axis = pv.tip ? Math.atan2(pv.tip[1] - pv.y, pv.tip[0] - pv.x) * 180 / Math.PI : 0;
+        if (els.length) limbs.push({ els: els, p: pv, a: 0, v: 0, roll: 1, flipped: false, axis: axis });
       });
       drifter.insertBefore(svg, img);
       img.classList.add('swapped');   // the plain picture stays in the page (the talk engine uses it), just hidden
@@ -120,6 +128,19 @@
       if (now_out < -p.inMax) { L.a = -p.inMax * p.out; L.v *= -0.3; }
       else if (now_out > p.max) { L.a = p.max * p.out; L.v *= -0.3; }
       var tf = 'rotate(' + L.a.toFixed(2) + ' ' + p.x + ' ' + p.y + ')';
+      if (p.tip) {
+        var lifted = L.a * p.out;
+        if (!L.flipped && lifted > FLIP_AT) L.flipped = true;
+        else if (L.flipped && lifted < FLIP_BACK) L.flipped = false;
+        // Quick roll (about a tenth of a second), so the arm is only edge-on for a blink.
+        var want = L.flipped ? -1 : 1, stepBy = 0.3 * dt;
+        L.roll = Math.abs(want - L.roll) <= stepBy ? want : L.roll + (want > L.roll ? stepBy : -stepBy);
+        if (L.roll < 1) {   // any amount of flip (including fully flipped) needs the mirror
+          var sy = Math.abs(L.roll) < 0.06 ? (L.roll < 0 ? -0.06 : 0.06) : L.roll;   // never fully paper-thin
+          tf += ' translate(' + p.x + ' ' + p.y + ') rotate(' + L.axis.toFixed(2) + ') scale(1 ' + sy.toFixed(3) +
+                ') rotate(' + (-L.axis).toFixed(2) + ') translate(' + (-p.x) + ' ' + (-p.y) + ')';
+        }
+      }
       for (var i = 0; i < L.els.length; i++) L.els[i].setAttribute('transform', tf);
     });
   }

@@ -3,7 +3,8 @@
 //
 // Other characters can use this same file: set window.TALK before loading it, e.g.
 //   window.TALK = { name: 'WONDER', art: 'art/wonder', faces: [], talkFrames: false,
-//                   seenKey: 'rvWonderSeen', muteKey: 'rvWonderMute', canTalk: function () { return true; } };
+//                   seenKey: 'rvWonderSeen', muteKey: 'rvWonderMute', canTalk: function () { return true; },
+//                   autoStart: true };   // autoStart: speak first on someone's first visit (true, or a delay in ms)
 // Anything left out keeps Marquez's settings. The page needs the same element ids as marquez/index.html.
 //
 // Controls: Z / Enter / Space = next or pick, X / Shift = finish the line now,
@@ -345,7 +346,11 @@
   // ---- load his words ----
   fetch('dialogue.json?v=' + Date.now())
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function (d) { DATA = d; FINDS = null; })
+    .then(function (d) {
+      DATA = d; FINDS = null;
+      // TALK.autoStart: speak up on his own the first time someone arrives (before they press anything).
+      if (CFG.autoStart && !seen[DATA.start] && (!CFG.canTalk || CFG.canTalk())) setTimeout(start, CFG.autoStart === true ? 900 : CFG.autoStart);
+    })
     .catch(function (e) {
       console.warn('[' + WHO.toLowerCase() + '] dialogue.json did not load', e);
       prompt.textContent = '(He doesn\'t seem to want to talk right now.)';
