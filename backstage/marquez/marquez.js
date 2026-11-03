@@ -220,6 +220,8 @@
     // Lines can have "needs" too (same rules as choices): they're skipped unless it holds,
     // checked before this node counts as heard. A line's "mark": "word" remembers that word once it's said.
     var lines = [].concat(n.say || []).filter(function (l) { return typeof l === 'string' || (has(l.needs) && hasItem(l.has)); });
+    // "pick": 1 says just one of the node's lines, chosen at random (for reactions that shouldn't get old).
+    if (n.pick && lines.length) lines = [lines[Math.floor(Math.random() * lines.length)]];
     node = n; options = []; remember(id); setFlag(n.flag);
     if (n.mark) [].concat(n.mark).forEach(remember);   // node "mark": remember extra words when it's heard
     if (n.give && window.RPInventory) [].concat(n.give).forEach(function (it) { RPInventory.give(it); });
