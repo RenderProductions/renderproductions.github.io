@@ -1,5 +1,5 @@
 {
-  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/wonder-smile.svg (once that art exists and is listed in wonder.js) or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. EFFECTS: a line can have \"fx\": \"stars\" (Wonder's page lights up the void with stars as he says it). A node with \"pick\": 1 says just one of its lines at random. Repeats: items share items_again ('SEEN it ALREADY'), memes/pop culture/light words share stale_again, lore ones have their own <name>_again.",
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/wonder-smile.svg (once that art exists and is listed in wonder.js) or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. EFFECTS: a line can have \"fx\": \"stars\" (Wonder's page lights up the void with stars as he says it). A node with \"pick\": 1 says just one of its lines at random. Repeats: items get an alternate telling the second time (<node>_again), memes/pop culture/light words share stale_again, lore ones have their own <name>_again.",
   "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js). The found/give/tell nodes and the tell_* reactions were drafted by Claude; rewrite freely. Typed words are matched through 'finds' (any case). The pop_* reactions (pop culture words typed into 'Tell him something') are Claude's drafts too. The meme_* reactions are Claude's drafts too. The sig_*, co_* and site_* reactions (frequency codes, companies, and the site itself) are Claude's drafts too; the 75.40 signal is TODD talking about Big Papa; Wonder reacts to overhearing it.",
   "name": "WONDER",
   "voice": {
@@ -347,7 +347,7 @@
       "next": "ask"
     },
     "key": {
-      "repeat": "items_again",
+      "repeat": "key_again",
       "say": [
         "THAT KEY!!^2 Hold it UP, hold it UP!",
         "OH, I know THAT door! I ONCE LIVED THERE!!!",
@@ -473,7 +473,7 @@
       ]
     },
     "show_pail": {
-      "repeat": "items_again",
+      "repeat": "show_pail_again",
       "say": [
         "A PAIL!!^2 Oh, I KNOW this one!",
         "Up the HILL, down the HILL! Two little fools went TUMBLING!",
@@ -886,7 +886,7 @@
         "...^3 BYE, little ones!! HA!"
       ],
       "next": "found_more",
-      "repeat": "items_again"
+      "repeat": "show_tombstone_again"
     },
     "show_shard": {
       "say": [
@@ -894,7 +894,7 @@
         "I used to look OUT of windows!^2 Now I look out of NOTHING!"
       ],
       "next": "found_more",
-      "repeat": "items_again"
+      "repeat": "show_shard_again"
     },
     "show_bulb": {
       "say": [
@@ -902,7 +902,7 @@
         "In the VOID!^2 Just like ME!! RELATABLE!!"
       ],
       "next": "found_more",
-      "repeat": "items_again"
+      "repeat": "show_bulb_again"
     },
     "show_polaroid": {
       "say": [
@@ -914,7 +914,7 @@
         }
       ],
       "next": "found_more",
-      "repeat": "items_again"
+      "repeat": "show_polaroid_again"
     },
     "show_floppy": {
       "say": [
@@ -922,7 +922,7 @@
         "Can I KEEP him?!^2 ...NO?!^2 FINE!!"
       ],
       "next": "found_more",
-      "repeat": "items_again"
+      "repeat": "show_floppy_again"
     },
     "show_cassette": {
       "say": [
@@ -930,7 +930,7 @@
         "I LOVE static!^2 It's like the VOID, but LOUD!"
       ],
       "next": "found_more",
-      "repeat": "items_again"
+      "repeat": "show_cassette_again"
     },
     "sig_hello": {
       "say": [
@@ -1197,15 +1197,6 @@
       "next": "found_more",
       "repeat": "site_render_again"
     },
-    "items_again": {
-      "pick": 1,
-      "say": [
-        "SEEN it ALREADY!!",
-        "SEEN it already! Show me something NEW!!",
-        "SEEN IT! I've SEEN it! Got anything ELSE in that drawer?!"
-      ],
-      "next": "found_more"
-    },
     "stale_again": {
       "pick": 1,
       "say": [
@@ -1384,6 +1375,78 @@
           "text": "[gray]Do you think they'd come DOWN here? Just once?[/]",
           "speed": 44
         }
+      ],
+      "next": "found_more"
+    },
+    "show_pail_again": {
+      "say": [
+        "THE PAIL AGAIN!!",
+        "You know what's FUNNY? Nobody ever asks about the WATER.",
+        {
+          "text": "[gray]Where did it all GO?[/]",
+          "speed": 44
+        }
+      ],
+      "next": "found_more"
+    },
+    "key_again": {
+      "say": [
+        "The KEY!!^2 Hold it UP to the dark!",
+        "Can you see the DOOR?!",
+        {
+          "text": "[gray]...I can. I ALWAYS can.[/]",
+          "speed": 44
+        }
+      ],
+      "next": "found_more"
+    },
+    "show_tombstone_again": {
+      "say": [
+        "The little GRAVE again!",
+        "How MANY now?!",
+        "...^3 DON'T tell me! I'll CRY! I'll cry on BOTH SIDES!"
+      ],
+      "next": "found_more"
+    },
+    "show_shard_again": {
+      "say": [
+        "OOH, a WINDOW again!",
+        "(He peers through it.)",
+        "I can see... MORE NOTHING!^2 MAGNIFICENT!"
+      ],
+      "next": "found_more"
+    },
+    "show_bulb_again": {
+      "say": [
+        "My little DEAD friend!!",
+        "Shake it! SHAKE IT! Something's in THERE!",
+        {
+          "text": "[gray]...Something's in everybody.[/]",
+          "speed": 44
+        }
+      ],
+      "next": "found_more"
+    },
+    "show_polaroid_again": {
+      "say": [
+        "(He grabs it, stares, and flips it face-down.)",
+        "NOPE.^2 Not today. Not EVER."
+      ],
+      "next": "found_more"
+    },
+    "show_floppy_again": {
+      "say": [
+        "The NOISY BOX'S little SQUARE!",
+        "You should put it in SOMETHING!",
+        "...^3 NO. Don't. The OLD BOY would KILL me."
+      ],
+      "next": "found_more"
+    },
+    "show_cassette_again": {
+      "say": [
+        "TAPE AGAIN!!^2 Hold it up to your EAR!",
+        "(He holds his own ear to the void.)",
+        "...^3 STATIC.^2 MAGNIFICENT, LOUD STATIC."
       ],
       "next": "found_more"
     }
