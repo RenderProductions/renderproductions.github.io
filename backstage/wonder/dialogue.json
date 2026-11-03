@@ -1,6 +1,6 @@
 {
   "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/wonder-smile.svg (once that art exists and is listed in wonder.js) or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. EFFECTS: a line can have \"fx\": \"stars\" (Wonder's page lights up the void with stars as he says it).",
-  "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js).",
+  "_note": "DRAFT LINES, except the opening greeting (the user's). Wonder speaks in about 80% caps. Everything else is a placeholder by Claude; rewrite freely. He speaks on his own the first time someone arrives (autoStart in wonder.js). The found/give/tell nodes and the tell_* reactions were drafted by Claude; rewrite freely. Typed words are matched through 'finds' (any case).",
   "name": "WONDER",
   "voice": {
     "pitch": 215,
@@ -12,6 +12,24 @@
   "speed": 28,
   "start": "hello",
   "returning": "again",
+  "finds": {
+    "CEDAR": "tell_cedar",
+    "CEDAR MARQUEZ": "tell_cedar",
+    "MARQUEZ": "tell_marquez",
+    "MR MARQUEZ": "tell_marquez",
+    "MR. MARQUEZ": "tell_marquez",
+    "OLD BOY MARQUEZ": "tell_marquez",
+    "TODD": "tell_todd",
+    "TODD.OS": "tell_todd",
+    "WOLF": "tell_wolf",
+    "THE WOLF": "tell_wolf",
+    "VARANDIA": "tell_varandia",
+    "WONDER": "tell_wonder",
+    "WONDERFUL": "tell_wonder",
+    "404": "tell_404",
+    "R!404": "tell_404"
+  },
+  "findMiss": "tell_nothing",
   "nodes": {
     "hello": {
       "say": [
@@ -86,9 +104,8 @@
           "once": true
         },
         {
-          "text": "The key",
-          "to": "key",
-          "has": "rusted_key"
+          "text": "I found something.",
+          "to": "found"
         },
         {
           "text": "Leave",
@@ -163,7 +180,7 @@
         },
         "But it opened MY NEW door, didn't it?!^2 HA!! WONDERFUL!!"
       ],
-      "next": "ask"
+      "next": "found_more"
     },
     "key_again": {
       "say": [
@@ -173,7 +190,7 @@
           "speed": 44
         }
       ],
-      "next": "ask"
+      "next": "found_more"
     },
     "bye": {
       "say": [
@@ -183,6 +200,185 @@
           "speed": 44
         }
       ]
+    },
+    "found": {
+      "say": [
+        "OOH!^2 A PRESENT?!",
+        {
+          "text": "GIVE it here, GIVE it HERE!"
+        }
+      ],
+      "choices": [
+        {
+          "text": "Give him something",
+          "to": "give",
+          "has": "*"
+        },
+        {
+          "text": "Tell him something",
+          "to": "found_tell"
+        },
+        {
+          "text": "Never mind",
+          "to": "ask"
+        }
+      ]
+    },
+    "give": {
+      "say": [
+        "WELL?! What did you BRING me?!"
+      ],
+      "choices": [
+        {
+          "text": "Show him the Pail",
+          "to": "show_pail",
+          "has": "pail"
+        },
+        {
+          "text": "Show him the Rusted Key",
+          "to": "key",
+          "has": "rusted_key"
+        },
+        {
+          "text": "Never mind",
+          "to": "found"
+        }
+      ]
+    },
+    "found_tell": {
+      "say": [
+        "WORDS?!^2 I LOVE words!! Go ON, say one!"
+      ],
+      "ask": "found_more"
+    },
+    "found_more": {
+      "say": [
+        "ANYTHING else?! MORE! MORE!"
+      ],
+      "choices": [
+        {
+          "text": "Give him something",
+          "to": "give",
+          "has": "*"
+        },
+        {
+          "text": "Tell him something",
+          "to": "found_tell"
+        },
+        {
+          "text": "Never mind",
+          "to": "ask"
+        }
+      ]
+    },
+    "show_pail": {
+      "repeat": "show_pail_again",
+      "say": [
+        "A PAIL!!^2 Oh, I KNOW this one!",
+        "Up the HILL, down the HILL! Two little fools went TUMBLING!",
+        "(He tumbles too, heels over head, laughing.)",
+        {
+          "text": "They NEVER came back up for it, you know.^3 [gray]Nobody ever does.[/]",
+          "speed": 40
+        }
+      ],
+      "next": "found_more"
+    },
+    "show_pail_again": {
+      "say": [
+        "The PAIL AGAIN?!^2 STILL empty! STILL hilarious!"
+      ],
+      "next": "found_more"
+    },
+    "tell_cedar": {
+      "repeat": "tell_cedar_again",
+      "say": [
+        "(He flips upside down and grins at you from there.)",
+        {
+          "text": "...^4 CEDAR.",
+          "speed": 50
+        },
+        "WHO told you THAT?!",
+        "NOBODY has called him that since VARANDIA!",
+        {
+          "text": "[wave]Oh, he's going to be FURIOUS.[/]^3 I LOVE it!!",
+          "speed": 40
+        }
+      ],
+      "next": "found_more"
+    },
+    "tell_cedar_again": {
+      "say": [
+        "CEDAR, CEDAR, CEDAR!!^2 HA! Say it to HIS face next time!"
+      ],
+      "next": "found_more"
+    },
+    "tell_marquez": {
+      "say": [
+        "OLD BOY MARQUEZ!!",
+        "STILL guarding that DESK like it's going to run AWAY!",
+        {
+          "text": "[gray]...Is he alright? Down there by himself?[/]",
+          "speed": 44
+        },
+        "DON'T tell him I asked!!"
+      ],
+      "next": "found_more"
+    },
+    "tell_todd": {
+      "say": [
+        "THAT NOISY BOX?!",
+        "He SCREAMS through the walls! ALL DAY! ALL NIGHT!",
+        "HELLO?! IS THIS THING ON?! YES, TODD! IT'S ALWAYS ON!!"
+      ],
+      "next": "found_more"
+    },
+    "tell_wolf": {
+      "say": [
+        "(For one moment, both halves of his grin go flat.)",
+        {
+          "text": "[shake]DON'T.[/]",
+          "speed": 60
+        },
+        {
+          "text": "Don't say that word in MY nothing.",
+          "speed": 44
+        }
+      ],
+      "next": "found_more"
+    },
+    "tell_varandia": {
+      "say": [
+        {
+          "text": "[shake]SHHH![/]^3 Not so LOUD!",
+          "speed": 44
+        },
+        "It can HEAR you, you know. It's ALWAYS listening for its name."
+      ],
+      "next": "found_more"
+    },
+    "tell_wonder": {
+      "say": [
+        "THAT'S MY NAME!!",
+        "SAY IT AGAIN!^2 ...no, don't, I'll get a big head.",
+        "WONDERFUL, isn't it?!"
+      ],
+      "next": "found_more"
+    },
+    "tell_404": {
+      "say": [
+        "The page that ISN'T there?!",
+        "I've BEEN there! Well. NEAR there.",
+        "TERRIBLE view. Nothing to look at. Like HERE, but WORSE!"
+      ],
+      "next": "found_more"
+    },
+    "tell_nothing": {
+      "say": [
+        "HUH?!^2 NEVER heard of it!",
+        "Sounds BORING! Try a BETTER one!"
+      ],
+      "next": "found_more"
     }
   }
 }
