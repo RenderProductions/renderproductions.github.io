@@ -120,14 +120,20 @@
     "75.40": {
       "actions": [
         {"type": "text", "text": "Big PApa." },
+        {"type": "wait", "ms": 300 },
         {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "I CouLD NEver Be LIKe HiM.." },
+        {"type": "wait", "ms": 300 },
         {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "HE BUIlt THis worlD FROM NOTHING!" },
+        {"type": "wait", "ms": 300 },
         {"type": "glitch", "ms": 100 },
         {"type": "text", "text": "ALL I SAY IS forsooth and THOUH ART." },
+        {"type": "wait", "ms": 300 },
         {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "I DON'T EVEN KNOW WHAT A FORSOoTH IS!!" }
+        {"type": "text", "text": "I DON'T EVEN KNOW WHAT A FORSOoTH IS!!" },
+        {"type": "wait", "ms": 300 },
+        {"type": "glitch", "ms": 100 }
       ]
     }
   }
