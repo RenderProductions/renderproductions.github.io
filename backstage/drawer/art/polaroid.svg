@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150" width="120" height="150">
+  <!-- The "him???" polaroid from the backstage corkboard, redrawn to match the board's version
+       (backstage.css .polaroid). Replace this file with a hand drawing any time; keep the name. -->
+  <defs>
+    <radialGradient id="ph" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#2a2f3a"/><stop offset="1" stop-color="#0b0d12"/></radialGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.1"/></filter>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect x="2" y="2" width="116" height="146" rx="1.5" fill="#fbfbf6" stroke="#d9d6c8" stroke-width="1.5"/>
+  <g filter="url(#soft)">
+    <rect x="10" y="10" width="100" height="100" fill="url(#ph)"/>
+    <g filter="url(#glow)" fill="#ffe600">
+      <rect x="37" y="44" width="11" height="26" rx="2"/>
+      <rect x="72" y="44" width="11" height="26" rx="2"/>
+    </g>
+  </g>
+  <text x="60" y="134" text-anchor="middle" font-family="Permanent Marker, 'Comic Sans MS', 'Chalkboard SE', cursive" font-size="17" fill="#2b2412">him???</text>
+  <!-- a strip of masking tape across the top, like on the board -->
+  <rect x="30" y="-3" width="60" height="15" fill="#eee4ba" opacity=".85" transform="rotate(-4 60 4)"/>
+</svg>

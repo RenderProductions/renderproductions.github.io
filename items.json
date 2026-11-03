@@ -37,8 +37,9 @@
     "polaroid": {
       "name": "Polaroid",
       "desc": "A dark photo of... him???\nOn the back, in shaky pen: 'don't trust the' and the rest is torn away.",
-      "size": 0.85,
-      "found": "off the board"
+      "size": 0.8,
+      "found": "off the board",
+      "art": "/backstage/drawer/art/polaroid.svg"
     },
     "todd_floppy": {
       "name": "TODD's Floppy Disk",
