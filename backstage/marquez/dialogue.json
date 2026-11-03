@@ -773,9 +773,7 @@
           ],
           "mark": "said_dear_god"
         },
-        "(He looks at it a long time.)",
-        "...Still a good photo.",
-        "[gray]Put it somewhere he won't find it.[/]"
+        "An eye for an eye.^2 Use his eyes against him."
       ],
       "mark": "any_shown",
       "repeat": "show_clear_polaroid_again",
@@ -783,7 +781,7 @@
     },
     "show_clear_polaroid_again": {
       "say": [
-        "I've seen it.^2 Once was enough."
+        "Use the eye to defeat the eyes!"
       ],
       "next": "found_more"
     },
@@ -799,9 +797,8 @@
           ],
           "mark": "said_dear_god"
         },
-        "(He holds it to his ear.)",
-        "Warm.^2 That isn't the tape.",
-        "Something will let it play.^2 Keep it close until then."
+        "It is destroyed.^2 Now, find somewhere to play it.",
+        "It might take some time,^2 but it will come."
       ],
       "mark": "any_shown",
       "repeat": "show_dubbed_tape_again",
@@ -809,7 +806,8 @@
     },
     "show_dubbed_tape_again": {
       "say": [
-        "Still warm?^2 Then it's still in there."
+        "It is destroyed.^2 Now, find somewhere to play it.",
+        "It might take some time,^2 but it will come."
       ],
       "next": "found_more"
     },
@@ -825,11 +823,7 @@
           ],
           "mark": "said_dear_god"
         },
-        "(He runs a thumb over the names.)",
-        {
-          "text": "Somebody had to remember them.^2 Good.",
-          "face": "smile"
-        }
+        "The only justice I can give to those kids.^2 And to everyone who was lost in Varandia."
       ],
       "mark": "any_shown",
       "repeat": "show_hill_marker_again",
@@ -837,7 +831,7 @@
     },
     "show_hill_marker_again": {
       "say": [
-        "Up the hill, for water.^2 Neither of them came back down."
+        "I miss the Varandian days."
       ],
       "next": "found_more"
     },
