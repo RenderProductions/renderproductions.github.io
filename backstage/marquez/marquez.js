@@ -45,7 +45,8 @@
     if (!req) return true;
     var inv = window.RPInventory;
     return [].concat(req).every(function (r) {
-      var not = r.charAt(0) === '!', got = !!(inv && inv.has(not ? r.slice(1) : r));
+      var not = r.charAt(0) === '!', id = not ? r.slice(1) : r;
+      var got = !!(inv && (id === '*' ? inv.list().length > 0 : inv.has(id)));
       return not ? !got : got;
     });
   }
@@ -57,6 +58,12 @@
       var f = JSON.parse(localStorage.getItem('rp_flags')) || {};
       if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); }
     } catch (e) {}
+  }
+
+  // Once he's been found out (DATA.knownFlag set), his nameplate shows his real name.
+  function known() {
+    if (!DATA || !DATA.knownName || !DATA.knownFlag) return false;
+    try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[DATA.knownFlag]; } catch (e) { return false; }
   }
 
   // ---- art ----
@@ -176,7 +183,7 @@
   function say(line) {
     if (typeof line === 'string') line = { text: line };
     useArt(line.face || (node && node.face) || '');
-    plate.textContent = line.name || (node && node.name) || DATA.name || 'MARQUEZ';
+    plate.textContent = line.name || (node && node.name) || (known() ? DATA.knownName : DATA.name) || 'MARQUEZ';
     speed = reduce ? 0 : (line.speed || (node && node.speed) || DATA.speed || 32);
     box.classList.remove('done', 'choosing');
     closeAnswer();

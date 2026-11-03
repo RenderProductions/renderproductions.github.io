@@ -1,11 +1,18 @@
 {
   "_how": "Every item that can be found on the site. The key (e.g. \"test_token\") is the item's id: use it in data-item=\"...\" on a page, in a frequency code's {\"type\": \"item\", \"id\": \"...\"} action, or in Marquez's \"give\". Fields: name (shown on the found slip and in the drawer), desc (shown when you hover it in the drawer; \\n for a new line), art (an image, ideally a transparent SVG or PNG under /backstage/drawer/art/), size (how big it lies in the drawer: 1 is normal, 0.7 small, 1.4 large), found (optional: the small line on the found slip, default \"into the drawer\"). Items not listed here still go in the drawer, as a plain paper tag with their id.",
   "items": {
-    "test_token": {
-      "name": "Test Token",
-      "desc": "A placeholder so the drawer has something in it.\nNothing on the site gives this out. Delete it once real items exist.",
-      "art": "/backstage/drawer/art/test_token.svg",
-      "size": 0.8
+    "pail": {
+      "name": "Pail",
+      "desc": "Empty, but the bottom's still damp.\nTwo kids took it up a hill for water once. They both came tumbling down. The pail stayed up there.",
+      "art": "/backstage/drawer/art/pail.svg",
+      "size": 0.95,
+      "found": "fetched"
+    },
+    "rusted_key": {
+      "name": "Rusted Key",
+      "desc": "Rusted almost solid. It opened a front door once, to a warm house with somebody waiting inside.\nNobody remembers the street now. Somebody kept the key anyway.",
+      "art": "/backstage/drawer/art/rusted_key.svg",
+      "size": 0.9
     }
   }
 }

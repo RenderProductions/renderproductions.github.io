@@ -1,5 +1,5 @@
 {
-  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't).",
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it.",
   "name": "MARQUEZ",
   "voice": {
     "pitch": 92,
@@ -57,7 +57,13 @@
       "choices": [
         {
           "text": "Who are you?",
-          "to": "who"
+          "to": "who",
+          "needs": "!find_cedar"
+        },
+        {
+          "text": "Who are you?",
+          "to": "who_known",
+          "needs": "find_cedar"
         },
         {
           "text": "What is this place?",
@@ -70,7 +76,10 @@
         {
           "text": "Your real name?",
           "to": "name",
-          "needs": "who",
+          "needs": [
+            "who",
+            "!find_cedar"
+          ],
           "once": true
         },
         {
@@ -202,7 +211,21 @@
           "face": "point"
         }
       ],
-      "ask": "ask"
+      "choices": [
+        {
+          "text": "Give him something",
+          "to": "give",
+          "has": "*"
+        },
+        {
+          "text": "Tell him something",
+          "to": "found_tell"
+        },
+        {
+          "text": "Never mind",
+          "to": "ask"
+        }
+      ]
     },
     "bye": {
       "say": [
@@ -228,13 +251,19 @@
       "flag": "marquez_cedar",
       "repeat": "find_cedar_again",
       "say": [
-        "(He goes very still.)",
+        {
+          "text": "(He goes very still.)"
+        },
         {
           "text": "...^5 Where did you hear that?",
           "face": "angry",
-          "speed": 56
+          "speed": 56,
+          "name": "MARQUEZ"
         },
-        "No.^2 Don't tell me. Someone's been talking on that frequency again.",
+        {
+          "text": "No.^2 Don't tell me. Someone's been talking on that frequency again.",
+          "name": "MARQUEZ"
+        },
         {
           "text": "Cedar.^4 Yes.^3 That was me, once.",
           "speed": 46
@@ -285,6 +314,160 @@
         }
       ],
       "next": "ask"
+    },
+    "found_tell": {
+      "say": [
+        {
+          "text": "Words work too.^2 Go on.",
+          "face": "smile"
+        }
+      ],
+      "ask": "found_more"
+    },
+    "show_pail": {
+      "say": [
+        "(He turns the pail over in his hands. A single drop falls out.)",
+        "A pail.^2 Empty.",
+        "Somebody went up a hill for water with this, once.",
+        {
+          "text": "They came tumbling back down.^3 The pail didn't.",
+          "face": "smile"
+        },
+        "Hold on to it. Never know what you'll need to carry."
+      ],
+      "repeat": "show_again",
+      "next": "found_more"
+    },
+    "show_pail_more": {
+      "say": [
+        {
+          "text": "[shake]Dear God...[/]^5 Is there more?",
+          "face": "angry",
+          "speed": 52
+        },
+        "A pail.^2 Empty.",
+        "Somebody went up a hill for water with this, once.",
+        {
+          "text": "They came tumbling back down.^3 The pail didn't.",
+          "face": "smile"
+        },
+        "Hold on to it. Never know what you'll need to carry."
+      ],
+      "repeat": "show_again",
+      "next": "found_more"
+    },
+    "show_rusted_key": {
+      "say": [
+        "(He holds the key up to the light for a long while.)",
+        {
+          "text": "...^4 Rusted clean through.",
+          "speed": 46
+        },
+        "This opened a front door, once. Warm inside. Somebody waiting up.",
+        "Nobody remembers which street.^3 Not even the door.",
+        {
+          "text": "[gray]Keep it.^2 Somebody ought to remember.[/]",
+          "face": "smile"
+        }
+      ],
+      "repeat": "show_again",
+      "next": "found_more"
+    },
+    "show_rusted_key_more": {
+      "say": [
+        {
+          "text": "[shake]Dear God...[/]^5 Is there more?",
+          "face": "angry",
+          "speed": 52
+        },
+        {
+          "text": "...^4 Rusted clean through.",
+          "speed": 46
+        },
+        "This opened a front door, once. Warm inside. Somebody waiting up.",
+        "Nobody remembers which street.^3 Not even the door.",
+        {
+          "text": "[gray]Keep it.^2 Somebody ought to remember.[/]",
+          "face": "smile"
+        }
+      ],
+      "repeat": "show_again",
+      "next": "found_more"
+    },
+    "show_again": {
+      "say": [
+        {
+          "text": "I've seen that one, friend.^2 I remember.",
+          "face": "smile"
+        }
+      ],
+      "next": "found_more"
+    },
+    "found_more": {
+      "say": [
+        "Anything else?"
+      ],
+      "choices": [
+        {
+          "text": "Give him something",
+          "to": "give",
+          "has": "*"
+        },
+        {
+          "text": "Tell him something",
+          "to": "found_tell"
+        },
+        {
+          "text": "Never mind",
+          "to": "ask"
+        }
+      ]
+    },
+    "who_known": {
+      "say": [
+        {
+          "text": "[shake]You know my real name, stop asking![/]",
+          "face": "angry"
+        }
+      ],
+      "next": "ask"
+    },
+    "give": {
+      "say": [
+        "Let's see it."
+      ],
+      "choices": [
+        {
+          "text": "Show him the Pail",
+          "to": "show_pail",
+          "has": "pail",
+          "needs": "!show_rusted_key"
+        },
+        {
+          "text": "Show him the Pail",
+          "to": "show_pail_more",
+          "has": "pail",
+          "needs": "show_rusted_key"
+        },
+        {
+          "text": "Show him the Rusted Key",
+          "to": "show_rusted_key",
+          "has": "rusted_key",
+          "needs": "!show_pail"
+        },
+        {
+          "text": "Show him the Rusted Key",
+          "to": "show_rusted_key_more",
+          "has": "rusted_key",
+          "needs": "show_pail"
+        },
+        {
+          "text": "Never mind",
+          "to": "found"
+        }
+      ]
     }
-  }
+  },
+  "knownName": "CEDAR",
+  "knownFlag": "marquez_cedar"
 }
