@@ -306,6 +306,15 @@
     mouth.setAttribute('d', mood === 'angry' ? 'M20 48 Q32 41 44 48' : 'M20 44 Q32 51 44 44');
   }
 
+  // Items (see /inventory.js), fetched when needed since this file runs on pages without it.
+  function giveItem(id) {
+    if (window.RPInventory) { RPInventory.give(id); return; }
+    var s = document.createElement('script');
+    s.src = '/inventory.js?v=1';
+    s.onload = function () { if (window.RPInventory) RPInventory.give(id); };
+    document.head.appendChild(s);
+  }
+
   function close(win) {
     var i = open.indexOf(win);
     if (i >= 0) open.splice(i, 1);
@@ -388,6 +397,7 @@
           setTimeout(function () { setMood(win, baseMood); }, 1200);
         } else {
           close(win);
+          if (dodged > 0) giveItem('popup_shard');   // you caught one that ran: it breaks off a shard
         }
       }
     });

@@ -503,9 +503,20 @@
   // The tally is kept in this browser and shown on /face/.
   var KILLS_KEY = 'rvKills';
   function kills() { try { return Number(localStorage.getItem(KILLS_KEY)) || 0; } catch (e) { return 0; } }
+  // Items (see /inventory.js). This file runs on pages that don't load it, so it's fetched when needed.
+  function giveItem(id) {
+    if (window.RPInventory) { RPInventory.give(id); return; }
+    var s = document.createElement('script');
+    s.src = '/inventory.js?v=1';
+    s.onload = function () { if (window.RPInventory) RPInventory.give(id); };
+    document.head.appendChild(s);
+  }
+  var TOMBSTONE_AT = 25;   // little guys deleted before the Tiny Tombstone turns up in the drawer
+
   function addKill() {
     var n = kills() + 1;
     try { localStorage.setItem(KILLS_KEY, String(n)); } catch (e) {}
+    if (n >= TOMBSTONE_AT) giveItem('tiny_tombstone');
     document.dispatchEvent(new CustomEvent('renderpeek:kill', { detail: { kills: n } }));
   }
 

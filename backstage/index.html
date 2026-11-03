@@ -7,7 +7,7 @@
 <title>Backstage | Render Productions</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="stylesheet" href="/style.css">
-<link rel="stylesheet" href="/backstage/backstage.css?v=10">
+<link rel="stylesheet" href="/backstage/backstage.css?v=13">
 </head>
 <body class="backstage">
 <div class="wrap">
@@ -64,10 +64,10 @@
     </a>
     <!-- Next room: copy the <a class="note"> block above, change CH number, title, text and href. -->
 
-    <div class="deco polaroid" aria-hidden="true" style="--r: -5deg">
+    <!-- The polaroid is an item (see /inventory.js): click it to take it off the board. -->
+    <div class="deco polaroid" data-item="polaroid" role="button" aria-label="A polaroid pinned to the board: him???" style="--r: -5deg">
       <span class="strip"></span>
-      <div class="photo"><i></i><i></i></div>
-      <div class="caption">him???</div>
+      <img class="snap" src="/backstage/drawer/art/polaroid.svg" alt="" draggable="false">
     </div>
 
     <!-- A notepad each visitor can write on. Saved in their own browser only (localStorage), never sent anywhere. -->
@@ -140,6 +140,8 @@
       </g>
     </svg>
   </button>
+  <!-- The Dead Bulb, an item: only there when the lamp is off. -->
+  <img class="bulb-item" data-item="dead_bulb" src="/backstage/drawer/art/dead_bulb.svg" alt="A dead light bulb" draggable="false">
   <button class="mug-btn" id="mug-btn" type="button" aria-label="Take a sip of coffee">
     <svg class="mug" viewBox="0 0 182.54 254.54" aria-hidden="true">
     <g transform="translate(-174.98127,-4.21767)" fill-rule="nonzero" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="10">
