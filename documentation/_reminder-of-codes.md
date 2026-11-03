@@ -111,6 +111,15 @@ Shakes and color-shifts the screen.
 
 Skipped for visitors who prefer reduced motion.
 
+### `item`
+Puts an item in the visitor's drawer (`/backstage/drawer/`). A little "found" slip drops in
+at the top of the screen. Giving an item they already have does nothing.
+
+| Field | Meaning |
+|---|---|
+| `id` | The item's id from `/items.json` (e.g. `"brass_key"`). |
+| `quiet` | Optional: `true` gives it without the "found" slip. |
+
 ### `wait`
 Pauses the sequence.
 

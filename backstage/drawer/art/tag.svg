@@ -1,0 +1,8 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="220" height="128" viewBox="0 0 220 128">
+  <!-- The item tag (cleaned-up version of the hand drawing). Mirror-symmetric about y = 64:
+       pointed end with a punched hole on the left, widening to a squared-off end on the right.
+       The page writes on it inside the box x 46-208, y 24-104 (right of the hole). -->
+  <path class="tag" fill-rule="evenodd" fill="#ddcfa5" stroke="#a89d7e" stroke-width="2.5" stroke-linejoin="round"
+    d="M54,25L199,3L217,10V118L199,125L54,103L15,83L3,70V58L15,45Z
+       M33.5,64A8.5,12 0 1,0 16.5,64A8.5,12 0 1,0 33.5,64Z"/>
+</svg>

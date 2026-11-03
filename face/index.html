@@ -18,9 +18,15 @@
 <link rel="stylesheet" href="/style.css">
 <style>
   .stage { perspective: 1100px; }
+  /* The face, plus anything tucked behind it (the rusted key: an item, see /inventory.js) */
+  .face-box { position: relative; width: min(100%, 78vh); margin: 0 auto; }
+  .face-box .face { position: relative; z-index: 1; }
+  .behind { position: absolute; z-index: 0; left: 92.5%; top: 86%; width: 24%; height: auto; transform: translate(-50%, -50%) rotate(-22deg);
+    filter: brightness(.75) drop-shadow(0 4px 4px rgba(0,0,0,.6)); transition: filter .2s, transform .2s; }
+  .behind:hover, .behind:focus-visible { filter: brightness(1) drop-shadow(0 4px 6px rgba(0,0,0,.6)); transform: translate(-46%, -50%) rotate(-18deg); outline: none; }
   .face {
     display: block;
-    width: min(100%, 78vh);
+    width: 100%;
     height: auto;
     margin: 0 auto;
     filter: drop-shadow(0 0 22px rgba(255, 230, 0, 0.22));
@@ -83,6 +89,9 @@
     <p class="sr-only">A large robot head with a screen face. Its eyes follow your pointer and it blinks now and then. It frowns when your pointer leaves the window, gets annoyed if you keep clicking it, and gets dizzy if you circle it. Little alert windows pop up from time to time; press Escape to close the newest one.</p>
 
     <div class="stage">
+     <div class="face-box">
+      <!-- Something's been left behind the face. -->
+      <img class="behind" data-item="rusted_key" src="/backstage/drawer/art/rusted_key.svg" alt="Something behind the face" draggable="false">
       <svg class="face" id="face" viewBox="0 0 400 400" aria-hidden="true">
         <defs>
           <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
@@ -136,6 +145,7 @@
           <rect class="roll" x="66" y="60" width="266" height="40" fill="url(#rollg)"/>
         </g>
       </svg>
+     </div>
     </div>
 
     <p class="meta caption" id="caption">RENDER VISION // WATCHING</p>
@@ -234,6 +244,15 @@
     var lastPos = null, surprisedUntil = 0, nextSurprise = 0;
 
     var rudeUntil = 0;        // a popup was closed
+
+    // The rusted key was tucked behind it. Taking it gets a reaction.
+    var keyUntil = 0;
+    document.addEventListener('rp:items', function (e) {
+      if (e.detail && e.detail.id === 'rusted_key' && e.detail.action === 'give') {
+        var now = performance.now();
+        keyUntil = now + 4200; surprisedUntil = now + 900;
+      }
+    });
 
     // ----- Cedar -----
     // Once a visitor has said Marquez's real name to him (rp_flags.marquez_cedar),
@@ -490,6 +509,7 @@
 
       var text = (!reduce && now - t0 < 800) ? 'BOOTING...'
                : cold ? coldText
+               : now < keyUntil ? 'THAT KEY... I KNEW WHAT IT OPENED, ONCE.'
                : dizzy ? 'WHOA. THE ROOM IS SPINNING.'
                : storm ? 'THAT\'S IT. I\'M CALLING FOR BACKUP.'
                : angry ? 'I SAID STOP.'
@@ -546,6 +566,7 @@
     document.addEventListener('renderpeek:kill', show);
   })();
 </script>
+<script src="/inventory.js?v=1"></script>
 <script src="/face/popup.js" data-every="45-90"></script>
 </body>
 </html>
