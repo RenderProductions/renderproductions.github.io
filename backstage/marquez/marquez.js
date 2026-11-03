@@ -195,6 +195,7 @@
   // ---- lines, nodes, choices ----
   function say(line) {
     if (typeof line === 'string') line = { text: line };
+    if (line.mark) [].concat(line.mark).forEach(remember);
     useArt(line.face || (node && node.face) || '');
     plate.textContent = line.name || (node && node.name) || (known() ? DATA.knownName : DATA.name) || WHO;
     speed = reduce ? 0 : (line.speed || (node && node.speed) || DATA.speed || 32);
@@ -216,10 +217,14 @@
     if (!n) { console.warn('[' + WHO.toLowerCase() + '] no node called "' + id + '"'); return end(); }
     // Already heard it, and there's a shorter version for next time? Use that instead.
     if (n.repeat && seen[id] && DATA.nodes[n.repeat] && n.repeat !== id) return go(n.repeat);
+    // Lines can have "needs" too (same rules as choices): they're skipped unless it holds,
+    // checked before this node counts as heard. A line's "mark": "word" remembers that word once it's said.
+    var lines = [].concat(n.say || []).filter(function (l) { return typeof l === 'string' || (has(l.needs) && hasItem(l.has)); });
     node = n; options = []; remember(id); setFlag(n.flag);
+    if (n.mark) [].concat(n.mark).forEach(remember);   // node "mark": remember extra words when it's heard
     if (n.give && window.RPInventory) [].concat(n.give).forEach(function (it) { RPInventory.give(it); });
     if (n.takeItem && window.RPInventory) [].concat(n.takeItem).forEach(function (it) { RPInventory.take(it); });
-    queue = [].concat(n.say || []);
+    queue = lines;
     if (!queue.length) queue = [''];
     say(queue.shift());
   }

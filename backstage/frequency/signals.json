@@ -135,6 +135,25 @@
         {"type": "wait", "ms": 300 },
         {"type": "glitch", "ms": 100 }
       ]
+    },
+    "TODD.OS": {
+      "actions": [
+        {"type": "status", "text": "CH 01 // HOST SIGNAL"},
+        {"type": "glitch", "ms": 300},
+        {"type": "text", "text": "WHO'S THERE?!? oh. OH. it's YOU.?"},
+        {"type": "item", "id": "todd_floppy"},
+        {"type": "text", "text": "here. TAKE this. KEEP it SAFE!!? don't let ANYONE put it in ANYTHING!!"}
+      ]
+    },
+    "13.13": {
+      "actions": [
+        {"type": "status", "text": "CH 01 // 13.13 // RECORDING"},
+        {"type": "glitch", "ms": 700},
+        {"type": "text", "text": "...", "instant": true},
+        {"type": "item", "id": "static_cassette"},
+        {"type": "wait", "ms": 1500},
+        {"type": "text", "text": "[ tape ejected ]", "instant": true}
+      ]
     }
   }
 }

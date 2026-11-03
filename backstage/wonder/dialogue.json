@@ -316,6 +316,36 @@
           "has": "rusted_key"
         },
         {
+          "text": "Show him the Tiny Tombstone",
+          "to": "show_tombstone",
+          "has": "tiny_tombstone"
+        },
+        {
+          "text": "Show him the Popup Shard",
+          "to": "show_shard",
+          "has": "popup_shard"
+        },
+        {
+          "text": "Show him the Dead Bulb",
+          "to": "show_bulb",
+          "has": "dead_bulb"
+        },
+        {
+          "text": "Show him the Polaroid",
+          "to": "show_polaroid",
+          "has": "polaroid"
+        },
+        {
+          "text": "Show him the Floppy Disk",
+          "to": "show_floppy",
+          "has": "todd_floppy"
+        },
+        {
+          "text": "Show him the Cassette",
+          "to": "show_cassette",
+          "has": "static_cassette"
+        },
+        {
           "text": "Never mind",
           "to": "found"
         }
@@ -718,6 +748,53 @@
           "text": "[gray]Was it, though? Was it a good game?[/] HA!",
           "speed": 40
         }
+      ],
+      "next": "found_more"
+    },
+    "show_tombstone": {
+      "say": [
+        "A GRAVE?!^2 For the LITTLE ONES?!",
+        "(He takes off his hat. Briefly.)",
+        "...^3 BYE, little ones!! HA!"
+      ],
+      "next": "found_more"
+    },
+    "show_shard": {
+      "say": [
+        "A piece of a WINDOW!!",
+        "I used to look OUT of windows!^2 Now I look out of NOTHING!"
+      ],
+      "next": "found_more"
+    },
+    "show_bulb": {
+      "say": [
+        "A LIGHT!!^2 ...that doesn't LIGHT.",
+        "In the VOID!^2 Just like ME!! RELATABLE!!"
+      ],
+      "next": "found_more"
+    },
+    "show_polaroid": {
+      "say": [
+        "(He snatches a look, then shoves it back at you.)",
+        "THAT'S NOT ME.",
+        {
+          "text": "[gray]...Is it?[/]",
+          "speed": 44
+        }
+      ],
+      "next": "found_more"
+    },
+    "show_floppy": {
+      "say": [
+        "THE NOISY BOX!!^2 In a little SQUARE!",
+        "Can I KEEP him?!^2 ...NO?!^2 FINE!!"
+      ],
+      "next": "found_more"
+    },
+    "show_cassette": {
+      "say": [
+        "MUSIC?!^2 ...No. STATIC.",
+        "I LOVE static!^2 It's like the VOID, but LOUD!"
       ],
       "next": "found_more"
     }

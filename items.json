@@ -1,5 +1,5 @@
 {
-  "_how": "Every item that can be found on the site. The key (e.g. \"test_token\") is the item's id: use it in data-item=\"...\" on a page, in a frequency code's {\"type\": \"item\", \"id\": \"...\"} action, or in Marquez's \"give\". Fields: name (shown on the found slip and in the drawer), desc (shown when you hover it in the drawer; \\n for a new line), art (an image, ideally a transparent SVG or PNG under /backstage/drawer/art/), size (how big it lies in the drawer: 1 is normal, 0.7 small, 1.4 large), found (optional: the small line on the found slip, default \"into the drawer\"). Items not listed here still go in the drawer, as a plain paper tag with their id.",
+  "_how": "Every item that can be found on the site. The key (e.g. \"test_token\") is the item's id: use it in data-item=\"...\" on a page, in a frequency code's {\"type\": \"item\", \"id\": \"...\"} action, or in Marquez's \"give\". Fields: name (shown on the found slip and in the drawer), desc (shown when you hover it in the drawer; \\n for a new line), art (an image, ideally a transparent SVG or PNG under /backstage/drawer/art/), size (how big it lies in the drawer: 1 is normal, 0.7 small, 1.4 large), found (optional: the small line on the found slip, default \"into the drawer\"). Items not listed here still go in the drawer, as a plain paper tag with their id. Items without art show as a blank tag with their name until art exists.",
   "items": {
     "pail": {
       "name": "Pail",
@@ -13,6 +13,42 @@
       "desc": "Rusted almost solid. It opened a front door once, to a warm house with somebody waiting inside.\nNobody remembers the street now. Somebody kept the key anyway.",
       "art": "/backstage/drawer/art/rusted_key.svg",
       "size": 0.9
+    },
+    "tiny_tombstone": {
+      "name": "Tiny Tombstone",
+      "desc": "For the little ones. Twenty-five of them, and counting.\nSomeone carved GONE BUT NOT FORGOTTEN. Someone else scratched out the NOT.",
+      "size": 0.75,
+      "found": "for the little ones"
+    },
+    "popup_shard": {
+      "name": "Popup Shard",
+      "desc": "A sliver of a window that wouldn't close.\nStill warm. Still blinking, a little.",
+      "size": 0.7,
+      "found": "caught one"
+    },
+    "dead_bulb": {
+      "name": "Dead Bulb",
+      "desc": "Burnt out. Found in the dark, which is the only place you'd ever find it.\nShake it and something rattles.",
+      "art": "/backstage/drawer/art/dead_bulb.svg",
+      "size": 0.75
+    },
+    "polaroid": {
+      "name": "Polaroid",
+      "desc": "A dark photo of... him???\nOn the back, in shaky pen: 'don't trust the' and the rest is torn away.",
+      "size": 0.85,
+      "found": "off the board"
+    },
+    "todd_floppy": {
+      "name": "TODD's Floppy Disk",
+      "desc": "TODD.OS BOOT DISK 1 OF ??\nThe label is in all caps, then no caps, then all caps again.",
+      "size": 0.8,
+      "found": "he wants it back"
+    },
+    "static_cassette": {
+      "name": "Static Cassette",
+      "desc": "No label. Play it and you'd only hear static.\nProbably.",
+      "size": 0.8,
+      "found": "recorded off the air"
     }
   }
 }

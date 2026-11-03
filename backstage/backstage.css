@@ -285,3 +285,10 @@ body:not(.looking-down) .drawer-link { pointer-events: none; }
 .note.locked.unlocked .keyhole { opacity: .55; transform: rotate(-24deg) translateY(6px); }
 .note.locked.unlocked .keyhole::after { transform: rotate(90deg); }
 .note.locked .lock-line { font-style: italic; padding-right: 44px; }
+
+/* ---------- items on the board and desk (see /inventory.js) ---------- */
+.board > .deco[data-item] { pointer-events: auto; cursor: pointer; }   /* decorations ignore clicks, except ones that are items */
+.board > .polaroid[data-item]:hover, .board > .polaroid[data-item]:focus-visible { transform: rotate(0deg) translateY(-6px) scale(1.04); z-index: 6; outline: none; }
+/* the dead bulb sits on the desk, but you only notice it in the dark */
+.desk-items .bulb-item { width: clamp(22px, 2.6cqw, 34px); height: auto; align-self: flex-end; cursor: pointer; pointer-events: auto; opacity: 0; visibility: hidden; transition: opacity .3s; }
+body.lights-off .desk-items .bulb-item { opacity: 1; visibility: visible; }
