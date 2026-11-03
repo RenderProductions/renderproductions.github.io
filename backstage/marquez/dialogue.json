@@ -916,7 +916,7 @@
     },
     "craft_hill_marker": {
       "say": [
-        "(He sets the little stone in the pail, gently, and scratches two names on the back.)",
+        "(He tips the pail over the little stone. When he lifts it, the stone has gone green, shaped like a hill. He scratches two names into it.)",
         "Jack.^2 Jill.",
         "Someone should remember them too."
       ],

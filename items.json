@@ -71,19 +71,22 @@
       "name": "Clear Polaroid",
       "desc": "The dark photo, looked at through a dead eye.\nYou can see it all now. You'd rather you couldn't.",
       "size": 0.8,
-      "found": "made with Cedar"
+      "found": "made with Cedar",
+      "art": "/backstage/drawer/art/clear_polaroid.svg"
     },
     "dubbed_tape": {
       "name": "Dubbed Tape",
       "desc": "Side A: static. Side B: something out of TODD's disk.\nIt's warm. Cassettes shouldn't be warm.",
       "size": 0.95,
-      "found": "made with Cedar"
+      "found": "made with Cedar",
+      "art": "/backstage/drawer/art/dubbed_tape.svg"
     },
     "hill_marker": {
       "name": "Hill Marker",
-      "desc": "A tiny tombstone sitting in a pail, like it's waiting at the top of a hill.\nTwo names scratched on the back: JACK. JILL.",
+      "desc": "The tiny tombstone, gone green and grown into the shape of a hill.\nTwo names scratched into it: JACK. JILL.",
       "size": 0.95,
-      "found": "made with Cedar"
+      "found": "made with Cedar",
+      "art": "/backstage/drawer/art/hill_marker.svg"
     }
   },
   "recipes": [
