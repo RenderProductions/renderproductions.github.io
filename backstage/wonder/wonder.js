@@ -66,12 +66,13 @@
   // ---- 4. the limbs ----
   // Shoulders and hips, in the drawing's own coordinates (art/wonder.svg). Move these if he's redrawn.
   // out = which way a limb rotates to swing outward (+ = clockwise). max = furthest outward swing,
-  // inMax = furthest inward swing (kept small so legs don't cross and arms don't fold over his chest).
+  // inMax = furthest inward swing. Limbs never fold in across his body: a swing that would go inward
+  // is flipped to go outward instead, and inMax is only a few degrees of give for the idle sway.
   var PIVOTS = {
-    'arm-l': { x: 214, y: 124, out: 1,  reach: 1,    max: 55, inMax: 20, phase: 0 },
-    'arm-r': { x: 311, y: 124, out: -1, reach: 1,    max: 55, inMax: 20, phase: 1.7 },
-    'leg-l': { x: 244, y: 181, out: 1,  reach: 0.55, max: 30, inMax: 10, phase: 3.1 },
-    'leg-r': { x: 283, y: 181, out: -1, reach: 0.55, max: 30, inMax: 10, phase: 4.6 }
+    'arm-l': { x: 214, y: 124, out: 1,  reach: 1,    max: 55, inMax: 6, phase: 0 },
+    'arm-r': { x: 311, y: 124, out: -1, reach: 1,    max: 55, inMax: 6, phase: 1.7 },
+    'leg-l': { x: 244, y: 181, out: 1,  reach: 0.55, max: 30, inMax: 4, phase: 3.1 },
+    'leg-r': { x: 283, y: 181, out: -1, reach: 0.55, max: 30, inMax: 4, phase: 4.6 }
   };
   var limbs = [];
   var img = document.getElementById('him');
@@ -106,11 +107,18 @@
                  + vy * 7 * p.reach * p.out          // drag lifts them outward when he sinks
                  - turn * 4 * p.reach                // lag behind his tumble
                  + Math.sin(now / 1700 + p.phase) * 7 * p.reach;   // a little idle sway
-      var outward = Math.max(-p.inMax, Math.min(p.max, target * p.out));   // limit in outward/inward terms
+      // Work in outward terms. A pull inward (beyond the idle give) flips to a pull outward.
+      var outward = target * p.out;
+      if (outward < -p.inMax) outward = -outward * 0.7;
+      outward = Math.max(-p.inMax, Math.min(p.max, outward));
       target = outward * p.out;
       // A loose spring: swings past, comes back, settles. Floaty, like underwater.
       L.v = (L.v + (target - L.a) * 0.018 * dt) * Math.pow(0.9, dt);
       L.a += L.v * dt;
+      // Hard stop: even an overshooting swing can't carry a limb into his body.
+      var now_out = L.a * p.out;
+      if (now_out < -p.inMax) { L.a = -p.inMax * p.out; L.v *= -0.3; }
+      else if (now_out > p.max) { L.a = p.max * p.out; L.v *= -0.3; }
       var tf = 'rotate(' + L.a.toFixed(2) + ' ' + p.x + ' ' + p.y + ')';
       for (var i = 0; i < L.els.length; i++) L.els[i].setAttribute('transform', tf);
     });
