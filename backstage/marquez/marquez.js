@@ -204,6 +204,8 @@
     box.classList.toggle('narrate', line.narrate != null ? !!line.narrate : (t.charAt(0) === '(' && t.charAt(t.length - 1) === ')'));
     choicesEl.hidden = true;
     render(parse(line.text || ''));
+    // A line with "fx": "name" asks the page for an effect as it starts (the page listens for talk:fx).
+    if (line.fx) { try { document.dispatchEvent(new CustomEvent('talk:fx', { detail: { fx: line.fx, text: line.text } })); } catch (e) {} }
     typing = true;
     room.classList.add('talking');
     if (speed === 0) finishTyping(); else typeNext();

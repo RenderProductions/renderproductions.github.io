@@ -48,6 +48,36 @@
   };
   if (!open) return;
 
+  // ---- effects asked for by his lines ("fx" in dialogue.json) ----
+  // "stars": the void lights up. Stars pop in all over (a few burst close around him), twinkle, and fade.
+  var STAR = '<svg viewBox="-10 -10 20 20" aria-hidden="true"><path d="M0,-10 C1,-2 2,-1 10,0 C2,1 1,2 0,10 C-1,2 -2,1 -10,0 C-2,-1 -1,-2 0,-10Z"/></svg>';
+  function stars() {
+    if (!open) return;
+    var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var W = room.clientWidth, H = room.clientHeight;
+    var d = drifter.getBoundingClientRect(), r = room.getBoundingClientRect();
+    var cx = d.left - r.left + d.width / 2, cy = d.top - r.top + d.height / 2;
+    var count = still ? 14 : 34;
+    for (var i = 0; i < count; i++) {
+      var near = i < 9;   // the first few burst out around him
+      var el = document.createElement('span');
+      el.className = 'star' + (Math.random() < 0.3 ? ' big' : '');
+      el.innerHTML = STAR;
+      var x, y;
+      if (near) { var a = Math.random() * Math.PI * 2, dist = d.width * (0.5 + Math.random() * 0.9); x = cx + Math.cos(a) * dist; y = cy + Math.sin(a) * dist; }
+      else { x = Math.random() * W; y = Math.random() * H * 0.8; }
+      el.style.left = x.toFixed(0) + 'px';
+      el.style.top = y.toFixed(0) + 'px';
+      el.style.setProperty('--s', (0.5 + Math.random() * 1.1).toFixed(2));
+      el.style.setProperty('--spin', (Math.random() < 0.5 ? -1 : 1) * (20 + Math.random() * 70) + 'deg');
+      el.style.animationDelay = (still ? 0 : (near ? i * 60 : 300 + Math.random() * 1400)) + 'ms';
+      el.style.animationDuration = (2.2 + Math.random() * 1.6).toFixed(2) + 's';
+      room.appendChild(el);
+      el.addEventListener('animationend', function () { this.remove(); });
+    }
+  }
+  document.addEventListener('talk:fx', function (e) { if (e.detail && e.detail.fx === 'stars') stars(); });
+
   // ---- 3. the drift ----
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var W = 0, H = 0, w = 0, h = 0;

@@ -69,3 +69,19 @@ body { background: #000; color: #f2f2f2; font-family: var(--type); overflow: hid
 .mute:hover, .leave:hover, .mute:focus-visible, .leave:focus-visible { color: #bbb; outline: none; }
 
 .nojs { position: fixed; inset: auto 0 40px; text-align: center; font: italic 20px var(--type); color: #555; }
+
+/* "THE STAR IS BORN TO SHINE!!!": stars light up the void (wonder.js makes them) */
+.star { position: absolute; width: calc(18px * var(--s, 1)); height: calc(18px * var(--s, 1)); margin: calc(-9px * var(--s, 1)) 0 0 calc(-9px * var(--s, 1));
+  pointer-events: none; z-index: 1; opacity: 0; animation: shine 3s ease-out both; }
+.star.big { width: calc(30px * var(--s, 1)); height: calc(30px * var(--s, 1)); margin: calc(-15px * var(--s, 1)) 0 0 calc(-15px * var(--s, 1)); }
+.star svg { display: block; width: 100%; height: 100%; fill: #fff; filter: drop-shadow(0 0 4px rgba(255,255,255,.9)) drop-shadow(0 0 10px rgba(255,255,255,.45)); }
+@keyframes shine {
+  0%   { opacity: 0; transform: scale(0) rotate(0deg); }
+  12%  { opacity: 1; transform: scale(1.35) rotate(calc(var(--spin) * .3)); }
+  22%  { transform: scale(.85) rotate(calc(var(--spin) * .45)); }
+  34%  { opacity: .55; transform: scale(1.1) rotate(calc(var(--spin) * .6)); }
+  46%  { opacity: 1; transform: scale(.9) rotate(calc(var(--spin) * .7)); }
+  60%  { opacity: .6; transform: scale(1.05) rotate(calc(var(--spin) * .8)); }
+  100% { opacity: 0; transform: scale(.2) rotate(var(--spin)); }
+}
+@media (prefers-reduced-motion: reduce) { @keyframes shine { 0% { opacity: 0; } 20%, 70% { opacity: .9; } 100% { opacity: 0; } } }
