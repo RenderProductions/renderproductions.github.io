@@ -220,6 +220,13 @@
   function answer(said) {
     if (!BRAIN || busy) return;
     if (window.TODD && TODD.busy) { line('todd err', 'ERROR: TODD.EXE IS NOT RESPONDING'); return; }
+    if (window.TODD && TODD.asleep) {
+      // he's asleep: you get mumbles, not answers (poke him to wake him)
+      line('you', 'C:\\TODD> ' + said);
+      const pool = (TODD.lines().sleep_talk || []);
+      line('todd think', pool.length ? pool[(Math.random() * pool.length) | 0] : '> zzz');
+      return;
+    }
     // his temper cools off over time
     temper = Math.max(0, temper - (Date.now() - temperAt) / 60000); temperAt = Date.now();
     line('you', 'C:\\TODD> ' + said);
