@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>C:\TODD\FIGHT</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="fight.css?v=9">
+<link rel="stylesheet" href="fight.css?v=10">
 </head>
 <body>
 <div class="arena" id="arena">
@@ -20,7 +20,35 @@
     <div class="t-name" id="t-name"></div>
     <div class="t-kicker" id="t-kicker"></div>
     <div class="t-tag" id="t-tag"></div>
-    <div class="t-start" id="t-start"></div>
+    <nav class="menu" id="menu" aria-label="Menu">
+      <button type="button" data-go="start">START</button>
+      <button type="button" data-go="settings">SETTINGS</button>
+      <button type="button" data-go="credits">CREDITS</button>
+    </nav>
+  </div>
+  <div class="card panel-card" id="settings" hidden>
+    <h2>SETTINGS</h2>
+    <div class="opts">
+      <label><input type="checkbox" id="opt-shake"> <span>Screen shake</span></label>
+      <label><input type="checkbox" id="opt-skip"> <span>Skip his monologue</span></label>
+    </div>
+    <h3>CONTROLS</h3>
+    <dl class="ctl">
+      <dt>Move</dt><dd>&larr; &rarr; or A D</dd>
+      <dt>Jump</dt><dd>Space, &uarr; or W (jump off walls too)</dd>
+      <dt>Parry</dt><dd>&darr;, S, X, K or Shift</dd>
+      <dt>Phones</dt><dd>the buttons along the bottom</dd>
+    </dl>
+    <p class="note">Everything he throws hurts unless you parry it. Parried attacks fly back and hit him: that&rsquo;s the only way to hurt him. Three parries in a row without getting hit gives you one health back (up to 4).</p>
+    <button type="button" class="back" data-go="menu">BACK</button>
+  </div>
+  <div class="card panel-card" id="credits" hidden>
+    <h2>CREDITS</h2>
+    <p><b>TODD</b>, the player, the story and the art: <b>Render Productions</b>.</p>
+    <p>Background TV robot: &ldquo;Retro TV Robot (animation ready Blockbench file)&rdquo; by <a href="https://sketchfab.com/ArtsByKev" target="_blank" rel="noopener">ArtsByKev</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, used unchanged.</p>
+    <p>Pictures on TODD&rsquo;s screen, loaded from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>: Earth from Apollo 17 (NASA), <i>Artemisia absinthium</i> (H. A. K&ouml;hler, 1887), <i>Still-Life with a Skull</i> (Philippe de Champaigne), <i>Marley&rsquo;s Ghost</i> (John Leech, 1843), all public domain; &ldquo;<a href="https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png" target="_blank" rel="noopener">Magnifying glass with focus on paper</a>&rdquo; by Niabot, <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>.</p>
+    <p>Built with <a href="https://threejs.org/" target="_blank" rel="noopener">three.js</a> (MIT).</p>
+    <button type="button" class="back" data-go="menu">BACK</button>
   </div>
   <div class="card death-card" id="death" hidden>
     <div class="d-head" id="d-head"></div>
@@ -42,8 +70,6 @@
   <button type="button" data-k="parry" class="parry">&#10227;</button>
   <button type="button" data-k="jump" class="jump">&#9650;</button>
 </div>
-<p class="keys">&larr; &rarr; / A D to move &middot; Space / &uarr; / W to jump &middot; &darr; / S / X / Shift to parry &middot; jump off walls</p>
-<p class="credit">Background TV robot: &ldquo;Retro TV Robot (animation ready Blockbench file)&rdquo; by <a href="https://sketchfab.com/ArtsByKev" target="_blank" rel="noopener">ArtsByKev</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, used unchanged.<br>Pictures on TODD's screen, loaded from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>: Earth from Apollo 17 (NASA), <i>Artemisia absinthium</i> (H. A. K&ouml;hler, 1887), <i>Still-Life with a Skull</i> (Philippe de Champaigne), <i>Marley&rsquo;s Ghost</i> (John Leech, 1843), all public domain; &ldquo;<a href="https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png" target="_blank" rel="noopener">Magnifying glass with focus on paper</a>&rdquo; by Niabot, <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>.</p>
-<script type="module" src="fight.js?v=21"></script>
+<script type="module" src="fight.js?v=22"></script>
 </body>
 </html>

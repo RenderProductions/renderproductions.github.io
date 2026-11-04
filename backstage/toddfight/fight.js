@@ -57,6 +57,7 @@ const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right
   KeyX: 'parry', KeyK: 'parry', ShiftLeft: 'parry', ShiftRight: 'parry', ArrowDown: 'parry', KeyS: 'parry' };
 addEventListener('keydown', (e) => {
   const k = MAP[e.code]; if (!k) return;
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.card')) return;   // a menu has the keys
   e.preventDefault();
   if (k === 'jump' && !keys.jump) jumpPressed = true;
   if (k === 'parry' && !keys.parry) parryPressed = true;
@@ -1132,16 +1133,34 @@ function youDied() {
   setTimeout(() => { showDeathCard(); fight.retry = true; }, 2600);
 }
 // ---- the cards ----
-// Before the fight: his title; click (or tap) anywhere on it to start the cutscene.
-function showTitle() {
-  const T = (MONO && MONO.title) || {}, el = document.getElementById('title');
-  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
-  set('t-name', T.name || 'TODD.EXE'); set('t-kicker', T.kicker); set('t-tag', T.tagline); set('t-start', T.start || 'click to start');
-  fight.phase = 'title'; el.hidden = false;
-  const go = () => { if (fight.phase !== 'title') return; el.hidden = true; jumpPressed = false; parryPressed = false; startIntro(); };
-  fight.startFromTitle = go;
-  el.addEventListener('click', go, { once: true });
+// Before the fight: his title and a menu (START / SETTINGS / CREDITS). START begins the cutscene.
+const OPT = { shake: true, skip: false };
+try { Object.assign(OPT, JSON.parse(localStorage.getItem('rvFightOpts')) || {}); } catch (e) {}
+function saveOpts() { try { localStorage.setItem('rvFightOpts', JSON.stringify(OPT)); } catch (e) {} }
+function showScreen(id) {
+  for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = k !== id;
+  const first = document.querySelector('#' + id + ' button'); if (first) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
+function showTitle() {
+  const T = (MONO && MONO.title) || {};
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
+  set('t-name', T.name || 'TODD.EXE'); set('t-kicker', T.kicker); set('t-tag', T.tagline);
+  fight.phase = 'title'; showScreen('title');
+}
+document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => {
+  const go = b.dataset.go;
+  if (go === 'start') {
+    if (fight.phase !== 'title') return;
+    for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = true;
+    jumpPressed = parryPressed = false; b.blur();
+    startIntro(OPT.skip);
+  } else showScreen(go === 'menu' ? 'title' : go);
+}));
+const optShake = document.getElementById('opt-shake'), optSkip = document.getElementById('opt-skip');
+optShake.checked = OPT.shake; optSkip.checked = OPT.skip;
+optShake.addEventListener('change', () => { OPT.shake = optShake.checked; saveOpts(); });
+optSkip.addEventListener('change', () => { OPT.skip = optSkip.checked; saveOpts(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && fight.phase === 'title') showScreen('title'); });
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
   const D = (MONO && MONO.death) || {}, el = document.getElementById('death');
@@ -1165,6 +1184,7 @@ document.getElementById('d-retry').addEventListener('click', () => { if (fight.r
 
 function restart() {
   hideDeathCard();
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // give the keys back to the game
   if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; }
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
@@ -1630,7 +1650,7 @@ function frame(now) {
   stepFx(dt);
   stepBot(dt, now);
   faceStep(now);
-  const sh = fight.shake * fight.shake * 9, sx = (Math.random() - 0.5) * sh, sy = (Math.random() - 0.5) * sh;
+  const sh = OPT.shake ? fight.shake * fight.shake * 9 : 0, sx = (Math.random() - 0.5) * sh, sy = (Math.random() - 0.5) * sh;
   document.getElementById('arena').style.transform = sh > 0.05 ? `translate(${sx}px, ${sy}px)` : '';
   if (todd) renderer.render(scene, camera);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
