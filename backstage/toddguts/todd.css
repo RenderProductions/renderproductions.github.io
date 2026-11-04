@@ -11,7 +11,7 @@ body { background: #030506; color: #00fffa; overflow: hidden; font-family: 'IBM 
   background: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); }
 
 /* the boot text while he loads */
-.boot { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-size: 13px; letter-spacing: 6px; color: rgba(0,255,250,.55);
+.boot { position: absolute; left: 0; right: 0; top: 50%; pointer-events: none; text-align: center; font-size: 13px; letter-spacing: 6px; color: rgba(0,255,250,.55);
   animation: blink 1s steps(1) infinite; transition: opacity .6s; }
 .boot.gone { opacity: 0; animation: none; }
 @keyframes blink { 50% { opacity: .25 } }
@@ -20,3 +20,7 @@ body { background: #030506; color: #00fffa; overflow: hidden; font-family: 'IBM 
 .leave:hover, .leave:focus-visible { color: #00fffa; outline: none; }
 .nojs { position: fixed; inset: auto 0 40px; text-align: center; font-style: italic; color: #2b4b4f; }
 @media (prefers-reduced-motion: reduce) { .boot { animation: none; } }
+
+/* drag to move the camera around him */
+#stage { cursor: grab; touch-action: none; }
+#stage.grabbing { cursor: grabbing; }

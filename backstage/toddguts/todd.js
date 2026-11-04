@@ -235,7 +235,7 @@ function think(now) {
   stroll(now);
   if (mode === 'watch') {
     goal.yaw = THREE.MathUtils.clamp(towardYou() + mouse.x * 0.8, -1.1, 1.1);
-    goal.pitch = THREE.MathUtils.clamp(-mouse.y * 0.45 + 0.1, -0.35, 0.45);
+    goal.pitch = THREE.MathUtils.clamp(-mouse.y * 0.45 + 0.1 - orbit.pitch * 0.7, -0.6, 0.45);   // and up at you, if you're above him
     goal.roll = 0;
     if (now > modeUntil || now - mouse.moved > 2600) { mode = 'glance'; nextGlance = now + 400; }
   } else if (now > nextGlance) {
@@ -447,6 +447,48 @@ function balance(now, dt, t) {
   pose('forearm_L', S('flX', bend + Math.max(0, -lean) * -0.4, 200), 0, 0);
 }
 
+// ---- drag to move the camera around him; scroll or pinch to zoom ----
+const orbit = { yaw: 0, pitch: 0.08, zoom: 1, vy: 0, vp: 0, drag: null };
+const touches = new Map();
+let pinchFrom = 0, zoomFrom = 1;
+canvas.addEventListener('pointerdown', (e) => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
+  if (touches.size === 2) { const [a, b] = [...touches.values()]; pinchFrom = Math.hypot(a.x - b.x, a.y - b.y); zoomFrom = orbit.zoom; }
+  orbit.drag = { x: e.clientX, y: e.clientY, t: performance.now() };
+  canvas.classList.add('grabbing');
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!touches.has(e.pointerId)) return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) {
+    const [a, b] = [...touches.values()];
+    orbit.zoom = THREE.MathUtils.clamp(zoomFrom * pinchFrom / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), 0.45, 1.8);
+    return;
+  }
+  const g = orbit.drag; if (!g) return;
+  const now = performance.now(), dx = e.clientX - g.x, dy = e.clientY - g.y, ms = Math.max(8, now - g.t);
+  orbit.yaw -= dx * 0.006; orbit.pitch = THREE.MathUtils.clamp(orbit.pitch + dy * 0.004, -0.05, 1.2);
+  orbit.vy = -dx * 0.006 / ms * 1000; orbit.vp = dy * 0.004 / ms * 1000;   // for the glide after you let go
+  Object.assign(g, { x: e.clientX, y: e.clientY, t: now });
+});
+function letGo(e) {
+  touches.delete(e.pointerId);
+  if (!touches.size) { orbit.drag = null; canvas.classList.remove('grabbing'); }
+}
+canvas.addEventListener('pointerup', letGo);
+canvas.addEventListener('pointercancel', letGo);
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  orbit.zoom = THREE.MathUtils.clamp(orbit.zoom * Math.exp(e.deltaY * 0.001), 0.45, 1.8);
+}, { passive: false });
+function orbitStep(dt) {
+  if (orbit.drag) return;
+  // let go mid-swing and it keeps turning a little, then settles
+  orbit.yaw += orbit.vy * dt; orbit.pitch = THREE.MathUtils.clamp(orbit.pitch + orbit.vp * dt, -0.05, 1.2);
+  const f = Math.exp(-dt * 4); orbit.vy *= f; orbit.vp *= f;
+}
+
 // ---- every frame ----
 let then = performance.now();
 const follow = { x: 0, z: 0 }, pan = { x: 0, z: 0 };
@@ -474,7 +516,12 @@ function tick(now) {
     }
     pan.x += (body.position.x - pan.x) * Math.min(1, dt * 1.6);
     pan.z += (body.position.z - pan.z) * Math.min(1, dt * 1.6);
-    camera.position.set(follow.x + Math.sin(t * 0.21) * d * 0.06, aimY + height * 0.08 + Math.sin(t * 0.17) * height * 0.03, follow.z + d);
+    // where you've dragged the camera to (it keeps a little sway of its own)
+    orbitStep(dt);
+    const r = d * orbit.zoom;
+    scene.fog.near = r * 0.75; scene.fog.far = r + 14;   // the dark stays around him however far back you are
+    const yaw = orbit.yaw + Math.sin(t * 0.21) * 0.06, pitch = orbit.pitch + Math.sin(t * 0.17) * 0.012;
+    camera.position.set(follow.x + Math.sin(yaw) * Math.cos(pitch) * r, aimY + Math.sin(pitch) * r, follow.z + Math.cos(yaw) * Math.cos(pitch) * r);
     camera.lookAt(follow.x + (pan.x - follow.x) * 0.75, aimY, follow.z + (pan.z - follow.z) * 0.75);
   }
   // dust drifts up and around
@@ -490,4 +537,4 @@ function tick(now) {
 requestAnimationFrame(tick);
 
 // a peek for testing in the console: TODD.face('angry')
-window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body, shuffle };
+window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body, shuffle, orbit, camera };
