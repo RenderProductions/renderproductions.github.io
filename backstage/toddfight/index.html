@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>C:\TODD\FIGHT</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="fight.css?v=6">
+<link rel="stylesheet" href="fight.css?v=8">
 </head>
 <body>
 <div class="arena" id="arena">
@@ -16,6 +16,24 @@
   <div class="banner" id="banner" aria-live="polite"></div>
   <div class="say" id="say" hidden aria-live="polite"></div>
   <div class="skip" id="skip" hidden>press jump to skip</div>
+  <div class="card title-card" id="title" hidden>
+    <div class="t-name" id="t-name"></div>
+    <div class="t-kicker" id="t-kicker"></div>
+    <div class="t-tag" id="t-tag"></div>
+    <div class="t-start" id="t-start"></div>
+  </div>
+  <div class="card death-card" id="death" hidden>
+    <div class="d-head" id="d-head"></div>
+    <div class="d-quote" id="d-quote"></div>
+    <div class="d-bar" id="d-bar" aria-hidden="true">
+      <div class="d-track"></div>
+      <div class="d-mark" style="left:30.8%"></div><div class="d-mark" style="left:65.4%"></div>
+      <img class="d-you" id="d-you" src="player/Idle.svg" alt="">
+      <canvas class="d-todd" id="d-todd" width="18" height="14"></canvas>
+    </div>
+    <div class="d-far" id="d-far"></div>
+    <div class="d-opts"><button type="button" id="d-retry">RETRY</button><a href="/backstage/" id="d-exit">EXIT</a></div>
+  </div>
   <div class="boot" id="boot">LOADING TODD.EXE_</div>
 </div>
 <div class="pad" id="pad" aria-hidden="true">
@@ -26,6 +44,6 @@
 </div>
 <p class="keys">&larr; &rarr; / A D to move &middot; Space / &uarr; / W to jump &middot; &darr; / S / X / Shift to parry &middot; jump off walls</p>
 <p class="credit">Background TV robot: &ldquo;Retro TV Robot (animation ready Blockbench file)&rdquo; by <a href="https://sketchfab.com/ArtsByKev" target="_blank" rel="noopener">ArtsByKev</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, used unchanged.<br>Pictures on TODD's screen, loaded from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>: Earth from Apollo 17 (NASA), <i>Artemisia absinthium</i> (H. A. K&ouml;hler, 1887), <i>Still-Life with a Skull</i> (Philippe de Champaigne), <i>Marley&rsquo;s Ghost</i> (John Leech, 1843), all public domain; &ldquo;<a href="https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png" target="_blank" rel="noopener">Magnifying glass with focus on paper</a>&rdquo; by Niabot, <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noopener">CC BY-SA 3.0</a>.</p>
-<script type="module" src="fight.js?v=19"></script>
+<script type="module" src="fight.js?v=20"></script>
 </body>
 </html>
