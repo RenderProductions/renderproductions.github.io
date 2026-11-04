@@ -360,8 +360,10 @@ function stepBot(dt, now) {
     else if (bot.mode === 'run' && Math.random() < dt * 0.08) setBotMode('walk', now + 1500 + Math.random() * 2000);
     else if (bot.mode === 'walk' && now > bot.until) setBotMode('run');
   } else if (bot.mode === 'turn' && now > bot.until) { bot.dir = -bot.dir; setBotMode(Math.random() < 0.75 ? 'run' : 'walk', now + 2000); }
-  const wantRot = (bot.mode === 'turn' ? 0 : bot.dir) * Math.PI / 2;   // side-on while running, facing you while turning
-  bot.obj.rotation.y += (wantRot - bot.obj.rotation.y) * Math.min(1, dt * 8);
+  // the model faces -z: side-on in the direction he's running, and turned to face you while he turns round
+  const wantRot = bot.mode === 'turn' ? Math.PI : -bot.dir * Math.PI / 2;
+  const diff = Math.atan2(Math.sin(wantRot - bot.obj.rotation.y), Math.cos(wantRot - bot.obj.rotation.y));   // the short way round
+  bot.obj.rotation.y += diff * Math.min(1, dt * 8);
   bot.obj.position.set(bot.x, LEDGE.y * toddH, LEDGE.z * toddH);
 }
 function setBotMode(m, until) {
