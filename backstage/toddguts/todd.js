@@ -123,13 +123,13 @@ function putFace(pixels) {
     }
   }
   facePixCtx.putImageData(faceImg, 0, 0);
-  [skinCtx, glowCtx].forEach((g) => {
-    g.imageSmoothingEnabled = false;
-    g.clearRect(FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE);
-    g.drawImage(facePix, FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE);
-  });
-  if (skinTex) { skinTex.needsUpdate = true; glowTex.needsUpdate = true; }
+  faceTex.needsUpdate = true;   // only this tiny 18 x 14 texture changes; his big outfit texture never does
 }
+// his face lives on its own little panel laid over the monitor (built in buildScreen), so changing
+// faces only re-sends 18 x 14 pixels to the graphics card instead of his whole 1024 x 1024 texture
+const faceTex = new THREE.CanvasTexture(facePix);
+faceTex.encoding = THREE.sRGBEncoding; faceTex.magFilter = faceTex.minFilter = THREE.NearestFilter; faceTex.generateMipmaps = false;
+let screenPanel = null;
 function loadFaces() {
   return new Promise((ok) => {
     const img = new Image();
@@ -221,13 +221,12 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=2', o
         const m = o.material, img = m.map && m.map.image;
         if (img) {
           TEX_SCALE = Math.max(1, Math.round((img.width || 256) / 256));
-          skin.width = skin.height = glow.width = glow.height = 256 * TEX_SCALE;
+          skin.width = skin.height = 256 * TEX_SCALE;
           skinCtx.imageSmoothingEnabled = false;
           skinCtx.drawImage(img, 0, 0, skin.width, skin.height);
-          glowCtx.fillStyle = '#000'; glowCtx.fillRect(0, 0, glow.width, glow.height);
-          skinTex = canvasTex(skin); glowTex = canvasTex(glow);
+          skinTex = canvasTex(skin);
           m.map = skinTex;
-          m.emissiveMap = glowTex; m.emissive = new THREE.Color(0xffffff); m.emissiveIntensity = 0.85;
+          m.emissiveMap = null; m.emissive = new THREE.Color(0x000000);
           m.needsUpdate = true;
         }
       }
@@ -260,12 +259,12 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=2', o
   })
   .catch((e) => { console.warn('[todd] todd.gltf did not load', e); boot.textContent = 'NO SIGNAL'; });
 
-// ---- the agony panel: a high-resolution picture laid exactly over his screen ----
+// ---- his screen: a face panel and the agony panel, laid exactly over the monitor's screen ----
 function buildAgonyPanel() {
   const head = bones.fat_fucking_dome;
   let mesh = null;
   todd.traverse((o) => { if (o.isSkinnedMesh) mesh = o; });
-  if (!agonyImg || !head || !mesh) return;
+  if (!head || !mesh) return;
   // find the screen: the vertices whose texture coordinates are the face patch, at the very front
   const uv = mesh.geometry.attributes.uv, pos = mesh.geometry.attributes.position, v = new THREE.Vector3();
   const pts = [];
@@ -280,6 +279,17 @@ function buildAgonyPanel() {
   const face = pts.filter((p) => p.z > front - 0.002);
   const box = new THREE.Box3().setFromPoints(face), size = new THREE.Vector3(), mid = new THREE.Vector3();
   box.getSize(size); box.getCenter(mid);
+  const q = new THREE.Quaternion(); head.getWorldQuaternion(q); q.invert();
+  // the face panel: always there, glowing (unlit), showing whatever face he's making
+  screenPanel = new THREE.Mesh(new THREE.PlaneGeometry(size.x, size.y),
+    new THREE.MeshBasicMaterial({ map: faceTex, fog: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+  screenPanel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.003))));
+  screenPanel.quaternion.copy(q); screenPanel.renderOrder = 1;
+  head.add(screenPanel);
+  // and darken the screen patch on the body texture underneath, once
+  skinCtx.fillStyle = '#041012'; skinCtx.fillRect(FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE);
+  if (skinTex) skinTex.needsUpdate = true;
+  if (!agonyImg) return;
   const tex = new THREE.Texture(agonyImg);
   tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true;
   // crop the square picture to the screen's shape
@@ -289,7 +299,7 @@ function buildAgonyPanel() {
     polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   agonyPanel = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 0.97, size.y * 0.97), mat);
   agonyPanel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.006))));
-  const q = new THREE.Quaternion(); head.getWorldQuaternion(q); agonyPanel.quaternion.copy(q.invert());
+  agonyPanel.quaternion.copy(q);
   agonyPanel.renderOrder = 2;
   head.add(agonyPanel);
 }
@@ -1021,7 +1031,7 @@ requestAnimationFrame(tick);
 
 // a peek for testing in the console: TODD.face('angry')
 window.TODD = {
-  face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body, shuffle, orbit, camera,
+  face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: facePix, goal, look, walk, body, shuffle, orbit, camera,
   rage: () => { if (!rage.on) startRage(performance.now()); },   // set off a tantrum now
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
   say: (t, red) => say(t, red), state: rage,
