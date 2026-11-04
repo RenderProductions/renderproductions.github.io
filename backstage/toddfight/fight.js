@@ -35,7 +35,7 @@ const P = {
   ground: true, wall: 0,      // wall: -1 sliding down the left wall, 1 the right, 0 none
   coyote: 0, buffer: 0, lock: 0, walkT: 0,
   hp: 3, dead: false, hurtT: 0, deadT: 0,
-  parryT: 0, spin: 0           // parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
+  parryT: 0, spin: 0, airJump: true,   // parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
 };
 const TUNE = {
   run: 300, accel: 2600, airAccel: 1700, friction: 3000,
@@ -44,7 +44,8 @@ const TUNE = {
   slide: 150,                      // max speed sliding down a wall
   wallJumpX: 390, wallJumpY: 790, wallLock: 0.16,
   coyote: 0.09, buffer: 0.12,
-  parry: 0.18, parryBounce: 760    // how long a mid-air jump press can parry for, and how high a parry bounces you
+  parry: 0.18, parryBounce: 760,
+  airJump: 700, spin: 0.38          // the parry is a spinning double jump: how high, how long the spin    // how long a mid-air jump press can parry for, and how high a parry bounces you
 };
 
 // ---------------- input ----------------
@@ -93,10 +94,11 @@ function step(dt) {
     } else if (P.wall) {
       P.vy = -TUNE.wallJumpY; P.vx = -P.wall * TUNE.wallJumpX; P.face = -P.wall;
       P.lock = TUNE.wallLock; P.wall = 0; P.buffer = 0; P.cutReady = true;
-    } else {
-      // jump pressed in mid-air: that's a parry. For a moment, anything he throws at you that you touch
-      // gets knocked back at him instead of hurting you.
-      P.parryT = TUNE.parry; P.buffer = 0;
+    } else if (P.airJump) {
+      // jump pressed in mid-air: a spinning double jump, and that's the parry. For a moment, anything he
+      // throws at you that you touch gets knocked back at him instead of hurting you.
+      P.vy = -TUNE.airJump; P.cutReady = true; P.airJump = false;
+      P.parryT = TUNE.parry; P.spin = TUNE.spin; P.buffer = 0;
     }
   }
   P.parryT = Math.max(0, P.parryT - dt);
@@ -113,6 +115,7 @@ function step(dt) {
   // he sticks to a wall while he's in the air, pushing into it, and on his way down
   P.wall = !P.ground && touching && dir === touching && P.vy > -60 ? touching : 0;
   if (P.wall) P.face = -P.wall;
+  if (P.ground || P.wall) P.airJump = true;   // the double jump comes back when you land or grab a wall
 
   P.walkT = P.ground && Math.abs(P.vx) > 20 ? P.walkT + dt * Math.abs(P.vx) / TUNE.run : 0;
 }
@@ -162,7 +165,7 @@ function drawPlayer() {
   if (P.wall < 0) ctx.scale(-1, 1);         // the wall-slide frame has his feet on a wall to his right
   if (P.hurtT > 0 && Math.floor(P.hurtT * 20) % 2) ctx.globalAlpha = 0.35;
   // a parry: a quick flip, and a flash around him while the window's open
-  if (P.spin > 0) ctx.rotate((1 - P.spin / 0.4) * Math.PI * 2 * P.face);
+  if (P.spin > 0) ctx.rotate((1 - P.spin / TUNE.spin) * Math.PI * 2 * P.face);
   if (P.parryT > 0) { ctx.shadowColor = '#ff5cf0'; ctx.shadowBlur = 22; }
   ctx.drawImage(a.img, a.ox, a.oy, a.w, a.h);
   ctx.restore();
@@ -930,7 +933,7 @@ function touches(x, y, r) {
   return (x - nx) ** 2 + (y - ny) ** 2 < r * r;
 }
 function parried(x, y) {
-  P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = 0.4; P.hurtT = Math.max(P.hurtT, 0.25);
+  P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = TUNE.spin; P.airJump = true; P.hurtT = Math.max(P.hurtT, 0.25);   // (and you get your double jump back)
   hitstop = 0.07; fight.shake = Math.max(fight.shake, 0.45);
   fx.push({ kind: 'ring', x, y, t: 0, life: 0.35, color: '#ff5cf0' });
   fx.push({ kind: 'ring', x, y, t: -0.06, life: 0.4, color: '#ffffff' });
