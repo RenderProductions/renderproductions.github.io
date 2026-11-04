@@ -1,5 +1,5 @@
 {
-  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here. 'held' is a different voice, in plain grey, right after he hits the screen in a tantrum: whatever it is that keeps him in. 'reach' is what he says when he reaches up for you (when you've swung the camera above him).",
+  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here. 'held' is a different voice, in plain grey, right after he hits the screen in a tantrum: whatever it is that keeps him in. 'reach' is what he says when he reaches up for you (when you've swung the camera above him). 'poke' / 'poke_screen' / 'poke_annoyed' are his reactions to being clicked (on his body, on his screen, and once he's had enough). 'broadcast_after' is what he says once the 75.40 broadcast fades (the broadcast's own words come from the frequency scanner's signals.json). 'wonder' is Wonder's voice bleeding in (only once CH 02 is open) and 'wonder_reply' is TODD yelling back.",
   "idle": [
     "TODD.OS v0.?? // BOOT DISK 1 OF ??",
     "> mem check ... 640K OK",
@@ -84,5 +84,45 @@
     "> let me OUT",
     "> please",
     "> i can almost reach"
+  ],
+  "poke": [
+    "> HEY",
+    "> ow?",
+    "> don't TOUCH me",
+    "> who did that",
+    "> personal SPACE"
+  ],
+  "poke_screen": [
+    "> that's my FACE",
+    "> don't touch the SCREEN",
+    "> FINGERPRINTS. great.",
+    "> my FACE!!"
+  ],
+  "poke_annoyed": [
+    "> STOP",
+    "> i said STOP",
+    "> do that again. DO IT.",
+    "> i'm LOGGING every one of these"
+  ],
+  "broadcast_after": [
+    "> ...",
+    "> did you hear that too?",
+    "> i could never be like him",
+    "> he's still out there. somewhere.",
+    "> that was ME. why was that ME."
+  ],
+  "wonder": [
+    "HELLO, TODD!!",
+    "TODD! TODD!! OH GOD, IT'S TODD!!",
+    "HELLO?! IS THIS THING ON?! YES, TODD! IT'S ALWAYS ON!!",
+    "TODD'S GUTS!! MUAHAHA!!",
+    "THE STAR IS BORN TO SHINE!!!"
+  ],
+  "wonder_reply": [
+    "> GO AWAY, WONDER",
+    "> how is he IN here",
+    "> NOT NOW",
+    "> i can HEAR you. everyone can HEAR you.",
+    "> stop YELLING my name"
   ]
 }

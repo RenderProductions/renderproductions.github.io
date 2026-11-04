@@ -94,6 +94,11 @@ let skinTex = null, glowTex = null;
 let faceData = [];          // each face as RGBA pixels
 let shownFace = 0;
 const faceImg = glowCtx.createImageData(FACE.w, FACE.h);
+// FACE is in the texture's original 256 x 256 units; the texture itself can be bigger (it's 1024 now),
+// so the 18 x 14 face is drawn up to size, crisp, with TEX_SCALE.
+let TEX_SCALE = 1;
+const facePix = document.createElement('canvas'); facePix.width = FACE.w; facePix.height = FACE.h;
+const facePixCtx = facePix.getContext('2d');
 
 function canvasTex(c) {
   const t = new THREE.CanvasTexture(c);
@@ -117,8 +122,12 @@ function putFace(pixels) {
       d[i] = d[i] + (RED[0] - d[i]) * k; d[i + 1] = d[i + 1] + (RED[1] - d[i + 1]) * k; d[i + 2] = d[i + 2] + (RED[2] - d[i + 2]) * k;
     }
   }
-  skinCtx.putImageData(faceImg, FACE.x, FACE.y);
-  glowCtx.putImageData(faceImg, FACE.x, FACE.y);
+  facePixCtx.putImageData(faceImg, 0, 0);
+  [skinCtx, glowCtx].forEach((g) => {
+    g.imageSmoothingEnabled = false;
+    g.clearRect(FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE);
+    g.drawImage(facePix, FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE);
+  });
   if (skinTex) { skinTex.needsUpdate = true; glowTex.needsUpdate = true; }
 }
 function loadFaces() {
@@ -203,7 +212,7 @@ const body = new THREE.Group();   // moves and turns him around the void
 scene.add(body);
 
 const loader = new THREE.GLTFLoader();
-Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=1', ok, undefined, no))])
+Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=2', ok, undefined, no))])
   .then(([, gltf]) => {
     todd = gltf.scene;
     todd.traverse((o) => {
@@ -211,8 +220,11 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=1', o
         o.frustumCulled = false;   // skinned: his bounds move with his bones
         const m = o.material, img = m.map && m.map.image;
         if (img) {
-          skinCtx.drawImage(img, 0, 0, 256, 256);
-          glowCtx.fillStyle = '#000'; glowCtx.fillRect(0, 0, 256, 256);
+          TEX_SCALE = Math.max(1, Math.round((img.width || 256) / 256));
+          skin.width = skin.height = glow.width = glow.height = 256 * TEX_SCALE;
+          skinCtx.imageSmoothingEnabled = false;
+          skinCtx.drawImage(img, 0, 0, skin.width, skin.height);
+          glowCtx.fillStyle = '#000'; glowCtx.fillRect(0, 0, glow.width, glow.height);
           skinTex = canvasTex(skin); glowTex = canvasTex(glow);
           m.map = skinTex;
           m.emissiveMap = glowTex; m.emissive = new THREE.Color(0xffffff); m.emissiveIntensity = 0.85;
@@ -222,7 +234,10 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=1', o
       if (o.isBone || o.type === 'Bone') { bones[o.name] = o; rest[o.name] = o.quaternion.clone(); }
     });
     // keep the face he was made with as his first face if faces.png is missing it
-    if (!faceData[0]) faceData[0] = skinCtx.getImageData(FACE.x, FACE.y, FACE.w, FACE.h).data;
+    if (!faceData[0]) {
+      facePixCtx.drawImage(skin, FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE, 0, 0, FACE.w, FACE.h);
+      faceData[0] = facePixCtx.getImageData(0, 0, FACE.w, FACE.h).data;
+    }
     putFace(faceData[0]);
 
     body.add(todd);
@@ -346,7 +361,10 @@ function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
 
 function think(now) {
   if (rage.on) return rageThink(now);
+  if (bc.on) return broadcastThink(now);
   if (now > rage.next) return startRage(now);
+  if (now > bc.next && !reach.on) return startBroadcast(now);
+  if (now > echo.next && !reach.on) wonderEcho(now);
   stroll(now);
   reachThink(now);
   if (mode === 'watch') {
@@ -447,6 +465,10 @@ function stepShuffle(now, dt) {
 }
 let lastPhase = 0;
 function move(now, dt) {
+  if (Math.abs(shove.x) + Math.abs(shove.z) > 0.001) {
+    body.position.x += shove.x * dt; body.position.z += shove.z * dt;
+    const k = Math.exp(-dt * 7); shove.x *= k; shove.z *= k;
+  }
   const fwd = Math.PI * 2 * CYCLE * walk.pace;
   if (walk.state === 'turn') {
     // turns in real steps: lift a leg, pivot part of the way while it's up, plant it, then the other
@@ -601,6 +623,7 @@ canvas.addEventListener('pointerdown', (e) => {
   try { canvas.setPointerCapture(e.pointerId); } catch (er) {}
   if (touches.size === 2) { const [a, b] = [...touches.values()]; pinchFrom = Math.hypot(a.x - b.x, a.y - b.y); zoomFrom = orbit.zoom; }
   orbit.drag = { x: e.clientX, y: e.clientY, t: performance.now() };
+  press = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
   canvas.classList.add('grabbing');
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -617,7 +640,12 @@ canvas.addEventListener('pointermove', (e) => {
   orbit.vy = -dx * 0.006 / ms * 1000; orbit.vp = dy * 0.004 / ms * 1000;   // for the glide after you let go
   Object.assign(g, { x: e.clientX, y: e.clientY, t: now });
 });
+let press = null;
 function letGo(e) {
+  // a quick tap that barely moved is a poke, not a drag
+  if (press && press.id === e.pointerId && touches.size === 1 && performance.now() - press.t < 350 &&
+      Math.hypot(e.clientX - press.x, e.clientY - press.y) < 7) poke(e.clientX, e.clientY);
+  press = null;
   touches.delete(e.pointerId);
   if (!touches.size) { orbit.drag = null; canvas.classList.remove('grabbing'); }
 }
@@ -777,17 +805,19 @@ function crashStep(now) {
 
 // ---- TODD.OS: terminal lines that flicker into the void ----
 const termEl = document.getElementById('term');
-let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [] }, nextLine = performance.now() + 6000, flooding = false;
+let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [], poke: [], poke_screen: [], poke_annoyed: [], broadcast_after: [], wonder: [], wonder_reply: [] }, nextLine = performance.now() + 6000, flooding = false;
 fetch('terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { LINES = Object.assign(LINES, d); }).catch(() => {});
 const pick = (a) => a[(Math.random() * a.length) | 0];
 function hasDisk() { try { return !!(JSON.parse(localStorage.getItem('rp_items')) || {}).todd_floppy; } catch (e) { return false; } }
 function say(text, kind) {
   if (!text) return;
-  const red = kind === true || kind === 'rage', held = kind === 'held';
+  const red = kind === true || kind === 'rage', held = kind === 'held', signal = kind === 'signal', wonder = /^wonder/.test(kind || '');
   const el = document.createElement('div');
-  el.className = 'tline' + (red ? ' red' : held ? ' held' : '');
+  el.className = 'tline' + (red ? ' red' : held ? ' held' : signal ? ' signal' : wonder ? ' wonder' : '');
   const narrow = innerWidth < 600;
   if (red) { el.style.left = (Math.random() * (narrow ? 40 : 70)) + '%'; el.style.top = (4 + Math.random() * 88) + '%'; }
+  else if (signal) { el.style.left = '50%'; el.style.top = (10 + (termEl.querySelectorAll('.signal').length % 5) * 6) + '%'; }
+  else if (wonder) { el.style.top = (20 + Math.random() * 40) + '%'; if (kind === 'wonder-left') el.style.left = (2 + Math.random() * 6) + '%'; else el.style.right = (2 + Math.random() * 6) + '%'; }
   else if (held) { el.style.left = (narrow ? 8 : 38) + Math.random() * 10 + '%'; el.style.top = (14 + Math.random() * 10) + '%'; }
   else {
     // keeps to the edges, out of his way (and off the chat in the bottom-left)
@@ -802,9 +832,9 @@ function say(text, kind) {
     el.textContent = full.slice(0, ++n) + (n < full.length ? '_' : '');
     if (n >= full.length) {
       clearInterval(typeIt);
-      setTimeout(() => breakUp(el), red ? 500 + Math.random() * 700 : 2600 + Math.random() * 1500);
+      setTimeout(() => breakUp(el), red ? 500 + Math.random() * 700 : signal ? 4200 : wonder ? 2400 : 2600 + Math.random() * 1500);
     }
-  }, red ? 12 : held ? 55 : 38);
+  }, red ? 12 : held ? 55 : signal ? 70 : wonder ? 22 : 38);
 }
 function breakUp(el) {
   // the line glitches apart, then it's gone
@@ -830,6 +860,107 @@ function terminal(now) {
   else if (level >= 1 && r < 0.15 + 0.15 * level + 0.15) pool = LINES.aware;
   else if (r > 0.9) pool = LINES.papa;
   say(pick(pool.length ? pool : LINES.idle));
+}
+
+// ---- the Big Papa broadcast ----
+// Now and then the void dims, the 75.40 signal crackles through (its words come from the frequency
+// scanner's signals.json, so it always matches), and TODD stops dead and stares up, listening.
+const bc = { on: false, next: performance.now() + 70000 + Math.random() * 80000, t0: 0, lines: [], i: 0, at: 0 };
+let SIGNAL = null;
+fetch('/backstage/frequency/signals.json?v=' + Date.now()).then((r) => r.json()).then((d) => {
+  const c = (d.codes || d)['75.40'];
+  if (c && c.actions) SIGNAL = c.actions.filter((a) => a.type === 'text').map((a) => a.text);
+}).catch(() => {});
+function startBroadcast(now) {
+  if (!todd || !SIGNAL || !SIGNAL.length) { bc.next = now + 30000; return; }
+  Object.assign(bc, { on: true, t0: now, lines: SIGNAL.slice(), i: 0, at: now + 1800 });
+  mode = 'broadcast'; walk.approach = false; walk.stopAt = 0;
+  if (walk.state === 'walk' || walk.state === 'turn') { walk.state = 'stand'; }
+  walk.until = 1e15;
+  voidEl.classList.add('broadcast');
+  fizzle(faceIndex('loading'), 400);
+}
+function broadcastThink(now) {
+  // he stares straight up, very still, the odd twitch
+  goal.yaw = Math.sin(now / 2300) * 0.08; goal.pitch = -0.78; goal.roll = Math.sin(now / 3100) * 0.06;
+  if (Math.random() < 0.004 && !fizz) glitch();
+  if (bc.i < bc.lines.length && now > bc.at) {
+    say(bc.lines[bc.i], 'signal'); glitch();
+    if (bc.i === 2) fizzle(faceIndex('sad'), 500);
+    bc.i++; bc.at = now + 1900 + Math.random() * 500;
+  }
+  if (bc.i >= bc.lines.length && now > bc.at + 1800) {
+    bc.on = false; voidEl.classList.remove('broadcast');
+    mode = 'glance'; nextGlance = now + 2500; walk.until = now + 5000; nextMood = now + 6000;
+    if (LINES.broadcast_after.length) setTimeout(() => say(pick(LINES.broadcast_after)), 900);
+    bc.next = now + 150000 + Math.random() * 150000;
+  }
+}
+
+// ---- Wonder, bleeding in from CH 02 ----
+// Once they've opened CH 02 (rp_flags.wonder_unlocked), Wonder's voice now and then cuts into the void.
+// TODD flinches, snaps his head toward it and yells back.
+const echo = { next: performance.now() + 50000 + Math.random() * 90000 };
+function wonderUnlocked() { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {}).wonder_unlocked; } catch (e) { return false; } }
+function wonderEcho(now) {
+  echo.next = now + 120000 + Math.random() * 140000;
+  if (!wonderUnlocked() || !LINES.wonder.length || mode === 'watch') return;
+  const left = Math.random() < 0.5;
+  say(pick(LINES.wonder), left ? 'wonder-left' : 'wonder-right');
+  // the flinch
+  if (servos.upX) servos.upX.v -= 3; if (servos.chZ) servos.chZ.v += left ? 2 : -2;
+  look.vy += left ? -5 : 5;
+  const towardScreen = wrap(towardYou() + (left ? -0.9 : 0.9));
+  goal.yaw = THREE.MathUtils.clamp(towardScreen, -1.1, 1.1); goal.pitch = 0; nextGlance = now + 2200;
+  fizzle(faceIndex(Math.random() < 0.5 ? 'surprised' : 'angry'), 260);
+  if (LINES.wonder_reply.length) setTimeout(() => { if (!rage.on) say(pick(LINES.wonder_reply)); }, 1300);
+}
+
+// ---- poking him ----
+// Tap him and he's shoved back a step and stumbles, then turns to look at you. Tap his screen and it
+// glitches and his head snaps back. Each poke annoys him more; five close together and he loses it.
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const shove = { x: 0, z: 0 };
+let irk = 0, irkAt = 0, pokes = 0;
+function hitTodd(cx, cy) {
+  if (!todd) return null;
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObject(todd, true);
+  if (!hits.length) return null;
+  const head = new THREE.Vector3(); bones.fat_fucking_dome.getWorldPosition(head);
+  return { point: hits[0].point, head: hits[0].point.y > head.y - 0.05 };
+}
+function poke(cx, cy) {
+  if (rage.on) return;
+  const hit = hitTodd(cx, cy);
+  if (!hit) return;
+  const now = performance.now();
+  irk = Math.max(0, irk - (now - irkAt) / 8000) + 1; irkAt = now; pokes++;
+  // knocked back, away from the camera
+  const dx = body.position.x - camera.position.x, dz = body.position.z - camera.position.z, d = Math.hypot(dx, dz) || 1;
+  const push = hit.head ? 0.6 : 1.4;
+  shove.x += dx / d * push; shove.z += dz / d * push;
+  if (servos.upX) servos.upX.v -= hit.head ? 2.5 : 4;          // the jolt goes through him
+  if (servos.chZ) servos.chZ.v += (Math.random() - 0.5) * 3;
+  look.vp -= hit.head ? 9 : 3; look.vy += (Math.random() - 0.5) * 6;   // head snaps back
+  if (hit.head) glitch();
+  walk.approach = false; walk.stopAt = 0;
+  if (walk.state === 'walk') { walk.state = 'stand'; walk.until = now + 4000; }
+  // a step to catch himself, then he looks at you
+  setTimeout(() => { if (!rage.on && !shuffle.on) startShuffle(0, Math.random() < 0.5 ? 'L' : 'R'); }, 180);
+  setTimeout(() => {
+    if (rage.on) return;
+    mode = 'watch'; lastNotice = performance.now(); mouse.moved = performance.now(); modeUntil = performance.now() + 5000;
+    stopAndFaceYou(performance.now());
+  }, 650);
+  const mood = irk < 1.6 ? 'surprised' : irk < 3 ? 'neutral' : 'angry';
+  fizzle(faceIndex(mood), 260);
+  const pool = hit.head ? LINES.poke_screen : irk >= 3 ? LINES.poke_annoyed : LINES.poke;
+  if (pool && pool.length) say(pick(pool));
+  nextMood = now + 4000;
+  if (irk >= 4.5) { irk = 0; setTimeout(() => startRage(performance.now()), 600); }
 }
 
 // ---- every frame ----
@@ -894,6 +1025,11 @@ window.TODD = {
   rage: () => { if (!rage.on) startRage(performance.now()); },   // set off a tantrum now
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
   say: (t, red) => say(t, red), state: rage,
+  poke: (head) => { const r = canvas.getBoundingClientRect(); let hx = r.left + r.width / 2, hy = r.top + r.height / 2;
+    const v = new THREE.Vector3(); (head ? bones.fat_fucking_dome : bones.chest).getWorldPosition(v); if (head) v.y += 0.4; v.project(camera);
+    hx = r.left + (v.x + 1) / 2 * r.width; hy = r.top + (1 - v.y) / 2 * r.height; poke(hx, hy); },
+  broadcast: () => { if (!rage.on && !bc.on) startBroadcast(performance.now()); },
+  wonder: () => { echo.next = 0; wonderEcho(performance.now()); },
   reach: () => { const now = performance.now(); mode = 'watch'; mouse.moved = now; Object.assign(reach, { on: true, t0: now, until: now + 5000 }); modeUntil = now + 5500; },
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
   render: () => renderer.render(scene, camera), bones,

@@ -58,3 +58,18 @@ body { background: #030506; color: #00fffa; overflow: hidden; font-family: 'IBM 
 .ask input::placeholder { color: rgba(0,255,250,.22); }
 .ask.busy label { animation: blink .5s steps(1) infinite; }
 @media (max-width: 600px) { .chat { font-size: 12px; } .ask input { font-size: 16px; } }
+
+/* the Big Papa broadcast: the void dims, and the signal's words come through, white and unsteady */
+.void::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0; transition: opacity 1.2s;
+  background: radial-gradient(ellipse 60% 50% at 50% 30%, rgba(255,255,255,.05), rgba(0,0,0,.72) 70%),
+              repeating-linear-gradient(180deg, rgba(255,255,255,.04) 0 1px, transparent 1px 2px); }
+.void.broadcast::after { opacity: 1; animation: signal-flicker 2.3s steps(1) infinite; }
+@keyframes signal-flicker { 0%, 100% { opacity: 1 } 37% { opacity: .82 } 38% { opacity: 1 } 71% { opacity: .9 } }
+.tline.signal { transform: translateX(-50%); max-width: 90vw; font-size: clamp(14px, 2.4vw, 22px); letter-spacing: 3px; color: #f4f4f4;
+  text-shadow: 0 0 10px rgba(255,255,255,.5), 2px 0 rgba(255,40,60,.35), -2px 0 rgba(0,255,250,.35); z-index: 2; }
+/* Wonder bleeding in: black and white, loud, shaking */
+.tline.wonder { max-width: 60vw; font-size: clamp(15px, 2.6vw, 24px); font-weight: bold; letter-spacing: 2px; color: #fff;
+  text-shadow: 0 0 6px rgba(255,255,255,.8), 0 0 18px rgba(255,255,255,.35); animation: jitter .09s steps(2) infinite; }
+@keyframes jitter { 50% { transform: translate(1px, -1px) } }
+@media (prefers-reduced-motion: reduce) { .void.broadcast::after, .tline.wonder { animation: none; } }
+.void.broadcast .term { z-index: 3; }
