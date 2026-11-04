@@ -1,4 +1,4 @@
-html, body { margin: 0; height: 100%; background: #020406; color: #00fffa; font: 13px/1.5 'Courier New', monospace; overflow: hidden; }
+html, body { margin: 0; min-height: 100%; background: #020406; color: #00fffa; font: 13px/1.5 'Courier New', monospace; overflow: hidden; }
 body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 /* the fight is 16:9, letterboxed to fit */
 .arena { position: relative; width: min(100vw, calc((100vh - 28px) * 16 / 9)); aspect-ratio: 16 / 9;
@@ -27,3 +27,5 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
   text-shadow: 0 0 18px rgba(255,40,60,.8), 3px 0 rgba(255,40,60,.7), -3px 0 rgba(0,255,250,.6); }
 .banner.show { animation: banner 1.6s ease-out forwards; }
 @keyframes banner { 0% { opacity: 0; transform: scale(1.6) } 12% { opacity: 1; transform: scale(1) } 70% { opacity: 1 } 100% { opacity: 0; transform: scale(1.05) } }
+.credit { margin: 2px 0 0; padding: 0 16px; font-size: 11px; opacity: .4; text-align: center; }
+.credit a { color: inherit; }
