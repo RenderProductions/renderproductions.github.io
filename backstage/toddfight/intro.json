@@ -138,6 +138,17 @@
         0.3
       ],
       "credit": "Saturn Devouring His Son, Francisco Goya (public domain)"
+    },
+    "thumbs": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Jean-Leon_Gerome_Pollice_Verso.jpg/960px-Jean-Leon_Gerome_Pollice_Verso.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/c/c5/Jean-Leon_Gerome_Pollice_Verso.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "credit": "Pollice Verso, Jean-Léon Gérôme, 1872 (public domain)"
     }
   },
   "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
@@ -157,5 +168,21 @@
     ]
   },
   "win": "WIN!",
-  "_how3": "'death' (the skull) is what his screen shows when you beat him. 'fire' is still there to use in a line."
+  "_how3": "'death' (the skull) is what his screen shows when you beat him. 'fire' is still there to use in a line.",
+  "taunt_pictures": [
+    "thumbs"
+  ],
+  "damage_pictures": [
+    "rabbit",
+    "adam",
+    "hell",
+    "duo",
+    "player",
+    "devil",
+    "saturn",
+    "death",
+    "thumbs",
+    "fire"
+  ],
+  "_how4": "'taunt_pictures': what his screen can flash while he taunts you. 'damage_pictures': what flickers across his screen as you wear him down (more and more often the more he's hurt); 'agony' is his agony face."
 }
