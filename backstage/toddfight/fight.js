@@ -441,6 +441,87 @@ function ripple(stageX, speed = 1.2) {
   floorMat.uniforms.uRip.value[ripI++ % RIPPLES].set(p.x, p.z, floorMat.uniforms.uTime.value, speed * toddH);
 }
 
+// ---- damage you can see: smoke and a failing body ----
+// How hurt he is, 0 (fresh) .. 1 (one hit left)
+function wear() { return Math.max(0, Math.min(1, 1 - boss.hp / TODD_HP)); }
+// Grey, see-through cubes of smoke billowing off him: wisps from his shoulders early on, pouring out of his
+// monitor and chest by the end. Each one rises, swells, tumbles and fades.
+const SMOKE_N = 90;
+const smokeGeo = new THREE.BoxGeometry(1, 1, 1);
+const smoke = Array.from({ length: SMOKE_N }, () => {
+  const m = new THREE.Mesh(smokeGeo, new THREE.MeshLambertMaterial({ color: 0x8e979c, transparent: true, opacity: 0, depthWrite: false }));
+  m.visible = false; m.userData = { life: 0, age: 0, vel: new THREE.Vector3(), spin: new THREE.Vector3(), s0: 1, s1: 1, a: 0 };
+  return m;
+});
+let smokeI = 0, smokeAcc = 0;
+// where it comes from: [bone, offset in TODD-heights] (unlocked as he wears down)
+const VENTS = [
+  { at: 0.1, bone: 'Right_Arm', off: [0, 0.03, -0.02] }, { at: 0.1, bone: 'Left_Arm', off: [0, 0.03, -0.02] },
+  { at: 0.35, bone: 'fat_fucking_dome', off: [0, 0.16, -0.06] }, { at: 0.45, bone: 'neck', off: [0, 0.0, 0.02] },
+  { at: 0.6, bone: 'chest', off: [0.05, 0.02, 0.07] }, { at: 0.75, bone: 'fat_fucking_dome', off: [0.1, 0.08, -0.1] }
+];
+function puff(pos, big) {
+  const m = smoke[smokeI++ % SMOKE_N], u = m.userData, H = toddH;
+  if (!m.parent) scene.add(m);
+  m.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.04 * H, (Math.random() - 0.5) * 0.03 * H, (Math.random() - 0.5) * 0.04 * H));
+  u.age = 0; u.life = 1.4 + Math.random() * 1.2;
+  u.vel.set((Math.random() - 0.5) * 0.06 * H + 0.02 * H, (0.12 + Math.random() * 0.1) * H, (Math.random() - 0.5) * 0.04 * H);
+  u.spin.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(2);
+  u.s0 = (0.02 + Math.random() * 0.02) * H * (big ? 1.4 : 1); u.s1 = u.s0 * (2.2 + Math.random());
+  u.a = (0.28 + Math.random() * 0.22) * (big ? 1.2 : 1);
+  m.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+  m.material.color.setScalar(0.45 + Math.random() * 0.25);
+  m.visible = true;
+}
+const ventPos = new THREE.Vector3();
+function ventAt(v) { const b = bones[v.bone]; b.getWorldPosition(ventPos); return ventPos.add(new THREE.Vector3(v.off[0] * toddH, v.off[1] * toddH, v.off[2] * toddH)); }
+function stepSmoke(dt) {
+  if (!todd) return;
+  const w = boss.down ? 1.2 : wear();
+  const open = VENTS.filter((v) => w >= v.at);
+  smokeAcc += dt * (open.length ? Math.pow(w, 1.4) * 22 : 0);
+  while (smokeAcc > 1) { smokeAcc--; puff(ventAt(open[(Math.random() * open.length) | 0])); }
+  for (const m of smoke) {
+    if (!m.visible) continue;
+    const u = m.userData; u.age += dt;
+    const p = u.age / u.life; if (p >= 1) { m.visible = false; continue; }
+    m.position.addScaledVector(u.vel, dt); u.vel.multiplyScalar(1 - dt * 0.4);
+    m.rotation.x += u.spin.x * dt; m.rotation.y += u.spin.y * dt; m.rotation.z += u.spin.z * dt;
+    m.scale.setScalar(u.s0 + (u.s1 - u.s0) * Math.sqrt(p));
+    m.material.opacity = u.a * Math.min(1, p * 6) * (1 - p);
+  }
+}
+// a burst of it when you land a hit (from his screen)
+function smokeBurst(n) { if (!screenPanel) return; screenPanel.getWorldPosition(ventPos); for (let i = 0; i < n; i++) puff(ventPos.clone().add(new THREE.Vector3(0, 0.08 * toddH, -0.05 * toddH)), true); }
+
+// Mechanical shaking: his servos stutter. Small stepped twitches (held a beat, then snapped to a new one,
+// not a smooth wobble) laid over whatever he's doing, worse the more he's hurt; late on, a limb seizes.
+const JIT = ['chest', 'neck', 'fat_fucking_dome', 'Right_Arm', 'Left_Arm', 'forearm_R', 'forearm_L'];
+const jit = {}; let jitNext = 0, seize = null;
+const jE = new THREE.Euler(), jQ = new THREE.Quaternion();
+function shudder(now) {
+  const w = boss.down ? 0.6 : wear(); if (w <= 0.05 && !seize) return;
+  if (now > jitNext) {
+    jitNext = now + 50 + Math.random() * 90;
+    const a = Math.pow(w, 1.3) * 0.07;
+    for (const n of JIT) if (Math.random() < 0.55) jit[n] = [(Math.random() - 0.5) * a, (Math.random() - 0.5) * a, (Math.random() - 0.5) * a];
+    // a seize: one limb jerks hard and holds there for a moment
+    if (!seize && w > 0.45 && Math.random() < 0.012 + w * 0.02) {
+      const n = JIT[(Math.random() * JIT.length) | 0];
+      seize = { n, until: now + 160 + Math.random() * 220, e: [(Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.5] };
+      if (n === 'fat_fucking_dome' || n === 'neck') glitchFace();
+      fight.shake = Math.max(fight.shake, 0.18);
+    }
+  }
+  if (seize && now > seize.until) seize = null;
+  for (const n of JIT) {
+    const b = bones[n], j = jit[n]; if (!b || !j) continue;
+    const e = seize && seize.n === n ? seize.e : j;
+    jE.set(e[0], e[1], e[2], 'YXZ'); b.quaternion.multiply(jQ.setFromEuler(jE));
+  }
+}
+function glitchFace() { if (!fizz) fizz = { from: shown, to: shown, t0: performance.now(), dur: 160, last: 0 }; }
+
 // ---- how he moves ----
 // Every frame he has a target pose (bone -> [x, y, z]), and each bone eases toward it at the current speed:
 // slow and heavy normally, a snap when he's startled or throws his arms up.
@@ -590,6 +671,7 @@ function animateTodd(t, dt) {
   target('Right_Arm', armR[0], armR[1], armR[2]); target('Left_Arm', armL[0], armL[1], armL[2]);
   target('forearm_R', foreR, 0, 0); target('forearm_L', foreL, 0, 0);
   settle(dt);
+  shudder(performance.now());
   // the screen shakes when he does something big
   fight.shake = Math.max(0, fight.shake - dt * 1.6);
 }
@@ -738,6 +820,7 @@ function hitTodd(x, y) {
   }
   fight.shake = Math.max(fight.shake, 0.8);
   fx.push({ kind: 'burst', x, y, t: 0, life: 0.5 });
+  smokeBurst(3 + Math.round(wear() * 6));
   face(Math.random() < 0.5 ? 'surprised' : 'sad', 180);
   clearTimeout(hitTodd.back);
   hitTodd.back = setTimeout(() => { if (!boss.down) face('angry', 300); }, 700);
@@ -1105,6 +1188,7 @@ function frame(now) {
   const t = now / 1000;
   animateTodd(t, dt);
   stepAttack(now, dt);
+  stepSmoke(dt);
   stepAgony();
   stepFx(dt);
   stepBot(dt, now);
@@ -1130,7 +1214,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
