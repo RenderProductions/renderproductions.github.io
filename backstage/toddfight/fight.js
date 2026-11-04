@@ -169,11 +169,93 @@ function sizeTodd(w, h) {
   renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
   renderer.setSize(w, h, false);
 }
+// ---- his face: the same 18 x 14 faces as the void (toddguts/faces.png), on a panel over his screen ----
+const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading', 'agony'];
+const FACE = { x: 1, y: 145, w: 18, h: 14 };      // where the screen is on his texture (256 x 256 units)
+const STATIC = [[0, 255, 250], [255, 255, 255], [10, 40, 44], [0, 120, 118], [200, 255, 255]];
+const RED = [255, 34, 46];
+const facePix = document.createElement('canvas'); facePix.width = FACE.w; facePix.height = FACE.h;
+const faceCtx = facePix.getContext('2d'), faceImg = faceCtx.createImageData(FACE.w, FACE.h);
+const faceTex = new THREE.CanvasTexture(facePix);
+faceTex.encoding = THREE.sRGBEncoding; faceTex.magFilter = faceTex.minFilter = THREE.NearestFilter; faceTex.generateMipmaps = false;
+let faceData = [], shown = 1, fizz = null, red = 0, redShown = -1;
+const faceAt = (name) => Math.max(0, FACES.indexOf(name));
+function loadFaces() {
+  return new Promise((ok) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+      const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
+      faceData = FACES.map((_, i) => (i + 1) * FACE.w <= img.width ? g.getImageData(i * FACE.w, 0, FACE.w, FACE.h).data : null);
+      ok();
+    };
+    img.onerror = () => ok();
+    img.src = '../toddguts/faces.png?v=1';
+  });
+}
+function putFace(px) {
+  faceImg.data.set(px);
+  if (red > 0.02) {
+    // his screen goes red: the cyan turns red, the white stays white
+    const d = faceImg.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!(d[i + 1] > 120 && d[i + 2] > 120 && d[i] < d[i + 1] - 60)) continue;
+      const k = red * (d[i + 1] / 255);
+      d[i] += (RED[0] - d[i]) * k; d[i + 1] += (RED[1] - d[i + 1]) * k; d[i + 2] += (RED[2] - d[i + 2]) * k;
+    }
+  }
+  faceCtx.putImageData(faceImg, 0, 0); faceTex.needsUpdate = true;
+}
+// a new face comes in through a burst of static
+function face(name, dur = 420) { const to = faceAt(name); if (!faceData[to]) return; fizz = { from: shown, to, t0: performance.now(), dur, last: 0 }; }
+function faceStep(now) {
+  if (!fizz) { if (Math.abs(red - redShown) > 0.03 && faceData[shown]) { redShown = red; putFace(faceData[shown]); } return; }
+  if (now - fizz.last < 45) return;
+  fizz.last = now;
+  const p = Math.min(1, (now - fizz.t0) / fizz.dur), noise = Math.sin(p * Math.PI) * 0.95;
+  const src = faceData[p < 0.5 ? fizz.from : fizz.to] || faceData[fizz.to], out = new Uint8ClampedArray(FACE.w * FACE.h * 4);
+  for (let y = 0; y < FACE.h; y++) {
+    const tear = Math.random() < noise * 0.7 ? Math.round((Math.random() - 0.5) * 8 * (noise + 0.2)) : 0;
+    for (let x = 0; x < FACE.w; x++) {
+      const o = (y * FACE.w + x) * 4;
+      if (Math.random() < noise) { const c = STATIC[(Math.random() * STATIC.length) | 0]; out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; }
+      else { const so = (y * FACE.w + Math.min(FACE.w - 1, Math.max(0, x + tear))) * 4; out[o] = src[so]; out[o + 1] = src[so + 1]; out[o + 2] = src[so + 2]; }
+      out[o + 3] = 255;
+    }
+  }
+  putFace(out); redShown = red;
+  if (p >= 1) { shown = fizz.to; fizz = null; putFace(faceData[shown]); }
+}
+// lay the face panel exactly over the monitor's screen (found by its texture coordinates)
+function buildScreen() {
+  const head = bones.fat_fucking_dome; let mesh = null;
+  todd.traverse((o) => { if (o.isSkinnedMesh) mesh = o; });
+  if (!head || !mesh) return;
+  const uv = mesh.geometry.attributes.uv, pos = mesh.geometry.attributes.position, v = new THREE.Vector3(), pts = [];
+  for (let i = 0; i < uv.count; i++) {
+    const u = uv.getX(i) * 256, w = uv.getY(i) * 256;
+    if (u < FACE.x - 0.5 || u > FACE.x + FACE.w + 0.5 || w < FACE.y - 0.5 || w > FACE.y + FACE.h + 0.5) continue;
+    mesh.boneTransform(i, v.fromBufferAttribute(pos, i)); mesh.localToWorld(v); pts.push(v.clone());
+  }
+  if (pts.length < 4) return;
+  const front = Math.max(...pts.map((p) => p.z));
+  const box = new THREE.Box3().setFromPoints(pts.filter((p) => p.z > front - 0.002)), size = new THREE.Vector3(), mid = new THREE.Vector3();
+  box.getSize(size); box.getCenter(mid);
+  const q = new THREE.Quaternion(); head.getWorldQuaternion(q); q.invert();
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(size.x, size.y),
+    new THREE.MeshBasicMaterial({ map: faceTex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+  panel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.003))));
+  panel.quaternion.copy(q); panel.renderOrder = 1;
+  head.add(panel);
+  if (faceData[shown]) putFace(faceData[shown]);
+}
+
 function pose(name, x, y, z, amt = 1) {
   const b = bones[name]; if (!b) return;
   const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(x * amt, y * amt, z * amt, 'YXZ'));
   b.quaternion.copy(rest[name]).multiply(q);
 }
+const facesReady = loadFaces();
 new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   todd = gltf.scene;
   todd.traverse((o) => {
@@ -192,26 +274,93 @@ new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   // (like Saltbaker: his belt at the stage's edge, his screen up near the top, much bigger than you)
   camera.position.set(0, toddH * 0.6, toddH * 1.2);
   camera.lookAt(0, toddH * 0.74, 0);
+  facesReady.then(() => { buildScreen(); startIntro(); });
   document.getElementById('boot').classList.add('gone');
 }, undefined, (e) => { console.warn('[fight] todd.gltf did not load', e); document.getElementById('boot').textContent = 'NO SIGNAL'; });
 
-// he watches the player: his head follows them across the stage
+// ---- how he moves ----
+// Every frame he has a target pose (bone -> [x, y, z]), and each bone eases toward it at the current speed:
+// slow and heavy normally, a snap when he's startled or throws his arms up.
 const look = { yaw: 0, pitch: 0.3 };
+const cur = {}, want = {};
+let speed = 4;
+function target(name, x, y, z) { want[name] = [x, y, z]; }
+function settle(dt) {
+  const k = Math.min(1, dt * speed);
+  for (const name in want) {
+    const c = cur[name] || (cur[name] = [0, 0, 0]), w = want[name];
+    for (let i = 0; i < 3; i++) c[i] += (w[i] - c[i]) * k;
+    pose(name, c[0], c[1], c[2]);
+  }
+}
+// the opening: he sees you, he's shocked, then he throws his arms in the air and the fight is on
+const fight = { phase: 'intro', t0: 0, shake: 0 };
+const INTRO = { shock: 0.9, windup: 2.5, rage: 2.75, ready: 4.3 };
+let introStep = 0;
+function startIntro() { fight.phase = 'intro'; fight.t0 = performance.now(); introStep = 0; red = 0; face('neutral', 200); }
+function banner(text) {
+  const b = document.getElementById('banner'); if (!b) return;
+  b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+}
+
 function animateTodd(t, dt) {
   if (!todd) return;
-  const wantYaw = -((P.x / W) - 0.5) * 0.9;          // player on your right = his left
-  const wantPitch = 0.32 + (FLOOR - P.y) / H * -0.35;  // looks up a little as they jump
-  look.yaw += (wantYaw - look.yaw) * Math.min(1, dt * 3);
-  look.pitch += (wantPitch - look.pitch) * Math.min(1, dt * 3);
+  const T = (performance.now() - fight.t0) / 1000;
+  // where you are, from where he stands
+  const youYaw = -((P.x / W) - 0.5) * 0.9, youPitch = 0.32 - (FLOOR - P.y) / H * 0.35;
+  let yaw = youYaw, pitch = youPitch;
   const breathe = Math.sin(t * 1.3);
-  pose('chest', 0.05 + breathe * 0.02, look.yaw * 0.25, 0);
-  pose('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
-  pose('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
-  // arms hanging, a slow sway
-  pose('Right_Arm', breathe * 0.03, 0, 0.12);
-  pose('Left_Arm', -breathe * 0.03, 0, -0.12);
-  pose('forearm_R', -0.25, 0, 0);
-  pose('forearm_L', -0.25, 0, 0);
+  speed = 4;
+  // the default: standing over the stage, arms hanging, watching you
+  let chest = [0.05 + breathe * 0.02, 0, 0];
+  let armR = [breathe * 0.03, 0, 0.12], armL = [-breathe * 0.03, 0, -0.12], foreR = -0.25, foreL = -0.25;
+
+  if (fight.phase === 'intro') {
+    if (introStep === 0 && T > INTRO.shock) { introStep = 1; face('surprised', 220); fight.shake = 0.25; }
+    if (introStep === 1 && T > INTRO.windup) { introStep = 2; }
+    if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; }
+    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner('FIGHT!'); }
+    if (introStep === 0) {
+      // not looking at you yet: idly glancing off to the side
+      yaw = 0.35 + Math.sin(t * 0.6) * 0.08; pitch = 0.2;
+      speed = 2.5;
+    } else if (introStep === 1) {
+      // !!: snaps to you, jerks back, hands up and out
+      const tremble = Math.sin(t * 40) * 0.015;
+      pitch = youPitch - 0.18; chest = [-0.14, 0, 0];
+      armR = [-0.55 + tremble, 0.2, 0.55]; armL = [-0.55 - tremble, -0.2, -0.55]; foreR = foreL = -1.1;
+      speed = T - INTRO.shock < 0.25 ? 14 : 5;
+    } else if (introStep === 2) {
+      // a breath in: hunched, fists down at his sides
+      pitch = youPitch + 0.12; chest = [0.18, 0, 0];
+      armR = [0.25, 0, 0.05]; armL = [0.25, 0, -0.05]; foreR = foreL = -0.5;
+      speed = 9;
+    } else if (introStep === 3) {
+      // arms thrown in the air, shaking, his screen going red
+      const shake = Math.sin(t * 34) * 0.06;
+      pitch = youPitch - 0.25; chest = [-0.2, 0, Math.sin(t * 17) * 0.03];
+      armR = [-2.75 + shake, 0, 0.5]; armL = [-2.75 - shake, 0, -0.5]; foreR = foreL = -0.35 + shake;
+      speed = T - INTRO.rage < 0.3 ? 16 : 8;
+      red = Math.min(1, (T - INTRO.rage) / 0.6);
+    }
+  } else if (fight.phase === 'fight') {
+    // angry and ready: leaning in, fists up, breathing hard
+    const huff = Math.sin(t * 3.2);
+    chest = [0.12 + huff * 0.03, 0, 0];
+    armR = [-0.9 + huff * 0.04, 0.1, 0.35]; armL = [-0.9 - huff * 0.04, -0.1, -0.35]; foreR = foreL = -1.3;
+    speed = 5; red = 1;
+  }
+
+  look.yaw += (yaw - look.yaw) * Math.min(1, dt * (speed > 8 ? 12 : 3));
+  look.pitch += (pitch - look.pitch) * Math.min(1, dt * (speed > 8 ? 12 : 3));
+  target('chest', chest[0], chest[1] + look.yaw * 0.25, chest[2]);
+  target('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
+  target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
+  target('Right_Arm', armR[0], armR[1], armR[2]); target('Left_Arm', armL[0], armL[1], armL[2]);
+  target('forearm_R', foreR, 0, 0); target('forearm_L', foreL, 0, 0);
+  settle(dt);
+  // the screen shakes when he does something big
+  fight.shake = Math.max(0, fight.shake - dt * 1.6);
 }
 
 // ---------------- the loop ----------------
@@ -226,6 +375,9 @@ function frame(now) {
   while (acc >= STEP) { step(STEP); acc -= STEP; }
   const t = now / 1000;
   animateTodd(t, dt);
+  faceStep(now);
+  const sh = fight.shake * fight.shake * 9, sx = (Math.random() - 0.5) * sh, sy = (Math.random() - 0.5) * sh;
+  document.getElementById('arena').style.transform = sh > 0.05 ? `translate(${sx}px, ${sy}px)` : '';
   if (todd) renderer.render(scene, camera);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, W, H);
@@ -241,7 +393,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, x: 200, y: FLOOR, vx: 0, vy: 0 }); paintHud(); }
-window.FIGHT = { P, TUNE, hurt, revive, look, bones, camera, get todd() { return todd; } };
+window.FIGHT = { P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
