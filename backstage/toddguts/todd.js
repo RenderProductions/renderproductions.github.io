@@ -357,9 +357,9 @@ function legs() {
     // and the toes bend as it pushes off; in the air it hangs a little, then flicks up to land
     const k = walk.amp;
     const strike = bump(p, Math.PI / 2, 0.42), push = bump(p, Math.PI * 1.5 - 0.3, 0.42), air = bump(p, 0, 0.6);
-    const foot = -(hip + knee) * 0.9 - 0.42 * strike * k + 0.75 * push * k + 0.25 * air * k;
+    const foot = -(hip + knee) * 0.9 - 0.6 * strike * k + 1.0 * push * k + 0.3 * air * k;
     pose('foot_' + side, foot, 0, 0);
-    pose('toe_' + side, -0.85 * push * k + 0.2 * strike * k, 0, 0);   // toes stay on the ground as the heel comes up
+    pose('toe_' + side, -1.1 * push * k + 0.25 * strike * k, 0, 0);   // toes stay on the ground as the heel comes up
     return hip;
   };
   const hr = leg('R', ph), hl = leg('L', ph + Math.PI);
