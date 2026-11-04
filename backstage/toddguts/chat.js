@@ -186,7 +186,7 @@
         busy = false; form.classList.remove('busy');
         if (window.TODD) {
           TODD.attend();
-          const act = { face_you: TODD.faceYou, approach: TODD.approach, wander: TODD.wander, spin: TODD.spin, glitch: TODD.glitch, reboot: TODD.reboot, rage: TODD.rage }[reply.do];
+          const act = { face_you: TODD.faceYou, approach: TODD.approach, wander: TODD.wander, spin: TODD.spin, glitch: TODD.glitch, reboot: TODD.reboot, rage: TODD.rage, agony: () => TODD.agony(1300) }[reply.do];
           if (act) act();
           if (temper >= 3 || reply.do === 'rage') { temper = 0; setTimeout(TODD.rage, 500); }
         }
