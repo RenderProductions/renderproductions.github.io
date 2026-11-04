@@ -18,7 +18,7 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
   .pad { display: flex; position: fixed; left: 0; right: 0; bottom: 12px; padding: 0 16px; gap: 10px; pointer-events: none; }
   .pad button { pointer-events: auto; width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(0,255,250,.5);
     background: rgba(0,20,25,.5); color: #00fffa; font-size: 22px; touch-action: none; user-select: none; -webkit-user-select: none; }
-  .pad .jump { margin-left: auto; }
+  .pad .parry { margin-left: auto; border-color: rgba(255,92,240,.6); color: #ff5cf0; }
   .pad button.on { background: rgba(0,255,250,.25); }
 }
 /* the fight's opening call */

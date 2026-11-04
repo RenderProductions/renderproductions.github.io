@@ -35,7 +35,7 @@ const P = {
   ground: true, wall: 0,      // wall: -1 sliding down the left wall, 1 the right, 0 none
   coyote: 0, buffer: 0, lock: 0, walkT: 0,
   hp: 3, dead: false, hurtT: 0, deadT: 0,
-  parryT: 0, spin: 0, airJump: true,   // parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
+  parryT: 0, spin: 0, parryCool: 0,   // parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
 };
 const TUNE = {
   run: 300, accel: 2600, airAccel: 1700, friction: 3000,
@@ -44,25 +44,28 @@ const TUNE = {
   slide: 150,                      // max speed sliding down a wall
   wallJumpX: 390, wallJumpY: 790, wallLock: 0.16,
   coyote: 0.09, buffer: 0.12,
-  parry: 0.18, parryBounce: 760,
-  airJump: 700, spin: 0.38          // the parry is a spinning double jump: how high, how long the spin    // how long a mid-air jump press can parry for, and how high a parry bounces you
+  parry: 0.2, parryBounce: 760,
+  spin: 0.34, parryCool: 0.22,      // the parry is its own button: a quick spin; after a miss, a moment before the next
+  groundHop: 380, airPop: 220       // a little hop on the ground, a little lift in the air    // how long a mid-air jump press can parry for, and how high a parry bounces you
 };
 
 // ---------------- input ----------------
-const keys = { left: false, right: false, jump: false };
-let jumpPressed = false;
-const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'jump', ArrowUp: 'jump', KeyW: 'jump', KeyZ: 'jump' };
+const keys = { left: false, right: false, jump: false, parry: false };
+let jumpPressed = false, parryPressed = false;
+const MAP = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Space: 'jump', ArrowUp: 'jump', KeyW: 'jump', KeyZ: 'jump',
+  KeyX: 'parry', KeyK: 'parry', ShiftLeft: 'parry', ShiftRight: 'parry' };
 addEventListener('keydown', (e) => {
   const k = MAP[e.code]; if (!k) return;
   e.preventDefault();
   if (k === 'jump' && !keys.jump) jumpPressed = true;
+  if (k === 'parry' && !keys.parry) parryPressed = true;
   keys[k] = true;
 });
 addEventListener('keyup', (e) => { const k = MAP[e.code]; if (k) keys[k] = false; });
-addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; });
+addEventListener('blur', () => { keys.left = keys.right = keys.jump = keys.parry = false; });
 document.querySelectorAll('#pad button').forEach((b) => {
   const k = b.dataset.k;
-  const on = (e) => { e.preventDefault(); if (k === 'jump' && !keys.jump) jumpPressed = true; keys[k] = true; b.classList.add('on'); };
+  const on = (e) => { e.preventDefault(); if (k === 'jump' && !keys.jump) jumpPressed = true; if (k === 'parry' && !keys.parry) parryPressed = true; keys[k] = true; b.classList.add('on'); };
   const off = (e) => { e.preventDefault(); keys[k] = false; b.classList.remove('on'); };
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
 });
@@ -94,11 +97,17 @@ function step(dt) {
     } else if (P.wall) {
       P.vy = -TUNE.wallJumpY; P.vx = -P.wall * TUNE.wallJumpX; P.face = -P.wall;
       P.lock = TUNE.wallLock; P.wall = 0; P.buffer = 0; P.cutReady = true;
-    } else if (P.airJump) {
-      // jump pressed in mid-air: a spinning double jump, and that's the parry. For a moment, anything he
-      // throws at you that you touch gets knocked back at him instead of hurting you.
-      P.vy = -TUNE.airJump; P.cutReady = true; P.airJump = false;
-      P.parryT = TUNE.parry; P.spin = TUNE.spin; P.buffer = 0;
+    }
+  }
+  // the parry button: a quick spin, and for a moment anything he throws at you that you touch gets knocked
+  // back at him instead of hurting you
+  P.parryCool = Math.max(0, (P.parryCool || 0) - dt);
+  if (parryPressed) {
+    parryPressed = false;
+    if (P.parryCool <= 0 && P.spin <= 0) {
+      if (P.ground) { P.vy = -TUNE.groundHop; P.ground = false; P.cutReady = false; }
+      else if (!P.wall) P.vy = Math.min(P.vy, -TUNE.airPop);
+      P.parryT = TUNE.parry; P.spin = TUNE.spin; P.parryCool = TUNE.spin + TUNE.parryCool;
     }
   }
   P.parryT = Math.max(0, P.parryT - dt);
@@ -115,7 +124,6 @@ function step(dt) {
   // he sticks to a wall while he's in the air, pushing into it, and on his way down
   P.wall = !P.ground && touching && dir === touching && P.vy > -60 ? touching : 0;
   if (P.wall) P.face = -P.wall;
-  if (P.ground || P.wall) P.airJump = true;   // the double jump comes back when you land or grab a wall
 
   P.walkT = P.ground && Math.abs(P.vx) > 20 ? P.walkT + dt * Math.abs(P.vx) / TUNE.run : 0;
 }
@@ -933,7 +941,7 @@ function touches(x, y, r) {
   return (x - nx) ** 2 + (y - ny) ** 2 < r * r;
 }
 function parried(x, y) {
-  P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = TUNE.spin; P.airJump = true; P.hurtT = Math.max(P.hurtT, 0.25);   // (and you get your double jump back)
+  P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = TUNE.spin; P.parryCool = 0; P.hurtT = Math.max(P.hurtT, 0.25);   // (and you can parry again straight away)
   hitstop = 0.07; fight.shake = Math.max(fight.shake, 0.45);
   fx.push({ kind: 'ring', x, y, t: 0, life: 0.35, color: '#ff5cf0' });
   fx.push({ kind: 'ring', x, y, t: -0.06, life: 0.4, color: '#ffffff' });
