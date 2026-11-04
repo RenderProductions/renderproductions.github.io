@@ -248,6 +248,52 @@ function pose(name, x, y, z) {
   b.quaternion.copy(rest[name]).multiply(q);
 }
 
+// ---- balance: his body keeps itself upright under that head, like a robot ----
+// Each joint is a servo: it gets a new target only every so often, rounded to small steps,
+// and snaps to it a little too hard (overshoot, then settle). The targets lean against
+// whatever the head is doing: tilt the head and the torso tilts back the other way;
+// whip it around and the arms come out to steady him; look down and he rocks back.
+const SERVO_STEP = 0.018;
+const servos = {};
+function servo(name, target, now, dt, every) {
+  let s = servos[name];
+  if (!s) s = servos[name] = { x: target, v: 0, aim: target, next: 0 };
+  if (now >= s.next) {
+    s.aim = Math.round(target / SERVO_STEP) * SERVO_STEP;
+    s.next = now + (every || 170) * (0.7 + Math.random() * 0.6);
+  }
+  const k = reduce ? 60 : 260, d = reduce ? 16 : 15;   // stiff and a little underdamped
+  s.v += ((s.aim - s.x) * k - s.v * d) * dt; s.x += s.v * dt;
+  return s.x;
+}
+let shift = 0, shiftGoal = 0, nextShift = 0;
+function balance(now, dt, t) {
+  const S = (n, v, every) => servo(n, v, now, dt, every);
+  const speed = Math.min(1, Math.abs(look.vy) * 0.25 + Math.abs(look.vp) * 0.3 + Math.abs(look.vr) * 0.2);
+  // now and then he shifts his weight from one side to the other
+  if (now > nextShift) { shiftGoal = (Math.random() - 0.5) * 0.09; nextShift = now + 2500 + Math.random() * 4000; }
+  shift += (shiftGoal - shift) * Math.min(1, dt * 1.5);
+  const breathe = Math.sin(t * 1.7);
+
+  const lean = -look.roll * 0.45 - look.vy * 0.012 + shift;          // torso tilts against the head
+  const rock = -look.pitch * 0.2 - look.vp * 0.015;                   // looks down: rocks back
+  pose('neck', look.pitch * 0.35, look.yaw * 0.4, look.roll * 0.3);
+  pose('fat_fucking_dome', look.pitch * 0.65, look.yaw * 0.6, look.roll * 0.7);
+  pose('hips', 0, S('hipsY', -look.yaw * 0.05), S('hipsZ', -lean * 0.45 - shift * 0.6, 240));
+  pose('upper_body', S('upX', rock * 0.6), S('upY', look.yaw * 0.07), S('upZ', lean * 0.7));
+  pose('chest', S('chX', rock * 0.5) + breathe * 0.01, S('chY', look.yaw * 0.1), S('chZ', lean * 0.5));
+
+  // arms: hang against the lean like pendulums, and come out to steady him when he moves fast
+  const out = 0.04 + speed * 0.32 + Math.abs(lean) * 0.6;
+  const swing = -rock * 1.1;
+  pose('Right_Arm', S('raX', swing + speed * -0.12, 150), S('raY', look.yaw * -0.1), S('raZ', -lean * 0.9 + out - 0.07, 150));
+  pose('Left_Arm', S('laX', swing + speed * -0.12, 150), S('laY', look.yaw * -0.1), S('laZ', -lean * 0.9 - out + 0.07, 150));
+  // elbows bend a little more the harder he's working to stay up
+  const bend = -(0.06 + speed * 0.5 + Math.abs(lean) * 0.5);
+  pose('forearm_R', S('frX', bend + Math.max(0, lean) * -0.4, 200), 0, 0);
+  pose('forearm_L', S('flX', bend + Math.max(0, -lean) * -0.4, 200), 0, 0);
+}
+
 // ---- every frame ----
 let then = performance.now();
 function tick(now) {
@@ -257,13 +303,7 @@ function tick(now) {
   if (todd) {
     think(now);
     spring(reduce ? 18 : 60, reduce ? 9 : 13, dt);
-    const breathe = Math.sin(t * 1.7);
-    pose('neck', look.pitch * 0.35, look.yaw * 0.4, look.roll * 0.3);
-    pose('fat_fucking_dome', look.pitch * 0.65, look.yaw * 0.6, look.roll * 0.7);
-    pose('chest', breathe * 0.012, look.yaw * 0.08, 0);
-    pose('upper_body', 0, look.yaw * 0.06, Math.sin(t * 0.6) * 0.012);
-    pose('Right_Arm', Math.sin(t * 0.9) * 0.03, 0, -0.03 + breathe * 0.015);
-    pose('Left_Arm', Math.sin(t * 0.9 + 1.3) * 0.03, 0, 0.03 - breathe * 0.015);
+    balance(now, dt, t);
     fizzStep(now);
     // the camera sways a little, so the void doesn't feel like a photo
     const d = camera.userData.dist || 10, aimY = floorY + height * 0.5;
@@ -283,4 +323,4 @@ function tick(now) {
 requestAnimationFrame(tick);
 
 // a peek for testing in the console: TODD.face('angry')
-window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin };
+window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look };
