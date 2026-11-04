@@ -130,6 +130,7 @@
         btn.addEventListener('blur', function () { hide(btn); });
         btn.addEventListener('click', function (e) { e.stopPropagation(); show(btn, item, id, onLeft); });
         if (item.shakes && item.shakes.into) shakeable(btn, id, item.shakes);
+        if (item.plays && item.plays.to) playable(btn, item.plays);
         floor.appendChild(btn);
       });
     });
@@ -160,6 +161,59 @@
         o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 1.7);
       });
     } catch (e) {}
+  }
+
+  // ---- playing it: "plays": {"to": "/page/"} in items.json ----
+  // Click it and it plays: garbled tape noise (made on the spot: hiss, a warbling dying tone, stuttering static),
+  // the drawer glitches harder and harder, and then you're somewhere else.
+  function garble(secs) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      var t = actx.currentTime, out = actx.createGain(); out.gain.value = 0.5;
+      var crush = actx.createWaveShaper(), curve = new Float32Array(256);
+      for (var i = 0; i < 256; i++) { var x = i / 127.5 - 1; curve[i] = Math.round(x * 6) / 6; }   // a cheap bitcrush
+      crush.curve = curve; crush.connect(out); out.connect(actx.destination);
+      // tape hiss, swelling
+      var n = Math.floor(actx.sampleRate * secs), buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+      for (var j = 0; j < n; j++) d[j] = (Math.random() * 2 - 1) * (0.25 + 0.75 * j / n);
+      var hiss = actx.createBufferSource(), hf = actx.createBiquadFilter(), hg = actx.createGain();
+      hiss.buffer = buf; hf.type = 'highpass'; hf.frequency.value = 1800; hg.gain.value = 0.18;
+      hiss.connect(hf); hf.connect(hg); hg.connect(out); hiss.start(t);
+      // the "voice" on side B: a sawtooth warbling and sagging like a tape being dragged, chopped up
+      var o = actx.createOscillator(), og = actx.createGain(), wob = actx.createOscillator(), wg = actx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(55, t + secs);
+      wob.frequency.value = 7; wg.gain.value = 35; wob.connect(wg); wg.connect(o.frequency);
+      og.gain.setValueAtTime(0, t);
+      for (var k = 0, at = t; at < t + secs; k++) {                       // stutter: on, off, on, off
+        var len = 0.04 + Math.random() * 0.16;
+        og.gain.setValueAtTime(Math.random() < 0.7 ? 0.22 : 0, at); at += len;
+      }
+      o.connect(og); og.connect(crush); o.start(t); wob.start(t); o.stop(t + secs); wob.stop(t + secs);
+      // bursts of loud static, more and more of them
+      for (var b = 0; b < 14; b++) {
+        var when = t + Math.pow(b / 14, 0.7) * secs * 0.95, bl = 0.03 + Math.random() * 0.12;
+        var bb = actx.createBuffer(1, Math.floor(actx.sampleRate * bl), actx.sampleRate), bd = bb.getChannelData(0);
+        for (var q = 0; q < bd.length; q++) bd[q] = Math.random() * 2 - 1;
+        var bs = actx.createBufferSource(), bf = actx.createBiquadFilter(), bg = actx.createGain();
+        bs.buffer = bb; bf.type = 'bandpass'; bf.frequency.value = 400 + Math.random() * 3000; bf.Q.value = 2; bg.gain.value = 0.35;
+        bs.connect(bf); bf.connect(bg); bg.connect(crush); bs.start(when);
+      }
+    } catch (e) {}
+  }
+  function playable(btn, rule) {
+    var going = false;
+    btn.classList.add('playable');
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (going) return; going = true;
+      var secs = rule.secs || 2.6;
+      garble(secs);
+      document.body.classList.add('garble');
+      btn.classList.add('playing');
+      setTimeout(function () { document.body.classList.add('garble-hard'); }, secs * 550);
+      setTimeout(function () { location.href = rule.to; }, secs * 1000);
+    });
   }
 
   function shakeable(btn, id, rule) {

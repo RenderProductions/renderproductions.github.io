@@ -80,3 +80,14 @@ body { background: var(--desk); color: var(--ink); font-family: var(--type); ove
 @keyframes flick { 0% { opacity: calc(var(--p) * .7) } 13% { opacity: 0 } 21% { opacity: calc(var(--p) * .9) } 34% { opacity: .05 } 55% { opacity: calc(var(--p) * .6) } 70% { opacity: 0 } 88% { opacity: calc(var(--p) * .8) } }
 .item.lit::before { animation: none; opacity: 1; transition: opacity .2s; }
 .item.lit img { filter: brightness(1.8) drop-shadow(0 0 10px rgba(190,247,255,.9)); }
+/* an item that plays (the Dubbed Tape): the drawer glitches harder and harder, then it takes you somewhere */
+.item.playable { cursor: pointer; }
+.item.playing img { animation: rattle .07s steps(2) infinite; filter: drop-shadow(0 0 10px rgba(255,40,60,.8)); }
+body.garble { animation: garble .18s steps(2) infinite; }
+body.garble::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 99;
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,.07) 0 2px, transparent 2px 4px); mix-blend-mode: screen; animation: tear .23s steps(3) infinite; }
+body.garble-hard { animation-duration: .07s; filter: contrast(1.6) saturate(.4); }
+body.garble-hard::after { background: repeating-linear-gradient(180deg, rgba(255,40,60,.18) 0 3px, transparent 3px 7px), repeating-linear-gradient(90deg, rgba(0,255,250,.1) 0 1px, transparent 1px 5px); }
+@keyframes garble { 0% { transform: translate(0, 0); filter: hue-rotate(0); } 50% { transform: translate(-3px, 1px) skewX(1deg); filter: hue-rotate(40deg); } 100% { transform: translate(2px, -1px); } }
+@keyframes tear { 0% { transform: translateY(0); } 33% { transform: translateY(-14px); } 66% { transform: translateY(9px); } }
+@media (prefers-reduced-motion: reduce) { body.garble, body.garble::after, .item.playing img { animation: none; } }
