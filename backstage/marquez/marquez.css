@@ -103,9 +103,9 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
 /* ---- the Bright Bulb: once he's seen it, his desk is lit. Its light is the art's pale cyan (#bef7ff), cool against his amber room ---- */
-.room.lit { background: radial-gradient(ellipse 75% 65% at 50% 40%, #123a46, #08161c 55%, #02070a 85%); }
-.room.lit .light { width: min(1100px, 170vw); height: 100%; background: radial-gradient(ellipse 50% 85% at 50% 0%, rgba(190,247,255,.32), rgba(120,220,255,.14) 45%, rgba(60,170,220,.04) 70%, transparent 85%); animation: none; }
-.room.lit .scene .shroud { background: linear-gradient(180deg, rgba(4,13,17,0) 0%, rgba(4,13,17,.65) 45%, #040d11 88%);
+.room.lit { background: radial-gradient(ellipse 70% 55% at 50% 38%, #0d1618, #030506 70%); }
+.room.lit .light { background: radial-gradient(ellipse 46% 100% at 50% 0%, rgba(190,247,255,.13), rgba(190,247,255,.04) 55%, transparent 76%); }
+.room.lit .scene .shroud { background: linear-gradient(180deg, rgba(3,5,6,0) 0%, rgba(3,5,6,.65) 45%, #030506 88%);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); }
 
 /* ---- Cedar's workbench (bench.js) ---- */
