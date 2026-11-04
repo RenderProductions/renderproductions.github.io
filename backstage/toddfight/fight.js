@@ -291,6 +291,13 @@ function buildScreen() {
     agonyPanel.quaternion.copy(q); agonyPanel.renderOrder = 2; agonyPanel.visible = false;
     head.add(agonyPanel);
   });
+  // the picture panel: what his screen shows while he monologues (pictures from Wikimedia, or his fire)
+  picAspect = size.x / size.y;
+  picPanel = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 0.97, size.y * 0.97),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1.5, polygonOffsetUnits: -1.5 }));
+  picPanel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.0045))));
+  picPanel.quaternion.copy(q); picPanel.renderOrder = 2; picPanel.visible = false;
+  head.add(picPanel);
   const r = new THREE.Vector3(); bones.Right_Arm.getWorldPosition(r); rightArmOnLeft = toStage(r).x < W / 2;
   if (faceData[shown]) putFace(faceData[shown]);
 }
@@ -325,7 +332,7 @@ new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   camera.updateMatrixWorld(true);
   buildFloor();
   loadBot();
-  facesReady.then(() => { buildScreen(); startIntro(); });
+  facesReady.then(() => { buildScreen(); return monoReady; }).then(() => startIntro());
   document.getElementById('boot').classList.add('gone');
 }, undefined, (e) => { console.warn('[fight] todd.gltf did not load', e); document.getElementById('boot').textContent = 'NO SIGNAL'; });
 
@@ -648,11 +655,112 @@ function settle(dt) {
     pose(name, c[0], c[1], c[2]);
   }
 }
+// ---- his monologue (intro.json): lines typed out, his screen flipping through pictures ----
+// The pictures load straight from Wikimedia while the page runs; nothing is copied into this site.
+let picPanel = null, picAspect = 1.3, MONO = null;
+const pics = {};                               // key -> THREE.Texture (or the fire)
+const monoReady = fetch('intro.json?v=1').then((r) => r.json()).then((d) => { MONO = d; loadPictures(d.pictures || {}); }).catch(() => {});
+function cover(tex, w, h) {
+  // fill the screen, cropping the picture to its shape
+  const a = w / h; tex.repeat.set(1, 1); tex.offset.set(0, 0);
+  if (a > picAspect) { tex.repeat.x = picAspect / a; tex.offset.x = (1 - tex.repeat.x) / 2; }
+  else { tex.repeat.y = a / picAspect; tex.offset.y = (1 - tex.repeat.y) / 2; }
+}
+function loadPictures(list) {
+  for (const key in list) {
+    const p = list[key];
+    if (p.drawn === 'fire') { pics[key] = fire.tex; continue; }
+    const urls = (p.urls || []).slice();
+    const next = () => {
+      const url = urls.shift(); if (!url) return;
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = () => { const tex = new THREE.Texture(img); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true; cover(tex, img.width, img.height); pics[key] = tex; };
+      img.onerror = next;                        // try the next address (or give up: he shows static instead)
+      img.src = url;
+    };
+    next();
+  }
+}
+// his fire: drawn in code, the old demo-scene way (heat rises and cools, row by row)
+const fire = (() => {
+  const w = 64, h = 50, c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'), img = g.createImageData(w, h), heat = new Uint8Array(w * h);
+  const pal = []; for (let i = 0; i < 37; i++) { const k = i / 36; pal.push([Math.min(255, k * 3 * 255), Math.max(0, Math.min(255, (k * 3 - 1) * 255)), Math.max(0, Math.min(255, (k * 3 - 2) * 255))]); }
+  const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding; tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
+  let last = 0, warm = false;
+  return { tex, step(now) {
+    if (!warm) { warm = true; for (let k = 0; k < 70; k++) { last = 0; this.step(1e9 + k * 100); } }   // already burning when it appears
+    if (now - last < 40) return; last = now;
+    for (let x = 0; x < w; x++) heat[(h - 1) * w + x] = 30 + Math.random() * 7;
+    for (let y = 0; y < h - 1; y++) for (let x = 0; x < w; x++) {
+      const src = (y + 1) * w + x, r = (Math.random() * 3) | 0, dst = y * w + Math.min(w - 1, Math.max(0, x - r + 1));
+      heat[dst] = Math.max(0, heat[src] - (r & 1));
+    }
+    for (let i = 0; i < w * h; i++) { const col = pal[Math.min(36, heat[i])]; img.data[i * 4] = col[0]; img.data[i * 4 + 1] = col[1]; img.data[i * 4 + 2] = col[2]; img.data[i * 4 + 3] = 255; }
+    g.putImageData(img, 0, 0); tex.needsUpdate = true;
+  } };
+})();
+const mono = { on: false, t0: 0, line: -1, pic: null, cut: 0, arm: null };
+const sayEl = document.getElementById('say');
+function seenIntro() { try { return localStorage.getItem('rvFightIntroSeen') === '1'; } catch (e) { return false; } }
+function startMonologue() {
+  Object.assign(mono, { on: true, t0: performance.now(), line: -1, pic: null, cut: 0 });
+  fight.phase = 'monologue'; red = 0; face('neutral', 200);
+  // the hand he holds the world in: in front of him, at chest height, on the side away from you
+  const chest = bonePos('chest'), side = P.x < W / 2 ? (rightArmOnLeft ? 'L' : 'R') : (rightArmOnLeft ? 'R' : 'L');
+  const sx = Math.sign(bonePos(side === 'R' ? 'Right_Arm' : 'Left_Arm').x);
+  mono.side = side; mono.arm = solveArm(side, chest.clone().add(new THREE.Vector3(sx * 0.12 * toddH, 0.02 * toddH, 0.3 * toddH)), 0.1);
+  mono.handYaw = sx > 0 ? 0.25 : -0.25;
+  if (sayEl) { sayEl.textContent = ''; sayEl.hidden = false; }
+  if (seenIntro()) { const hint = document.getElementById('skip'); if (hint) hint.hidden = false; }
+}
+function endMonologue() {
+  mono.on = false; if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; }
+  if (sayEl) { sayEl.hidden = true; sayEl.textContent = ''; }
+  const hint = document.getElementById('skip'); if (hint) hint.hidden = true;
+  try { localStorage.setItem('rvFightIntroSeen', '1'); } catch (e) {}
+  // ...and straight into noticing you
+  fight.phase = 'intro'; introStep = 0; fight.t0 = performance.now() - (INTRO.shock - 0.15) * 1000;
+}
+function lineAt(T) {
+  let at = 0; const L = MONO.lines;
+  for (let i = 0; i < L.length; i++) { if (T < at + L[i].secs) return { i, lt: T - at, L: L[i] }; at += L[i].secs; }
+  return null;
+}
+function stepMonologue(now) {
+  const T = (now - mono.t0) / 1000, cur = lineAt(T);
+  if (!cur) return endMonologue();
+  const { i, lt, L } = cur;
+  if (i !== mono.line) { mono.line = i; mono.shook = false; }
+  // the words, typed out
+  const typed = L.text.slice(0, Math.floor(lt * 26));
+  if (sayEl && sayEl.textContent !== typed) sayEl.textContent = typed;
+  if (L.shake && !mono.shook && typed.includes(L.shake)) { mono.shook = true; fight.shake = Math.max(fight.shake, 1); glitchFace(); }
+  // which picture: in order; on a line with several, once through each, then flicking through them fast
+  const show = L.show || [], n = show.length;
+  let key = show[0];
+  if (n > 1) { const slow = L.secs * 0.55; key = lt < slow ? show[Math.min(n - 1, Math.floor(lt / (slow / n)))] : show[Math.floor((lt - slow) / 0.16) % n]; }
+  if (key !== mono.pic) { mono.pic = key; mono.cut = now + (n > 1 && lt > L.secs * 0.55 ? 40 : 130); glitchFace(); }
+  if (key === 'fire') fire.step(now);
+  if (picPanel) {
+    const tex = pics[key], live = tex && now > mono.cut;
+    if (live && picPanel.material.map !== tex) { picPanel.material.map = tex; picPanel.material.needsUpdate = true; }
+    picPanel.visible = !!live;
+    picPanel.material.opacity = live ? (Math.random() < 0.04 ? 0.35 : 0.92 + Math.random() * 0.08) : 0;
+  }
+  return cur;
+}
+// skipping it, after the first time (press jump or parry)
+function skipMonologue() { if (mono.on && seenIntro()) endMonologue(); }
+
 // the opening: he sees you, he's shocked, then he throws his arms in the air and the fight is on
-const fight = { phase: 'intro', t0: 0, shake: 0 };
+const fight = { phase: 'wait', t0: 0, shake: 0 };   // (waiting for him to load)
 const INTRO = { shock: 0.9, windup: 2.5, rage: 2.75, ready: 4.3 };
 let introStep = 0;
-function startIntro() { fight.phase = 'intro'; fight.t0 = performance.now(); introStep = 0; red = 0; face('neutral', 200); }
+function startIntro(skipMono) {
+  if (!skipMono && MONO && MONO.lines && MONO.lines.length && picPanel) return startMonologue();
+  fight.phase = 'intro'; fight.t0 = performance.now(); introStep = 0; red = 0; face('neutral', 200);
+}
 function banner(text) {
   const b = document.getElementById('banner'); if (!b) return;
   b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
@@ -670,7 +778,34 @@ function animateTodd(t, dt) {
   let chest = [0.05 + breathe * 0.02, 0, 0];
   let armR = [breathe * 0.03, 0, 0.12], armL = [-breathe * 0.03, 0, -0.12], foreR = -0.25, foreL = -0.25;
 
-  if (fight.phase === 'intro') {
+  if (fight.phase === 'monologue' && mono.on) {
+    const cur = stepMonologue(performance.now());
+    const away = P.x < W / 2 ? 0.35 : -0.35;     // talking to himself, not to you (yet)
+    yaw = away; pitch = 0.1; speed = 4;
+    if (cur) {
+      const pose = cur.L.pose, lt = cur.lt;
+      if (pose === 'palm') {
+        // holding the world: one hand out in front, looking down at it
+        const c = mono.arm.c; if (mono.side === 'R') { armR = c.slice(0, 3); foreR = c[3]; } else { armL = c.slice(0, 3); foreL = c[3]; }
+        yaw = mono.handYaw; pitch = 0.45; chest = [0.08, 0, 0]; speed = 3;
+      } else if (pose === 'rage') {
+        // fists clenched, shaking
+        const k = Math.sin(t * 30) * 0.07 * Math.min(1, lt);
+        armR = [-0.75 + k, 0, 0.5]; armL = [-0.75 - k, 0, -0.5]; foreR = foreL = -1.75;
+        chest = [0.18, 0, k * 0.3]; pitch = 0.05; speed = 8; red = Math.min(0.7, lt * 0.5);
+      } else if (pose === 'preach') {
+        // arms flung wide, head back
+        const k = Math.sin(t * 3) * 0.05;
+        armR = [-1.5 + k, 0, 1.05]; armL = [-1.5 - k, 0, -1.05]; foreR = foreL = -0.35;
+        chest = [-0.16, 0, 0]; pitch = -0.35; yaw = away * 0.4; speed = 5; red = Math.max(0, red - dt);
+      } else if (pose === 'look') {
+        // slowly turning to look at you
+        const p = Math.min(1, lt / (cur.L.secs * 0.8));
+        yaw = away + (youYaw - away) * p * p; pitch = 0.1 + (youPitch - 0.1) * p; speed = 2.5; red = 0;
+        chest = [0.06, 0, 0];
+      }
+    }
+  } else if (fight.phase === 'intro') {
     if (introStep === 0 && T > INTRO.shock) { introStep = 1; face('surprised', 220); fight.shake = 0.25; }
     if (introStep === 1 && T > INTRO.windup) { introStep = 2; }
     if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; }
@@ -996,7 +1131,7 @@ function youDied() {
 function restart() {
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
-  revive(); startIntro();
+  revive(); startIntro(true);   // (no monologue on a retry)
 }
 
 // --- picking and running his attacks ---
@@ -1447,6 +1582,7 @@ function frame(now) {
   if (hitstop > 0) { hitstop -= dt; acc = 0; }
   else { acc += dt; while (acc >= STEP) { step(STEP); stepThreats(STEP); acc -= STEP; } }
   if (fight.retry && jumpPressed) { jumpPressed = false; restart(); }
+  if (mono.on && (keys.jump || keys.parry) && seenIntro()) skipMonologue();
   const t = now / 1000;
   animateTodd(t, dt);
   stepAttack(now, dt);
@@ -1477,7 +1613,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
