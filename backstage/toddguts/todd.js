@@ -4,8 +4,9 @@
 // side by side in the order of FACES below (the first one is the face the model was made with).
 // Every so often the screen fizzles with static and comes back as a different face.
 //
-// He glances around on his own. Move the cursor (or touch) and now and then he notices and watches it,
-// until he gets bored.
+// He wanders the void: picks a spot, turns toward it, walks there (leaving footprints that fade), stops,
+// looks around. Move the cursor (or touch) and now and then he notices: he stops, turns to face you and
+// watches the cursor until he gets bored.
 import * as THREE from './vendor/three-gltf.min.js';
 
 const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading'];
@@ -48,11 +49,11 @@ pool.rotation.x = -Math.PI / 2;
 scene.add(pool);
 
 // dust hanging in the dark
-const DUST = 140;
+const DUST = 420;
 const dustGeo = new THREE.BufferGeometry();
 const dustPos = new Float32Array(DUST * 3), dustSeed = new Float32Array(DUST);
 for (let i = 0; i < DUST; i++) {
-  dustPos[i * 3] = (Math.random() - 0.5) * 12; dustPos[i * 3 + 1] = Math.random() * 7; dustPos[i * 3 + 2] = (Math.random() - 0.5) * 8 - 1;
+  dustPos[i * 3] = (Math.random() - 0.5) * 36; dustPos[i * 3 + 1] = Math.random() * 7; dustPos[i * 3 + 2] = (Math.random() - 0.5) * 36;
   dustSeed[i] = Math.random() * 100;
 }
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
@@ -142,7 +143,9 @@ function pickMood(not) {
 const faceIndex = (name) => FACES.indexOf(name);
 
 // ---- him ----
-let todd = null, bones = {}, rest = {}, height = 4, floorY = 0, centre = new THREE.Vector3();
+let todd = null, bones = {}, rest = {}, height = 4, floorY = 0, centre = new THREE.Vector3(), hipH = 2;
+const body = new THREE.Group();   // moves and turns him around the void
+scene.add(body);
 
 const loader = new THREE.GLTFLoader();
 Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=1', ok, undefined, no))])
@@ -167,12 +170,18 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=1', o
     if (!faceData[0]) faceData[0] = skinCtx.getImageData(FACE.x, FACE.y, FACE.w, FACE.h).data;
     putFace(faceData[0]);
 
-    scene.add(todd);
+    body.add(todd);
     todd.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(todd);
-    height = box.max.y - box.min.y; floorY = box.min.y;
+    height = box.max.y - box.min.y;
     box.getCenter(centre);
-    pool.position.set(centre.x, floorY + 0.01, centre.z);
+    // stand him with his feet on y = 0, centred on the body group
+    todd.position.set(-centre.x, -box.min.y, -centre.z);
+    floorY = 0; centre.set(0, height / 2, 0);
+    todd.updateMatrixWorld(true);
+    const hip = new THREE.Vector3();
+    if (bones.Right_Leg) { bones.Right_Leg.getWorldPosition(hip); hipH = hip.y; }
+    pool.position.y = 0.01;
     pool.scale.setScalar(height * 0.9);
     frame();
     boot.classList.add('gone');
@@ -208,6 +217,7 @@ function onPoint(cx, cy) {
   if (mode !== 'watch' && now - mouse.moved > 900 && now - lastNotice > 7000 && Math.random() < 0.6) {
     // he notices you
     mode = 'watch'; lastNotice = now; modeUntil = now + 2500 + Math.random() * 3500;
+    stopAndFaceYou(now);
     fizzle(faceIndex('surprised'), 380);
     setTimeout(() => { if (mode === 'watch') fizzle(Math.random() < 0.6 ? faceIndex('sly') : faceIndex('neutral')); }, 1300);
     nextMood = now + 5000;
@@ -217,15 +227,21 @@ function onPoint(cx, cy) {
 window.addEventListener('pointermove', (e) => onPoint(e.clientX, e.clientY));
 window.addEventListener('pointerdown', (e) => onPoint(e.clientX, e.clientY));
 
+// the angle from where he's facing to the camera (so he can look at you wherever he's turned)
+function towardYou() { return wrap(Math.atan2(camera.position.x - body.position.x, camera.position.z - body.position.z) - walk.heading); }
+function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
+
 function think(now) {
+  stroll(now);
   if (mode === 'watch') {
-    goal.yaw = THREE.MathUtils.clamp(mouse.x * 0.9, -0.95, 0.95);
+    goal.yaw = THREE.MathUtils.clamp(towardYou() + mouse.x * 0.8, -1.1, 1.1);
     goal.pitch = THREE.MathUtils.clamp(-mouse.y * 0.45 + 0.1, -0.35, 0.45);
     goal.roll = 0;
     if (now > modeUntil || now - mouse.moved > 2600) { mode = 'glance'; nextGlance = now + 400; }
   } else if (now > nextGlance) {
     const g = GLANCES[(Math.random() * GLANCES.length) | 0];
-    goal.yaw = g[0] + (Math.random() - 0.5) * 0.2; goal.pitch = g[1] + (Math.random() - 0.5) * 0.1;
+    const busy = walk.state === 'walk' ? 0.45 : 1;   // walking: mostly eyes front
+    goal.yaw = (g[0] + (Math.random() - 0.5) * 0.2) * busy; goal.pitch = g[1] * busy + (Math.random() - 0.5) * 0.1;
     goal.roll = Math.random() < 0.25 ? (Math.random() - 0.5) * 0.5 : 0;
     nextGlance = now + 1100 + Math.random() * 2600;
   }
@@ -246,6 +262,103 @@ function pose(name, x, y, z) {
   if (!b) return;
   e.set(x, y, z, 'YXZ'); q.setFromEuler(e);
   b.quaternion.copy(rest[name]).multiply(q);
+}
+
+// ---- walking around ----
+// stand -> turn (stepping on the spot) -> walk -> stand. Heading 0 faces the camera.
+const ROAM = 7;                       // how far from the middle of the void he wanders
+const STRIDE = 0.4;                   // how far his legs swing (radians)
+const CYCLE = 0.62;                   // steps per second, per leg
+const walk = { state: 'stand', until: 0, heading: 0, aim: 0, to: new THREE.Vector2(), amp: 0, phase: 0, then: 'walk' };
+const prints = [];
+const printMat = new THREE.MeshBasicMaterial({ map: glowTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 });
+function footprint(foot) {
+  const b = bones[foot];
+  if (!b) return;
+  const p = new THREE.Vector3(); b.getWorldPosition(p);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), printMat.clone());
+  m.rotation.x = -Math.PI / 2; m.position.set(p.x, 0.008, p.z); m.scale.setScalar(height * 0.16);
+  m.userData.born = performance.now();
+  scene.add(m); prints.push(m);
+}
+function fadePrints(now) {
+  for (let i = prints.length - 1; i >= 0; i--) {
+    const m = prints[i], age = (now - m.userData.born) / 5000;
+    if (age >= 1) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); prints.splice(i, 1); }
+    else m.material.opacity = 0.8 * (1 - age);
+  }
+}
+function stopAndFaceYou(now) {
+  walk.aim = wrap(walk.heading + towardYou());
+  walk.state = Math.abs(towardYou()) > 0.5 ? 'turn' : 'stand';
+  walk.then = 'stand';
+  walk.until = now + 3000 + Math.random() * 3000;
+}
+function stroll(now) {
+  if (walk.state === 'stand' && now > walk.until && mode !== 'watch') {
+    // somewhere else in the void, not too close
+    const here = new THREE.Vector2(body.position.x, body.position.z);
+    for (let i = 0; i < 12; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * ROAM;
+      walk.to.set(Math.cos(a) * r, Math.sin(a) * r);
+      if (walk.to.distanceTo(here) > height * 0.8) break;
+    }
+    walk.aim = Math.atan2(walk.to.x - here.x, walk.to.y - here.y);
+    walk.state = 'turn'; walk.then = 'walk';
+  }
+}
+let lastPhase = 0;
+function move(now, dt) {
+  const fwd = Math.PI * 2 * CYCLE;
+  if (walk.state === 'turn') {
+    // turns in stiff little steps, stepping on the spot
+    const d = wrap(walk.aim - walk.heading);
+    walk.heading += Math.sign(d) * Math.min(Math.abs(d), dt * 1.5 * (Math.sin(now / 90) > -0.3 ? 1 : 0.15));
+    if (Math.abs(d) < 0.03) { walk.state = walk.then; if (walk.state === 'stand') walk.until = Math.max(walk.until, now + 2000); }
+  } else if (walk.state === 'walk') {
+    const dx = walk.to.x - body.position.x, dz = walk.to.y - body.position.z, dist = Math.hypot(dx, dz);
+    walk.heading += wrap(Math.atan2(dx, dz) - walk.heading) * Math.min(1, dt * 2);
+    if (dist < 0.25 || mode === 'watch') { walk.state = 'stand'; walk.until = now + 3000 + Math.random() * 6000; }
+  }
+  const want = walk.state === 'walk' ? 1 : walk.state === 'turn' ? 0.35 : 0;
+  walk.amp += (want - walk.amp) * Math.min(1, dt * (want ? 3 : 5));
+  if (walk.amp > 0.01 || Math.sin(walk.phase) ** 2 > 0.01) walk.phase += fwd * dt * Math.max(walk.amp, 0.3);
+  else walk.phase = Math.round(walk.phase / Math.PI) * Math.PI;   // settle with his feet together
+  // how far a swing of the legs carries him, so his feet don't skate
+  const speed = walk.state === 'walk' ? 4 * hipH * Math.sin(STRIDE) * CYCLE * walk.amp : 0;
+  body.position.x += Math.sin(walk.heading) * speed * dt;
+  body.position.z += Math.cos(walk.heading) * speed * dt;
+  body.rotation.y = walk.heading;
+  // a footfall each time a leg reaches the front of its swing
+  const a = walk.phase % (Math.PI * 2), b = lastPhase % (Math.PI * 2);
+  if (walk.amp > 0.25 && now - (walk.lastStep || 0) > 200) {
+    if (b < Math.PI / 2 && a >= Math.PI / 2) step('foot_R', now);
+    if (b < Math.PI * 1.5 && a >= Math.PI * 1.5) step('foot_L', now);
+  }
+  lastPhase = walk.phase;
+  pool.position.x = body.position.x; pool.position.z = body.position.z;
+}
+function step(foot, now) {
+  walk.lastStep = now;
+  footprint(foot);
+  // the jolt of a heavy foot coming down
+  if (servos.upX) servos.upX.v += 0.5 * walk.amp;
+  if (servos.chZ) servos.chZ.v += (foot === 'foot_R' ? 0.3 : -0.3) * walk.amp;
+}
+function legs() {
+  const A = STRIDE * walk.amp, ph = walk.phase;
+  const leg = (side, p) => {
+    const hip = -A * Math.sin(p);                          // - swings forward
+    const knee = A * 1.5 * Math.max(0, Math.cos(p));       // bends while the leg swings through
+    pose(side === 'R' ? 'Right_Leg' : 'Left_Leg', hip, 0, 0);
+    pose('lowerleg_' + side, knee, 0, 0);
+    pose('foot_' + side, -(hip + knee) * 0.9, 0, 0);       // keeps the foot flat
+    return hip;
+  };
+  const hr = leg('R', ph), hl = leg('L', ph + Math.PI);
+  // the body dips while the legs are spread, so his feet stay on the ground
+  body.position.y = -hipH * (1 - Math.cos(Math.max(Math.abs(hr), Math.abs(hl))));
+  return ph;
 }
 
 // ---- balance: his body keeps itself upright under that head, like a robot ----
@@ -276,7 +389,7 @@ function balance(now, dt, t) {
   const breathe = Math.sin(t * 1.7);
 
   const lean = -look.roll * 0.45 - look.vy * 0.012 + shift;          // torso tilts against the head
-  const rock = -look.pitch * 0.2 - look.vp * 0.015;                   // looks down: rocks back
+  const rock = -look.pitch * 0.2 - look.vp * 0.015 + walk.amp * 0.07;  // looks down: rocks back; walking: leans in
   pose('neck', look.pitch * 0.35, look.yaw * 0.4, look.roll * 0.3);
   pose('fat_fucking_dome', look.pitch * 0.65, look.yaw * 0.6, look.roll * 0.7);
   pose('hips', 0, S('hipsY', -look.yaw * 0.05), S('hipsZ', -lean * 0.45 - shift * 0.6, 240));
@@ -285,9 +398,10 @@ function balance(now, dt, t) {
 
   // arms: hang against the lean like pendulums, and come out to steady him when he moves fast
   const out = 0.04 + speed * 0.32 + Math.abs(lean) * 0.6;
+  const gait = STRIDE * walk.amp * 0.7 * Math.sin(walk.phase);   // arms swing against the legs
   const swing = -rock * 1.1;
-  pose('Right_Arm', S('raX', swing + speed * -0.12, 150), S('raY', look.yaw * -0.1), S('raZ', -lean * 0.9 + out - 0.07, 150));
-  pose('Left_Arm', S('laX', swing + speed * -0.12, 150), S('laY', look.yaw * -0.1), S('laZ', -lean * 0.9 - out + 0.07, 150));
+  pose('Right_Arm', S('raX', swing + gait + speed * -0.12, 110), S('raY', look.yaw * -0.1), S('raZ', -lean * 0.9 + out - 0.07, 150));
+  pose('Left_Arm', S('laX', swing - gait + speed * -0.12, 110), S('laY', look.yaw * -0.1), S('laZ', -lean * 0.9 - out + 0.07, 150));
   // elbows bend a little more the harder he's working to stay up
   const bend = -(0.06 + speed * 0.5 + Math.abs(lean) * 0.5);
   pose('forearm_R', S('frX', bend + Math.max(0, lean) * -0.4, 200), 0, 0);
@@ -296,6 +410,7 @@ function balance(now, dt, t) {
 
 // ---- every frame ----
 let then = performance.now();
+const follow = { x: 0, z: 0 }, pan = { x: 0, z: 0 };
 function tick(now) {
   requestAnimationFrame(tick);
   const dt = Math.min(0.05, (now - then) / 1000); then = now;
@@ -303,12 +418,25 @@ function tick(now) {
   if (todd) {
     think(now);
     spring(reduce ? 18 : 60, reduce ? 9 : 13, dt);
+    move(now, dt);
+    legs();
     balance(now, dt, t);
+    fadePrints(now);
     fizzStep(now);
     // the camera sways a little, so the void doesn't feel like a photo
     const d = camera.userData.dist || 10, aimY = floorY + height * 0.5;
-    camera.position.set(centre.x + Math.sin(t * 0.21) * d * 0.06, aimY + height * 0.08 + Math.sin(t * 0.17) * height * 0.03, centre.z + d);
-    camera.lookAt(centre.x, aimY, centre.z);
+    // the camera lags behind him like someone operating it: it turns to keep him in view first,
+    // and only drifts after him once he's wandered a fair way off (then takes its time catching up)
+    const ox = body.position.x - follow.x, oz = body.position.z - follow.z, off = Math.hypot(ox, oz);
+    const slack = height * 0.45;
+    if (off > slack) {
+      const pull = (off - slack) / off * Math.min(1, dt * 0.55);
+      follow.x += ox * pull; follow.z += oz * pull;
+    }
+    pan.x += (body.position.x - pan.x) * Math.min(1, dt * 1.6);
+    pan.z += (body.position.z - pan.z) * Math.min(1, dt * 1.6);
+    camera.position.set(follow.x + Math.sin(t * 0.21) * d * 0.06, aimY + height * 0.08 + Math.sin(t * 0.17) * height * 0.03, follow.z + d);
+    camera.lookAt(follow.x + (pan.x - follow.x) * 0.75, aimY, follow.z + (pan.z - follow.z) * 0.75);
   }
   // dust drifts up and around
   const p = dustGeo.attributes.position.array;
@@ -323,4 +451,4 @@ function tick(now) {
 requestAnimationFrame(tick);
 
 // a peek for testing in the console: TODD.face('angry')
-window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look };
+window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body };
