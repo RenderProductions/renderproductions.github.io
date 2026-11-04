@@ -29,3 +29,10 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
 @keyframes banner { 0% { opacity: 0; transform: scale(1.6) } 12% { opacity: 1; transform: scale(1) } 70% { opacity: 1 } 100% { opacity: 0; transform: scale(1.05) } }
 .credit { margin: 2px 0 0; padding: 0 16px; font-size: 11px; opacity: .4; text-align: center; }
 .credit a { color: inherit; }
+/* the parry streak: three gold pips; fill them without getting hit and you get one health back (up to 4) */
+.hud .pips { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: 1px; }
+.hud .pips i { width: 8px; height: 8px; border: 1.5px solid currentColor; transform: rotate(45deg); opacity: .5; }
+.hud .pips i.on { background: #ffd23a; border-color: #ffd23a; opacity: 1; box-shadow: 0 0 6px #ffd23a; }
+.hud.over { color: #ffd23a; border-color: #ffd23a; }
+.hud.healed { animation: healed .6s ease-out; }
+@keyframes healed { 0% { transform: scale(1.35); box-shadow: 0 0 22px #ffd23a; background: #3a2c00; } 100% { transform: scale(1); } }
