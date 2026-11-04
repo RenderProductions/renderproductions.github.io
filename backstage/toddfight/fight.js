@@ -1180,6 +1180,7 @@ function knockout() {
   // his screen goes to the skull
   setTimeout(() => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } }, 700);
   setTimeout(() => banner((MONO && MONO.win) || 'WIN!'), 600);
+  if (fight.replay) setTimeout(() => { if (boss.down) showGone(); }, 6000);   // a replay: back to his dead screen
 }
 // When he kills you: a moment of disbelief, then he laughs (hands on his belly, shaking, head back) while
 // his screen cools from red back to cyan; then he fixes his tie, very pleased, and leans over to look at you.
@@ -1225,6 +1226,10 @@ document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click'
     for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = true;
     jumpPressed = parryPressed = false; b.blur();
     startIntro(OPT.skip);
+  } else if (go === 'replay') {
+    // a replay: the whole fight again; the story doesn't change (he's still dead everywhere else)
+    for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = true;
+    b.blur(); fight.replay = true; restart();
   } else showScreen(go === 'menu' ? 'title' : go);
 }));
 const optShake = document.getElementById('opt-shake'), optSkip = document.getElementById('opt-skip');
@@ -1239,6 +1244,8 @@ function showGone() {
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
   set('t-name', G.name || 'TODD.EXE'); set('t-kicker', G.kicker); set('t-tag', G.tagline);
   const st = document.querySelector('[data-go=start]'); if (st) st.hidden = true;
+  const rp = document.querySelector('[data-go=replay]'); if (rp) rp.hidden = false;   // ...but you can fight him again, just for fun
+  hideDeathCard(); fight.retry = false;
   boss.hp = 0; boss.down = true; fight.phase = 'down'; red = 0; face('error', 300);
   const skull = () => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } else setTimeout(skull, 400); };
   skull();
