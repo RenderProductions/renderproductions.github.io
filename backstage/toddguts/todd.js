@@ -1328,6 +1328,7 @@ function guardTarget() {
   sEye.copy(camera.position);
   sView.copy(sEye).sub(sSpot).normalize();          // from the spot toward you
   sTarget.copy(sSpot).addScaledVector(sView, 0.12);  // his hand, pressed on the spot
+  shellUpdate();
 }
 // distance between his forearm (elbow to hand) and the line from your eye to the spot, and how far in
 // front of the spot that crossing is: what decides whether the forearm actually covers it
@@ -1343,19 +1344,69 @@ function crossing() {
   const onRay = sv2.copy(sSpot).addScaledVector(sView, t);
   return { dist: fP.distanceTo(onRay), t };
 }
+// His own body, as boxes around each torso/head/thigh bone (from the mesh itself), so an arm that would
+// have to pass through him to get there doesn't count as reaching it.
+const SHELL_BONES = ['chest', 'upper_body', 'hips', 'pelvis', 'neck', 'fat_fucking_dome', 'Right_Leg', 'Left_Leg'];
+let shell = null;
+function buildShell() {
+  let mesh = null; todd.traverse((o) => { if (o.isSkinnedMesh) mesh = o; });
+  if (!mesh) return [];
+  const sk = mesh.skeleton, pos = mesh.geometry.attributes.position, si = mesh.geometry.attributes.skinIndex, sw = mesh.geometry.attributes.skinWeight;
+  const get = (attr, i, k) => [attr.getX, attr.getY, attr.getZ, attr.getW][k].call(attr, i);
+  const boxes = {}, v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    let best = 0, bw = -1;
+    for (let k = 0; k < 4; k++) { const w = get(sw, i, k); if (w > bw) { bw = w; best = get(si, i, k); } }
+    const name = sk.bones[best].name; if (!SHELL_BONES.includes(name)) continue;
+    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.bindMatrix).applyMatrix4(sk.boneInverses[best]);
+    (boxes[name] = boxes[name] || new THREE.Box3()).expandByPoint(v);
+  }
+  return Object.keys(boxes).map((name) => ({ bone: sk.bones[best0(sk, name)], box: boxes[name], inv: new THREE.Matrix4(), scale: 1, mesh }));
+}
+function best0(sk, name) { return sk.bones.findIndex((b) => b.name === name); }
+const shM = new THREE.Matrix4(), shP = new THREE.Vector3();
+// where his body is this frame (the arm moves during a search, the body doesn't)
+function shellUpdate() {
+  if (!shell) shell = buildShell();
+  shell.forEach((s) => {
+    shM.copy(s.mesh.matrixWorld).multiply(s.mesh.bindMatrixInverse).multiply(s.bone.matrixWorld);
+    s.scale = shM.getMaxScaleOnAxis(); s.inv.copy(shM).invert();
+  });
+}
+const SHELL_MARGIN = 0.05;   // a hand resting on him is fine; it's going through him that isn't
+function inside(p) {
+  let worst = 0;
+  for (const s of shell) {
+    shP.copy(p).applyMatrix4(s.inv);
+    const m = SHELL_MARGIN / s.scale, b = s.box;
+    const d = Math.min(shP.x - b.min.x, b.max.x - shP.x, shP.y - b.min.y, b.max.y - shP.y, shP.z - b.min.z, b.max.z - shP.z) - m;
+    if (d > 0) worst = Math.max(worst, d * s.scale);
+  }
+  return worst;
+}
+const clipA = new THREE.Vector3(), clipP = new THREE.Vector3();
+// how far his arm (upper arm, forearm, hand) sinks into his own body
+function clipDepth() {
+  let sum = 0;
+  for (const t of [0.5, 0.75, 1]) sum += inside(clipP.copy(clipA).lerp(fA, t));
+  for (const t of [0.33, 0.66, 1]) sum += inside(clipP.copy(fA).lerp(fB, t));
+  sum += inside(palm);
+  return sum;
+}
 const palm = new THREE.Vector3();
 function armCost(side, c) {
   const [arm, fore, hand] = ARMS[side], A = bones[arm], F = bones[fore], H = bones[hand];
   sE.set(c[0], c[1], c[2], 'YXZ'); sQ.setFromEuler(sE); A.quaternion.copy(rest[arm]).multiply(sQ);
   sE.set(c[3], 0, 0, 'YXZ'); sQ.setFromEuler(sE); F.quaternion.copy(rest[fore]).multiply(sQ);
   A.updateMatrixWorld(true);
-  F.getWorldPosition(fA); H.getWorldPosition(fB);
+  A.getWorldPosition(clipA); F.getWorldPosition(fA); H.getWorldPosition(fB);
   // his palm: a little past the wrist, along the forearm
   fD.copy(fB).sub(fA).normalize();
   palm.copy(fB).addScaledVector(fD, 0.16);
   // hand pressed on the spot (just on its surface, on your side), and the arm not tucked in behind him
   const ahead = sv.copy(palm).sub(sSpot).dot(sView);
-  return palm.distanceTo(sTarget) + Math.max(0, -ahead) * 1.2;
+  // and never through himself
+  return palm.distanceTo(sTarget) + Math.max(0, -ahead) * 1.2 + clipDepth() * 6;
 }
 function startGuard(hit) {
   const b = bones[hit.bone]; if (!b) return;
@@ -1593,6 +1644,7 @@ window.TODD = {
     const h = hitTodd(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); return h && { part: h.part, local: h.local.toArray().map((n) => +n.toFixed(2)) }; },
   get guardInfo() { return { side: guard.side, cost: guard.cost, swapped: !!guard.old, track: !!guard.track, up: now0() < guard.until }; },
   probeGuard: () => spotHit(),
+  clip: (side) => { shellUpdate(); const [a, f, h] = ARMS[side || guard.side]; bones[a].getWorldPosition(clipA); bones[f].getWorldPosition(fA); bones[h].getWorldPosition(fB); fD.copy(fB).sub(fA).normalize(); palm.copy(fB).addScaledVector(fD, 0.16); return clipDepth(); },
   clickAt: (lx, ly, lz) => { const v = new THREE.Vector3(lx, ly, lz); body.localToWorld(v); v.project(camera); const r = canvas.getBoundingClientRect();
     poke(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); },
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
