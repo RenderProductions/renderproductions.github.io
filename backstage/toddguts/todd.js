@@ -375,7 +375,8 @@ function move(now, dt) {
     // turns in real steps: lift a leg, pivot part of the way while it's up, plant it, then the other
     const d = wrap(walk.aim - walk.heading);
     if (!shuffle.on) {
-      if (Math.abs(d) < 0.03) { walk.state = walk.then; if (walk.state === 'stand') walk.until = Math.max(walk.until, now + 2000); }
+      if (Math.abs(d) < 0.03 && walk.spin > 0) { walk.spin--; walk.aim = wrap(walk.heading + Math.PI); }
+      else if (Math.abs(d) < 0.03) { walk.state = walk.then; if (walk.state === 'stand') walk.until = Math.max(walk.until, now + 2000); }
       // lead with the leg on the side he's turning toward
       else startShuffle(Math.sign(d) * Math.min(Math.abs(d), 0.55), d > 0 ? 'L' : 'R');
     }
@@ -631,6 +632,8 @@ function rageThink(now) {
       fizzle(faceIndex('error'), 200);
       goal.yaw = 0; goal.pitch = 0.35; goal.roll = 0.3;
       flood(false);
+      // something else answers: whatever holds him in
+      if (LINES.held.length) { setTimeout(() => say(pick(LINES.held), 'held'), 700); if (Math.random() < 0.4) setTimeout(() => say(pick(LINES.held), 'held'), 2200); }
     }
   } else if (rage.phase === 'cool') {
     if (now - rage.t3 > 4200) {
@@ -664,20 +667,23 @@ function crashStep(now) {
 
 // ---- TODD.OS: terminal lines that flicker into the void ----
 const termEl = document.getElementById('term');
-let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [] }, nextLine = performance.now() + 6000, flooding = false;
+let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [] }, nextLine = performance.now() + 6000, flooding = false;
 fetch('terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { LINES = Object.assign(LINES, d); }).catch(() => {});
 const pick = (a) => a[(Math.random() * a.length) | 0];
 function hasDisk() { try { return !!(JSON.parse(localStorage.getItem('rp_items')) || {}).todd_floppy; } catch (e) { return false; } }
-function say(text, red) {
+function say(text, kind) {
   if (!text) return;
+  const red = kind === true || kind === 'rage', held = kind === 'held';
   const el = document.createElement('div');
-  el.className = 'tline' + (red ? ' red' : '');
-  const wide = innerWidth < 600;
-  if (red) { el.style.left = (Math.random() * (wide ? 40 : 70)) + '%'; el.style.top = (4 + Math.random() * 88) + '%'; }
+  el.className = 'tline' + (red ? ' red' : held ? ' held' : '');
+  const narrow = innerWidth < 600;
+  if (red) { el.style.left = (Math.random() * (narrow ? 40 : 70)) + '%'; el.style.top = (4 + Math.random() * 88) + '%'; }
+  else if (held) { el.style.left = (narrow ? 8 : 38) + Math.random() * 10 + '%'; el.style.top = (14 + Math.random() * 10) + '%'; }
   else {
-    // keeps to the edges, out of his way
-    el.style.left = (Math.random() < 0.5 ? 3 + Math.random() * 12 : (wide ? 20 : 55) + Math.random() * 20) + '%';
-    el.style.top = (Math.random() < 0.5 ? 8 + Math.random() * 18 : 70 + Math.random() * 18) + '%';
+    // keeps to the edges, out of his way (and off the chat in the bottom-left)
+    const top = narrow || Math.random() < 0.6;
+    el.style.left = (top ? (Math.random() < 0.5 ? 3 + Math.random() * 12 : (narrow ? 20 : 55) + Math.random() * 20) : 58 + Math.random() * 16) + '%';
+    el.style.top = (top ? 8 + Math.random() * 16 : 62 + Math.random() * 14) + '%';
   }
   termEl.appendChild(el);
   const full = text.replace('{visits}', visits);
@@ -688,7 +694,7 @@ function say(text, red) {
       clearInterval(typeIt);
       setTimeout(() => breakUp(el), red ? 500 + Math.random() * 700 : 2600 + Math.random() * 1500);
     }
-  }, red ? 12 : 38);
+  }, red ? 12 : held ? 55 : 38);
 }
 function breakUp(el) {
   // the line glitches apart, then it's gone
@@ -777,5 +783,31 @@ window.TODD = {
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
   say: (t, red) => say(t, red), state: rage,
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
-  render: () => renderer.render(scene, camera), bones
+  render: () => renderer.render(scene, camera), bones,
+  // for the chat (chat.js)
+  get busy() { return rage.on; }, get visits() { return visits; },
+  attend: () => { const now = performance.now(); mouse.moved = now; if (mode === 'watch') modeUntil = Math.max(modeUntil, now + 6000); },
+  faceYou: () => {
+    if (rage.on) return;
+    const now = performance.now();
+    if (mode !== 'watch') { mode = 'watch'; lastNotice = now; stopAndFaceYou(now); }
+    mouse.moved = now; modeUntil = Math.max(modeUntil, now + 8000);
+  },
+  approach: () => {
+    if (rage.on) return;
+    const now = performance.now();
+    mode = 'watch'; mouse.moved = now; modeUntil = now + 9000;
+    const dx = camera.position.x - body.position.x, dz = camera.position.z - body.position.z;
+    walk.to.set(camera.position.x, camera.position.z); walk.stopAt = height * 1.5; walk.approach = true;
+    walk.aim = Math.atan2(dx, dz); walk.state = 'turn'; walk.then = 'walk';
+  },
+  wander: () => { if (rage.on) return; mode = 'glance'; walk.approach = false; walk.state = 'stand'; walk.until = 0; },
+  spin: () => { if (rage.on) return; walk.spin = 1; walk.aim = wrap(walk.heading + Math.PI); walk.state = 'turn'; walk.then = 'stand'; },
+  glitch: () => glitch(),
+  reboot: () => {
+    if (rage.on) return;
+    fizzle(faceIndex('loading'), 300); boot.textContent = 'TODD.OS'; boot.classList.remove('gone');
+    setTimeout(() => { boot.classList.add('gone'); fizzle(faceIndex('smile')); }, 2200);
+  },
+  line: (t, kind) => say(t, kind), lines: () => LINES
 };
