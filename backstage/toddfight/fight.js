@@ -332,7 +332,7 @@ new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   camera.updateMatrixWorld(true);
   buildFloor();
   loadBot();
-  facesReady.then(() => { buildScreen(); return monoReady; }).then(() => startIntro());
+  facesReady.then(() => { buildScreen(); return monoReady; }).then(() => showTitle());
   document.getElementById('boot').classList.add('gone');
 }, undefined, (e) => { console.warn('[fight] todd.gltf did not load', e); document.getElementById('boot').textContent = 'NO SIGNAL'; });
 
@@ -1106,7 +1106,9 @@ function hitTodd(x, y) {
 function knockout() {
   boss.down = true; atk = null; threats.length = 0;
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
-  setTimeout(() => banner('WHAT??!'), 600);
+  // his screen goes to the skull
+  setTimeout(() => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } }, 700);
+  setTimeout(() => banner((MONO && MONO.win) || 'WIN!'), 600);
 }
 // When he kills you: a moment of disbelief, then he laughs (hands on his belly, shaking, head back) while
 // his screen cools from red back to cyan; then he fixes his tie, very pleased, and leans over to look at you.
@@ -1127,9 +1129,43 @@ function youDied() {
   setTimeout(() => face('happy', 300), 800);
   setTimeout(() => face('sly', 300), 3300);
   setTimeout(() => face('smile', 400), 5000);
-  setTimeout(() => { banner('YOU DIED'); fight.retry = true; }, 2600);
+  setTimeout(() => { showDeathCard(); fight.retry = true; }, 2600);
 }
+// ---- the cards ----
+// Before the fight: his title, and press jump to start.
+function showTitle() {
+  const T = (MONO && MONO.title) || {}, el = document.getElementById('title');
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
+  set('t-name', T.name || 'TODD.EXE'); set('t-kicker', T.kicker); set('t-tag', T.tagline); set('t-start', T.start || 'press jump to start');
+  fight.phase = 'title'; el.hidden = false;
+  const go = () => { if (fight.phase !== 'title') return; el.hidden = true; jumpPressed = false; parryPressed = false; startIntro(); };
+  fight.startFromTitle = go;
+  el.addEventListener('pointerdown', go, { once: true });
+}
+// When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
+function showDeathCard() {
+  const D = (MONO && MONO.death) || {}, el = document.getElementById('death');
+  const q = D.quotes && D.quotes.length ? D.quotes[(Math.random() * D.quotes.length) | 0] : '';
+  document.getElementById('d-head').textContent = D.heading || 'YOU DIED';
+  document.getElementById('d-quote').textContent = q; document.getElementById('d-quote').hidden = !q;
+  const far = Math.max(0, Math.min(1, (TODD_HP - boss.hp) / TODD_HP));
+  // his phases, marked where they start
+  const marks = el.querySelectorAll('.d-mark'); marks[0].style.left = ((TODD_HP - 18) / TODD_HP * 100) + '%'; marks[1].style.left = ((TODD_HP - 9) / TODD_HP * 100) + '%';
+  const you = document.getElementById('d-you'); you.style.left = '0%';
+  document.getElementById('d-far').textContent = Math.round(far * 100) + '% OF THE WAY THROUGH HIM';
+  // his face, angry, at the end of the bar
+  const c = document.getElementById('d-todd').getContext('2d'), fd = faceData[faceAt('angry')];
+  if (fd) { const im = c.createImageData(FACE.w, FACE.h); im.data.set(fd); for (let i = 0; i < im.data.length; i += 4) if (im.data[i + 1] > 120 && im.data[i + 2] > 120 && im.data[i] < im.data[i + 1] - 60) { im.data[i] = 255; im.data[i + 1] = 34; im.data[i + 2] = 46; } c.putImageData(im, 0, 0); }
+  el.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => { you.style.left = (far * 100) + '%'; }));
+  setTimeout(() => { const b = document.getElementById('d-retry'); if (b) b.focus({ preventScroll: true }); }, 400);
+}
+function hideDeathCard() { document.getElementById('death').hidden = true; }
+document.getElementById('d-retry').addEventListener('click', () => { if (fight.retry) restart(); });
+
 function restart() {
+  hideDeathCard();
+  if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; }
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
   revive(); startIntro(true);   // (no monologue on a retry)
@@ -1579,10 +1615,13 @@ const STEP = 1 / 120;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - then) / 1000); then = now;
+  // the title card waits for a press (checked before the player gets to use it as a jump)
+  if (fight.phase === 'title' && (jumpPressed || parryPressed) && fight.startFromTitle) fight.startFromTitle();
   // a parry freezes everything for a split second
   if (hitstop > 0) { hitstop -= dt; acc = 0; }
   else { acc += dt; while (acc >= STEP) { step(STEP); stepThreats(STEP); acc -= STEP; } }
   if (fight.retry && jumpPressed) { jumpPressed = false; restart(); }
+
   if (mono.on && (keys.jump || keys.parry) && seenIntro()) skipMonologue();
   const t = now / 1000;
   animateTodd(t, dt);

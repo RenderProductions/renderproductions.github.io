@@ -1,17 +1,100 @@
 {
   "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows the pictures in 'show' (one after another, if there's more than one). 'pose' is what his body does: palm, rage, preach or look. 'shake' is a word in the line that shakes the screen when it's typed. 'secs' is how long the line stays. Pictures are loaded from Wikimedia while the page runs (never copied into the repo); the first URL is tried, then the next. 'fire' is drawn in code. The last line leads straight into him noticing you.",
   "lines": [
-    { "text": "I had the world in the palm of my hands.", "show": ["globe"], "pose": "palm", "secs": 3.6 },
-    { "text": "It was stolen from me, taken from me, CANCELLED FROM ME!", "show": ["fire"], "pose": "rage", "shake": "CANCELLED", "secs": 4.2 },
-    { "text": "Life, death, afterlife. VARANDIA COMES BACK, ALWAYS!", "show": ["plant", "death", "ghost"], "pose": "preach", "shake": "VARANDIA", "secs": 4.8 },
-    { "text": "Someone's here.", "show": ["magnifier"], "pose": "look", "secs": 2.6 }
+    {
+      "text": "I had the world in the palm of my hands.",
+      "show": [
+        "globe"
+      ],
+      "pose": "palm",
+      "secs": 3.6
+    },
+    {
+      "text": "It was stolen from me, taken from me, CANCELLED FROM ME!",
+      "show": [
+        "fire"
+      ],
+      "pose": "rage",
+      "shake": "CANCELLED",
+      "secs": 4.2
+    },
+    {
+      "text": "Life, death, afterlife. VARANDIA COMES BACK, ALWAYS!",
+      "show": [
+        "plant",
+        "death",
+        "ghost"
+      ],
+      "pose": "preach",
+      "shake": "VARANDIA",
+      "secs": 4.8
+    },
+    {
+      "text": "Someone's here.",
+      "show": [
+        "magnifier"
+      ],
+      "pose": "look",
+      "secs": 2.6
+    }
   ],
   "pictures": {
-    "globe": { "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg", "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg"], "credit": "The Earth seen from Apollo 17, NASA (public domain)" },
-    "fire": { "drawn": "fire" },
-    "plant": { "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Artemisia_absinthium_%28K%C3%B6hler%29.jpg/960px-Artemisia_absinthium_%28K%C3%B6hler%29.jpg", "https://upload.wikimedia.org/wikipedia/commons/c/c0/Artemisia_absinthium_%28K%C3%B6hler%29.jpg"], "credit": "Artemisia absinthium, Hermann Adolf Köhler, 1887 (public domain)" },
-    "death": { "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Philippe_de_Champaigne_Still-Life_with_a_Skull.JPG/960px-Philippe_de_Champaigne_Still-Life_with_a_Skull.JPG", "https://upload.wikimedia.org/wikipedia/commons/2/24/Philippe_de_Champaigne_Still-Life_with_a_Skull.JPG"], "credit": "Still-Life with a Skull, Philippe de Champaigne (public domain)" },
-    "ghost": { "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg/960px-Marley%27s_Ghost-John_Leech%2C_1843.jpg", "https://upload.wikimedia.org/wikipedia/commons/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg"], "credit": "Marley's Ghost, John Leech, 1843 (public domain)" },
-    "magnifier": { "urls": ["https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Magnifying_glass_with_focus_on_paper.png/960px-Magnifying_glass_with_focus_on_paper.png", "https://upload.wikimedia.org/wikipedia/commons/e/ea/Magnifying_glass_with_focus_on_paper.png"], "credit": "Magnifying glass with focus on paper, Niabot, CC BY-SA 3.0", "license": "https://creativecommons.org/licenses/by-sa/3.0/", "page": "https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png" }
-  }
+    "globe": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg"
+      ],
+      "credit": "The Earth seen from Apollo 17, NASA (public domain)"
+    },
+    "fire": {
+      "drawn": "fire"
+    },
+    "plant": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Artemisia_absinthium_%28K%C3%B6hler%29.jpg/960px-Artemisia_absinthium_%28K%C3%B6hler%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/c/c0/Artemisia_absinthium_%28K%C3%B6hler%29.jpg"
+      ],
+      "credit": "Artemisia absinthium, Hermann Adolf Köhler, 1887 (public domain)"
+    },
+    "death": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Philippe_de_Champaigne_Still-Life_with_a_Skull.JPG/960px-Philippe_de_Champaigne_Still-Life_with_a_Skull.JPG",
+        "https://upload.wikimedia.org/wikipedia/commons/2/24/Philippe_de_Champaigne_Still-Life_with_a_Skull.JPG"
+      ],
+      "credit": "Still-Life with a Skull, Philippe de Champaigne (public domain)"
+    },
+    "ghost": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg/960px-Marley%27s_Ghost-John_Leech%2C_1843.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg"
+      ],
+      "credit": "Marley's Ghost, John Leech, 1843 (public domain)"
+    },
+    "magnifier": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Magnifying_glass_with_focus_on_paper.png/960px-Magnifying_glass_with_focus_on_paper.png",
+        "https://upload.wikimedia.org/wikipedia/commons/e/ea/Magnifying_glass_with_focus_on_paper.png"
+      ],
+      "credit": "Magnifying glass with focus on paper, Niabot, CC BY-SA 3.0",
+      "license": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "page": "https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png"
+    }
+  },
+  "_how2": "'title' is the card before the fight (press jump to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
+  "title": {
+    "name": "TODD.EXE",
+    "kicker": "has stopped responding",
+    "tagline": "“Everything is 3D in here. Except you.”",
+    "start": "press jump to start"
+  },
+  "death": {
+    "heading": "YOU DIED",
+    "quotes": [
+      "Flat little thing. Stay flat.",
+      "You don't belong in here.",
+      "Go back to your two dimensions.",
+      "Was that it? Was THAT it?"
+    ]
+  },
+  "win": "WIN!"
 }
