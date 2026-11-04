@@ -1,60 +1,88 @@
 {
-  "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows the pictures in 'show' (one after another, if there's more than one). 'pose' is what his body does: palm, rage, preach or look. 'shake' is a word in the line that shakes the screen when it's typed. 'secs' is how long the line stays. Pictures are loaded from Wikimedia while the page runs (never copied into the repo); the first URL is tried, then the next. 'fire' is drawn in code. The last line leads straight into him noticing you.",
+  "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows what's in 'show' (one after another, if there's more than one): a picture from 'pictures', or 'face:NAME' for one of his own faces (smile, neutral, happy, angry, surprised, sly, sad, error, loading). 'pose' is what his body does: lean, preach, slump, point, peer, rage, palm or look. 'shake' is a word that shakes the screen when it's typed. 'secs' is how long the line stays. After the last line he throws his arms in the air and the fight starts. Pictures with 'urls' load from Wikimedia while the page runs (never copied into the repo); 'drawn' ones are made from the site's own art.",
   "lines": [
     {
-      "text": "I had the world in the palm of my hands.",
+      "text": "Took you long enough.",
       "show": [
-        "globe"
+        "face:sly"
       ],
-      "pose": "palm",
-      "secs": 3.6
+      "pose": "lean",
+      "secs": 2.8
     },
     {
-      "text": "It was stolen from me, taken from me, CANCELLED FROM ME!",
+      "text": "I was GOD once. GOD of VARANDIA.",
       "show": [
-        "fire"
-      ],
-      "pose": "rage",
-      "shake": "CANCELLED",
-      "secs": 4.2
-    },
-    {
-      "text": "Life, death, afterlife. VARANDIA COMES BACK, ALWAYS!",
-      "show": [
-        "plant",
-        "death",
-        "ghost"
+        "face:smile"
       ],
       "pose": "preach",
       "shake": "VARANDIA",
-      "secs": 4.8
+      "secs": 3.8
     },
     {
-      "text": "Someone's here.",
+      "text": "Banished to this realm of despair and misery.",
       "show": [
-        "magnifier"
+        "face:sad"
       ],
-      "pose": "look",
+      "pose": "slump",
+      "secs": 3.8
+    },
+    {
+      "text": "The Salesman and Wonder, here too.",
+      "show": [
+        "duo"
+      ],
+      "pose": "point",
+      "secs": 3.4
+    },
+    {
+      "text": "But, you.. You're new.",
+      "show": [
+        "player"
+      ],
+      "pose": "peer",
+      "secs": 3.2
+    },
+    {
+      "text": "And new is bad.",
+      "show": [
+        "devil"
+      ],
+      "pose": "rage",
+      "secs": 2.8
+    },
+    {
+      "text": "And bad must DIE.",
+      "show": [
+        "face:angry"
+      ],
+      "pose": "rage",
+      "shake": "DIE",
       "secs": 2.6
     }
   ],
   "pictures": {
-    "globe": {
-      "urls": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg"
+    "duo": {
+      "drawn": "duo",
+      "art": [
+        "../marquez/art/marquez.svg",
+        "../wonder/art/wonder.svg"
       ],
-      "credit": "The Earth seen from Apollo 17, NASA (public domain)"
+      "credit": "Cedar and Wonder, Render Productions"
     },
-    "fire": {
-      "drawn": "fire"
-    },
-    "plant": {
-      "urls": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Artemisia_absinthium_%28K%C3%B6hler%29.jpg/960px-Artemisia_absinthium_%28K%C3%B6hler%29.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/c/c0/Artemisia_absinthium_%28K%C3%B6hler%29.jpg"
+    "player": {
+      "drawn": "player",
+      "art": [
+        "player/Idle.svg"
       ],
-      "credit": "Artemisia absinthium, Hermann Adolf Köhler, 1887 (public domain)"
+      "credit": "the player, Render Productions"
+    },
+    "devil": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/e/e5/Devil_medium.jpg",
+        "https://upload.wikimedia.org/wikipedia/en/e/e5/Devil_medium.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/2/27/Codex_Gigas_devil.jpg"
+      ],
+      "credit": "the Devil, Codex Gigas (early 13th century), public domain"
     },
     "death": {
       "urls": [
@@ -63,21 +91,8 @@
       ],
       "credit": "Still-Life with a Skull, Philippe de Champaigne (public domain)"
     },
-    "ghost": {
-      "urls": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg/960px-Marley%27s_Ghost-John_Leech%2C_1843.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg"
-      ],
-      "credit": "Marley's Ghost, John Leech, 1843 (public domain)"
-    },
-    "magnifier": {
-      "urls": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Magnifying_glass_with_focus_on_paper.png/960px-Magnifying_glass_with_focus_on_paper.png",
-        "https://upload.wikimedia.org/wikipedia/commons/e/ea/Magnifying_glass_with_focus_on_paper.png"
-      ],
-      "credit": "Magnifying glass with focus on paper, Niabot, CC BY-SA 3.0",
-      "license": "https://creativecommons.org/licenses/by-sa/3.0/",
-      "page": "https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png"
+    "fire": {
+      "drawn": "fire"
     }
   },
   "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
@@ -96,5 +111,6 @@
       "Was that it? Was THAT it?"
     ]
   },
-  "win": "WIN!"
+  "win": "WIN!",
+  "_how3": "'death' (the skull) is what his screen shows when you beat him. 'fire' is still there to use in a line."
 }
