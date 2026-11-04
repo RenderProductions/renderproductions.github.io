@@ -1109,6 +1109,7 @@ function isNight() { const h = new Date().getHours(); return h < 5; }
 function fallAsleep(now, instant) {
   if (rage.on || bc.on) return;
   Object.assign(sleep, { on: true, waking: false, nextFrame: now + 800, nextMumble: now + 9000 + Math.random() * 8000 });
+  sleep.anim = instant ? null : { type: 'down', t0: now };
   if (instant) sleep.amt = 1;
   mode = 'sleep'; walk.state = 'stand'; walk.amp = 0; walk.approach = false; walk.visit = null; walk.until = 1e15;
   reach.on = false;
@@ -1117,6 +1118,7 @@ function fallAsleep(now, instant) {
 }
 function wake(now) {
   sleep.on = false; sleep.waking = true; sleep.wokeAt = now;
+  sleep.anim = { type: 'up', t0: now };
   // nothing that came due while he slept goes off the second he's up
   rage.next = Math.max(rage.next, now + 45000); bc.next = Math.max(bc.next, now + 60000); echo.next = Math.max(echo.next, now + 40000);
   fizzle(faceIndex('error'), 300);
@@ -1126,14 +1128,23 @@ function wake(now) {
   if (servos.upX) servos.upX.v -= 3;
 }
 function sleepThink(now) {
+  const at = sleep.anim ? (now - sleep.anim.t0) / 1000 : 99;
   if (sleep.waking) {
-    // getting up, then looking at whoever woke him
-    goal.pitch = 0.1; goal.yaw = THREE.MathUtils.clamp(towardYou() * 0.7, -0.9, 0.9); goal.roll = 0;
-    if (sleep.amt < 0.02) {
+    // getting up: head snaps up, then down at the floor as he pushes himself up, then at whoever woke him
+    goal.roll = 0;
+    if (at < 0.45) { goal.pitch = -0.3; goal.yaw = 0; }
+    else if (at < 1.7) { goal.pitch = 0.45; goal.yaw = 0; }
+    else { goal.pitch = 0.1; goal.yaw = THREE.MathUtils.clamp(towardYou() * 0.7, -0.9, 0.9); }
+    if (!sleep.anim) {
       sleep.waking = false; sleep.backToBed = now + 120000 + Math.random() * 120000;
       mode = 'watch'; lastNotice = now; mouse.moved = now; modeUntil = now + 6000; stopAndFaceYou(now);
       walk.until = now + 6000; nextMood = now + 8000;
     }
+    return;
+  }
+  if (sleep.anim && sleep.anim.type === 'down') {
+    // lying down: watching the floor as he lowers himself, then the head drops
+    goal.yaw = 0; goal.roll = 0; goal.pitch = at < 1.6 ? 0.55 : at < 2.6 ? 0.3 : 0.75;
     return;
   }
   // sleeping: head down, the odd twitch; the screen's standby light blinks, a 'z' drifts across
@@ -1156,30 +1167,109 @@ const SIT = {
   // knees up: thighs angled up, shins forward and down, feet flat on the floor (worked out from his leg lengths)
   Right_Leg: [-2.2, 0.14, -0.1], Left_Leg: [-2.2, -0.14, 0.1], lowerleg_R: [1.17, 0, 0], lowerleg_L: [1.17, 0, 0],
   foot_R: [1.03, 0, 0], foot_L: [1.03, 0, 0], toe_R: [0, 0, 0], toe_L: [0, 0, 0],
-  // slumped forward over his knees: one arm draped across them, the other hanging loose, hand on the floor
+  // slumped forward over his knees: right forearm resting across the tops of both, left arm hanging loose
   hips: [0, 0, 0], upper_body: [0.3, 0, 0.04], chest: [0.24, 0, 0.03],
-  Right_Arm: [-1.1, 0.2, -0.3], forearm_R: [-1.05, 0, 0],
+  Right_Arm: [0.26, -1.66, 1.09], forearm_R: [-1.7, 0, 0],   // forearm lying across both knees (solved to fit)
   Left_Arm: [-0.12, -0.08, 0.2], forearm_L: [-0.2, 0, 0]
 };
 const sitQ = new THREE.Quaternion(), sitE = new THREE.Euler();
+// Lying down and getting up are keyframed: each frame is a pose (bone -> [x, y, z]); anything not listed
+// is straight. Between frames the pose eases. His height is worked out every frame from where his feet and
+// hips really are, so his feet stay planted and he never sinks through the floor.
+const STAND = {};
+const DOWN = [
+  [0.0, STAND],
+  [0.6, { Right_Leg: [-0.15, 0, 0], Left_Leg: [-0.15, 0, 0], lowerleg_R: [0.3, 0, 0], lowerleg_L: [0.3, 0, 0], foot_R: [-0.15, 0, 0], foot_L: [-0.15, 0, 0],
+          upper_body: [0.12, 0, 0], chest: [0.08, 0, 0], Right_Arm: [-0.2, 0, 0.08], Left_Arm: [-0.2, 0, -0.08] }],
+  // down into a squat, arms out in front for balance
+  [1.5, { Right_Leg: [-1.35, 0.12, -0.05], Left_Leg: [-1.35, -0.12, 0.05], lowerleg_R: [1.95, 0, 0], lowerleg_L: [1.95, 0, 0], foot_R: [-0.6, 0, 0], foot_L: [-0.6, 0, 0],
+          upper_body: [0.5, 0, 0], chest: [0.25, 0, 0], Right_Arm: [-1.25, 0, 0.15], Left_Arm: [-1.25, 0, -0.15], forearm_R: [-0.35, 0, 0], forearm_L: [-0.35, 0, 0] }],
+  // a hand back to the floor behind him
+  [2.1, { Right_Leg: [-1.75, 0.12, -0.05], Left_Leg: [-1.75, -0.12, 0.05], lowerleg_R: [1.75, 0, 0], lowerleg_L: [1.75, 0, 0], foot_R: [0, 0, 0], foot_L: [0, 0, 0],
+          upper_body: [0.2, 0, 0], chest: [0.1, 0, 0], Right_Arm: [-0.9, 0, 0.2], forearm_R: [-0.5, 0, 0], Left_Arm: [0.75, 0, -0.35], forearm_L: [-0.1, 0, 0] }],
+  // bum down
+  [2.5, { Right_Leg: [-2.0, 0.14, -0.08], Left_Leg: [-2.0, -0.14, 0.08], lowerleg_R: [1.4, 0, 0], lowerleg_L: [1.4, 0, 0], foot_R: [0.6, 0, 0], foot_L: [0.6, 0, 0],
+          upper_body: [0.05, 0, 0], chest: [0.02, 0, 0], Right_Arm: [-0.6, 0, 0.1], forearm_R: [-0.6, 0, 0], Left_Arm: [0.5, 0, -0.3], forearm_L: [-0.1, 0, 0] }],
+  // settling in: knees up, arm across them, slumped
+  [3.5, SIT]
+];
+const UP = [
+  [0.0, SIT],
+  // jolted awake: sits up straight
+  [0.35, Object.assign({}, SIT, { upper_body: [-0.05, 0, 0], chest: [-0.05, 0, 0], Right_Arm: [-0.5, 0, 0.25], forearm_R: [-0.6, 0, 0], Left_Arm: [0.2, 0, -0.3], forearm_L: [-0.2, 0, 0] })],
+  // feet pulled in, leaning forward, hands toward the floor
+  [1.0, { Right_Leg: [-2.3, 0.12, -0.05], Left_Leg: [-2.3, -0.12, 0.05], lowerleg_R: [2.15, 0, 0], lowerleg_L: [2.15, 0, 0], foot_R: [0.15, 0, 0], foot_L: [0.15, 0, 0],
+          upper_body: [0.6, 0, 0], chest: [0.3, 0, 0], Right_Arm: [-1.0, 0, 0.15], Left_Arm: [-1.0, 0, -0.15], forearm_R: [-0.2, 0, 0], forearm_L: [-0.2, 0, 0] }],
+  // pushed up into a squat
+  [1.6, { Right_Leg: [-1.4, 0.1, -0.05], Left_Leg: [-1.4, -0.1, 0.05], lowerleg_R: [1.95, 0, 0], lowerleg_L: [1.95, 0, 0], foot_R: [-0.55, 0, 0], foot_L: [-0.55, 0, 0],
+          upper_body: [0.5, 0, 0], chest: [0.25, 0, 0], Right_Arm: [-1.2, 0, 0.15], Left_Arm: [-1.2, 0, -0.15], forearm_R: [-0.35, 0, 0], forearm_L: [-0.35, 0, 0] }],
+  // rising
+  [2.3, { Right_Leg: [-0.55, 0, 0], Left_Leg: [-0.55, 0, 0], lowerleg_R: [0.85, 0, 0], lowerleg_L: [0.85, 0, 0], foot_R: [-0.3, 0, 0], foot_L: [-0.3, 0, 0],
+          upper_body: [0.2, 0, 0], chest: [0.1, 0, 0], Right_Arm: [-0.5, 0, 0.1], Left_Arm: [-0.5, 0, -0.1], forearm_R: [-0.2, 0, 0], forearm_L: [-0.2, 0, 0] }],
+  [2.9, STAND]
+];
+const ANIM_BONES = Array.from(new Set([].concat(...DOWN.concat(UP).map(([, f]) => Object.keys(f)))));
+const ease = (u) => u * u * (3 - 2 * u);
+function framesAt(frames, time) {
+  let i = 0;
+  while (i < frames.length - 2 && time > frames[i + 1][0]) i++;
+  const [t0, a] = frames[i], [t1, b] = frames[i + 1];
+  const u = ease(THREE.MathUtils.clamp((time - t0) / (t1 - t0), 0, 1));
+  const out = {};
+  ANIM_BONES.forEach((n) => {
+    const va = a[n] || [0, 0, 0], vb = b[n] || [0, 0, 0];
+    out[n] = [va[0] + (vb[0] - va[0]) * u, va[1] + (vb[1] - va[1]) * u, va[2] + (vb[2] - va[2]) * u];
+  });
+  return out;
+}
+let ankleRest = null;
+const gV = new THREE.Vector3();
+function ground() {
+  // put his feet on the floor, and never let his seat go through it
+  body.position.y = 0; body.updateMatrixWorld(true);
+  const ankle = Math.min(bones.foot_R.getWorldPosition(gV).y, bones.foot_L.getWorldPosition(gV).y);
+  const hipY = bones.Right_Leg.getWorldPosition(gV).y;
+  body.position.y = Math.max(ankleRest - ankle, height * 0.07 - hipY);
+}
 function sleepPose(now, dt, t) {
-  const want = sleep.on ? 1 : 0;
-  sleep.amt += (want - sleep.amt) * Math.min(1, dt * (sleep.on ? 0.8 : 1.3));
-  if (!sleep.on && !sleep.waking && sleep.amt < 0.001) {
-    sleep.amt = 0;
-    if (isNight() && !rage.on && !bc.on && performance.now() > (sleep.backToBed || 0) && mode !== 'watch' && walk.state === 'stand') fallAsleep(performance.now());
+  if (ankleRest === null && bones.foot_R) { body.updateMatrixWorld(true); ankleRest = bones.foot_R.getWorldPosition(gV).y - body.position.y; }
+  const an = sleep.anim;
+  if (an) {
+    const frames = an.type === 'down' ? DOWN : UP, len = frames[frames.length - 1][0], time = (now - an.t0) / 1000;
+    sleep.amt = an.type === 'down' ? Math.min(1, time / len) : Math.max(0, 1 - time / len);
+    const pose = framesAt(frames, Math.min(time, len));
+    Object.keys(pose).forEach((name) => {
+      const b = bones[name]; if (!b) return;
+      const v = pose[name];
+      sitE.set(v[0], v[1], v[2], 'YXZ'); sitQ.setFromEuler(sitE); sitQ.premultiply(rest[name]);
+      b.quaternion.copy(sitQ);
+    });
+    ground();
+    if (time >= len) {
+      sleep.anim = null;
+      if (an.type === 'up') {
+        sleep.amt = 0;
+        if (servos.upX) servos.upX.v -= 2.5;                                  // a wobble as he straightens
+        if (!shuffle.on) startShuffle(0, Math.random() < 0.5 ? 'L' : 'R');
+      }
+    }
     return;
   }
-  const a = sleep.amt, breath = Math.sin(t * 0.9) * 0.025 * a;
+  if (!sleep.on) {
+    sleep.amt = 0;
+    if (!sleep.waking && isNight() && !rage.on && !bc.on && performance.now() > (sleep.backToBed || 0) && mode !== 'watch' && walk.state === 'stand' && !shuffle.on) fallAsleep(performance.now());
+    return;
+  }
+  // asleep: the sitting pose, breathing
+  sleep.amt = 1;
+  const breath = Math.sin(t * 0.9) * 0.025;
   Object.keys(SIT).forEach((name) => {
     const b = bones[name]; if (!b) return;
     const v = SIT[name], extra = name === 'chest' ? breath : 0;
-    sitE.set(v[0] + extra, v[1], v[2], 'YXZ'); sitQ.setFromEuler(sitE);
-    sitQ.premultiply(rest[name]);
-    b.quaternion.slerp(sitQ, a);
+    sitE.set(v[0] + extra, v[1], v[2], 'YXZ'); sitQ.setFromEuler(sitE); sitQ.premultiply(rest[name]);
+    b.quaternion.copy(sitQ);
   });
-  // sitting down: his hips drop to just above the floor
-  body.position.y = body.position.y * (1 - a) + (-(hipH - height * 0.07)) * a;
+  ground();
 }
 
 // ---- poking him ----
@@ -1203,16 +1293,17 @@ function hitTodd(cx, cy) {
   const hits = ray.intersectObject(todd, true);
   if (!hits.length) return null;
   const h = hits[0], m = h.object;
-  let part = 'body';
+  let part = 'body', hitBone = 'chest';
   if (m.isSkinnedMesh && h.face) {
     const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight, a = h.face.a;
     let best = 0, bw = -1;
     const get = (attr, i, k) => [attr.getX, attr.getY, attr.getZ, attr.getW][k].call(attr, i);
     for (let k = 0; k < 4; k++) { const w = get(sw, a, k); if (w > bw) { bw = w; best = get(si, a, k); } }
-    part = PART[m.skeleton.bones[best].name] || 'body';
+    hitBone = m.skeleton.bones[best].name;
+    part = PART[hitBone] || 'body';
   }
   const local = body.worldToLocal(h.point.clone());
-  return { point: h.point, part, side: local.x > 0 ? 'R' : 'L', head: part === 'head' };
+  return { point: h.point, local, part, bone: hitBone, side: local.x > 0 ? 'R' : 'L', head: part === 'head' };
 }
 // his guard: one arm up across his screen ('face') or across his chest ('chest')
 const guard = { side: 'R', target: 'face', amt: 0, until: 0, kick: 0 };
@@ -1221,13 +1312,73 @@ const GUARD = {
   chest: { R: { Right_Arm: [-0.95, 0.2, -0.6], forearm_R: [-1.75, 0, 0] }, L: { Left_Arm: [-0.95, -0.2, 0.6], forearm_L: [-1.75, 0, 0] } }
 };
 const gQ = new THREE.Quaternion(), gE = new THREE.Euler();
-function guardUp(target, side, now) { Object.assign(guard, { target, side, until: now + 3200 }); }
+function guardUp(target, side, now, hit) {
+  Object.assign(guard, { target, side, until: now + 3600, custom: null, track: null });
+  if (hit) startGuard(hit);
+}
+// He covers the exact spot you hit: the spot is pinned to the bone it's on (his screen moves with his head),
+// and every frame he nudges his arm so his forearm sits between you and it. Which arm: whichever reaches best.
+const sv = new THREE.Vector3(), sv2 = new THREE.Vector3(), sv3 = new THREE.Vector3(), sTarget = new THREE.Vector3(), sView = new THREE.Vector3(), sQ = new THREE.Quaternion(), sE = new THREE.Euler();
+const ARMS = { R: ['Right_Arm', 'forearm_R', 'hand_R'], L: ['Left_Arm', 'forearm_L', 'hand_L'] };
+function guardTarget() {
+  const tr = guard.track, b = bones[tr.bone];
+  sTarget.copy(tr.point); b.localToWorld(sTarget);
+  sView.copy(camera.position).sub(sTarget).normalize();
+  sTarget.addScaledVector(sView, 0.42);           // a hand's width out from him, toward you
+}
+function armCost(side, c) {
+  const [arm, fore, hand] = ARMS[side], A = bones[arm], F = bones[fore], H = bones[hand];
+  sE.set(c[0], c[1], c[2], 'YXZ'); sQ.setFromEuler(sE); A.quaternion.copy(rest[arm]).multiply(sQ);
+  sE.set(c[3], 0, 0, 'YXZ'); sQ.setFromEuler(sE); F.quaternion.copy(rest[fore]).multiply(sQ);
+  A.updateMatrixWorld(true);
+  F.getWorldPosition(sv); H.getWorldPosition(sv2);
+  sv3.copy(sv2).sub(sv).normalize();
+  const mid = sv.add(sv2).multiplyScalar(0.5);
+  // the middle of his forearm on the spot, and the forearm lying across your view of it
+  return mid.distanceTo(sTarget) + 0.3 * Math.abs(sv3.dot(sView));
+}
+function startGuard(hit) {
+  const b = bones[hit.bone]; if (!b) return;
+  guard.track = { bone: hit.bone, point: b.worldToLocal(hit.point.clone()) };
+  guardTarget();
+  let best = null;
+  ['R', 'L'].forEach((side) => {
+    const [arm, fore] = ARMS[side], keepA = bones[arm].quaternion.clone(), keepF = bones[fore].quaternion.clone();
+    const m = side === 'R' ? 1 : -1;
+    let bb = null;
+    for (let i = 0; i < 240; i++) {
+      const c = [-2.8 + Math.random() * 3.0, -1.6 + Math.random() * 3.2, m * (-1.5 + Math.random() * 1.8), -2.4 + Math.random() * 2.4];
+      const cost = armCost(side, c); if (!bb || cost < bb.cost) bb = { cost, c };
+    }
+    for (let i = 0; i < 160; i++) {
+      const c = bb.c.map((v) => v + (Math.random() - 0.5) * (0.3 * (1 - i / 160) + 0.02));
+      const cost = armCost(side, c); if (cost < bb.cost) bb = { cost, c };
+    }
+    bones[arm].quaternion.copy(keepA); bones[fore].quaternion.copy(keepF); bones[arm].updateMatrixWorld(true);
+    if (!best || bb.cost < best.cost) best = { side, ...bb };
+  });
+  guard.side = best.side; guard.c = best.c;
+}
+// a few small corrections a frame keep the forearm on the spot as he moves
+function trackGuard() {
+  const [arm, fore] = ARMS[guard.side];
+  const keepA = bones[arm].quaternion.clone(), keepF = bones[fore].quaternion.clone();
+  guardTarget();
+  let cost = armCost(guard.side, guard.c);
+  for (let i = 0; i < 24; i++) {
+    const c = guard.c.map((v) => v + (Math.random() - 0.5) * 0.12);
+    const k = armCost(guard.side, c); if (k < cost) { cost = k; guard.c = c; }
+  }
+  bones[arm].quaternion.copy(keepA); bones[fore].quaternion.copy(keepF);
+  guard.custom = { [arm]: [guard.c[0], guard.c[1], guard.c[2]], [fore]: [guard.c[3], 0, 0] };
+}
 function guardPose(now, dt, t) {
   const want = now < guard.until && !rage.on && !sleep.on && !reach.on ? 1 : 0;
   guard.amt += (want - guard.amt) * Math.min(1, dt * (want ? 9 : 3));
   guard.kick *= Math.exp(-dt * 8);
   if (guard.amt < 0.01) return;
-  const set = GUARD[guard.target][guard.side];
+  if (guard.track && guard.c) trackGuard();
+  const set = guard.custom || GUARD[guard.target][guard.side];
   Object.keys(set).forEach((name) => {
     const b = bones[name]; if (!b) return;
     const v = set[name], shake = Math.sin(t * 21) * 0.025;
@@ -1253,12 +1404,12 @@ function poke(cx, cy) {
   } else if (hit.part === 'head') {
     knock(0.6); look.vp -= 9; look.vy += (Math.random() - 0.5) * 6; glitch();
     if (servos.upX) servos.upX.v -= 2.5;
-    guardUp('face', hit.side, now);
+    guardUp('face', hit.side, now, hit);
     pool = LINES.poke_screen;
   } else if (hit.part === 'low') {
     // below the belt: he doubles over
     knock(0.8); look.vp += 8; if (servos.chX) servos.chX.v += 7; if (servos.upX) servos.upX.v += 5;
-    guardUp('chest', hit.side, now); add = 1.5;
+    guardUp('chest', hit.side, now, hit); add = 1.5;
     pool = LINES.poke_low; mood = 'angry';
   } else if (hit.part === 'armR' || hit.part === 'armL') {
     // his arm gets knocked away, and he turns toward it
@@ -1278,7 +1429,7 @@ function poke(cx, cy) {
   } else {
     knock(1.4); look.vp -= 3; look.vy += (Math.random() - 0.5) * 6;
     if (servos.upX) servos.upX.v -= 4; if (servos.chZ) servos.chZ.v += (Math.random() - 0.5) * 3;
-    guardUp('chest', hit.side, now);
+    guardUp('chest', hit.side, now, hit);
     setTimeout(() => { if (!rage.on && !shuffle.on) startShuffle(0, Math.random() < 0.5 ? 'L' : 'R'); }, 180);
   }
   irk = decay + add;
@@ -1373,7 +1524,14 @@ window.TODD = {
   broadcast: () => { if (!rage.on && !bc.on) startBroadcast(performance.now()); },
   wonder: () => { echo.next = 0; wonderEcho(performance.now()); },
   reach: () => { const now = performance.now(); mode = 'watch'; mouse.moved = now; Object.assign(reach, { on: true, t0: now, until: now + 5000 }); modeUntil = now + 5500; },
-  guard, get irk() { return irk; },
+  guard, get irk() { return irk; }, SIT, rest,
+  // for testing: what would a click on this point of his body (in his own space) hit right now?
+  probe: (lx, ly, lz) => { const v = new THREE.Vector3(lx, ly, lz); body.localToWorld(v); v.project(camera); const r = canvas.getBoundingClientRect();
+    const h = hitTodd(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); return h && { part: h.part, local: h.local.toArray().map((n) => +n.toFixed(2)) }; },
+  probeGuard: () => { if (!guard.track) return null; const v = guard.track.point.clone(); bones[guard.track.bone].localToWorld(v); v.project(camera);
+    const r = canvas.getBoundingClientRect(); const h = hitTodd(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); return h && h.part; },
+  clickAt: (lx, ly, lz) => { const v = new THREE.Vector3(lx, ly, lz); body.localToWorld(v); v.project(camera); const r = canvas.getBoundingClientRect();
+    poke(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); },
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
   render: () => renderer.render(scene, camera), bones,
   // for the chat (chat.js)
