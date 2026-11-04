@@ -563,7 +563,7 @@ function balance(now, dt, t) {
 
   // arms: hang against the lean like pendulums, and come out to steady him when he moves fast
   const out = 0.04 + speed * 0.32 + Math.abs(lean) * 0.6;
-  const gait = STRIDE * walk.amp * 0.7 * Math.sin(walk.phase);   // arms swing against the legs
+  const gait = STRIDE * walk.amp * 0.9 * Math.sin(walk.phase);   // arms swing against the legs
   const swing = -rock * 1.1;
   // reaching up for you: arms up and forward toward the camera, trembling at full stretch
   const ra = reach.amt, tremble = (Math.sin(t * 23) * 0.03 + (Math.random() - 0.5) * 0.03) * ra;
@@ -573,8 +573,11 @@ function balance(now, dt, t) {
   if (rage.frenzy > 0.01) frenzy(t, rage.frenzy);
   // elbows bend a little more the harder he's working to stay up
   const bend = -(0.06 + speed * 0.5 + Math.abs(lean) * 0.5);
-  pose('forearm_R', S('frX', bend + Math.max(0, lean) * -0.4, 200) * (1 - ra) - 0.12 * ra, 0, 0);
-  pose('forearm_L', S('flX', bend + Math.max(0, -lean) * -0.4, 200) * (1 - ra) - 0.12 * ra, 0, 0);
+  // walking: elbows stay bent, and bend further as each arm swings forward (and he runs with them tucked)
+  const w = walk.amp * (walk.pace > 1 ? 1.4 : 1), sw = Math.sin(walk.phase);
+  const elbowR = -w * (0.38 + 0.4 * Math.max(0, -sw)), elbowL = -w * (0.38 + 0.4 * Math.max(0, sw));
+  pose('forearm_R', S('frX', bend + Math.max(0, lean) * -0.4 + elbowR, 90) * (1 - ra) - 0.12 * ra, 0, 0);
+  pose('forearm_L', S('flX', bend + Math.max(0, -lean) * -0.4 + elbowL, 90) * (1 - ra) - 0.12 * ra, 0, 0);
   if (rage.frenzy > 0.01) frenzyForearms(t, rage.frenzy);
 }
 // a tantrum: arms windmilling and slamming about, body shaking
