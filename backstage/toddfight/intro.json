@@ -1,10 +1,10 @@
 {
-  "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows what's in 'show' (one after another, if there's more than one): a picture from 'pictures', or 'face:NAME' for one of his own faces (smile, neutral, happy, angry, surprised, sly, sad, error, loading). 'pose' is what his body does: lean, preach, slump, point, peer, rage, palm or look. 'shake' is a word that shakes the screen when it's typed. 'secs' is how long the line stays. After the last line he throws his arms in the air and the fight starts. Pictures with 'urls' load from Wikimedia while the page runs (never copied into the repo); 'drawn' ones are made from the site's own art.",
+  "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows what's in 'show' (one after another, if there's more than one): a picture from 'pictures', or 'face:NAME' for one of his own faces (smile, neutral, happy, angry, surprised, sly, sad, error, loading). 'pose' is what his body does: lean, preach, slump, point, peer, rage, palm or look. 'shake' is a word that shakes the screen when it's typed. 'secs' is how long the line stays. After the last line he throws his arms in the air and the fight starts. Pictures with 'urls' load from Wikimedia while the page runs (never copied into the repo); 'drawn' ones are made from the site's own art. 'focus' ([x, y], 0 to 1 from the top left) is the part of a picture to keep in the middle when it's cropped to his screen.",
   "lines": [
     {
       "text": "Took you long enough.",
       "show": [
-        "face:sly"
+        "rabbit"
       ],
       "pose": "lean",
       "secs": 2.8
@@ -12,7 +12,7 @@
     {
       "text": "I was GOD once. GOD of VARANDIA.",
       "show": [
-        "face:smile"
+        "adam"
       ],
       "pose": "preach",
       "shake": "VARANDIA",
@@ -21,7 +21,7 @@
     {
       "text": "Banished to this realm of despair and misery.",
       "show": [
-        "face:sad"
+        "hell"
       ],
       "pose": "slump",
       "secs": 3.8
@@ -53,7 +53,7 @@
     {
       "text": "And bad must DIE.",
       "show": [
-        "face:angry"
+        "saturn"
       ],
       "pose": "rage",
       "shake": "DIE",
@@ -93,6 +93,51 @@
     },
     "fire": {
       "drawn": "fire"
+    },
+    "rabbit": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/d/da/Alice_par_John_Tenniel_02.png",
+        "https://upload.wikimedia.org/wikipedia/commons/8/83/Alice-white-rabbit.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "credit": "the White Rabbit, John Tenniel, 1865 (public domain)"
+    },
+    "adam": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/%27Adam%27s_Creation_Sistine_Chapel_ceiling%27_by_Michelangelo_JBU33cut.jpg/960px-%27Adam%27s_Creation_Sistine_Chapel_ceiling%27_by_Michelangelo_JBU33cut.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/3/30/%27Adam%27s_Creation_Sistine_Chapel_ceiling%27_by_Michelangelo_JBU33cut.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "credit": "The Creation of Adam, Michelangelo (public domain; photo Jörg Bittner Unna)"
+    },
+    "hell": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Sandro_Botticelli_-_La_Carte_de_l%27Enfer.jpg/960px-Sandro_Botticelli_-_La_Carte_de_l%27Enfer.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/3/3e/Sandro_Botticelli_-_La_Carte_de_l%27Enfer.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/b/b5/Botticelli_Inferno_XVIII.png"
+      ],
+      "focus": [
+        0.5,
+        0.55
+      ],
+      "credit": "Map of Hell / Inferno XVIII, Sandro Botticelli (public domain)"
+    },
+    "saturn": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Francisco_de_Goya%2C_Saturno_devorando_a_su_hijo_%281819-1823%29.jpg/960px-Francisco_de_Goya%2C_Saturno_devorando_a_su_hijo_%281819-1823%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/8/82/Francisco_de_Goya%2C_Saturno_devorando_a_su_hijo_%281819-1823%29.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.3
+      ],
+      "credit": "Saturn Devouring His Son, Francisco Goya (public domain)"
     }
   },
   "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",

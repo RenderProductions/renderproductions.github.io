@@ -662,11 +662,13 @@ function settle(dt) {
 let picPanel = null, picAspect = 1.3, MONO = null;
 const pics = {};                               // key -> THREE.Texture (or the fire)
 const monoReady = fetch('intro.json?v=' + Date.now()).then((r) => r.json()).then((d) => { MONO = d; loadPictures(d.pictures || {}); }).catch(() => {});
-function cover(tex, w, h) {
-  // fill the screen, cropping the picture to its shape
-  const a = w / h; tex.repeat.set(1, 1); tex.offset.set(0, 0);
-  if (a > picAspect) { tex.repeat.x = picAspect / a; tex.offset.x = (1 - tex.repeat.x) / 2; }
-  else { tex.repeat.y = a / picAspect; tex.offset.y = (1 - tex.repeat.y) / 2; }
+function cover(tex, w, h, focus) {
+  // fill the screen, cropping the picture to its shape, keeping 'focus' ([x, y] from the top left) in the middle
+  const a = w / h, fx = focus ? focus[0] : 0.5, fy = focus ? focus[1] : 0.5;
+  tex.repeat.set(1, 1); tex.offset.set(0, 0);
+  const clamp = (v, hi) => Math.max(0, Math.min(hi, v));
+  if (a > picAspect) { tex.repeat.x = picAspect / a; tex.offset.x = clamp(fx - tex.repeat.x / 2, 1 - tex.repeat.x); }
+  else { tex.repeat.y = a / picAspect; tex.offset.y = clamp(1 - fy - tex.repeat.y / 2, 1 - tex.repeat.y); }
 }
 function loadPictures(list) {
   for (const key in list) {
@@ -677,7 +679,7 @@ function loadPictures(list) {
     const next = () => {
       const url = urls.shift(); if (!url) return;
       const img = new Image(); img.crossOrigin = 'anonymous';
-      img.onload = () => { const tex = new THREE.Texture(img); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true; cover(tex, img.width, img.height); pics[key] = tex; };
+      img.onload = () => { const tex = new THREE.Texture(img); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true; cover(tex, img.width, img.height, p.focus); pics[key] = tex; };
       img.onerror = next;                        // try the next address (or give up: he shows static instead)
       img.src = url;
     };
