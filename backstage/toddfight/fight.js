@@ -35,7 +35,7 @@ const P = {
   ground: true, wall: 0,      // wall: -1 sliding down the left wall, 1 the right, 0 none
   coyote: 0, buffer: 0, lock: 0, walkT: 0,
   hp: 3, dead: false, hurtT: 0, deadT: 0,
-  parryT: 0, spin: 0, parryCool: 0, goldT: 0,   // goldT: untouchable after a parry; parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
+  parryT: 0, spin: 0, parryCool: 0, goldT: 0, streak: 0,   // goldT: untouchable after a parry; parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
 };
 const TUNE = {
   run: 300, accel: 2600, airAccel: 1700, friction: 3000,
@@ -949,6 +949,9 @@ function touches(x, y, r) {
 }
 function parried(x, y) {
   P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = TUNE.spin; P.parryCool = 0; P.goldT = TUNE.gold;   // (you can parry again straight away, and you're untouchable for a moment)
+  P.streak = (P.streak || 0) + 1;
+  if (P.streak >= STREAK) { P.streak = 0; heal(); }
+  paintHud();
   hitstop = 0.07; fight.shake = Math.max(fight.shake, 0.45);
   fx.push({ kind: 'ring', x, y, t: 0, life: 0.35, color: '#ff5cf0' });
   fx.push({ kind: 'ring', x, y, t: -0.06, life: 0.4, color: '#ffffff' });
@@ -1076,7 +1079,20 @@ function drawFx(t) {
 
 // ---------------- the loop ----------------
 const hud = document.getElementById('hud');
-function paintHud() { hud.textContent = P.dead ? 'DEAD' : 'HP. ' + P.hp; hud.classList.toggle('low', P.hp <= 1); }
+// Three parries in a row without getting hit gives you one health back, up to 4 (one more than you start with).
+const HP_START = 3, HP_MAX = 4, STREAK = 3;
+function paintHud() {
+  if (P.dead) { hud.textContent = 'DEAD'; hud.className = 'hud low'; return; }
+  hud.innerHTML = 'HP. ' + P.hp + ' <span class="pips">' + Array.from({ length: STREAK }, (_, i) => `<i class="${i < P.streak ? 'on' : ''}"></i>`).join('') + '</span>';
+  hud.className = 'hud' + (P.hp <= 1 ? ' low' : '') + (P.hp > HP_START ? ' over' : '');
+}
+function heal() {
+  if (P.hp >= HP_MAX) return;
+  P.hp++;
+  fx.push({ kind: 'ring', x: P.x, y: P.y - 40, t: 0, life: 0.5, color: '#ffd23a' });
+  fx.push({ kind: 'ring', x: P.x, y: P.y - 40, t: -0.1, life: 0.55, color: '#fff3b0' });
+  hud.classList.remove('healed'); void hud.offsetWidth; paintHud(); hud.classList.add('healed');
+}
 let then = performance.now(), acc = 0;
 const STEP = 1 / 120;
 function frame(now) {
@@ -1107,13 +1123,13 @@ function frame(now) {
 // for testing from the console
 function hurt(n = 1) {
   if (P.dead || P.hurtT > 0 || P.goldT > 0) return;
-  P.hp = Math.max(0, P.hp - n); P.hurtT = 1.0;
+  P.hp = Math.max(0, P.hp - n); P.hurtT = 1.0; P.streak = 0;
   if (Math.random() < 0.6) tauntSoon = true;   // got you
   fight.shake = Math.max(fight.shake, 0.5);
   if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; P.parryT = 0; P.spin = 0; youDied(); }
   paintHud();
 }
-function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, goldT: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
+function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
 window.FIGHT = { attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
