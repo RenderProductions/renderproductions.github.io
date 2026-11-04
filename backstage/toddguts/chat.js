@@ -17,7 +17,7 @@
   let BRAIN = null, SYN = {}, busy = false, lastTopic = '', lastReply = {}, temper = 0, temperAt = Date.now();
 
   // ---- memory ----
-  let mem = { name: '', asked: {} };
+  let mem = { name: '', asked: {}, visit: 0, last: '', feel: '', mean: 0 };
   try { mem = Object.assign(mem, JSON.parse(localStorage.getItem('rvToddChat')) || {}); } catch (e) {}
   function save() { try { localStorage.setItem('rvToddChat', JSON.stringify(mem)); } catch (e) {} }
   function items(key) { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; } }
@@ -67,6 +67,30 @@
     return null;
   }
 
+  // ---- memory of this visit, for the next one ----
+  function rememberSaid(said, t) {
+    mem.visit = window.TODD ? TODD.visits : mem.visit;
+    if (said.length > 3 && said.length < 60 && !/^(cls|clear|dir|ls|type|cat|reboot|ver)\b/i.test(said)) mem.last = said.trim();
+    const feel = t.match(/\bi (?:feel|am feeling|am) (sad|tired|happy|bored|lonely|scared|angry|sick|fine|good|great|ok|okay|stressed|anxious|excited|hungry|sleepy|confused|lost)\b/);
+    if (feel) mem.feel = feel[1];
+    save();
+  }
+  // a new visit: TODD.OS brings something up from the last one
+  function recall() {
+    if (!window.TODD || !mem.visit || TODD.visits <= mem.visit) return;
+    const options = [];
+    if (mem.feel) options.push('> last time you said you felt ' + mem.feel.toUpperCase() + '. still?');
+    if (mem.name) options.push('> ' + mem.name.toUpperCase() + '. you came BACK.', '> hello again, ' + mem.name + '. i KEPT your name.');
+    else if (Object.keys(mem.asked).length) options.push('> you never told me your NAME.', '> you again. still no NAME?');
+    if (mem.last) options.push('> you said "' + mem.last + '". i\'ve been THINKING about it.');
+    if (mem.mean >= 2) options.push('> you were MEAN last time. i REMEMBER.');
+    if (!options.length) return;
+    TODD.line(options[(Math.random() * options.length) | 0]);
+    // once per visit; then start fresh, so next time he brings up THIS visit (he keeps your name)
+    Object.assign(mem, { visit: TODD.visits, feel: '', last: '', mean: 0 }); save();
+  }
+  setTimeout(recall, 7000 + Math.random() * 4000);
+
   // ---- choosing what he says ----
   function allowed(reply) {
     if (typeof reply === 'string') return true;
@@ -113,6 +137,7 @@
     if (words.length === 1 && cmd === 'reboot') return { text: 'REBOOTING... see you on the OTHER side.', do: 'reboot' };
     if (words.length === 1 && ['ver', 'version'].includes(cmd)) return { text: 'TODD.OS v0.?? // BOOT DISK 1 OF ?? // 640K', raw: true };
     // 2. names
+    rememberSaid(said, t);
     const named = reflect(t, true);
     if (named) {
       mem.name = named.bit.split(' ').slice(0, 2).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -130,6 +155,7 @@
       if (!r) r = choose(BRAIN.fallback, 'fallback');
       const repeat = lastTopic === tp.id && !tp.again && Math.random() < 0.35;
       lastTopic = tp.id;
+      if (tp.id === 'insult') { mem.mean = (mem.mean || 0) + 1; save(); }
       if (tp.live === 'market' || (tp.ticker && /\b(price|prices|worth|doing|stock|stocks|cost|costs|value|up|down|trading|at|chart|buy|sell|invest)\b/.test(t))) {
         return { live: tp.live === 'market' ? 'market' : 'price', ticker: tp.ticker, lead: fill(r.text || r), face: tp.face };
       }
