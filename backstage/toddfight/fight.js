@@ -1224,7 +1224,7 @@ document.getElementById('d-retry').addEventListener('click', () => { if (fight.r
 function restart() {
   hideDeathCard();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // give the keys back to the game
-  if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; }
+  if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; } screen.until = 0; screen.next = 0;
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
   revive(); startIntro(true);   // (no monologue on a retry)
@@ -1334,6 +1334,9 @@ function startTaunt(now) {
   }
   atk = { kind: 'taunt', taunt: kind, frames, t0: now };
   face(mood, 260);
+  // half the time, his screen flashes something rude at you as well
+  const tp = (MONO && MONO.taunt_pictures) || [];
+  if (tp.length && Math.random() < 0.5) setTimeout(() => { if (atk && atk.kind === 'taunt') showPic(tp[(Math.random() * tp.length) | 0], 900 + Math.random() * 500); }, 300);
 }
 function tauntFrame(T) { let f = atk.frames[0]; for (const k of atk.frames) if (k.t <= T) f = k; return f; }
 const PUNCH = { goal: null };
@@ -1606,6 +1609,27 @@ function drawThreats(t) {
     ctx.restore();
   }
 }
+// ---- what his screen shows outside the monologue: a taunt picture, or flickers of pictures as he breaks ----
+const screen = { key: null, until: 0, next: 0 };
+function showPic(key, ms) { if (!pics[key]) return; screen.key = key; screen.until = performance.now() + ms; glitchFace(); }
+function stepScreen(now) {
+  if (!picPanel || mono.on || boss.down) return;      // the monologue and the skull look after themselves
+  // the more you've hurt him, the more often random pictures flicker across his face
+  const w = wear(), pool = ((MONO && MONO.damage_pictures) || []).filter((k) => pics[k]);
+  if (fight.phase === 'fight' && pool.length && w > 0.08 && now > screen.until && now > screen.next) {
+    screen.next = now + (2600 - w * 2300) * (0.6 + Math.random() * 0.8);
+    if (Math.random() < 0.35 + w * 0.6) {
+      const n = w > 0.6 && Math.random() < 0.5 ? 2 + ((Math.random() * 3) | 0) : 1;   // late on, a burst of several
+      for (let i = 0; i < n; i++) setTimeout(() => { if (!boss.down && !mono.on && !(atk && atk.kind === 'agony')) showPic(pool[(Math.random() * pool.length) | 0], 70 + Math.random() * 160 + (n === 1 ? w * 120 : 0)); }, i * 140);
+    }
+  }
+  const live = now < screen.until && pics[screen.key];
+  if (live) {
+    if (screen.key === 'fire') fire.step(now);
+    if (picPanel.material.map !== pics[screen.key]) { picPanel.material.map = pics[screen.key]; picPanel.material.needsUpdate = true; }
+    picPanel.visible = true; picPanel.material.opacity = Math.random() < 0.08 ? 0.4 : 0.9 + Math.random() * 0.1;
+  } else { picPanel.visible = false; picPanel.material.opacity = 0; }
+}
 function stepAgony() {
   if (!agonyPanel) return;
   if (!atk || atk.kind !== 'agony') agonyAmt = Math.max(0, agonyAmt - 0.08);
@@ -1685,6 +1709,7 @@ function frame(now) {
   animateTodd(t, dt);
   stepAttack(now, dt);
   stepSmoke(dt);
+  stepScreen(now);
   stepAgony();
   stepFx(dt);
   stepBot(dt, now);
