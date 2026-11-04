@@ -1,5 +1,5 @@
 {
-  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here. 'held' is a different voice, in plain grey, right after he hits the screen in a tantrum: whatever it is that keeps him in. 'reach' is what he says when he reaches up for you (when you've swung the camera above him). 'poke' / 'poke_screen' / 'poke_annoyed' are his reactions to being clicked (on his body, on his screen, and once he's had enough). 'broadcast_after' is what he says once the 75.40 broadcast fades (the broadcast's own words come from the frequency scanner's signals.json). 'wonder' is Wonder's voice bleeding in (only once CH 02 is open) and 'wonder_reply' is TODD yelling back. 'sleep' is what he mumbles while asleep (midnight to 5 AM), 'sleep_talk' answers anything you type at him while he sleeps, 'wake' is what he says when a poke wakes him ({time} = the time), and 'debris' is what he says when he goes to stare at the old monitors and junk at the edge of the void. Where you click him matters: 'poke_screen' (his screen), 'poke_arm', 'poke_leg', 'poke_low' (below the belt), and 'poke_blocked' when he's raised an arm to guard that spot and you hit the arm.",
+  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here. 'held' is a different voice, in plain grey, right after he hits the screen in a tantrum: whatever it is that keeps him in. 'reach' is what he says when he reaches up for you (when you've swung the camera above him). 'poke' / 'poke_screen' / 'poke_annoyed' are his reactions to being clicked (on his body, on his screen, and once he's had enough). 'broadcast_after' is what he says once the 75.40 broadcast fades (the broadcast's own words come from the frequency scanner's signals.json). 'wonder' is Wonder's voice bleeding in (only once CH 02 is open) and 'wonder_reply' is TODD yelling back. 'sleep' is what he mumbles while asleep (midnight to 5 AM), 'sleep_talk' answers anything you type at him while he sleeps, 'wake' is what he says when a poke wakes him ({time} = the time), and 'debris' is what he says when he goes to stare at the old monitors and junk at the edge of the void. Where you click him matters: 'poke_screen' (his screen), 'poke_arm', 'poke_leg', 'poke_low' (below the belt), and 'poke_sore' when he's holding the spot you hit and you poke it (his hand) again.",
   "idle": [
     "TODD.OS v0.?? // BOOT DISK 1 OF ??",
     "> mem check ... 640K OK",
@@ -86,17 +86,17 @@
     "> i can almost reach"
   ],
   "poke": [
+    "> OW!",
     "> HEY",
     "> ow?",
     "> don't TOUCH me",
-    "> who did that",
     "> personal SPACE"
   ],
   "poke_screen": [
+    "> OW. my FACE",
     "> that's my FACE",
     "> don't touch the SCREEN",
-    "> FINGERPRINTS. great.",
-    "> my FACE!!"
+    "> FINGERPRINTS. great."
   ],
   "poke_annoyed": [
     "> STOP",
@@ -168,10 +168,11 @@
     "> NOT there",
     "> rude. RUDE."
   ],
-  "poke_blocked": [
-    "> BLOCKED",
-    "> HA. saw that coming",
-    "> nice TRY",
-    "> not this time"
+  "poke_sore": [
+    "> OW!",
+    "> it ALREADY hurts",
+    "> that's the SAME spot",
+    "> ow ow OW",
+    "> right where it HURTS"
   ]
 }

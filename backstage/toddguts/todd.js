@@ -858,7 +858,7 @@ function crashStep(now) {
 
 // ---- TODD.OS: terminal lines that flicker into the void ----
 const termEl = document.getElementById('term');
-let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [], poke: [], poke_screen: [], poke_annoyed: [], poke_blocked: [], poke_arm: [], poke_leg: [], poke_low: [], broadcast_after: [], wonder: [], wonder_reply: [], sleep: [], wake: [], sleep_talk: [], debris: [] }, nextLine = performance.now() + 6000, flooding = false;
+let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [], poke: [], poke_screen: [], poke_annoyed: [], poke_sore: [], poke_arm: [], poke_leg: [], poke_low: [], broadcast_after: [], wonder: [], wonder_reply: [], sleep: [], wake: [], sleep_talk: [], debris: [] }, nextLine = performance.now() + 6000, flooding = false;
 fetch('terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { LINES = Object.assign(LINES, d); }).catch(() => {});
 const pick = (a) => a[(Math.random() * a.length) | 0];
 function hasDisk() { try { return !!(JSON.parse(localStorage.getItem('rp_items')) || {}).todd_floppy; } catch (e) { return false; } }
@@ -1278,8 +1278,8 @@ function sleepPose(now, dt, t) {
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const shove = { x: 0, z: 0 };
 let irk = 0, irkAt = 0, pokes = 0;
-// Where you hit matters: his screen, his body, an arm, a leg, or below the belt. After a hit he brings
-// an arm up to guard that spot for a few seconds; hit the same place again and you hit his arm instead.
+// Where you hit matters: his screen, his body, an arm, a leg, or below the belt. After a hit he clutches
+// the sore spot for a few seconds (hand on it, rubbing); poke that hand and it's the same sore spot: OW.
 const PART = {
   fat_fucking_dome: 'head', neck: 'head', chest: 'body', upper_body: 'body', hips: 'body', pelvis: 'low',
   Right_Arm: 'armR', no_elbow: 'armR', forearm_R: 'armR', hand_R: 'armR', Left_Arm: 'armL', no_elbow2: 'armL', forearm_L: 'armL', hand_L: 'armL',
@@ -1316,8 +1316,8 @@ function guardUp(target, side, now, hit) {
   Object.assign(guard, { target, side, until: now + 3600, custom: null, track: null });
   if (hit) { startGuard(hit); if (!guard.track) guard.until = 0; }   // couldn't reach it with either hand: no guard
 }
-// He covers the exact spot you hit: the spot is pinned to the bone it's on (his screen moves with his head),
-// and every frame he nudges his arm so his forearm sits between you and it. Which arm: whichever reaches best.
+// He holds the exact spot you hit: the spot is pinned to the bone it's on (his screen moves with his head),
+// and every frame he nudges his arm to keep his hand on it. The hand on that side if it can reach, else the other.
 const sv = new THREE.Vector3(), sv2 = new THREE.Vector3(), sv3 = new THREE.Vector3(), sTarget = new THREE.Vector3(), sView = new THREE.Vector3(), sQ = new THREE.Quaternion(), sE = new THREE.Euler();
 const ARMS = { R: ['Right_Arm', 'forearm_R', 'hand_R'], L: ['Left_Arm', 'forearm_L', 'hand_L'] };
 // the spot, in the world, and the line from your eye to it
@@ -1327,7 +1327,7 @@ function guardTarget() {
   sSpot.copy(tr.point); b.localToWorld(sSpot);
   sEye.copy(camera.position);
   sView.copy(sEye).sub(sSpot).normalize();          // from the spot toward you
-  sTarget.copy(sSpot).addScaledVector(sView, 0.42);  // a hand's width out from him
+  sTarget.copy(sSpot).addScaledVector(sView, 0.12);  // his hand, pressed on the spot
 }
 // distance between his forearm (elbow to hand) and the line from your eye to the spot, and how far in
 // front of the spot that crossing is: what decides whether the forearm actually covers it
@@ -1343,17 +1343,19 @@ function crossing() {
   const onRay = sv2.copy(sSpot).addScaledVector(sView, t);
   return { dist: fP.distanceTo(onRay), t };
 }
+const palm = new THREE.Vector3();
 function armCost(side, c) {
   const [arm, fore, hand] = ARMS[side], A = bones[arm], F = bones[fore], H = bones[hand];
   sE.set(c[0], c[1], c[2], 'YXZ'); sQ.setFromEuler(sE); A.quaternion.copy(rest[arm]).multiply(sQ);
   sE.set(c[3], 0, 0, 'YXZ'); sQ.setFromEuler(sE); F.quaternion.copy(rest[fore]).multiply(sQ);
   A.updateMatrixWorld(true);
   F.getWorldPosition(fA); H.getWorldPosition(fB);
-  const x = crossing();
-  // the forearm crossing your line of sight, a little out in front of the spot (not inside him, not
-  // right up at your face), and lying across the line rather than along it
-  const along = Math.abs(fD.normalize().dot(sView));
-  return x.dist + Math.max(0, 0.18 - x.t) * 1.5 + Math.max(0, x.t - 1.1) * 0.6 + 0.15 * along;
+  // his palm: a little past the wrist, along the forearm
+  fD.copy(fB).sub(fA).normalize();
+  palm.copy(fB).addScaledVector(fD, 0.16);
+  // hand pressed on the spot (just on its surface, on your side), and the arm not tucked in behind him
+  const ahead = sv.copy(palm).sub(sSpot).dot(sView);
+  return palm.distanceTo(sTarget) + Math.max(0, -ahead) * 1.2;
 }
 function startGuard(hit) {
   const b = bones[hit.bone]; if (!b) return;
@@ -1411,14 +1413,9 @@ function trackGuard(now) {
     const otherSide = guard.side === 'R' ? 'L' : 'R';
     const other = refine(otherSide, guard.other || guard.c.map((v, i) => (i === 1 || i === 2 ? -v : v)), 40, 0.25);
     guard.other = other.c;
-    // the real test, once the arm is up: would a click on the spot land on this arm?
-    const hitNow = spotHit();
-    const covered = guard.amt < 0.85 || hitNow === 'armR' || hitNow === 'armL';   // either arm covering it counts
-    if (!covered) {
-      if (other.cost < mine.cost + 0.15) mine.cost = 9;                      // let the other hand have a go
-      else { const fresh = refine(guard.side, guard.c.map((v) => v + (Math.random() - 0.5) * 1.2), 60, 0.3); if (fresh.cost < mine.cost + 0.1) { guard.c = fresh.c; } }
-    }
-    if ((mine.cost > GUARD_OK || !covered) && other.cost < mine.cost - 0.12 && now > (guard.swappedAt || 0) + 700) {
+    // can't keep the hand on it (he's turned, or it's out of reach)? see if the other hand can
+    if (mine.cost > GUARD_OK) { const fresh = refine(guard.side, guard.c.map((v) => v + (Math.random() - 0.5) * 1.2), 60, 0.3); if (fresh.cost < mine.cost) { guard.c = fresh.c; mine.cost = fresh.cost; } }
+    if (mine.cost > GUARD_OK && other.cost < mine.cost - 0.12 && now > (guard.swappedAt || 0) + 700) {
       guard.swappedAt = now;
       // swap hands: the old arm lowers while the other comes up
       guard.old = { side: guard.side, c: guard.c, amt: guard.amt };
@@ -1446,7 +1443,7 @@ function guardPose(now, dt, t) {
   const set = guard.custom || GUARD[guard.target][guard.side];
   Object.keys(set).forEach((name) => {
     const b = bones[name]; if (!b) return;
-    const v = set[name], shake = Math.sin(t * 21) * 0.025;
+    const v = set[name], shake = Math.sin(t * 9) * 0.05 + Math.sin(t * 23) * 0.015;   // rubbing it
     gE.set(v[0] + guard.kick * 0.5 + shake, v[1], v[2], 'YXZ'); gQ.setFromEuler(gE); gQ.premultiply(rest[name]);
     b.quaternion.slerp(gQ, guard.amt);
   });
@@ -1460,12 +1457,13 @@ function poke(cx, cy) {
   const decay = Math.max(0, irk - (now - irkAt) / 8000); irkAt = now; pokes++;
   const dx = body.position.x - camera.position.x, dz = body.position.z - camera.position.z, d = Math.hypot(dx, dz) || 1;
   const knock = (push) => { shove.x += dx / d * push; shove.z += dz / d * push; };
-  const blocked = guard.amt > 0.5 && (hit.part === 'armR' || hit.part === 'armL');   // hit the guarding arm (or the one handing over)
+  const sore = guard.amt > 0.5 && (hit.part === 'armR' || hit.part === 'armL');   // poked the hand that's holding the sore spot
   let pool = null, mood = null, add = 1, lookLater = 650;
-  if (blocked) {
-    // he saw it coming
-    guard.kick = 1; guard.until = now + 2600; knock(0.25); add = 0.25;
-    pool = LINES.poke_blocked; mood = 'sly';
+  if (sore) {
+    // right on the sore spot: he winces, the hand jerks off it and goes back, and it hurts more
+    guard.kick = 1.6; guard.until = now + 3200; knock(0.35); look.vp -= 4;
+    if (servos.upX) servos.upX.v -= 3;
+    pool = LINES.poke_sore; mood = Math.random() < 0.5 ? 'sad' : 'angry';
   } else if (hit.part === 'head') {
     knock(0.6); look.vp -= 9; look.vy += (Math.random() - 0.5) * 6; glitch();
     if (servos.upX) servos.upX.v -= 2.5;
@@ -1506,7 +1504,7 @@ function poke(cx, cy) {
     stopAndFaceYou(performance.now());
   }, lookLater);
   fizzle(faceIndex(mood || (irk < 1.6 ? 'surprised' : irk < 3 ? 'neutral' : 'angry')), 260);
-  if (irk >= 3 && !blocked) pool = LINES.poke_annoyed;
+  if (irk >= 3 && !sore) pool = LINES.poke_annoyed;
   if (!pool || !pool.length) pool = LINES.poke;
   if (pool && pool.length) say(pick(pool));
   nextMood = now + 4000;
