@@ -92,3 +92,6 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
 .ctl dt { color: #00fffa; font-weight: bold; } .ctl dd { margin: 0; }
 .note { opacity: .75; font-size: .92em; }
 .panel-card .back { margin-top: 1.6em; min-width: 0; width: auto; align-self: center; }
+.d-tip { margin-top: .8em; font: italic 14px Georgia, serif; color: #ffd23a; }
+.say.hint { color: #9fb6bc; font-size: clamp(13px, 1.8vw, 18px); text-shadow: none; }
+.say.hint::after { content: ''; }

@@ -80,6 +80,7 @@ function step(dt) {
   P.lock = Math.max(0, P.lock - dt);
   P.hurtT = Math.max(0, P.hurtT - dt);
   P.goldT = Math.max(0, (P.goldT || 0) - dt);
+  P.fizzleT = Math.max(0, (P.fizzleT || 0) - dt);
 
   // run
   const want = P.lock > 0 ? P.vx : dir * TUNE.run;
@@ -110,7 +111,10 @@ function step(dt) {
     if (P.parryCool <= 0 && P.spin <= 0) {
       if (P.ground) { P.vy = -TUNE.groundHop; P.ground = false; P.cutReady = false; }
       else if (!P.wall) P.vy = Math.min(P.vy, -TUNE.airPop);
-      P.parryT = TUNE.parry; P.spin = TUNE.spin; P.parryCool = TUNE.spin + TUNE.parryCool;
+      P.spin = TUNE.spin; P.parryCool = TUNE.spin + TUNE.parryCool;
+      // You can only parry while carrying something that can take what he throws: the Clear Polaroid or the
+      // Dubbed Tape (from the drawer). Without one, it's just a spin.
+      if (canParry()) P.parryT = TUNE.parry; else noParry();
     }
   }
   P.parryT = Math.max(0, P.parryT - dt);
@@ -140,6 +144,22 @@ function frameFor() {
   // the idle frame is the passing pose between each half of the step
   if (Math.abs(P.vx) > 20) return WALK[Math.floor(P.walkT * 14) % WALK.length];
   return 'Idle';
+}
+
+// ---- what lets you parry (items from the site's drawer, /inventory.js) ----
+const PARRY_ITEMS = ['clear_polaroid', 'dubbed_tape'];
+function canParry() { const inv = window.RPInventory; return !!(inv && PARRY_ITEMS.some((id) => inv.has(id))); }
+let noParryAt = -1e9;
+function noParry() {
+  // a grey fizzle, and (now and then) a reminder why
+  P.fizzleT = 0.35;
+  const now = performance.now();
+  if (now - noParryAt > 6000) { noParryAt = now; const t = MONO && MONO.no_parry; if (t) hint(t); }
+}
+function hint(text) {
+  const el = document.getElementById('say'); if (!el || mono.on) return;
+  el.textContent = text; el.hidden = false; el.classList.add('hint');
+  clearTimeout(hint.t); hint.t = setTimeout(() => { if (!mono.on) { el.hidden = true; el.classList.remove('hint'); } }, 2600);
 }
 
 // ---------------- the stage (2D) ----------------
@@ -177,6 +197,7 @@ function drawPlayer() {
   if (P.hurtT > 0 && Math.floor(P.hurtT * 20) % 2) ctx.globalAlpha = 0.35;
   // a parry: a quick flip, and a flash around him while the window's open
   if (P.spin > 0) ctx.rotate((1 - P.spin / TUNE.spin) * Math.PI * 2 * P.face);
+  if (P.fizzleT > 0) { ctx.filter = 'grayscale(1) brightness(.75)'; }
   if (P.goldT > 0) {
     // just parried: golden, and nothing can touch you
     const k = Math.min(1, P.goldT / 0.15);
@@ -1150,8 +1171,11 @@ function hitTodd(x, y) {
   hitTodd.back = setTimeout(() => { if (!boss.down) face('angry', 300); }, 700);
   if (boss.hp <= 0) knockout();
 }
+function setFlag(name) { try { const f = JSON.parse(localStorage.getItem('rp_flags')) || {}; if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); } } catch (e) {} }
+function flagSet(name) { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[name]; } catch (e) { return false; } }
 function knockout() {
   boss.down = true; atk = null; threats.length = 0;
+  setFlag('todd_dead');   // for good: he stays dead here, and Cedar and Wonder know
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
   // his screen goes to the skull
   setTimeout(() => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } }, 700);
@@ -1188,6 +1212,7 @@ function showScreen(id) {
   const first = document.querySelector('#' + id + ' button'); if (first) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
 function showTitle() {
+  if (flagSet('todd_dead')) return showGone();
   const T = (MONO && MONO.title) || {};
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
   set('t-name', T.name || 'TODD.EXE'); set('t-kicker', T.kicker); set('t-tag', T.tagline);
@@ -1207,12 +1232,25 @@ optShake.checked = OPT.shake; optSkip.checked = OPT.skip;
 optShake.addEventListener('change', () => { OPT.shake = optShake.checked; saveOpts(); });
 optSkip.addEventListener('change', () => { OPT.skip = optSkip.checked; saveOpts(); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && fight.phase === 'title') showScreen('title'); });
+// He's been beaten (rp_flags.todd_dead): no fight any more. He's slumped over the stage, smoking, the skull on
+// his screen, and the menu has no START.
+function showGone() {
+  const G = (MONO && MONO.gone) || {};
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
+  set('t-name', G.name || 'TODD.EXE'); set('t-kicker', G.kicker); set('t-tag', G.tagline);
+  const st = document.querySelector('[data-go=start]'); if (st) st.hidden = true;
+  boss.hp = 0; boss.down = true; fight.phase = 'down'; red = 0; face('error', 300);
+  const skull = () => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } else setTimeout(skull, 400); };
+  skull();
+  showScreen('title');
+}
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
   const D = (MONO && MONO.death) || {}, el = document.getElementById('death');
   const q = D.quotes && D.quotes.length ? D.quotes[(Math.random() * D.quotes.length) | 0] : '';
   document.getElementById('d-head').textContent = D.heading || 'YOU DIED';
   document.getElementById('d-quote').textContent = q; document.getElementById('d-quote').hidden = !q;
+  const tip = document.getElementById('d-tip'); if (tip) { tip.textContent = canParry() ? '' : ((MONO && MONO.no_parry_tip) || ''); tip.hidden = canParry(); }
   const far = Math.max(0, Math.min(1, (TODD_HP - boss.hp) / TODD_HP));
   // his phases, marked where they start
   const marks = el.querySelectorAll('.d-mark'); marks[0].style.left = ((TODD_HP - 18) / TODD_HP * 100) + '%'; marks[1].style.left = ((TODD_HP - 9) / TODD_HP * 100) + '%';
@@ -1748,7 +1786,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();

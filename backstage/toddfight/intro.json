@@ -205,5 +205,13 @@
     "colton",
     "costume1"
   ],
-  "_how5": "'eggs': rare Easter-egg pictures. Now and then one replaces a damage flash or a taunt picture (held a little longer), and there's a small chance one sneaks into a line of the monologue. 'fill' stretches a picture's own background to the edges of his screen."
+  "_how5": "'eggs': rare Easter-egg pictures. Now and then one replaces a damage flash or a taunt picture (held a little longer), and there's a small chance one sneaks into a line of the monologue. 'fill' stretches a picture's own background to the edges of his screen.",
+  "no_parry": "(Nothing to parry with. You need something that can take a hit.)",
+  "no_parry_tip": "You can't parry without the Clear Polaroid or the Dubbed Tape.",
+  "gone": {
+    "name": "TODD.EXE",
+    "kicker": "is not responding",
+    "tagline": "“...”"
+  },
+  "_how6": "'no_parry' shows (now and then) when you try to parry without the Clear Polaroid or the Dubbed Tape; 'no_parry_tip' goes on the death card. 'gone' is the title once he's been beaten (rp_flags.todd_dead): no START, just him, dead. These are drafts."
 }
