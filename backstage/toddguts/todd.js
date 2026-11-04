@@ -132,7 +132,10 @@ function loadFaces() {
 
 // ---- the fizzle: tearing, static, then the new face settling in ----
 let fizz = null;   // { from, to, t0, dur }
+const RAGE_FACES = ['angry', 'error'];   // the only faces he'll show in a tantrum
 function fizzle(to, dur) {
+  // mid-tantrum, anything else that tries to change his face gets angry instead
+  if (typeof rage !== 'undefined' && rage.on && RAGE_FACES.indexOf(FACES[to]) < 0) to = faceIndex('angry');
   if (to === shownFace && !dur) return;
   if (!faceData[to]) return;
   if (reduce) { shownFace = to; putFace(faceData[to]); return; }
@@ -767,5 +770,6 @@ window.TODD = {
   face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body, shuffle, orbit, camera,
   rage: () => { if (!rage.on) startRage(performance.now()); },   // set off a tantrum now
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
-  say: (t, red) => say(t, red), state: rage
+  say: (t, red) => say(t, red), state: rage,
+  get showing() { return FACES[fizz ? fizz.to : shownFace]; }
 };
