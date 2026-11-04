@@ -49,9 +49,9 @@
     "> papa.exe is not responding"
   ],
   "disk": [
-    "> BOOT DISK 1 ... MISSING",
-    "> DISK 1 LOCATED: YOUR DRAWER",
-    "> give it back"
+    "> BOOT DISK 1 ... checked out to: YOU",
+    "> is the disk SAFE?",
+    "> don't put it in ANYTHING"
   ],
   "rage": [
     "ERROR ERROR ERROR",
