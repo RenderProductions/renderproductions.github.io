@@ -1313,8 +1313,14 @@ const GUARD = {
 };
 const gQ = new THREE.Quaternion(), gE = new THREE.Euler();
 function guardUp(target, side, now, hit) {
+  // already holding somewhere? the hand travels to the new spot (or lets go while the other one comes up)
+  const prev = guard.amt > 0.05 && guard.shown ? { side: guard.side, c: guard.shown.slice(), amt: guard.amt } : null;
   Object.assign(guard, { target, side, until: now + 3600, custom: null, track: null });
   if (hit) { startGuard(hit); if (!guard.track) guard.until = 0; }   // couldn't reach it with either hand: no guard
+  if (!prev) { guard.shown = null; return; }
+  if (!guard.track) { guard.old = prev; guard.amt = 0; guard.shown = null; return; }   // lets go of the old spot
+  if (prev.side === guard.side) guard.shown = prev.c;                                  // same hand: it moves over
+  else { guard.old = prev; guard.amt = 0.15; guard.shown = null; }                     // other hand: swap
 }
 // He holds the exact spot you hit: the spot is pinned to the bone it's on (his screen moves with his head),
 // and every frame he nudges his arm to keep his hand on it. The hand on that side if it can reach, else the other.
@@ -1454,7 +1460,7 @@ function refine(side, c, tries, step) {
   bones[arm].quaternion.copy(keepA); bones[fore].quaternion.copy(keepF);
   return { c, cost };
 }
-function trackGuard(now) {
+function trackGuard(now, dt) {
   guardTarget();
   const mine = refine(guard.side, guard.c, 24, 0.12);
   guard.c = mine.c; guard.cost = mine.cost;
@@ -1469,13 +1475,16 @@ function trackGuard(now) {
     if (mine.cost > GUARD_OK && other.cost < mine.cost - 0.12 && now > (guard.swappedAt || 0) + 700) {
       guard.swappedAt = now;
       // swap hands: the old arm lowers while the other comes up
-      guard.old = { side: guard.side, c: guard.c, amt: guard.amt };
+      guard.old = { side: guard.side, c: (guard.shown || guard.c).slice(), amt: guard.amt };
       guard.side = otherSide; guard.c = other.c; guard.other = mine.c;
-      guard.amt = 0.15;
+      guard.amt = 0.15; guard.shown = null;
     }
   }
-  const [arm, fore] = ARMS[guard.side];
-  guard.custom = { [arm]: [guard.c[0], guard.c[1], guard.c[2]], [fore]: [guard.c[3], 0, 0] };
+  // the arm he shows eases toward the solution, so a new spot is a reach, not a jump
+  if (!guard.shown) guard.shown = guard.c.slice();
+  else { const k = Math.min(1, dt * 7); for (let i = 0; i < 4; i++) guard.shown[i] += (guard.c[i] - guard.shown[i]) * k; }
+  const [arm, fore] = ARMS[guard.side], c = guard.shown;
+  guard.custom = { [arm]: [c[0], c[1], c[2]], [fore]: [c[3], 0, 0] };
 }
 function guardPose(now, dt, t) {
   const want = now < guard.until && !rage.on && !sleep.on && !reach.on ? 1 : 0;
@@ -1490,7 +1499,7 @@ function guardPose(now, dt, t) {
     });
   }
   if (guard.amt < 0.01) return;
-  if (guard.track && guard.c) trackGuard(now);
+  if (guard.track && guard.c) trackGuard(now, dt);
   const set = guard.custom || GUARD[guard.target][guard.side];
   Object.keys(set).forEach((name) => {
     const b = bones[name]; if (!b) return;
