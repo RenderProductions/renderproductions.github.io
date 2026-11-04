@@ -16,9 +16,14 @@
 // hits the screen in a burst of static. Try it in the console: TODD.rage()
 import * as THREE from './vendor/three-gltf.min.js';
 
-const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading'];
+const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading', 'agony'];
+// 'agony' isn't in faces.png: it's agony.jpg, a full 1024 x 1024 picture shown on a panel laid over his
+// screen (the screen itself is far too small for it). It flashes up rarely, after he hits the screen in a
+// tantrum, and if you ask him whether it hurts. Swap agony.jpg for any square picture to change it.
+const AGONY_SRC = 'agony.jpg?v=1';
+const AGONY_ZOOM = 0.8;   // how much of the picture's width fills the screen (1 = all of it)
 // how often each face comes up on its own (higher = more often)
-const MOODS = { smile: 5, neutral: 6, happy: 2, angry: 1.5, surprised: 0, sly: 3, sad: 1.5, error: 0.6, loading: 0.6 };
+const MOODS = { smile: 5, neutral: 6, happy: 2, angry: 1.5, surprised: 0, sly: 3, sad: 1.5, error: 0.6, loading: 0.6, agony: 0 };
 const FACE = { x: 1, y: 145, w: 18, h: 14 };
 
 // how aware of you he is: 0 on a first visit, up to 4 (visits 1, 2-3, 4-5, 6-7, 8+)
@@ -127,12 +132,26 @@ function loadFaces() {
     };
     img.onerror = () => { console.warn('[todd] faces.png did not load'); ok(); };
     img.src = 'faces.png?v=1';
-  });
+  }).then(() => new Promise((ok) => {
+    const img = new Image();
+    img.onload = () => {
+      agonyImg = img;
+      // squeezed down to the screen's 18 x 14, cropped to its shape: a blur of the face, for the fizzle
+      const c = document.createElement('canvas'); c.width = FACE.w; c.height = FACE.h;
+      const g = c.getContext('2d', { willReadFrequently: true }), sw = img.width * AGONY_ZOOM, sh = sw * FACE.h / FACE.w;
+      g.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, FACE.w, FACE.h);
+      faceData[faceIndex('agony')] = g.getImageData(0, 0, FACE.w, FACE.h).data;
+      ok();
+    };
+    img.onerror = () => { console.warn('[todd] agony.jpg did not load'); ok(); };
+    img.src = AGONY_SRC;
+  }));
 }
+let agonyImg = null, agonyPanel = null;
 
 // ---- the fizzle: tearing, static, then the new face settling in ----
 let fizz = null;   // { from, to, t0, dur }
-const RAGE_FACES = ['angry', 'error'];   // the only faces he'll show in a tantrum
+const RAGE_FACES = ['angry', 'error', 'agony'];   // the only faces he'll show in a tantrum
 function fizzle(to, dur) {
   // mid-tantrum, anything else that tries to change his face gets angry instead
   if (typeof rage !== 'undefined' && rage.on && RAGE_FACES.indexOf(FACES[to]) < 0) to = faceIndex('angry');
@@ -219,11 +238,66 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=1', o
     if (bones.Right_Leg) { bones.Right_Leg.getWorldPosition(hip); hipH = hip.y; }
     pool.position.y = 0.01;
     pool.scale.setScalar(height * 0.9);
+    buildAgonyPanel();
     frame();
     boot.classList.add('gone');
     setTimeout(() => { if (!rage.on) fizzle(pickMood(0)); }, 1800);
   })
   .catch((e) => { console.warn('[todd] todd.gltf did not load', e); boot.textContent = 'NO SIGNAL'; });
+
+// ---- the agony panel: a high-resolution picture laid exactly over his screen ----
+function buildAgonyPanel() {
+  const head = bones.fat_fucking_dome;
+  let mesh = null;
+  todd.traverse((o) => { if (o.isSkinnedMesh) mesh = o; });
+  if (!agonyImg || !head || !mesh) return;
+  // find the screen: the vertices whose texture coordinates are the face patch, at the very front
+  const uv = mesh.geometry.attributes.uv, pos = mesh.geometry.attributes.position, v = new THREE.Vector3();
+  const pts = [];
+  for (let i = 0; i < uv.count; i++) {
+    const u = uv.getX(i) * 256, w = uv.getY(i) * 256;
+    if (u < FACE.x - 0.5 || u > FACE.x + FACE.w + 0.5 || w < FACE.y - 0.5 || w > FACE.y + FACE.h + 0.5) continue;
+    mesh.boneTransform(i, v.fromBufferAttribute(pos, i)); mesh.localToWorld(v);
+    pts.push(v.clone());
+  }
+  if (pts.length < 4) return;
+  const front = Math.max(...pts.map((p) => p.z));
+  const face = pts.filter((p) => p.z > front - 0.002);
+  const box = new THREE.Box3().setFromPoints(face), size = new THREE.Vector3(), mid = new THREE.Vector3();
+  box.getSize(size); box.getCenter(mid);
+  const tex = new THREE.Texture(agonyImg);
+  tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true;
+  // crop the square picture to the screen's shape
+  const keep = Math.min(1, (size.y / size.x)) * AGONY_ZOOM;
+  tex.repeat.set(AGONY_ZOOM, keep); tex.offset.set((1 - AGONY_ZOOM) / 2, (1 - keep) / 2);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, fog: false,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  agonyPanel = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 0.97, size.y * 0.97), mat);
+  agonyPanel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.006))));
+  const q = new THREE.Quaternion(); head.getWorldQuaternion(q); agonyPanel.quaternion.copy(q.invert());
+  agonyPanel.renderOrder = 2;
+  head.add(agonyPanel);
+}
+function agonyStep(now) {
+  if (!agonyPanel) return;
+  const A = faceIndex('agony');
+  let want = 0;
+  if (shownFace === A && !fizz) want = 1;
+  else if (fizz && fizz.to === A) want = Math.max(0, ((now - fizz.t0) / fizz.dur - 0.55) / 0.45);   // fades in out of the static
+  // an old screen: it flickers, drops out for a frame now and then, and the picture slips sideways
+  const flick = Math.random() < 0.04 ? 0.15 : 0.82 + Math.random() * 0.18;
+  agonyPanel.material.opacity = want * flick;
+  agonyPanel.visible = want > 0.01;
+  if (want > 0) agonyPanel.material.map.offset.x = Math.random() < 0.08 ? (Math.random() - 0.5) * 0.06 : 0;
+}
+let nextAgony = performance.now() + 60000 + Math.random() * 120000;
+function agonyFlash(ms, gentle) {
+  if (!agonyPanel || (gentle && fizz)) return;   // a random flash waits its turn; asked-for ones cut in
+  if (fizz) { shownFace = fizz.to; fizz = null; }
+  const back = shownFace;
+  fizzle(faceIndex('agony'), 420);
+  setTimeout(() => { if (FACES[shownFace] === 'agony') fizzle(rage.on ? faceIndex('error') : (back === faceIndex('agony') ? 0 : back), 380); }, (ms || 1500) + 420);
+}
 
 // ---- framing ----
 function frame() {
@@ -289,6 +363,7 @@ function think(now) {
   }
   if (now > nextMood) { if (!fizz) fizzle(pickMood(shownFace)); nextMood = now + 3500 + Math.random() * 5000; }
   if (now > nextGlitch) { if (!fizz && Math.random() < 0.6) glitch(); nextGlitch = now + 2500 + Math.random() * 6000; }
+  if (now > nextAgony) { agonyFlash(1100 + Math.random() * 1200, true); nextAgony = now + (90000 + Math.random() * 150000) / (1 + 0.5 * level); }
 }
 
 function spring(k, d, dt) {
@@ -629,7 +704,8 @@ function rageThink(now) {
       walk.heading = Math.atan2(-dx, -dz); body.rotation.y = walk.heading;
       walk.pace = 1; walk.state = 'stand'; walk.amp = 0; walk.approach = false; walk.stopAt = 0;
       rage.lock = false; rage.shake = 0; rage.frenzy = 0;
-      fizzle(faceIndex('error'), 200);
+      if (agonyPanel) { fizzle(faceIndex('agony'), 160); setTimeout(() => fizzle(faceIndex('error'), 300), 1500); }
+      else fizzle(faceIndex('error'), 200);
       goal.yaw = 0; goal.pitch = 0.35; goal.roll = 0.3;
       flood(false);
       // something else answers: whatever holds him in
@@ -737,6 +813,7 @@ function tick(now) {
     balance(now, dt, t);
     fadePrints(now);
     fizzStep(now);
+    agonyStep(now);
     crashStep(now);
     // the camera sways a little, so the void doesn't feel like a photo
     const d = camera.userData.dist || 10, aimY = floorY + height * 0.5;
@@ -804,6 +881,7 @@ window.TODD = {
   wander: () => { if (rage.on) return; mode = 'glance'; walk.approach = false; walk.state = 'stand'; walk.until = 0; },
   spin: () => { if (rage.on) return; walk.spin = 1; walk.aim = wrap(walk.heading + Math.PI); walk.state = 'turn'; walk.then = 'stand'; },
   glitch: () => glitch(),
+  agony: (ms) => agonyFlash(ms),
   reboot: () => {
     if (rage.on) return;
     fizzle(faceIndex('loading'), 300); boot.textContent = 'TODD.OS'; boot.classList.remove('gone');
