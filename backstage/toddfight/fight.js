@@ -44,7 +44,7 @@ const TUNE = {
   slide: 150,                      // max speed sliding down a wall
   wallJumpX: 390, wallJumpY: 790, wallLock: 0.16,
   coyote: 0.09, buffer: 0.12,
-  parry: 0.22, parryBounce: 760    // how long a mid-air jump press can parry for, and how high a parry bounces you
+  parry: 0.18, parryBounce: 760    // how long a mid-air jump press can parry for, and how high a parry bounces you
 };
 
 // ---------------- input ----------------
@@ -190,7 +190,7 @@ const facePix = document.createElement('canvas'); facePix.width = FACE.w; facePi
 const faceCtx = facePix.getContext('2d'), faceImg = faceCtx.createImageData(FACE.w, FACE.h);
 const faceTex = new THREE.CanvasTexture(facePix);
 faceTex.encoding = THREE.sRGBEncoding; faceTex.magFilter = faceTex.minFilter = THREE.NearestFilter; faceTex.generateMipmaps = false;
-let faceData = [], shown = 1, fizz = null, red = 0, redShown = -1;
+let faceData = [], shown = 1, fizz = null, red = 0, redShown = -1, agonyPanel = null, agonyAmt = 0;
 const faceAt = (name) => Math.max(0, FACES.indexOf(name));
 function loadFaces() {
   return new Promise((ok) => {
@@ -259,6 +259,18 @@ function buildScreen() {
   panel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.003))));
   panel.quaternion.copy(q); panel.renderOrder = 1;
   head.add(panel); screenPanel = panel;
+  // the agony face: the big detailed picture, laid over the screen when he uses his worst attack
+  const agonyAt = head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.006)));   // now, while his head is still at rest
+  new THREE.TextureLoader().load('../toddguts/agony.jpg', (tex) => {
+    tex.encoding = THREE.sRGBEncoding;
+    const Z = 0.8, keep = Math.min(1, size.y / size.x) * Z;
+    tex.repeat.set(Z, keep); tex.offset.set((1 - Z) / 2, (1 - keep) / 2);
+    agonyPanel = new THREE.Mesh(new THREE.PlaneGeometry(size.x * 0.97, size.y * 0.97),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    agonyPanel.position.copy(agonyAt);
+    agonyPanel.quaternion.copy(q); agonyPanel.renderOrder = 2; agonyPanel.visible = false;
+    head.add(agonyPanel);
+  });
   const r = new THREE.Vector3(); bones.Right_Arm.getWorldPosition(r); rightArmOnLeft = toStage(r).x < W / 2;
   if (faceData[shown]) putFace(faceData[shown]);
 }
@@ -478,14 +490,26 @@ function animateTodd(t, dt) {
     chest = [0.12 + huff * 0.03, 0, 0];
     armR = [-0.9 + huff * 0.04, 0.1, 0.35]; armL = [-0.9 - huff * 0.04, -0.1, -0.35]; foreR = foreL = -1.3;
     speed = 5; red = 1;
-    if (atk && atk.kind === 'slam') {
+    if (atk && (atk.kind === 'slam' || atk.kind === 'sweep')) {
       const S = atk.side, T2 = (performance.now() - atk.t0) / 1000;
       let a = null, f = null;
-      if (atk.state === 'raise') { a = [-2.7, 0, S === 'R' ? 0.25 : -0.25]; f = -0.4; chest = [-0.12, 0, 0]; speed = 7; pitch = youPitch + 0.1; }
+      if (atk.state === 'raise' && atk.kind === 'sweep') { a = [-1.3, 0, S === 'R' ? 1.2 : -1.2]; f = -0.5; chest = [0.1, 0, 0]; speed = 6; pitch = 0.4; }
+      else if (atk.state === 'raise') { a = [-2.7, 0, S === 'R' ? 0.25 : -0.25]; f = -0.4; chest = [-0.12, 0, 0]; speed = 7; pitch = youPitch + 0.1; }
+      else if (atk.state === 'sweep') { a = atk.sol.c.slice(0, 3); f = atk.sol.c[3]; chest = [atk.lean, 0, 0]; speed = 30; pitch = 0.55; }
       else if (atk.state === 'down' || atk.state === 'rest') { a = atk.sol.c.slice(0, 3); f = atk.sol.c[3]; chest = [atk.lean, 0, 0]; speed = atk.state === 'down' ? 26 : 10; pitch = 0.55; }
       else if (atk.state === 'punch' && atk.punch) { a = atk.punch.c.slice(0, 3); f = atk.punch.c[3]; chest = [-0.1, 0, 0]; speed = 18; }
       else if (atk.state === 'lift') speed = 5;
       if (a) { if (S === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; } }
+    } else if (atk && atk.kind === 'rain') {
+      // arms up, pounding at the air, his terminal pouring out of the sky
+      const pound = Math.sin(t * 9);
+      armR = [-2.5 + pound * 0.25, 0, 0.35]; armL = [-2.5 - pound * 0.25, 0, -0.35]; foreR = foreL = -0.9;
+      chest = [-0.18, 0, 0]; pitch = -0.35; speed = 9;
+    } else if (atk && atk.kind === 'agony') {
+      // arms flung wide, leaning back, the face burning through his screen
+      const tr = Math.sin(t * 45) * 0.04;
+      armR = [-0.4 + tr, 0, 1.45]; armL = [-0.4 - tr, 0, -1.45]; foreR = foreL = -0.15;
+      chest = [-0.3, 0, tr]; pitch = -0.1; speed = atk.state === 'charge' ? 6 : 12;
     } else if (atk && atk.kind === 'taunt') {
       const T2 = (performance.now() - atk.t0) / 1000, k = tauntFrame(T2);
       speed = 9;
@@ -515,7 +539,7 @@ function animateTodd(t, dt) {
 
   look.yaw += (yaw - look.yaw) * Math.min(1, dt * (speed > 8 ? 12 : 3));
   look.pitch += (pitch - look.pitch) * Math.min(1, dt * (speed > 8 ? 12 : 3));
-  const slamming = atk && ((atk.kind === 'slam' && atk.state !== 'raise' && atk.state !== 'lift') || atk.kind === 'taunt');
+  const slamming = atk && ((atk.fist && atk.state !== 'raise' && atk.state !== 'lift') || atk.kind === 'taunt');
   target('chest', chest[0], chest[1] + (slamming ? 0 : look.yaw * 0.25), chest[2]);   // (no turning while his fist is out: it was aimed without it)
   target('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
   target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
@@ -529,7 +553,7 @@ function animateTodd(t, dt) {
 // ---------------- the fight: his attacks, and parrying them back at him ----------------
 // Everything he throws at you hurts if it touches you, unless you parry it: jump, then press jump again in
 // mid-air as you meet it. A parried attack flies back and hits him. That's the only way to hurt him.
-const TODD_HP = 12;
+const TODD_HP = 20;   // parries it takes to beat him
 const boss = { hp: TODD_HP, flinch: 0, down: false };
 const threats = [];              // faces in the air
 const fx = [];                   // sparks, rings, the slam target glow
@@ -585,6 +609,26 @@ function solveArm(side, goal, lean) {
   A.quaternion.copy(keep[0]); F.quaternion.copy(keep[1]); C.quaternion.copy(keep[2]); C.updateMatrixWorld(true);
   return best;
 }
+// the same, but starting from a nearby solution (cheap: for a path of points)
+function solveArmFrom(side, goal, lean, seed) {
+  const [arm, fore] = ARM[side], A = bones[arm], F = bones[fore], C = bones.chest;
+  const keep = [A.quaternion.clone(), F.quaternion.clone(), C.quaternion.clone()];
+  const e = new THREE.Euler(), q = new THREE.Quaternion();
+  const set = (c) => {
+    e.set(lean, 0, 0, 'YXZ'); C.quaternion.copy(rest.chest).multiply(q.setFromEuler(e));
+    e.set(c[0], c[1], c[2], 'YXZ'); A.quaternion.copy(rest[arm]).multiply(q.setFromEuler(e));
+    e.set(c[3], 0, 0, 'YXZ'); F.quaternion.copy(rest[fore]).multiply(q.setFromEuler(e));
+    C.updateMatrixWorld(true);
+    return palmOf(side).distanceTo(goal);
+  };
+  let best = { c: seed.slice(), cost: set(seed) };
+  for (let i = 0; i < 160; i++) {
+    const c = best.c.map((v) => v + (Math.random() - 0.5) * (0.25 * (1 - i / 160) + 0.02));
+    const k = set(c); if (k < best.cost) best = { c, cost: k };
+  }
+  A.quaternion.copy(keep[0]); F.quaternion.copy(keep[1]); C.quaternion.copy(keep[2]); C.updateMatrixWorld(true);
+  return best;
+}
 // which of his arms is on which side of the screen (he faces you, so his right is on your left)
 let rightArmOnLeft = true;
 
@@ -614,10 +658,40 @@ function fireFace(name, speed) {
   fx.push({ kind: 'ring', x: s.x, y: s.y, t: 0, life: 0.3, color: '#ff2a3a' });
 }
 
+// --- his terminal, falling: the lines from the void's terminal.json ('rage') ---
+let RAIN_LINES = ['GET OUT', 'STOP', 'ERROR ERROR ERROR', 'SEGFAULT', 'KILL -9', 'I SEE YOU'];
+fetch('../toddguts/terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { if (d.rage && d.rage.length) RAIN_LINES = d.rage.filter((l) => l.length <= 22); }).catch(() => {});
+const BAR_H = 30;
+function barWidth(text) { ctx.save(); ctx.font = 'bold 17px "Courier New", monospace'; const w = ctx.measureText('> ' + text).width + 26; ctx.restore(); return Math.min(320, Math.max(110, w)); }
+function rainWave(speed, lastGap, gapW = 150) {
+  // a row of falling lines across the stage, with one gap to slip through
+  let gap;
+  do { gap = 60 + Math.random() * (W - 120 - gapW); } while (lastGap != null && Math.abs(gap - lastGap) < 180);
+  let x = 0;
+  while (x < W) {
+    const text = RAIN_LINES[(Math.random() * RAIN_LINES.length) | 0], w = barWidth(text);
+    let x0 = x, x1 = x + w;
+    if (x1 > gap && x0 < gap + gapW) { x = gap + gapW; continue; }    // leave the gap clear
+    if (x1 > W) x1 = W;
+    if (x1 - x0 > 60) threats.push({ kind: 'bar', text, x: (x0 + x1) / 2, y: -BAR_H - Math.random() * 30, w: x1 - x0 - 8, h: BAR_H, vy: speed, state: 'fly', t: 0, rot: 0 });
+    x = x1;
+  }
+  return gap;
+}
+// --- the static wave: along the floor, from under him outward ---
+function staticWave(dir, speed) { threats.push({ kind: 'wave', x: W / 2, y: FLOOR - 45, w: 38, h: 90, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
+
 // --- hitting him ---
 function hitTodd(x, y) {
   if (boss.down) return;
+  const before = phase();
   boss.hp--; boss.flinch = 1;
+  if (boss.hp > 0 && phase() !== before) {
+    // a new phase: he glitches out, then comes back angrier
+    setTimeout(() => { if (!boss.down) { face('error', 300); fight.shake = 1.3; } }, 750);
+    setTimeout(() => { if (!boss.down) face('angry', 400); }, 1500);
+    nextAtk = performance.now() + 2200;
+  }
   fight.shake = Math.max(fight.shake, 0.8);
   fx.push({ kind: 'burst', x, y, t: 0, life: 0.5 });
   face(Math.random() < 0.5 ? 'surprised' : 'sad', 180);
@@ -628,7 +702,7 @@ function hitTodd(x, y) {
 function knockout() {
   boss.down = true; atk = null; threats.length = 0;
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
-  setTimeout(() => banner('KNOCKOUT!'), 600);
+  setTimeout(() => banner('WHAT??!'), 600);
 }
 function youDied() {
   atk = null;
@@ -641,8 +715,31 @@ function restart() {
 }
 
 // --- picking and running his attacks ---
-function startAttack(now) {
-  const kind = Math.random() < 0.55 ? 'slam' : 'volley';
+// He gets worse as he takes damage: three phases, each faster, each adding attacks.
+function phase() { return boss.hp > 13 ? 1 : boss.hp > 6 ? 2 : 3; }
+const MOVES = { 1: ['slam', 'slam', 'volley'], 2: ['slam', 'volley', 'sweep', 'sweep', 'rain', 'rain'], 3: ['slam', 'volley', 'sweep', 'rain', 'agony', 'agony'] };
+let lastMove = null;
+function pace() { return [1, 0.9, 0.7, 0.5][phase()]; }   // how long he rests between attacks
+function startAttack(now, force) {
+  let kind = force;
+  if (!kind) { const pool = MOVES[phase()]; do { kind = pool[(Math.random() * pool.length) | 0]; } while (kind === lastMove && pool.length > 1 && Math.random() < 0.7); }
+  lastMove = kind;
+  if (kind === 'sweep') {
+    // he lays his fist on the stage at one end and drags it across
+    const fromLeft = Math.random() < 0.5, side = fromLeft === rightArmOnLeft ? 'R' : 'L', lean = 0.45;
+    const xs = []; for (let x = fromLeft ? 150 : W - 150; fromLeft ? x <= W - 260 : x >= 260; x += fromLeft ? 70 : -70) xs.push(x);
+    const path = []; let seed = null;
+    for (const x of xs) {
+      const goal = fromStage(x, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;
+      const sol = seed ? solveArmFrom(side, goal, lean, seed) : solveArm(side, goal, lean);
+      if (sol.cost > toddH * 0.06 && path.length > 3) break;          // as far as he can reach
+      path.push(sol); seed = sol.c;
+    }
+    atk = { kind, fist: true, side, lean, path, fromLeft, state: 'raise', t0: now, sol: path[0] };
+    return;
+  }
+  if (kind === 'rain') { atk = { kind, state: 'cast', t0: now, waves: 0, next: now + 900, gap: null }; face('error', 300); return; }
+  if (kind === 'agony') { atk = { kind, state: 'charge', t0: now, waves: 0, next: 0 }; face('agony', 700); return; }
   if (kind === 'slam') {
     const tx = Math.max(190, Math.min(W - 190, P.x + P.vx * 0.3));   // (his reach: right by the walls is out of it)
     const onLeft = tx < W / 2, side = onLeft === rightArmOnLeft ? 'R' : 'L';
@@ -650,7 +747,7 @@ function startAttack(now) {
     // the fist lands on the stage, its bottom on the floor line, a little in front of him
     const goal = fromStage(tx, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;   // his fist's knuckles on the floor
     const sol = solveArm(side, goal, lean);
-    atk = { kind, side, tx, lean, sol, state: 'raise', t0: now };
+    atk = { kind, fist: true, side, tx, lean, sol, state: 'raise', t0: now };
     fx.push({ kind: 'target', x: tx, t: 0, life: 0.95 });
   } else {
     atk = { kind, state: 'aim', t0: now, shots: 0, next: now + 600 };
@@ -706,38 +803,82 @@ function stepAttack(now, dt) {
     return;
   }
   if (atk.kind === 'slam') {
-    if (atk.state === 'raise' && T > 0.85) { atk.state = 'down'; atk.t0 = now; }
+    if (atk.state === 'raise' && T > [0, 0.8, 0.65, 0.5][phase()]) { atk.state = 'down'; atk.t0 = now; }
     else if (atk.state === 'down' && T > 0.14) {
       atk.state = 'rest'; atk.t0 = now; fight.shake = 1; ripple(atk.tx, 2.2);
       const f = fistOnStage(atk.side);
       for (let i = 0; i < 10; i++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 });
     }
-    else if (atk.state === 'rest' && T > 1.15) { atk.state = 'lift'; atk.t0 = now; }
-    else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + 700 + Math.random() * 700; }
+    else if (atk.state === 'rest' && T > [0, 1.1, 0.9, 0.75][phase()]) { atk.state = 'lift'; atk.t0 = now; }
+    else if (atk.state === 'lift' && T > 0.4) {
+      // later on, he follows a slam straight up with another (the other fist, wherever you are now)
+      const again = !atk.punch && atk.chain == null && phase() >= 2 && Math.random() < (phase() === 3 ? 0.7 : 0.35);
+      atk = null; nextAtk = now + (700 + Math.random() * 700) * pace();
+      if (again) { startAttack(now, 'slam'); atk.chain = 1; }
+    }
     else if (atk.state === 'punch' && T > 0.32) {
       const s = screenAt(); hitTodd(s.x, s.y);
       atk.state = 'lift'; atk.t0 = now;
     }
     // his fist hurts on the way down and while it's on the stage, unless you parry it
-    if (atk && (atk.state === 'down' || atk.state === 'rest')) {
-      const f = fistOnStage(atk.side);
-      if (touches(f.x, f.y, f.r)) {
-        if (P.parryT > 0) {
-          parried(f.x, f.y);
-          // knocked back up into his own face
-          const s = screenPanel ? screenPanel.getWorldPosition(new THREE.Vector3()) : null;
-          if (s) { const goal = s.clone(); goal.z += toddH * 0.12; atk.punch = solveArm(atk.side, goal, -0.1); }
-          atk.state = 'punch'; atk.t0 = now;
-        } else hurt(1);
-      }
-    }
+    if (atk && (atk.state === 'down' || atk.state === 'rest')) fistContact(now);
   } else if (atk.kind === 'volley') {
-    if (atk.shots < 3 && now > atk.next) {
-      fireFace(atk.shots === 1 && Math.random() < 0.5 ? 'sad' : 'angry', 330 + atk.shots * 25);
-      atk.shots++; atk.next = now + 520; boss.recoil = 1;
+    const n = 2 + phase();
+    if (atk.shots < n && now > atk.next) {
+      fireFace(Math.random() < 0.35 ? 'sad' : 'angry', 330 + phase() * 45 + atk.shots * 20);
+      atk.shots++; atk.next = now + [0, 520, 430, 340][phase()]; boss.recoil = 1;
     }
-    if (atk.shots >= 3 && now > atk.next + 300) { atk = null; nextAtk = now + 900 + Math.random() * 700; }
+    if (atk.shots >= n && now > atk.next + 300) { atk = null; nextAtk = now + (900 + Math.random() * 700) * pace(); }
+  } else if (atk.kind === 'sweep') {
+    if (atk.state === 'raise' && T > (phase() === 3 ? 0.7 : 0.85)) { atk.state = 'down'; atk.t0 = now; }
+    else if (atk.state === 'down' && T > 0.15) { atk.state = 'sweep'; atk.t0 = now; fight.shake = 0.7; const f = fistOnStage(atk.side); ripple(f.x, 1.6); }
+    else if (atk.state === 'sweep') {
+      const dur = 0.14 * atk.path.length * (phase() === 3 ? 0.7 : 1), p = Math.min(1, T / dur);
+      const at = p * (atk.path.length - 1), i = Math.min(atk.path.length - 2, Math.floor(at)), k = at - i;
+      const A = atk.path[i].c, B = atk.path[i + 1].c;
+      atk.sol = { c: A.map((v, j) => v + (B[j] - v) * k) };
+      if (Math.random() < dt * 14) { const f = fistOnStage(atk.side); fx.push({ kind: 'spark', x: f.x, y: FLOOR, vx: (atk.fromLeft ? -1 : 1) * Math.random() * 300, vy: -Math.random() * 200, t: 0, life: 0.4 }); }
+      if (p >= 1) { atk.state = 'rest'; atk.t0 = now; }
+    }
+    else if (atk.state === 'rest' && T > 0.35) { atk.state = 'lift'; atk.t0 = now; }
+    else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + (800 + Math.random() * 600) * pace(); }
+    else if (atk.state === 'punch' && T > 0.32) { const s = screenAt(); hitTodd(s.x, s.y); atk.state = 'lift'; atk.t0 = now; }
+    if (atk && (atk.state === 'down' || atk.state === 'sweep' || atk.state === 'rest')) fistContact(now);
+  } else if (atk.kind === 'rain') {
+    if (atk.waves < 2 + phase() && now > atk.next) {
+      atk.gap = rainWave(250 + phase() * 50, atk.gap, phase() === 3 ? 125 : 145); atk.waves++; atk.next = now + 1000 * pace();
+      fight.shake = Math.max(fight.shake, 0.2);
+    }
+    if (atk.waves >= 3 && now > atk.next + 600 && !threats.some((o) => o.kind === 'bar' && o.state === 'fly')) { atk = null; face('angry', 300); nextAtk = now + 800 * pace(); }
+  } else if (atk.kind === 'agony') {
+    // his worst: the agony face, and static rolling out along the floor
+    agonyAmt = atk.state === 'charge' ? Math.min(1, T / 0.8) : 1;
+    if (atk.state === 'charge') { fight.shake = Math.max(fight.shake, T * 0.5); if (T > 1.3) { atk.state = 'blast'; atk.t0 = now; atk.next = now; } }
+    else if (atk.state === 'blast') {
+      // waves out both ways, at uneven speeds and spacing so there's no rhythm to settle into
+      if (atk.waves < 4 && now > atk.next) {
+        const v = 400 + Math.random() * 160; staticWave(-1, v); staticWave(1, atk.waves % 2 ? v * 0.8 : v * 1.15);
+        atk.waves++; atk.next = now + 700 + Math.random() * 350; fight.shake = 1; ripple(W / 2, 2.6);
+      }
+      if (atk.waves >= 4 && now > atk.next + 400) { atk = null; agonyAmt = 0; face('angry', 400); nextAtk = now + 1200 * pace(); }
+    }
   }
+}
+// his fist against you: it hurts, unless you parry it, and then it's knocked back up into his own face
+function fistContact(now) {
+  const f = fistOnStage(atk.side);
+  if (!touches(f.x, f.y, f.r)) return;
+  if (P.parryT > 0) {
+    parried(f.x, f.y);
+    const s = screenPanel ? screenPanel.getWorldPosition(new THREE.Vector3()) : null;
+    if (s) { const goal = s.clone(); goal.z += toddH * 0.12; atk.punch = solveArm(atk.side, goal, -0.1); }
+    atk.state = 'punch'; atk.t0 = now;
+  } else hurt(1);
+}
+// does a rectangle (centre x, y) touch the player?
+function touchesRect(x, y, w, h) {
+  if (P.dead) return false;
+  return Math.abs(x - P.x) < w / 2 + (BOX.r - BOX.l) / 2 && y + h / 2 > P.y + BOX.t && y - h / 2 < P.y + BOX.b;
 }
 // does a circle touch the player?
 function touches(x, y, r) {
@@ -754,6 +895,19 @@ function parried(x, y) {
 function stepThreats(dt) {
   for (let i = threats.length - 1; i >= 0; i--) {
     const o = threats[i]; o.t += dt; o.rot += dt * (o.state === 'back' ? 14 : 3);
+    if (o.state === 'fly' && (o.kind === 'bar' || o.kind === 'wave')) {
+      if (o.kind === 'bar') o.y += o.vy * dt; else o.x += o.vx * dt;
+      if (touchesRect(o.x, o.y, o.w, o.h)) {
+        if (P.parryT > 0) { parried(Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)), o.y); o.state = 'back'; o.t = 0; o.fromX = Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)); o.fromY = o.y; o.x = o.fromX; continue; }
+        hurt(1);
+      }
+      const gone = o.kind === 'bar' ? o.y > FLOOR - o.h / 2 : (o.x < -o.w || o.x > W + o.w);
+      if (gone) {
+        threats.splice(i, 1);
+        if (o.kind === 'bar') { ripple(o.x, 1.0); for (let k = 0; k < 5; k++) fx.push({ kind: 'spark', x: o.x + (Math.random() - 0.5) * o.w, y: FLOOR, vx: (Math.random() - 0.5) * 200, vy: -Math.random() * 200, t: 0, life: 0.35 }); }
+      }
+      continue;
+    }
     if (o.state === 'fly') {
       o.x += o.vx * dt; o.y += o.vy * dt;
       if (o.name === 'sad') o.vy += 500 * dt;       // the sad ones droop
@@ -775,8 +929,35 @@ function stepThreats(dt) {
     }
   }
 }
+function drawBar(o) {
+  const k = o.scale || 1;
+  ctx.save(); ctx.translate(o.x, o.y); if (o.state === 'back') ctx.rotate(o.rot * 0.3); ctx.scale(k, k);
+  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 14;
+  ctx.fillStyle = 'rgba(40,0,6,.92)'; ctx.fillRect(-o.w / 2, -o.h / 2, o.w, o.h);
+  ctx.shadowBlur = 0; ctx.strokeStyle = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.lineWidth = 2; ctx.strokeRect(-o.w / 2, -o.h / 2, o.w, o.h);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 17px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  let txt = '> ' + o.text; while (ctx.measureText(txt).width > o.w - 12 && txt.length > 4) txt = txt.slice(0, -2) + '_';
+  ctx.fillText(txt, 0, 1);
+  ctx.restore();
+}
+function drawWave(o) {
+  // a column of static
+  const k = o.scale || 1;
+  ctx.save(); ctx.translate(o.x, o.y); ctx.scale(k, k);
+  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ffffff'; ctx.shadowBlur = 16;
+  const cell = 6;
+  for (let y = -o.h / 2; y < o.h / 2; y += cell) for (let x = -o.w / 2; x < o.w / 2; x += cell) {
+    const edge = 1 - Math.abs(x) / (o.w / 2), top = (y + o.h / 2) / o.h;
+    if (Math.random() > edge * (0.4 + top * 0.6)) continue;
+    const c = STATIC[(Math.random() * STATIC.length) | 0];
+    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(x, y, cell, cell);
+  }
+  ctx.restore();
+}
 function drawThreats() {
   for (const o of threats) {
+    if (o.kind === 'bar') { drawBar(o); continue; }
+    if (o.kind === 'wave') { drawWave(o); continue; }
     const img = shotImage(o.name); if (!img) continue;
     ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.sin(o.rot) * 0.25 + (o.state === 'back' ? o.rot : 0));
     const k = (o.scale || 1);
@@ -784,6 +965,13 @@ function drawThreats() {
     ctx.drawImage(img, -img.width / 2 * k, -img.height / 2 * k, img.width * k, img.height * k);
     ctx.restore();
   }
+}
+function stepAgony() {
+  if (!agonyPanel) return;
+  if (!atk || atk.kind !== 'agony') agonyAmt = Math.max(0, agonyAmt - 0.08);
+  const flick = Math.random() < 0.05 ? 0.2 : 0.85 + Math.random() * 0.15;
+  agonyPanel.material.opacity = agonyAmt * flick; agonyPanel.visible = agonyAmt > 0.01;
+  if (agonyAmt > 0) agonyPanel.material.map.offset.x = (1 - 0.8) / 2 + (Math.random() < 0.08 ? (Math.random() - 0.5) * 0.06 : 0);
 }
 function stepFx(dt) {
   for (let i = fx.length - 1; i >= 0; i--) {
@@ -800,6 +988,15 @@ function drawFx(t) {
     g.addColorStop(0, `rgba(255,40,60,${a})`); g.addColorStop(1, 'rgba(255,40,60,0)');
     ctx.fillStyle = g; ctx.fillRect(atk.tx - 90, FLOOR - 40, 180, 50);
     ctx.fillStyle = `rgba(255,60,80,${a + 0.2})`; ctx.fillRect(atk.tx - 70, FLOOR - 1, 140, 3);
+  }
+  // where the sweep starts, and which way it's coming
+  if (atk && atk.kind === 'sweep' && atk.state === 'raise') {
+    const a = 0.4 + 0.4 * Math.abs(Math.sin(t * 14)), d = atk.fromLeft ? 1 : -1, x0 = atk.fromLeft ? 0 : W;
+    const g = ctx.createLinearGradient(x0, 0, x0 + d * 360, 0);
+    g.addColorStop(0, `rgba(255,40,60,${a})`); g.addColorStop(1, 'rgba(255,40,60,0)');
+    ctx.fillStyle = g; ctx.fillRect(Math.min(x0, x0 + d * 360), FLOOR - 70, 360, 72);
+    ctx.fillStyle = `rgba(255,90,100,${a + 0.2})`;
+    for (let k = 0; k < 3; k++) { const x = x0 + d * (60 + k * 50 + ((t * 120) % 50)); ctx.beginPath(); ctx.moveTo(x, FLOOR - 50); ctx.lineTo(x + d * 22, FLOOR - 35); ctx.lineTo(x, FLOOR - 20); ctx.fill(); }
   }
   for (const f of fx) {
     const p = Math.max(0, f.t / f.life);
@@ -831,6 +1028,7 @@ function frame(now) {
   const t = now / 1000;
   animateTodd(t, dt);
   stepAttack(now, dt);
+  stepAgony();
   stepFx(dt);
   stepBot(dt, now);
   faceStep(now);
@@ -848,14 +1046,14 @@ function frame(now) {
 // for testing from the console
 function hurt(n = 1) {
   if (P.dead || P.hurtT > 0) return;
-  P.hp = Math.max(0, P.hp - n); P.hurtT = 1.2;
+  P.hp = Math.max(0, P.hp - n); P.hurtT = 1.0;
   if (Math.random() < 0.6) tauntSoon = true;   // got you
   fight.shake = Math.max(fight.shake, 0.5);
   if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; P.parryT = 0; P.spin = 0; youDied(); }
   paintHud();
 }
 function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
