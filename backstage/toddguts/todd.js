@@ -1314,70 +1314,135 @@ const GUARD = {
 const gQ = new THREE.Quaternion(), gE = new THREE.Euler();
 function guardUp(target, side, now, hit) {
   Object.assign(guard, { target, side, until: now + 3600, custom: null, track: null });
-  if (hit) startGuard(hit);
+  if (hit) { startGuard(hit); if (!guard.track) guard.until = 0; }   // couldn't reach it with either hand: no guard
 }
 // He covers the exact spot you hit: the spot is pinned to the bone it's on (his screen moves with his head),
 // and every frame he nudges his arm so his forearm sits between you and it. Which arm: whichever reaches best.
 const sv = new THREE.Vector3(), sv2 = new THREE.Vector3(), sv3 = new THREE.Vector3(), sTarget = new THREE.Vector3(), sView = new THREE.Vector3(), sQ = new THREE.Quaternion(), sE = new THREE.Euler();
 const ARMS = { R: ['Right_Arm', 'forearm_R', 'hand_R'], L: ['Left_Arm', 'forearm_L', 'hand_L'] };
+// the spot, in the world, and the line from your eye to it
+const sSpot = new THREE.Vector3(), sEye = new THREE.Vector3();
 function guardTarget() {
   const tr = guard.track, b = bones[tr.bone];
-  sTarget.copy(tr.point); b.localToWorld(sTarget);
-  sView.copy(camera.position).sub(sTarget).normalize();
-  sTarget.addScaledVector(sView, 0.42);           // a hand's width out from him, toward you
+  sSpot.copy(tr.point); b.localToWorld(sSpot);
+  sEye.copy(camera.position);
+  sView.copy(sEye).sub(sSpot).normalize();          // from the spot toward you
+  sTarget.copy(sSpot).addScaledVector(sView, 0.42);  // a hand's width out from him
+}
+// distance between his forearm (elbow to hand) and the line from your eye to the spot, and how far in
+// front of the spot that crossing is: what decides whether the forearm actually covers it
+const fA = new THREE.Vector3(), fB = new THREE.Vector3(), fD = new THREE.Vector3(), fW = new THREE.Vector3(), fP = new THREE.Vector3();
+function crossing() {
+  // closest points between segment fA-fB and the ray sSpot + t * sView (t >= 0, toward you)
+  fD.copy(fB).sub(fA); fW.copy(fA).sub(sSpot);
+  const a = fD.dot(fD), b = fD.dot(sView), c = 1, d = fD.dot(fW), e = sView.dot(fW);
+  const den = a * c - b * b;
+  let s = den > 1e-6 ? (b * e - c * d) / den : 0; s = Math.min(1, Math.max(0, s));
+  let t = (b * s + e) / c; if (t < 0) t = 0;
+  fP.copy(fA).addScaledVector(fD, s);
+  const onRay = sv2.copy(sSpot).addScaledVector(sView, t);
+  return { dist: fP.distanceTo(onRay), t };
 }
 function armCost(side, c) {
   const [arm, fore, hand] = ARMS[side], A = bones[arm], F = bones[fore], H = bones[hand];
   sE.set(c[0], c[1], c[2], 'YXZ'); sQ.setFromEuler(sE); A.quaternion.copy(rest[arm]).multiply(sQ);
   sE.set(c[3], 0, 0, 'YXZ'); sQ.setFromEuler(sE); F.quaternion.copy(rest[fore]).multiply(sQ);
   A.updateMatrixWorld(true);
-  F.getWorldPosition(sv); H.getWorldPosition(sv2);
-  sv3.copy(sv2).sub(sv).normalize();
-  const mid = sv.add(sv2).multiplyScalar(0.5);
-  // the middle of his forearm on the spot, and the forearm lying across your view of it
-  return mid.distanceTo(sTarget) + 0.3 * Math.abs(sv3.dot(sView));
+  F.getWorldPosition(fA); H.getWorldPosition(fB);
+  const x = crossing();
+  // the forearm crossing your line of sight, a little out in front of the spot (not inside him, not
+  // right up at your face), and lying across the line rather than along it
+  const along = Math.abs(fD.normalize().dot(sView));
+  return x.dist + Math.max(0, 0.18 - x.t) * 1.5 + Math.max(0, x.t - 1.1) * 0.6 + 0.15 * along;
 }
 function startGuard(hit) {
   const b = bones[hit.bone]; if (!b) return;
   guard.track = { bone: hit.bone, point: b.worldToLocal(hit.point.clone()) };
   guardTarget();
-  let best = null;
+  const sols = {};
   ['R', 'L'].forEach((side) => {
     const [arm, fore] = ARMS[side], keepA = bones[arm].quaternion.clone(), keepF = bones[fore].quaternion.clone();
     const m = side === 'R' ? 1 : -1;
     let bb = null;
-    for (let i = 0; i < 240; i++) {
+    for (let i = 0; i < 420; i++) {
       const c = [-2.8 + Math.random() * 3.0, -1.6 + Math.random() * 3.2, m * (-1.5 + Math.random() * 1.8), -2.4 + Math.random() * 2.4];
       const cost = armCost(side, c); if (!bb || cost < bb.cost) bb = { cost, c };
     }
-    for (let i = 0; i < 160; i++) {
+    for (let i = 0; i < 260; i++) {
       const c = bb.c.map((v) => v + (Math.random() - 0.5) * (0.3 * (1 - i / 160) + 0.02));
       const cost = armCost(side, c); if (cost < bb.cost) bb = { cost, c };
     }
     bones[arm].quaternion.copy(keepA); bones[fore].quaternion.copy(keepF); bones[arm].updateMatrixWorld(true);
-    if (!best || bb.cost < best.cost) best = { side, ...bb };
+    sols[side] = bb;
   });
-  guard.side = best.side; guard.c = best.c;
+  const near = hit.side, far = near === 'R' ? 'L' : 'R';
+  const pickSide = sols[near].cost <= sols[far].cost + 0.1 ? near : far;   // the near arm, unless the other is clearly better
+  if (sols[pickSide].cost > GUARD_OK * 3) { guard.track = null; return; } // neither can really get there: no guard
+  guard.side = pickSide; guard.c = sols[pickSide].c; guard.other = sols[pickSide === 'R' ? 'L' : 'R'].c; guard.checkAt = 0;
 }
 // a few small corrections a frame keep the forearm on the spot as he moves
-function trackGuard() {
-  const [arm, fore] = ARMS[guard.side];
+const GUARD_OK = 0.3;
+// what a click on the guarded spot would hit right now
+function spotHit() {
+  if (!guard.track) return null;
+  const v = guard.track.point.clone(); bones[guard.track.bone].localToWorld(v); v.project(camera);
+  const r = canvas.getBoundingClientRect(), h = hitTodd(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height);
+  return h && h.part;
+}
+const now0 = () => performance.now();   // how close (in his units) the forearm has to get to the spot to count as covering it
+function refine(side, c, tries, step) {
+  const [arm, fore] = ARMS[side];
   const keepA = bones[arm].quaternion.clone(), keepF = bones[fore].quaternion.clone();
-  guardTarget();
-  let cost = armCost(guard.side, guard.c);
-  for (let i = 0; i < 24; i++) {
-    const c = guard.c.map((v) => v + (Math.random() - 0.5) * 0.12);
-    const k = armCost(guard.side, c); if (k < cost) { cost = k; guard.c = c; }
+  let cost = armCost(side, c);
+  for (let i = 0; i < tries; i++) {
+    const n = c.map((v) => v + (Math.random() - 0.5) * step);
+    const k = armCost(side, n); if (k < cost) { cost = k; c = n; }
   }
   bones[arm].quaternion.copy(keepA); bones[fore].quaternion.copy(keepF);
+  return { c, cost };
+}
+function trackGuard(now) {
+  guardTarget();
+  const mine = refine(guard.side, guard.c, 24, 0.12);
+  guard.c = mine.c; guard.cost = mine.cost;
+  // every so often, if this arm has lost the spot, see whether the other one can cover it
+  if (now > guard.checkAt) {
+    guard.checkAt = now + 220;
+    const otherSide = guard.side === 'R' ? 'L' : 'R';
+    const other = refine(otherSide, guard.other || guard.c.map((v, i) => (i === 1 || i === 2 ? -v : v)), 40, 0.25);
+    guard.other = other.c;
+    // the real test, once the arm is up: would a click on the spot land on this arm?
+    const hitNow = spotHit();
+    const covered = guard.amt < 0.85 || hitNow === 'armR' || hitNow === 'armL';   // either arm covering it counts
+    if (!covered) {
+      if (other.cost < mine.cost + 0.15) mine.cost = 9;                      // let the other hand have a go
+      else { const fresh = refine(guard.side, guard.c.map((v) => v + (Math.random() - 0.5) * 1.2), 60, 0.3); if (fresh.cost < mine.cost + 0.1) { guard.c = fresh.c; } }
+    }
+    if ((mine.cost > GUARD_OK || !covered) && other.cost < mine.cost - 0.12 && now > (guard.swappedAt || 0) + 700) {
+      guard.swappedAt = now;
+      // swap hands: the old arm lowers while the other comes up
+      guard.old = { side: guard.side, c: guard.c, amt: guard.amt };
+      guard.side = otherSide; guard.c = other.c; guard.other = mine.c;
+      guard.amt = 0.15;
+    }
+  }
+  const [arm, fore] = ARMS[guard.side];
   guard.custom = { [arm]: [guard.c[0], guard.c[1], guard.c[2]], [fore]: [guard.c[3], 0, 0] };
 }
 function guardPose(now, dt, t) {
   const want = now < guard.until && !rage.on && !sleep.on && !reach.on ? 1 : 0;
   guard.amt += (want - guard.amt) * Math.min(1, dt * (want ? 9 : 3));
   guard.kick *= Math.exp(-dt * 8);
+  // an arm that's just handed the guard over to the other one, on its way down
+  if (guard.old && guard.old.amt > 0.01) {
+    guard.old.amt *= Math.exp(-dt * 6);
+    const [oa, of] = ARMS[guard.old.side], oc = guard.old.c;
+    [[oa, [oc[0], oc[1], oc[2]]], [of, [oc[3], 0, 0]]].forEach(([name, v]) => {
+      gE.set(v[0], v[1], v[2], 'YXZ'); gQ.setFromEuler(gE); gQ.premultiply(rest[name]); bones[name].quaternion.slerp(gQ, guard.old.amt);
+    });
+  }
   if (guard.amt < 0.01) return;
-  if (guard.track && guard.c) trackGuard();
+  if (guard.track && guard.c) trackGuard(now);
   const set = guard.custom || GUARD[guard.target][guard.side];
   Object.keys(set).forEach((name) => {
     const b = bones[name]; if (!b) return;
@@ -1395,7 +1460,7 @@ function poke(cx, cy) {
   const decay = Math.max(0, irk - (now - irkAt) / 8000); irkAt = now; pokes++;
   const dx = body.position.x - camera.position.x, dz = body.position.z - camera.position.z, d = Math.hypot(dx, dz) || 1;
   const knock = (push) => { shove.x += dx / d * push; shove.z += dz / d * push; };
-  const blocked = guard.amt > 0.5 && hit.part === 'arm' + guard.side;
+  const blocked = guard.amt > 0.5 && (hit.part === 'armR' || hit.part === 'armL');   // hit the guarding arm (or the one handing over)
   let pool = null, mood = null, add = 1, lookLater = 650;
   if (blocked) {
     // he saw it coming
@@ -1528,8 +1593,8 @@ window.TODD = {
   // for testing: what would a click on this point of his body (in his own space) hit right now?
   probe: (lx, ly, lz) => { const v = new THREE.Vector3(lx, ly, lz); body.localToWorld(v); v.project(camera); const r = canvas.getBoundingClientRect();
     const h = hitTodd(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); return h && { part: h.part, local: h.local.toArray().map((n) => +n.toFixed(2)) }; },
-  probeGuard: () => { if (!guard.track) return null; const v = guard.track.point.clone(); bones[guard.track.bone].localToWorld(v); v.project(camera);
-    const r = canvas.getBoundingClientRect(); const h = hitTodd(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); return h && h.part; },
+  get guardInfo() { return { side: guard.side, cost: guard.cost, swapped: !!guard.old, track: !!guard.track, up: now0() < guard.until }; },
+  probeGuard: () => spotHit(),
   clickAt: (lx, ly, lz) => { const v = new THREE.Vector3(lx, ly, lz); body.localToWorld(v); v.project(camera); const r = canvas.getBoundingClientRect();
     poke(r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height); },
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
