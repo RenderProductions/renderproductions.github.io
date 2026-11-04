@@ -307,20 +307,46 @@ function stroll(now) {
     walk.state = 'turn'; walk.then = 'walk';
   }
 }
+// one step on the spot: lift (hip up, knee bends), turn by "by" while the foot's in the air, plant
+const SHUFFLE_TIME = 0.5;   // seconds per step
+const shuffle = { on: false, s: 0, side: 'R', from: 0, by: 0, next: 0, lift: 0 };
+function startShuffle(by, side) {
+  Object.assign(shuffle, { on: true, s: 0, side, from: walk.heading, by });
+}
+function stepShuffle(now, dt) {
+  if (!shuffle.on) { shuffle.lift = 0; return; }
+  shuffle.s = Math.min(1, shuffle.s + dt / SHUFFLE_TIME);
+  const s = shuffle.s;
+  shuffle.lift = Math.sin(Math.PI * Math.min(1, s * 1.08)) ** 0.7;   // up quick, a stiff hang, down
+  const turn = s < 0.15 ? 0 : s > 0.85 ? 1 : (1 - Math.cos(Math.PI * (s - 0.15) / 0.7)) / 2;
+  walk.heading = shuffle.from + shuffle.by * turn;
+  if (s >= 1) {
+    shuffle.on = false; shuffle.lift = 0;
+    step(shuffle.side === 'R' ? 'foot_R' : 'foot_L', now);   // the thud of it landing
+  }
+}
 let lastPhase = 0;
 function move(now, dt) {
   const fwd = Math.PI * 2 * CYCLE;
   if (walk.state === 'turn') {
-    // turns in stiff little steps, stepping on the spot
+    // turns in real steps: lift a leg, pivot part of the way while it's up, plant it, then the other
     const d = wrap(walk.aim - walk.heading);
-    walk.heading += Math.sign(d) * Math.min(Math.abs(d), dt * 1.5 * (Math.sin(now / 90) > -0.3 ? 1 : 0.15));
-    if (Math.abs(d) < 0.03) { walk.state = walk.then; if (walk.state === 'stand') walk.until = Math.max(walk.until, now + 2000); }
+    if (!shuffle.on) {
+      if (Math.abs(d) < 0.03) { walk.state = walk.then; if (walk.state === 'stand') walk.until = Math.max(walk.until, now + 2000); }
+      // lead with the leg on the side he's turning toward
+      else startShuffle(Math.sign(d) * Math.min(Math.abs(d), 0.55), d > 0 ? 'L' : 'R');
+    }
+  } else if (walk.state === 'stand' && !shuffle.on && now > shuffle.next) {
+    // standing still, he shifts his footing now and then
+    if (Math.random() < 0.5) startShuffle((Math.random() - 0.5) * 0.16, shuffle.side === 'R' ? 'L' : 'R');
+    shuffle.next = now + 3500 + Math.random() * 5000;
   } else if (walk.state === 'walk') {
     const dx = walk.to.x - body.position.x, dz = walk.to.y - body.position.z, dist = Math.hypot(dx, dz);
     walk.heading += wrap(Math.atan2(dx, dz) - walk.heading) * Math.min(1, dt * 2);
     if (dist < 0.25 || mode === 'watch') { walk.state = 'stand'; walk.until = now + 3000 + Math.random() * 6000; }
   }
-  const want = walk.state === 'walk' ? 1 : walk.state === 'turn' ? 0.35 : 0;
+  stepShuffle(now, dt);
+  const want = walk.state === 'walk' ? 1 : 0;
   walk.amp += (want - walk.amp) * Math.min(1, dt * (want ? 3 : 5));
   if (walk.amp > 0.01 || Math.sin(walk.phase) ** 2 > 0.01) walk.phase += fwd * dt * Math.max(walk.amp, 0.3);
   else walk.phase = Math.round(walk.phase / Math.PI) * Math.PI;   // settle with his feet together
@@ -349,22 +375,28 @@ function bump(p, at, w) { const d = wrap(p - at) / w; return Math.exp(-d * d); }
 function legs() {
   const A = STRIDE * walk.amp, ph = walk.phase;
   const leg = (side, p) => {
-    const hip = -A * Math.sin(p);                          // - swings forward
-    const knee = A * 1.5 * Math.max(0, Math.cos(p));       // bends while the leg swings through
+    const up = shuffle.side === side ? shuffle.lift : 0;    // stepping on the spot: this leg lifts
+    const hip = -A * Math.sin(p) - up * 0.5;               // - swings forward
+    const knee = A * 1.5 * Math.max(0, Math.cos(p)) + up * 0.95;   // bends while the leg swings through
     pose(side === 'R' ? 'Right_Leg' : 'Left_Leg', hip, 0, 0);
     pose('lowerleg_' + side, knee, 0, 0);
     // the foot rolls through each step: heel lands toes-up, rolls flat, then the heel lifts
     // and the toes bend as it pushes off; in the air it hangs a little, then flicks up to land
     const k = walk.amp;
     const strike = bump(p, Math.PI / 2, 0.42), push = bump(p, Math.PI * 1.5 - 0.3, 0.42), air = bump(p, 0, 0.6);
-    const foot = -(hip + knee) * 0.9 - 0.6 * strike * k + 1.0 * push * k + 0.3 * air * k;
+    const foot = -(hip + knee) * 0.9 - 0.6 * strike * k + 1.0 * push * k + 0.3 * air * k + up * 0.2;
     pose('foot_' + side, foot, 0, 0);
     pose('toe_' + side, -1.1 * push * k + 0.25 * strike * k, 0, 0);   // toes stay on the ground as the heel comes up
     return hip;
   };
   const hr = leg('R', ph), hl = leg('L', ph + Math.PI);
   // the body dips while the legs are spread, so his feet stay on the ground
-  body.position.y = -hipH * (1 - Math.cos(Math.max(Math.abs(hr), Math.abs(hl))));
+  // (a lifted leg on the spot doesn't count: the other one's holding him up)
+  const lifted = shuffle.lift * 0.5;
+  const sr = shuffle.side === 'R' ? Math.abs(hr) - lifted : Math.abs(hr), sl = shuffle.side === 'L' ? Math.abs(hl) - lifted : Math.abs(hl);
+  body.position.y = -hipH * (1 - Math.cos(Math.max(0, sr, sl)));
+  // he leans his weight over the planted foot while the other is up
+  shuffle.lean = (shuffle.side === 'R' ? 1 : -1) * shuffle.lift;
   return ph;
 }
 
@@ -395,11 +427,11 @@ function balance(now, dt, t) {
   shift += (shiftGoal - shift) * Math.min(1, dt * 1.5);
   const breathe = Math.sin(t * 1.7);
 
-  const lean = -look.roll * 0.45 - look.vy * 0.012 + shift;          // torso tilts against the head
+  const lean = -look.roll * 0.45 - look.vy * 0.012 + shift + (shuffle.lean || 0) * 0.06;   // torso tilts against the head
   const rock = -look.pitch * 0.2 - look.vp * 0.015 + walk.amp * 0.07;  // looks down: rocks back; walking: leans in
   pose('neck', look.pitch * 0.35, look.yaw * 0.4, look.roll * 0.3);
   pose('fat_fucking_dome', look.pitch * 0.65, look.yaw * 0.6, look.roll * 0.7);
-  pose('hips', 0, S('hipsY', -look.yaw * 0.05), S('hipsZ', -lean * 0.45 - shift * 0.6, 240));
+  pose('hips', 0, S('hipsY', -look.yaw * 0.05), S('hipsZ', -lean * 0.45 - shift * 0.6 - (shuffle.lean || 0) * 0.07, 140));
   pose('upper_body', S('upX', rock * 0.6), S('upY', look.yaw * 0.07), S('upZ', lean * 0.7));
   pose('chest', S('chX', rock * 0.5) + breathe * 0.01, S('chY', look.yaw * 0.1), S('chZ', lean * 0.5));
 
@@ -458,4 +490,4 @@ function tick(now) {
 requestAnimationFrame(tick);
 
 // a peek for testing in the console: TODD.face('angry')
-window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body };
+window.TODD = { face: (n) => fizzle(typeof n === 'number' ? n : faceIndex(n)), faces: FACES, screen: skin, goal, look, walk, body, shuffle };
