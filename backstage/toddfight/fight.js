@@ -661,7 +661,7 @@ function settle(dt) {
 // The pictures load straight from Wikimedia while the page runs; nothing is copied into this site.
 let picPanel = null, picAspect = 1.3, MONO = null;
 const pics = {};                               // key -> THREE.Texture (or the fire)
-const monoReady = fetch('intro.json?v=1').then((r) => r.json()).then((d) => { MONO = d; loadPictures(d.pictures || {}); }).catch(() => {});
+const monoReady = fetch('intro.json?v=' + Date.now()).then((r) => r.json()).then((d) => { MONO = d; loadPictures(d.pictures || {}); }).catch(() => {});
 function cover(tex, w, h) {
   // fill the screen, cropping the picture to its shape
   const a = w / h; tex.repeat.set(1, 1); tex.offset.set(0, 0);
@@ -672,6 +672,7 @@ function loadPictures(list) {
   for (const key in list) {
     const p = list[key];
     if (p.drawn === 'fire') { pics[key] = fire.tex; continue; }
+    if (p.art) { drawArt(key, p.art); continue; }
     const urls = (p.urls || []).slice();
     const next = () => {
       const url = urls.shift(); if (!url) return;
@@ -682,6 +683,23 @@ function loadPictures(list) {
     };
     next();
   }
+}
+// pictures made from the site's own art (Cedar and Wonder side by side; the player): drawn onto a little
+// screen-shaped canvas, with scanlines so it looks like it's on his monitor
+function drawArt(key, files) {
+  Promise.all(files.map((f) => new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = f; }))).then((ims) => {
+    const Wc = 640, Hc = Math.round(640 / picAspect), c = document.createElement('canvas'); c.width = Wc; c.height = Hc;
+    const g = c.getContext('2d');
+    const bg = g.createRadialGradient(Wc / 2, Hc / 2, 20, Wc / 2, Hc / 2, Wc * 0.7); bg.addColorStop(0, '#1d3a40'); bg.addColorStop(1, '#050d10');
+    g.fillStyle = bg; g.fillRect(0, 0, Wc, Hc);
+    const got = ims.filter(Boolean), slot = Wc / Math.max(1, got.length);
+    got.forEach((im, i) => {
+      const k = Math.min((slot * 0.86) / im.width, (Hc * 0.82) / im.height), w = im.width * k, h = im.height * k;
+      g.drawImage(im, slot * i + (slot - w) / 2, (Hc - h) / 2 + Hc * 0.03, w, h);
+    });
+    g.fillStyle = 'rgba(0,0,0,.22)'; for (let y = 0; y < Hc; y += 4) g.fillRect(0, y, Wc, 2);
+    const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding; pics[key] = tex;
+  });
 }
 // his fire: drawn in code, the old demo-scene way (heat rises and cools, row by row)
 const fire = (() => {
@@ -721,8 +739,8 @@ function endMonologue() {
   if (sayEl) { sayEl.hidden = true; sayEl.textContent = ''; }
   const hint = document.getElementById('skip'); if (hint) hint.hidden = true;
   try { localStorage.setItem('rvFightIntroSeen', '1'); } catch (e) {}
-  // ...and straight into noticing you
-  fight.phase = 'intro'; introStep = 0; fight.t0 = performance.now() - (INTRO.shock - 0.15) * 1000;
+  // ...and straight into throwing his arms in the air
+  fight.phase = 'intro'; introStep = 2; fight.t0 = performance.now() - INTRO.windup * 1000;
 }
 function lineAt(T) {
   let at = 0; const L = MONO.lines;
@@ -742,10 +760,11 @@ function stepMonologue(now) {
   const show = L.show || [], n = show.length;
   let key = show[0];
   if (n > 1) { const slow = L.secs * 0.55; key = lt < slow ? show[Math.min(n - 1, Math.floor(lt / (slow / n)))] : show[Math.floor((lt - slow) / 0.16) % n]; }
-  if (key !== mono.pic) { mono.pic = key; mono.cut = now + (n > 1 && lt > L.secs * 0.55 ? 40 : 130); glitchFace(); }
+  const isFace = key && key.startsWith('face:');
+  if (key !== mono.pic) { mono.pic = key; mono.cut = now + (n > 1 && lt > L.secs * 0.55 ? 40 : 130); if (isFace) face(key.slice(5), 260); else glitchFace(); }
   if (key === 'fire') fire.step(now);
   if (picPanel) {
-    const tex = pics[key], live = tex && now > mono.cut;
+    const tex = isFace ? null : pics[key], live = tex && now > mono.cut;
     if (live && picPanel.material.map !== tex) { picPanel.material.map = tex; picPanel.material.needsUpdate = true; }
     picPanel.visible = !!live;
     picPanel.material.opacity = live ? (Math.random() < 0.04 ? 0.35 : 0.92 + Math.random() * 0.08) : 0;
@@ -794,12 +813,30 @@ function animateTodd(t, dt) {
         // fists clenched, shaking
         const k = Math.sin(t * 30) * 0.07 * Math.min(1, lt);
         armR = [-0.75 + k, 0, 0.5]; armL = [-0.75 - k, 0, -0.5]; foreR = foreL = -1.75;
-        chest = [0.18, 0, k * 0.3]; pitch = 0.05; speed = 8; red = Math.min(0.7, lt * 0.5);
+        chest = [0.18, 0, k * 0.3]; yaw = youYaw; pitch = youPitch; speed = 8; red = Math.min(1, red + dt * 0.8);
       } else if (pose === 'preach') {
         // arms flung wide, head back
         const k = Math.sin(t * 3) * 0.05;
         armR = [-1.5 + k, 0, 1.05]; armL = [-1.5 - k, 0, -1.05]; foreR = foreL = -0.35;
         chest = [-0.16, 0, 0]; pitch = -0.35; yaw = away * 0.4; speed = 5; red = Math.max(0, red - dt);
+      } else if (pose === 'lean') {
+        // he's been waiting: leaning over the stage at you, unimpressed
+        yaw = youYaw; pitch = youPitch + 0.1; chest = [0.28, 0, 0.06];
+        armR = [0.15, 0, 0.25]; armL = [0.15, 0, -0.25]; foreR = foreL = -0.6; speed = 3;
+      } else if (pose === 'slump') {
+        // shoulders down, head hung
+        yaw = away * 0.5; pitch = 0.75; chest = [0.32, 0, 0.04];
+        armR = [0.2, 0, 0.04]; armL = [0.2, 0, -0.04]; foreR = foreL = -0.1; speed = 2.5; red = 0;
+      } else if (pose === 'point') {
+        // a thumb back over his shoulder, at the ledge behind him
+        const sd = mono.side, a = [-2.0, sd === 'R' ? -0.9 : 0.9, sd === 'R' ? 1.3 : -1.3];
+        if (sd === 'R') { armR = a; foreR = -1.2; } else { armL = a; foreL = -1.2; }
+        yaw = -away * 0.9; pitch = -0.05; chest = [0.0, 0, 0]; speed = 4;
+      } else if (pose === 'peer') {
+        // leaning right down to get a good look at you
+        const p = Math.min(1, lt / 1.2);
+        yaw = youYaw; pitch = youPitch + 0.25 * p; chest = [0.15 + 0.3 * p, 0, 0];
+        armR = [0.05, 0, 0.3]; armL = [0.05, 0, -0.3]; foreR = foreL = -0.4; speed = 3; red = 0;
       } else if (pose === 'look') {
         // slowly turning to look at you
         const p = Math.min(1, lt / (cur.L.secs * 0.8));
