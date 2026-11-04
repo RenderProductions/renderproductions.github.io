@@ -105,6 +105,11 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 /* ---- the Bright Bulb: once he's seen it, his desk is lit. Its light is the art's pale cyan (#bef7ff), cool against his amber room ---- */
 .room.lit .light { background: radial-gradient(ellipse 50% 100% at 50% 0%, rgba(190,247,255,.16), rgba(120,220,255,.05) 55%, transparent 78%); animation: none; }
 .room.lit .scene .him { filter: brightness(.95) saturate(.9) drop-shadow(0 0 30px rgba(0,0,0,.6)); }
+.room.lit { background: radial-gradient(ellipse 70% 55% at 50% 38%, #0c1719, #030506 70%); }
+/* the bulb's light washes over him and the desk: everything turns to its cyan (his pocket keeps its own gold glow) */
+.room.lit .scene .him img { filter: sepia(1) hue-rotate(148deg) saturate(1.7) brightness(1.05) contrast(1.05); }
+.room.lit .scene .desk { filter: sepia(1) hue-rotate(148deg) saturate(1.4) brightness(.9) drop-shadow(0 18px 24px rgba(0,0,0,.7)); }
+.room.lit .scene .shroud { background: linear-gradient(180deg, rgba(3,5,6,0) 0%, rgba(3,5,6,.65) 45%, #030506 88%); }
 
 /* ---- Cedar's workbench (bench.js) ---- */
 .bench { position: absolute; left: 50%; bottom: calc(22px + var(--boxh) + 10px); z-index: 4; width: min(560px, calc(100% - 32px));
