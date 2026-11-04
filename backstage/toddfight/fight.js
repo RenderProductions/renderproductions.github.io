@@ -674,7 +674,7 @@ function loadPictures(list) {
   for (const key in list) {
     const p = list[key];
     if (p.drawn === 'fire') { pics[key] = fire.tex; continue; }
-    if (p.art) { drawArt(key, p.art); continue; }
+    if (p.art) { drawArt(key, p.art, p.fill); continue; }
     const urls = (p.urls || []).slice();
     const next = () => {
       const url = urls.shift(); if (!url) return;
@@ -688,13 +688,19 @@ function loadPictures(list) {
 }
 // pictures made from the site's own art (Cedar and Wonder side by side; the player): drawn onto a little
 // screen-shaped canvas, with scanlines so it looks like it's on his monitor
-function drawArt(key, files) {
+function drawArt(key, files, fill) {
   Promise.all(files.map((f) => new Promise((ok) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = f; }))).then((ims) => {
     const Wc = 640, Hc = Math.round(640 / picAspect), c = document.createElement('canvas'); c.width = Wc; c.height = Hc;
     const g = c.getContext('2d');
     const bg = g.createRadialGradient(Wc / 2, Hc / 2, 20, Wc / 2, Hc / 2, Wc * 0.7); bg.addColorStop(0, '#1d3a40'); bg.addColorStop(1, '#050d10');
     g.fillStyle = bg; g.fillRect(0, 0, Wc, Hc);
     const got = ims.filter(Boolean), slot = Wc / Math.max(1, got.length);
+    if (fill && got[0]) {
+      // the whole screen: the picture's own background to the edges (cropped to his screen's shape)
+      const im = got[0], k = Math.max(Wc / im.width, Hc / im.height);
+      g.drawImage(im, (Wc - im.width * k) / 2, (Hc - im.height * k) / 2, im.width * k, im.height * k);
+      got.length = 0;
+    }
     got.forEach((im, i) => {
       const k = Math.min((slot * 0.86) / im.width, (Hc * 0.82) / im.height), w = im.width * k, h = im.height * k;
       g.drawImage(im, slot * i + (slot - w) / 2, (Hc - h) / 2 + Hc * 0.03, w, h);
@@ -753,7 +759,7 @@ function stepMonologue(now) {
   const T = (now - mono.t0) / 1000, cur = lineAt(T);
   if (!cur) return endMonologue();
   const { i, lt, L } = cur;
-  if (i !== mono.line) { mono.line = i; mono.shook = false; }
+  if (i !== mono.line) { mono.line = i; mono.shook = false; mono.egg = egg(0.06); mono.eggAt = 0.4 + Math.random() * (L.secs - 1.2); }
   // the words, typed out
   const typed = L.text.slice(0, Math.floor(lt * 26));
   if (sayEl && sayEl.textContent !== typed) sayEl.textContent = typed;
@@ -761,7 +767,8 @@ function stepMonologue(now) {
   // which picture: in order; on a line with several, once through each, then flicking through them fast
   const show = L.show || [], n = show.length;
   let key = show[0];
-  if (n > 1) { const slow = L.secs * 0.55; key = lt < slow ? show[Math.min(n - 1, Math.floor(lt / (slow / n)))] : show[Math.floor((lt - slow) / 0.16) % n]; }
+  if (mono.egg && lt > mono.eggAt && lt < mono.eggAt + 0.7) key = mono.egg;
+  else if (n > 1) { const slow = L.secs * 0.55; key = lt < slow ? show[Math.min(n - 1, Math.floor(lt / (slow / n)))] : show[Math.floor((lt - slow) / 0.16) % n]; }
   const isFace = key && key.startsWith('face:');
   if (key !== mono.pic) { mono.pic = key; mono.cut = now + (n > 1 && lt > L.secs * 0.55 ? 40 : 130); if (isFace) face(key.slice(5), 260); else glitchFace(); }
   if (key === 'fire') fire.step(now);
@@ -1611,7 +1618,12 @@ function drawThreats(t) {
 }
 // ---- what his screen shows outside the monologue: a taunt picture, or flickers of pictures as he breaks ----
 const screen = { key: null, until: 0, next: 0 };
-function showPic(key, ms) { if (!pics[key]) return; screen.key = key; screen.until = performance.now() + ms; glitchFace(); }
+// Easter eggs: now and then a rare picture takes the place of whatever was about to show, and stays a bit longer
+function egg(chance) { const e = ((MONO && MONO.eggs) || []).filter((k) => pics[k]); return e.length && Math.random() < chance ? e[(Math.random() * e.length) | 0] : null; }
+function showPic(key, ms) {
+  const e = egg(0.04); if (e) { key = e; ms = Math.max(ms, 1100); }
+  if (!pics[key]) return; screen.key = key; screen.until = performance.now() + ms; glitchFace();
+}
 function stepScreen(now) {
   if (!picPanel || mono.on || boss.down) return;      // the monologue and the skull look after themselves
   // the more you've hurt him, the more often random pictures flicker across his face
@@ -1736,7 +1748,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();

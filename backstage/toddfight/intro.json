@@ -149,6 +149,22 @@
         0.5
       ],
       "credit": "Pollice Verso, Jean-Léon Gérôme, 1872 (public domain)"
+    },
+    "colton": {
+      "drawn": "art",
+      "art": [
+        "eggs/Colton.svg"
+      ],
+      "fill": true,
+      "credit": "Render Productions"
+    },
+    "costume1": {
+      "drawn": "art",
+      "art": [
+        "eggs/costume1.svg"
+      ],
+      "fill": true,
+      "credit": "Render Productions"
     }
   },
   "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
@@ -184,5 +200,10 @@
     "thumbs",
     "fire"
   ],
-  "_how4": "'taunt_pictures': what his screen can flash while he taunts you. 'damage_pictures': what flickers across his screen as you wear him down (more and more often the more he's hurt); 'agony' is his agony face."
+  "_how4": "'taunt_pictures': what his screen can flash while he taunts you. 'damage_pictures': what flickers across his screen as you wear him down (more and more often the more he's hurt); 'agony' is his agony face.",
+  "eggs": [
+    "colton",
+    "costume1"
+  ],
+  "_how5": "'eggs': rare Easter-egg pictures. Now and then one replaces a damage flash or a taunt picture (held a little longer), and there's a small chance one sneaks into a line of the monologue. 'fill' stretches a picture's own background to the edges of his screen."
 }
