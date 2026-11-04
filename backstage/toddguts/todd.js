@@ -869,7 +869,7 @@ function say(text, kind) {
   el.className = 'tline' + (red ? ' red' : held ? ' held' : signal ? ' signal' : wonder ? ' wonder' : '');
   const narrow = innerWidth < 600;
   if (red) { el.style.left = (Math.random() * (narrow ? 40 : 70)) + '%'; el.style.top = (4 + Math.random() * 88) + '%'; }
-  else if (signal) { el.style.left = '50%'; el.style.top = (10 + (termEl.querySelectorAll('.signal').length % 5) * 6) + '%'; }
+  else if (signal) { el.style.left = '50%'; el.style.top = (10 + (bc.i % 6) * 6) + '%'; }   // each line of the signal gets its own row
   else if (wonder) { el.style.top = (20 + Math.random() * 40) + '%'; if (kind === 'wonder-left') el.style.left = (2 + Math.random() * 6) + '%'; else el.style.right = (2 + Math.random() * 6) + '%'; }
   else if (held) { el.style.left = (narrow ? 8 : 38) + Math.random() * 10 + '%'; el.style.top = (14 + Math.random() * 10) + '%'; }
   else {
@@ -906,7 +906,7 @@ function terminal(now) {
     if (Math.random() < 0.35 && termEl.childElementCount < 40) say(pick(LINES.rage.length ? LINES.rage : ['ERROR']), true);
     return;
   }
-  if (now < nextLine || rage.on) return;
+  if (now < nextLine || rage.on || bc.on) return;   // quiet while the signal's coming through
   nextLine = now + (14000 + Math.random() * 12000) / (1 + 0.4 * level);
   const r = Math.random();
   let pool = LINES.idle;
