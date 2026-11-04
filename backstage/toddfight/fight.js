@@ -34,7 +34,8 @@ const P = {
   vx: 0, vy: 0, face: 1,
   ground: true, wall: 0,      // wall: -1 sliding down the left wall, 1 the right, 0 none
   coyote: 0, buffer: 0, lock: 0, walkT: 0,
-  hp: 3, dead: false, hurtT: 0, deadT: 0
+  hp: 3, dead: false, hurtT: 0, deadT: 0,
+  parryT: 0, spin: 0           // parryT: the parry window is open (jump pressed in mid-air); spin: the flip after a parry
 };
 const TUNE = {
   run: 300, accel: 2600, airAccel: 1700, friction: 3000,
@@ -42,7 +43,8 @@ const TUNE = {
   jump: 830, cut: 0.45,            // let go of jump early and he doesn't go as high
   slide: 150,                      // max speed sliding down a wall
   wallJumpX: 390, wallJumpY: 790, wallLock: 0.16,
-  coyote: 0.09, buffer: 0.12
+  coyote: 0.09, buffer: 0.12,
+  parry: 0.22, parryBounce: 760    // how long a mid-air jump press can parry for, and how high a parry bounces you
 };
 
 // ---------------- input ----------------
@@ -91,8 +93,14 @@ function step(dt) {
     } else if (P.wall) {
       P.vy = -TUNE.wallJumpY; P.vx = -P.wall * TUNE.wallJumpX; P.face = -P.wall;
       P.lock = TUNE.wallLock; P.wall = 0; P.buffer = 0; P.cutReady = true;
+    } else {
+      // jump pressed in mid-air: that's a parry. For a moment, anything he throws at you that you touch
+      // gets knocked back at him instead of hurting you.
+      P.parryT = TUNE.parry; P.buffer = 0;
     }
   }
+  P.parryT = Math.max(0, P.parryT - dt);
+  P.spin = Math.max(0, P.spin - dt);
 
   // move, then keep him in the arena
   P.x += P.vx * dt; P.y += P.vy * dt;
@@ -100,7 +108,7 @@ function step(dt) {
   if (P.x + BOX.l <= WALL_L) { P.x = WALL_L - BOX.l; if (P.vx < 0) P.vx = 0; touching = -1; }
   if (P.x + BOX.r >= WALL_R) { P.x = WALL_R - BOX.r; if (P.vx > 0) P.vx = 0; touching = 1; }
   const was = P.ground;
-  if (P.y >= FLOOR) { P.y = FLOOR; P.vy = 0; P.ground = true; } else P.ground = false;
+  if (P.y >= FLOOR) { if (!P.ground && P.vy > 300) ripple(P.x, 0.8); P.y = FLOOR; P.vy = 0; P.ground = true; } else P.ground = false;
   if (was && !P.ground) P.coyote = TUNE.coyote; else P.coyote = Math.max(0, P.coyote - dt);
   // he sticks to a wall while he's in the air, pushing into it, and on his way down
   P.wall = !P.ground && touching && dir === touching && P.vy > -60 ? touching : 0;
@@ -111,6 +119,7 @@ function step(dt) {
 
 function frameFor() {
   if (P.dead) return 'Die';
+  if (P.spin > 0 || P.parryT > 0) return 'Jump';
   if (P.wall) return 'Wall_Slide';
   if (!P.ground) return P.vy < 0 ? 'Jump' : 'Fall';
   if (Math.abs(P.vx) > 20) return 'Walk' + (1 + Math.floor(P.walkT * 11) % 6);
@@ -150,6 +159,9 @@ function drawPlayer() {
   if (P.face < 0 && !P.wall) ctx.scale(-1, 1);
   if (P.wall < 0) ctx.scale(-1, 1);         // the wall-slide frame has his feet on a wall to his right
   if (P.hurtT > 0 && Math.floor(P.hurtT * 20) % 2) ctx.globalAlpha = 0.35;
+  // a parry: a quick flip, and a flash around him while the window's open
+  if (P.spin > 0) ctx.rotate((1 - P.spin / 0.4) * Math.PI * 2 * P.face);
+  if (P.parryT > 0) { ctx.shadowColor = '#ff5cf0'; ctx.shadowBlur = 22; }
   ctx.drawImage(a.img, a.ox, a.oy, a.w, a.h);
   ctx.restore();
 }
@@ -246,7 +258,8 @@ function buildScreen() {
     new THREE.MeshBasicMaterial({ map: faceTex, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
   panel.position.copy(head.worldToLocal(mid.clone().add(new THREE.Vector3(0, 0, 0.003))));
   panel.quaternion.copy(q); panel.renderOrder = 1;
-  head.add(panel);
+  head.add(panel); screenPanel = panel;
+  const r = new THREE.Vector3(); bones.Right_Arm.getWorldPosition(r); rightArmOnLeft = toStage(r).x < W / 2;
   if (faceData[shown]) putFace(faceData[shown]);
 }
 
@@ -277,6 +290,8 @@ new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   ledge.scale.set(LEDGE.half * 2 * toddH, toddH * 1.2, 1); ledge.position.set(0, LEDGE.y * toddH, LEDGE.z * toddH);
   ledge.material.uniforms.uCell.value = toddH * 0.09; ledge.material.uniforms.uHalf.value = LEDGE.half * toddH;
   scene.add(ledge);
+  camera.updateMatrixWorld(true);
+  buildFloor();
   loadBot();
   facesReady.then(() => { buildScreen(); startIntro(); });
   document.getElementById('boot').classList.add('gone');
@@ -339,6 +354,54 @@ function setBotMode(m, until) {
   const from = bot.acts[bot.mode === 'walk' ? 'walk' : 'run'], to = bot.acts[m === 'walk' ? 'walk' : 'run'];
   if (to && from !== to) { to.reset().play(); from && from.crossFadeTo(to, 0.25, false); }
   bot.mode = m; if (until) bot.until = until;
+}
+
+// ---- the floor: a 3D slab in front of him (in his realm everything is 3D; the player is the odd one out) ----
+// Its top is lined up so that the line the player walks on (FLOOR, in stage units) sits on it at depth PLANE
+// (in TODD-heights, toward you). His fist lands at that same depth, so it really hits the floor you're on.
+const PLANE = 0.32;
+const RIPPLES = 8;
+const floorMat = new THREE.ShaderMaterial({
+  uniforms: { uCell: { value: 0.3 }, uTime: { value: 0 }, uRip: { value: Array.from({ length: RIPPLES }, () => new THREE.Vector4(0, 0, -100, 0)) }, uHalf: { value: 10 } },
+  vertexShader: 'varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+  fragmentShader: `uniform float uCell; uniform float uTime; uniform vec4 uRip[${RIPPLES}]; uniform float uHalf; varying vec3 vW;
+    void main() {
+      vec2 p = vW.xz, g = p / uCell, f = abs(fract(g - 0.5) - 0.5) / fwidth(g);
+      float line = 1.0 - min(min(f.x, f.y), 1.0);
+      vec2 g4 = g / 4.0, f4 = abs(fract(g4 - 0.5) - 0.5) / fwidth(g4);
+      float major = 1.0 - min(min(f4.x, f4.y), 1.0);
+      float edge = smoothstep(uHalf, uHalf * 0.4, abs(p.x));
+      float glow = (line * 0.28 + major * 0.3) * edge;
+      for (int i = 0; i < ${RIPPLES}; i++) {
+        float age = uTime - uRip[i].z; if (age < 0.0 || age > 1.4) continue;
+        float r = age * uRip[i].w, d = distance(p, uRip[i].xy);
+        glow += (line * 1.2 + 0.18) * smoothstep(uCell * 1.2, 0.0, abs(d - r)) * (1.0 - age / 1.4);
+      }
+      vec3 base = vec3(0.012, 0.04, 0.05);
+      gl_FragColor = vec4(base + vec3(0.0, 1.0, 0.98) * glow, 1.0);
+    }`
+});
+const slabFront = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x03090b).convertSRGBToLinear() });
+const slab = new THREE.Group();
+let floorY = 0, ripI = 0;
+function buildFloor() {
+  // how high the top must be for the player's line to sit on it
+  floorY = fromStage(W / 2, FLOOR, PLANE * toddH).y;
+  const front = (PLANE + 0.16) * toddH, back = -0.45 * toddH, wide = 4 * toddH;
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(wide, front - back), floorMat);
+  top.rotation.x = -Math.PI / 2; top.position.set(0, floorY, (front + back) / 2);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(wide, toddH), slabFront);
+  face.position.set(0, floorY - toddH / 2, front);
+  // the lit front edge
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(wide, toddH * 0.0025, toddH * 0.0025), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x00c8c4).convertSRGBToLinear() }));
+  lip.position.set(0, floorY, front);
+  slab.add(top, face, lip); scene.add(slab);
+  floorMat.uniforms.uCell.value = toddH * 0.06; floorMat.uniforms.uHalf.value = toddH * 1.6;
+}
+// a ring of light spreading across the floor from a point on the stage
+function ripple(stageX, speed = 1.2) {
+  const p = fromStage(stageX, FLOOR, PLANE * toddH);
+  floorMat.uniforms.uRip.value[ripI++ % RIPPLES].set(p.x, p.z, floorMat.uniforms.uTime.value, speed * toddH);
 }
 
 // ---- how he moves ----
@@ -412,11 +475,31 @@ function animateTodd(t, dt) {
     chest = [0.12 + huff * 0.03, 0, 0];
     armR = [-0.9 + huff * 0.04, 0.1, 0.35]; armL = [-0.9 - huff * 0.04, -0.1, -0.35]; foreR = foreL = -1.3;
     speed = 5; red = 1;
+    if (atk && atk.kind === 'slam') {
+      const S = atk.side, T2 = (performance.now() - atk.t0) / 1000;
+      let a = null, f = null;
+      if (atk.state === 'raise') { a = [-2.7, 0, S === 'R' ? 0.25 : -0.25]; f = -0.4; chest = [-0.12, 0, 0]; speed = 7; pitch = youPitch + 0.1; }
+      else if (atk.state === 'down' || atk.state === 'rest') { a = atk.sol.c.slice(0, 3); f = atk.sol.c[3]; chest = [atk.lean, 0, 0]; speed = atk.state === 'down' ? 26 : 10; pitch = 0.55; }
+      else if (atk.state === 'punch' && atk.punch) { a = atk.punch.c.slice(0, 3); f = atk.punch.c[3]; chest = [-0.1, 0, 0]; speed = 18; }
+      else if (atk.state === 'lift') speed = 5;
+      if (a) { if (S === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; } }
+    } else if (atk && atk.kind === 'volley') {
+      // leaning his screen at you to fire
+      chest = [0.2 + (boss.recoil || 0) * -0.15, 0, 0]; pitch = youPitch + 0.15;
+      boss.recoil = Math.max(0, (boss.recoil || 0) - dt * 4);
+    }
+  } else if (fight.phase === 'down') {
+    // knocked out: slumped, arms hanging, his screen showing an error
+    chest = [0.5, 0, 0.1]; armR = [0.1, 0, 0.05]; armL = [0.1, 0, -0.05]; foreR = foreL = -0.1;
+    yaw = 0.15; pitch = 0.9; speed = 3; red = Math.max(0, red - dt * 0.5);
   }
+  // when he gets hit, he reels
+  if (boss.flinch > 0) { chest = [chest[0] - boss.flinch * 0.35, chest[1], chest[2] + boss.flinch * 0.08]; pitch -= boss.flinch * 0.5; boss.flinch = Math.max(0, boss.flinch - dt * 2.5); }
 
   look.yaw += (yaw - look.yaw) * Math.min(1, dt * (speed > 8 ? 12 : 3));
   look.pitch += (pitch - look.pitch) * Math.min(1, dt * (speed > 8 ? 12 : 3));
-  target('chest', chest[0], chest[1] + look.yaw * 0.25, chest[2]);
+  const slamming = atk && atk.kind === 'slam' && atk.state !== 'raise' && atk.state !== 'lift';
+  target('chest', chest[0], chest[1] + (slamming ? 0 : look.yaw * 0.25), chest[2]);   // (no turning while his fist is out: it was aimed without it)
   target('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
   target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
   target('Right_Arm', armR[0], armR[1], armR[2]); target('Left_Arm', armL[0], armL[1], armL[2]);
@@ -424,6 +507,253 @@ function animateTodd(t, dt) {
   settle(dt);
   // the screen shakes when he does something big
   fight.shake = Math.max(0, fight.shake - dt * 1.6);
+}
+
+// ---------------- the fight: his attacks, and parrying them back at him ----------------
+// Everything he throws at you hurts if it touches you, unless you parry it: jump, then press jump again in
+// mid-air as you meet it. A parried attack flies back and hits him. That's the only way to hurt him.
+const TODD_HP = 12;
+const boss = { hp: TODD_HP, flinch: 0, down: false };
+const threats = [];              // faces in the air
+const fx = [];                   // sparks, rings, the slam target glow
+let atk = null, nextAtk = 0, hitstop = 0;
+
+// --- between his world (3D) and the stage (2D) ---
+const _v = new THREE.Vector3(), _v2 = new THREE.Vector3(), _ray = new THREE.Raycaster(), _ndc = new THREE.Vector2();
+function toStage(v) { _v.copy(v).project(camera); return { x: (_v.x + 1) / 2 * W, y: (1 - _v.y) / 2 * H }; }
+function fromStage(x, y, z) {
+  _ndc.set(x / W * 2 - 1, 1 - y / H * 2); _ray.setFromCamera(_ndc, camera);
+  const d = _ray.ray.direction, o = _ray.ray.origin, t = (z - o.z) / d.z;
+  return new THREE.Vector3().copy(o).addScaledVector(d, t);
+}
+// the middle of his screen (where faces come out, and where parried things land)
+let screenPanel = null;
+function screenAt() { if (!screenPanel) return { x: W / 2, y: 120 }; screenPanel.getWorldPosition(_v2); return toStage(_v2); }
+// his fist: a little past the wrist, along the forearm; on the stage it's a circle this big
+const ARM = { R: ['Right_Arm', 'forearm_R', 'hand_R'], L: ['Left_Arm', 'forearm_L', 'hand_L'] };
+const fA = new THREE.Vector3(), fB = new THREE.Vector3(), fD = new THREE.Vector3(), palm = new THREE.Vector3();
+function palmOf(side) {
+  const [, fore, hand] = ARM[side];
+  bones[fore].getWorldPosition(fA); bones[hand].getWorldPosition(fB);
+  fD.copy(fB).sub(fA).normalize();
+  return palm.copy(fB).addScaledVector(fD, toddH * 0.03);
+}
+function fistOnStage(side) {
+  const p = palmOf(side), c = toStage(p);
+  _v2.setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar(toddH * 0.07).add(p);   // a fist-width to the side
+  const e = toStage(_v2);
+  return { x: c.x, y: c.y, r: Math.hypot(e.x - c.x, e.y - c.y) };
+}
+// Reach: search his arm's angles (and how far he leans in) for the pose that puts his fist on a point.
+function solveArm(side, goal, lean) {
+  const [arm, fore] = ARM[side], A = bones[arm], F = bones[fore], C = bones.chest;
+  const keep = [A.quaternion.clone(), F.quaternion.clone(), C.quaternion.clone()];
+  const m = side === 'R' ? 1 : -1, e = new THREE.Euler(), q = new THREE.Quaternion();
+  const set = (c) => {
+    e.set(lean, 0, 0, 'YXZ'); C.quaternion.copy(rest.chest).multiply(q.setFromEuler(e));
+    e.set(c[0], c[1], c[2], 'YXZ'); A.quaternion.copy(rest[arm]).multiply(q.setFromEuler(e));
+    e.set(c[3], 0, 0, 'YXZ'); F.quaternion.copy(rest[fore]).multiply(q.setFromEuler(e));
+    C.updateMatrixWorld(true);
+    return palmOf(side).distanceTo(goal);
+  };
+  let best = null;
+  for (let i = 0; i < 500; i++) {
+    const c = [-2.8 + Math.random() * 3.2, -1.6 + Math.random() * 3.2, m * (-1.2 + Math.random() * 2.4), -2.2 + Math.random() * 2.2];
+    const k = set(c); if (!best || k < best.cost) best = { c, cost: k };
+  }
+  for (let i = 0; i < 300; i++) {
+    const c = best.c.map((v) => v + (Math.random() - 0.5) * (0.4 * (1 - i / 300) + 0.02));
+    const k = set(c); if (k < best.cost) best = { c, cost: k };
+  }
+  A.quaternion.copy(keep[0]); F.quaternion.copy(keep[1]); C.quaternion.copy(keep[2]); C.updateMatrixWorld(true);
+  return best;
+}
+// which of his arms is on which side of the screen (he faces you, so his right is on your left)
+let rightArmOnLeft = true;
+
+// --- his face shots: little screens with his faces on them ---
+const shotArt = {};
+function shotImage(name) {
+  if (shotArt[name]) return shotArt[name];
+  const d = faceData[faceAt(name)]; if (!d) return null;
+  const px = document.createElement('canvas'); px.width = FACE.w; px.height = FACE.h;
+  const img = px.getContext('2d').createImageData(FACE.w, FACE.h); img.data.set(d);
+  if (name !== 'happy') for (let i = 0; i < img.data.length; i += 4) {   // red, like his screen
+    const D = img.data; if (D[i + 1] > 120 && D[i + 2] > 120 && D[i] < D[i + 1] - 60) { D[i] = 255; D[i + 1] = 34; D[i + 2] = 46; }
+  }
+  px.getContext('2d').putImageData(img, 0, 0);
+  const S = 3, c = document.createElement('canvas'); c.width = FACE.w * S + 12; c.height = FACE.h * S + 12;
+  const g = c.getContext('2d');
+  g.fillStyle = '#2b3338'; g.fillRect(0, 0, c.width, c.height);                // the bezel
+  g.fillStyle = '#11181c'; g.fillRect(3, 3, c.width - 6, c.height - 6);
+  g.imageSmoothingEnabled = false; g.drawImage(px, 6, 6, FACE.w * S, FACE.h * S);
+  return (shotArt[name] = c);
+}
+function fireFace(name, speed) {
+  const s = screenAt();
+  const lead = 0.25, tx = P.x + P.vx * lead, ty = P.y - 40;
+  const dx = tx - s.x, dy = ty - s.y, d = Math.hypot(dx, dy) || 1;
+  threats.push({ kind: 'face', name, x: s.x, y: s.y, vx: dx / d * speed, vy: dy / d * speed, r: 28, rot: 0, state: 'fly', t: 0 });
+  fx.push({ kind: 'ring', x: s.x, y: s.y, t: 0, life: 0.3, color: '#ff2a3a' });
+}
+
+// --- hitting him ---
+function hitTodd(x, y) {
+  if (boss.down) return;
+  boss.hp--; boss.flinch = 1;
+  fight.shake = Math.max(fight.shake, 0.8);
+  fx.push({ kind: 'burst', x, y, t: 0, life: 0.5 });
+  face(Math.random() < 0.5 ? 'surprised' : 'sad', 180);
+  clearTimeout(hitTodd.back);
+  hitTodd.back = setTimeout(() => { if (!boss.down) face('angry', 300); }, 700);
+  if (boss.hp <= 0) knockout();
+}
+function knockout() {
+  boss.down = true; atk = null; threats.length = 0;
+  fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
+  setTimeout(() => banner('KNOCKOUT!'), 600);
+}
+function youDied() {
+  atk = null;
+  setTimeout(() => { banner('YOU DIED'); fight.retry = true; }, 900);
+}
+function restart() {
+  fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
+  threats.length = 0; fx.length = 0; atk = null; nextAtk = 0;
+  revive(); startIntro();
+}
+
+// --- picking and running his attacks ---
+function startAttack(now) {
+  const kind = Math.random() < 0.55 ? 'slam' : 'volley';
+  if (kind === 'slam') {
+    const tx = Math.max(190, Math.min(W - 190, P.x + P.vx * 0.3));   // (his reach: right by the walls is out of it)
+    const onLeft = tx < W / 2, side = onLeft === rightArmOnLeft ? 'R' : 'L';
+    const lean = 0.45;
+    // the fist lands on the stage, its bottom on the floor line, a little in front of him
+    const goal = fromStage(tx, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;   // his fist's knuckles on the floor
+    const sol = solveArm(side, goal, lean);
+    atk = { kind, side, tx, lean, sol, state: 'raise', t0: now };
+    fx.push({ kind: 'target', x: tx, t: 0, life: 0.95 });
+  } else {
+    atk = { kind, state: 'aim', t0: now, shots: 0, next: now + 600 };
+    face('angry', 120);
+  }
+}
+const PUNCH = { goal: null };
+function stepAttack(now, dt) {
+  if (fight.phase !== 'fight' || P.dead) return;
+  if (!atk) { if (!nextAtk) nextAtk = now + 1200; if (now > nextAtk) { startAttack(now); } return; }
+  const T = (now - atk.t0) / 1000;
+  if (atk.kind === 'slam') {
+    if (atk.state === 'raise' && T > 0.85) { atk.state = 'down'; atk.t0 = now; }
+    else if (atk.state === 'down' && T > 0.14) {
+      atk.state = 'rest'; atk.t0 = now; fight.shake = 1; ripple(atk.tx, 2.2);
+      const f = fistOnStage(atk.side);
+      for (let i = 0; i < 10; i++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 });
+    }
+    else if (atk.state === 'rest' && T > 1.15) { atk.state = 'lift'; atk.t0 = now; }
+    else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + 700 + Math.random() * 700; }
+    else if (atk.state === 'punch' && T > 0.32) {
+      const s = screenAt(); hitTodd(s.x, s.y);
+      atk.state = 'lift'; atk.t0 = now;
+    }
+    // his fist hurts on the way down and while it's on the stage, unless you parry it
+    if (atk && (atk.state === 'down' || atk.state === 'rest')) {
+      const f = fistOnStage(atk.side);
+      if (touches(f.x, f.y, f.r)) {
+        if (P.parryT > 0) {
+          parried(f.x, f.y);
+          // knocked back up into his own face
+          const s = screenPanel ? screenPanel.getWorldPosition(new THREE.Vector3()) : null;
+          if (s) { const goal = s.clone(); goal.z += toddH * 0.12; atk.punch = solveArm(atk.side, goal, -0.1); }
+          atk.state = 'punch'; atk.t0 = now;
+        } else hurt(1);
+      }
+    }
+  } else if (atk.kind === 'volley') {
+    if (atk.shots < 3 && now > atk.next) {
+      fireFace(atk.shots === 1 && Math.random() < 0.5 ? 'sad' : 'angry', 330 + atk.shots * 25);
+      atk.shots++; atk.next = now + 520; boss.recoil = 1;
+    }
+    if (atk.shots >= 3 && now > atk.next + 300) { atk = null; nextAtk = now + 900 + Math.random() * 700; }
+  }
+}
+// does a circle touch the player?
+function touches(x, y, r) {
+  if (P.dead) return false;
+  const nx = Math.max(P.x + BOX.l, Math.min(x, P.x + BOX.r)), ny = Math.max(P.y + BOX.t, Math.min(y, P.y + BOX.b));
+  return (x - nx) ** 2 + (y - ny) ** 2 < r * r;
+}
+function parried(x, y) {
+  P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = 0.4; P.hurtT = Math.max(P.hurtT, 0.25);
+  hitstop = 0.07; fight.shake = Math.max(fight.shake, 0.45);
+  fx.push({ kind: 'ring', x, y, t: 0, life: 0.35, color: '#ff5cf0' });
+  fx.push({ kind: 'ring', x, y, t: -0.06, life: 0.4, color: '#ffffff' });
+}
+function stepThreats(dt) {
+  for (let i = threats.length - 1; i >= 0; i--) {
+    const o = threats[i]; o.t += dt; o.rot += dt * (o.state === 'back' ? 14 : 3);
+    if (o.state === 'fly') {
+      o.x += o.vx * dt; o.y += o.vy * dt;
+      if (o.name === 'sad') o.vy += 500 * dt;       // the sad ones droop
+      if (touches(o.x, o.y, o.r)) {
+        if (P.parryT > 0) { parried(o.x, o.y); o.state = 'back'; o.t = 0; o.fromX = o.x; o.fromY = o.y; }
+        else { hurt(1); threats.splice(i, 1); fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ff2a3a' }); continue; }
+      }
+      if (o.y > FLOOR - 10 || o.x < -60 || o.x > W + 60 || o.y < -80) {
+        threats.splice(i, 1);
+        if (o.y > FLOOR - 10) ripple(o.x, 1.4);
+        for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: o.x, y: Math.min(o.y, FLOOR), vx: (Math.random() - 0.5) * 300, vy: -Math.random() * 250, t: 0, life: 0.4 });
+      }
+    } else if (o.state === 'back') {
+      // straight back into his screen, in an arc
+      const s = screenAt(), p = Math.min(1, o.t / 0.42), e = p * p * (3 - 2 * p);
+      o.x = o.fromX + (s.x - o.fromX) * e; o.y = o.fromY + (s.y - o.fromY) * e - Math.sin(p * Math.PI) * 90;
+      o.scale = 1 - p * 0.5;
+      if (p >= 1) { hitTodd(s.x, s.y); threats.splice(i, 1); }
+    }
+  }
+}
+function drawThreats() {
+  for (const o of threats) {
+    const img = shotImage(o.name); if (!img) continue;
+    ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.sin(o.rot) * 0.25 + (o.state === 'back' ? o.rot : 0));
+    const k = (o.scale || 1);
+    ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 18;
+    ctx.drawImage(img, -img.width / 2 * k, -img.height / 2 * k, img.width * k, img.height * k);
+    ctx.restore();
+  }
+}
+function stepFx(dt) {
+  for (let i = fx.length - 1; i >= 0; i--) {
+    const f = fx[i]; f.t += dt;
+    if (f.kind === 'spark') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 900 * dt; }
+    if (f.t > f.life) fx.splice(i, 1);
+  }
+}
+function drawFx(t) {
+  // where his fist is about to come down
+  if (atk && atk.kind === 'slam' && (atk.state === 'raise' || atk.state === 'down')) {
+    const a = 0.35 + 0.35 * Math.abs(Math.sin(t * 14));
+    const g = ctx.createRadialGradient(atk.tx, FLOOR, 4, atk.tx, FLOOR, 90);
+    g.addColorStop(0, `rgba(255,40,60,${a})`); g.addColorStop(1, 'rgba(255,40,60,0)');
+    ctx.fillStyle = g; ctx.fillRect(atk.tx - 90, FLOOR - 40, 180, 50);
+    ctx.fillStyle = `rgba(255,60,80,${a + 0.2})`; ctx.fillRect(atk.tx - 70, FLOOR - 1, 140, 3);
+  }
+  for (const f of fx) {
+    const p = Math.max(0, f.t / f.life);
+    if (f.t < 0) continue;
+    if (f.kind === 'ring') { ctx.strokeStyle = f.color; ctx.globalAlpha = 1 - p; ctx.lineWidth = 4 * (1 - p) + 1; ctx.beginPath(); ctx.arc(f.x, f.y, 10 + p * 60, 0, Math.PI * 2); ctx.stroke(); }
+    else if (f.kind === 'spark') { ctx.fillStyle = '#9ffffb'; ctx.globalAlpha = 1 - p; ctx.fillRect(f.x - 2, f.y - 2, 4, 4); }
+    else if (f.kind === 'burst') {
+      ctx.globalAlpha = 1 - p; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, r0 = 20 + p * 40, r1 = 40 + p * 90; ctx.moveTo(f.x + Math.cos(a) * r0, f.y + Math.sin(a) * r0); ctx.lineTo(f.x + Math.cos(a) * r1, f.y + Math.sin(a) * r1); }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 // ---------------- the loop ----------------
@@ -434,10 +764,14 @@ const STEP = 1 / 120;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - then) / 1000); then = now;
-  acc += dt;
-  while (acc >= STEP) { step(STEP); acc -= STEP; }
+  // a parry freezes everything for a split second
+  if (hitstop > 0) { hitstop -= dt; acc = 0; }
+  else { acc += dt; while (acc >= STEP) { step(STEP); stepThreats(STEP); acc -= STEP; } }
+  if (fight.retry && jumpPressed) { jumpPressed = false; restart(); }
   const t = now / 1000;
   animateTodd(t, dt);
+  stepAttack(now, dt);
+  stepFx(dt);
   stepBot(dt, now);
   faceStep(now);
   const sh = fight.shake * fight.shake * 9, sx = (Math.random() - 0.5) * sh, sy = (Math.random() - 0.5) * sh;
@@ -445,19 +779,22 @@ function frame(now) {
   if (todd) renderer.render(scene, camera);
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, W, H);
-  drawFloor(t);
+  floorMat.uniforms.uTime.value = t;
+  drawFx(t);
   drawPlayer();
+  drawThreats();
 }
 
 // for testing from the console
 function hurt(n = 1) {
   if (P.dead || P.hurtT > 0) return;
   P.hp = Math.max(0, P.hp - n); P.hurtT = 1.2;
-  if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; }
+  fight.shake = Math.max(fight.shake, 0.5);
+  if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; P.parryT = 0; P.spin = 0; youDied(); }
   paintHud();
 }
-function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, x: 200, y: FLOOR, vx: 0, vy: 0 }); paintHud(); }
-window.FIGHT = { bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
+window.FIGHT = { boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
