@@ -1,5 +1,5 @@
 {
-  "_how": "TODD's brain for the chat (chat.js). What you type is lower-cased, contractions are opened up (what's -> what is), and words in 'synonyms' are swapped for their main word, so 'hiya' counts as 'hello'. TOPICS: each has 'match', a list of phrases. A phrase matches if all of its words are somewhere in what was typed (any order), and the topic with the longest matching phrase wins. 'replies' is what he says (one at random); 'again' is used if you've asked that topic before. A reply can be plain text or {\"text\": \"..\", \"has\": \"itemId\", \"had\": \"itemId\", \"lost\": \"itemId\", \"level\": 2} so it only shows if the item is in your drawer (has), was ever in it (had), was in it but isn't now (lost), or he's at least that aware of you (level 0-4). 'short': true means the topic only counts for short answers (3 words or fewer), like yes/no. Topic extras: 'face' (smile, neutral, happy, angry, surprised, sly, sad, error, loading), 'anger' (adds to his temper; 3 or more and he has a tantrum; negative calms him), 'do' (an action: face_you, approach, wander, spin, glitch, reboot, rage, agony). REFLECT: patterns with a * that grab part of what you said; {1} puts it back (with I/you swapped). FALLBACK: when nothing matches ('fallback_aware' once he knows you). In any reply: {name} = the name you told him, {visits} = your visit count, {time} = the time. FILES: what 'dir' lists and 'type <file>' shows.",
+  "_how": "TODD's brain for the chat (chat.js). What you type is lower-cased, contractions are opened up (what's -> what is), and words in 'synonyms' are swapped for their main word, so 'hiya' counts as 'hello'. TOPICS: each has 'match', a list of phrases. A phrase matches if all of its words are somewhere in what was typed (any order), and the topic with the longest matching phrase wins. 'replies' is what he says (one at random); 'again' is used if you've asked that topic before. A reply can be plain text or {\"text\": \"..\", \"has\": \"itemId\", \"had\": \"itemId\", \"lost\": \"itemId\", \"level\": 2} so it only shows if the item is in your drawer (has), was ever in it (had), was in it but isn't now (lost), or he's at least that aware of you (level 0-4); \"flag\": \"name\" (or \"!name\") checks the shared rp_flags (marquez_cedar = they've found out Cedar's name, wonder_unlocked = they've opened CH 02). 'short': true means the topic only counts for short answers (3 words or fewer), like yes/no. Topic extras: 'face' (smile, neutral, happy, angry, surprised, sly, sad, error, loading), 'anger' (adds to his temper; 3 or more and he has a tantrum; negative calms him), 'do' (an action: face_you, approach, wander, spin, glitch, reboot, rage, agony). REFLECT: patterns with a * that grab part of what you said; {1} puts it back (with I/you swapped). FALLBACK: when nothing matches ('fallback_aware' once he knows you). In any reply: {name} = the name you told him, {visits} = your visit count, {time} = the time. FILES: what 'dir' lists and 'type <file>' shows. LIVE MARKET: a topic with \"ticker\": \"BSTG\" answers with the real price from /prices.json when you ask how it's doing (price, worth, doing, up, down...); \"live\": \"market\" lists all five. {kills} = how many little ones (popups) they've deleted.",
   "synonyms": {
     "hello": [
       "hi",
@@ -340,15 +340,27 @@
     {
       "id": "cedar",
       "match": [
-        "cedar",
+        "marquez",
         "old man",
         "man behind the desk",
-        "old boy"
+        "old boy",
+        "gentleman"
       ],
       "face": "sly",
       "replies": [
         "the OLD MAN behind the desk? he thinks he's SO wise.",
-        "CEDAR. he wanted my disk DESTROYED. i HEARD him.",
+        {
+          "text": "MARQUEZ. or so he SAYS. i'm not telling. it's not MY name to tell.",
+          "flag": "!marquez_cedar"
+        },
+        {
+          "text": "CEDAR. you figured it OUT. he hates that.",
+          "flag": "marquez_cedar"
+        },
+        {
+          "text": "CEDAR wanted my disk DESTROYED. i HEARD him.",
+          "flag": "marquez_cedar"
+        },
         "tell the old man TODD says hi. no wait. DON'T."
       ]
     },
@@ -361,9 +373,22 @@
       ],
       "face": "surprised",
       "replies": [
-        "WONDER?? the LOUD one?? he keeps yelling my NAME!!",
-        "he wants to EAT my guts. please do NOT let him.",
-        "THE STAR IS BORN TO-- no. NO. i won't say it. it's CATCHY though."
+        {
+          "text": "something LOUD is behind the locked note. CH 02. you'll MEET him.",
+          "flag": "!wonder_unlocked"
+        },
+        {
+          "text": "WONDER?? the LOUD one?? he keeps yelling my NAME!!",
+          "flag": "wonder_unlocked"
+        },
+        {
+          "text": "he wants to EAT my guts. please do NOT let him.",
+          "flag": "wonder_unlocked"
+        },
+        {
+          "text": "THE STAR IS BORN TO-- no. NO. i won't say it. it's CATCHY though.",
+          "flag": "wonder_unlocked"
+        }
       ]
     },
     {
@@ -378,7 +403,8 @@
       "replies": [
         "need POLYGONS? i lend 500. you owe 600. that's just MATH.",
         "PAY ME BACK. i REMEMBER. (mostly.)",
-        "r!bailout. r!repay. it's not hard. it's TODD finance."
+        "r!bailout. r!repay. it's not hard. it's TODD finance.",
+        "r!bailout if you're BROKE. under 100 net worth. i lend 500, you owe 600. it's a GOOD deal. for ME."
       ]
     },
     {
@@ -841,6 +867,502 @@
         "no. NO. it doesn't. why would you ASK that.",
         "i'm FINE. i'm. fine.",
         "it only hurts when i run into the SCREEN."
+      ]
+    },
+    {
+      "id": "cedar_name",
+      "match": [
+        "cedar"
+      ],
+      "face": "surprised",
+      "replies": [
+        {
+          "text": "who's CEDAR? ...never heard that name. NEVER.",
+          "flag": "!marquez_cedar"
+        },
+        {
+          "text": "so you KNOW. good for you. he still runs a SHOP, in his head.",
+          "flag": "marquez_cedar"
+        },
+        {
+          "text": "CEDAR. shopkeeper. pins photos on MY corkboard.",
+          "flag": "marquez_cedar"
+        }
+      ]
+    },
+    {
+      "id": "backstage",
+      "match": [
+        "backstage",
+        "corkboard",
+        "the board",
+        "back stage",
+        "calendar"
+      ],
+      "face": "sly",
+      "replies": [
+        "MY backstage!! you're NOT SUPPOSED to be HERE? INTRUDER!!!? ...ok fine. you can stay.",
+        "i HOST the backstage. it says so on the BOARD. Host: TODD.OS.",
+        "the old man pins his STUFF on my corkboard. his PHOTOS. it's MY board."
+      ]
+    },
+    {
+      "id": "scanner",
+      "match": [
+        "scanner",
+        "frequency",
+        "frequencies",
+        "ch 01",
+        "channel",
+        "radio",
+        "signal",
+        "tune"
+      ],
+      "face": "happy",
+      "replies": [
+        "the FREQUENCY scanner. ALL FOR ME. REALLY. i'm the HOST.",
+        "tune it. LISTEN. people say things into the static and FORGET they did.",
+        "codes? i'm not GIVING you codes. go ask the SCANNER. CH 01.",
+        "75.40 is ME. the rest you can find YOURSELF."
+      ]
+    },
+    {
+      "id": "ch02",
+      "match": [
+        "ch 02",
+        "unpatched",
+        "locked note",
+        "locked door",
+        "keyhole",
+        "locked"
+      ],
+      "face": "sly",
+      "replies": [
+        "CH 02. UNPATCHED. it wants a KEY. a RUSTY one.",
+        {
+          "text": "you got it OPEN. now he never SHUTS UP.",
+          "flag": "wonder_unlocked"
+        }
+      ]
+    },
+    {
+      "id": "drawer",
+      "match": [
+        "drawer",
+        "inventory",
+        "items",
+        "my stuff",
+        "collection"
+      ],
+      "face": "neutral",
+      "replies": [
+        "the DRAWER. you keep things in there. MY DISK is in there. (it'd BETTER be.)",
+        "you pick up EVERYTHING. pails. keys. tiny GRAVES. you're a HOARDER.",
+        "LOOK DOWN. that's where the drawer is. that's ALWAYS where it is."
+      ]
+    },
+    {
+      "id": "craft",
+      "match": [
+        "craft",
+        "crafting",
+        "workbench",
+        "bench",
+        "make something",
+        "combine"
+      ],
+      "face": "error",
+      "replies": [
+        "the old man MAKES things now?? with a LIGHTBULB?? that's not how ANYTHING works.",
+        "two things go IN. one thing comes OUT. he wouldn't tell me the RECIPES either.",
+        {
+          "text": "he made my DISK into a TAPE on that bench. i WATCHED.",
+          "has": "dubbed_tape",
+          "anger": 1
+        }
+      ]
+    },
+    {
+      "id": "vision",
+      "match": [
+        "render vision",
+        "render face",
+        "the face",
+        "big head",
+        "robot head",
+        "vision"
+      ],
+      "face": "error",
+      "replies": [
+        "...HIM. the BIG head. he's always WATCHING.",
+        "RENDER VISION. OWNER. OPERATOR. don't make him LOOK at you.",
+        "we don't talk about HIM in the guts.",
+        "he has a SCREEN face too. we are NOT the same."
+      ]
+    },
+    {
+      "id": "little",
+      "match": [
+        "little ones",
+        "little guys",
+        "popups",
+        "popup",
+        "pop ups",
+        "alerts",
+        "windows",
+        "alert"
+      ],
+      "face": "sly",
+      "replies": [
+        "the LITTLE ONES. they pop up and STARE. somebody's looking THROUGH them.",
+        "you've deleted {kills} of them. somebody's KEEPING COUNT. not me. SOMEBODY.",
+        "press ESCAPE. that's all i'll say about the little ones."
+      ]
+    },
+    {
+      "id": "tombstone",
+      "match": [
+        "tombstone",
+        "grave",
+        "grimstone"
+      ],
+      "face": "sad",
+      "replies": [
+        "for the LITTLE ONES. somebody's keeping COUNT.",
+        "GONE but not FORGOTTEN. somebody scratched out the NOT."
+      ]
+    },
+    {
+      "id": "pail",
+      "match": [
+        "pail",
+        "bucket",
+        "jack and jill",
+        "jack",
+        "jill"
+      ],
+      "face": "sad",
+      "replies": [
+        "JACK and JILL went up the HILL. NOBODY came down.",
+        "the PAIL stayed up there. pails always STAY."
+      ]
+    },
+    {
+      "id": "key",
+      "match": [
+        "rusted key",
+        "rusty key",
+        "key",
+        "house",
+        "home"
+      ],
+      "face": "sad",
+      "replies": [
+        "a KEY to a house that isn't THERE anymore.",
+        "nobody remembers the STREET. somebody kept the key ANYWAY."
+      ]
+    },
+    {
+      "id": "polaroid",
+      "match": [
+        "polaroid",
+        "photo",
+        "picture"
+      ],
+      "face": "error",
+      "replies": [
+        "the old man's PHOTO. don't look at it too LONG.",
+        "'don't trust the'... the WHAT. the rest is TORN. i hate CLIFFHANGERS."
+      ]
+    },
+    {
+      "id": "cassette",
+      "match": [
+        "static cassette",
+        "static tape",
+        "recording"
+      ],
+      "face": "neutral",
+      "replies": [
+        "a tape of STATIC. somebody recorded NOTHING. on PURPOSE.",
+        "play it and you'd only hear static. PROBABLY."
+      ]
+    },
+    {
+      "id": "shard",
+      "match": [
+        "shard",
+        "popup shard"
+      ],
+      "face": "sly",
+      "replies": [
+        "a piece of a window that wouldn't CLOSE. still WARM.",
+        "still BLINKING. a little. that's NORMAL. (it's not normal.)"
+      ]
+    },
+    {
+      "id": "varandia",
+      "match": [
+        "varandia",
+        "varandian",
+        "retold"
+      ],
+      "face": "sad",
+      "replies": [
+        "VARANDIA. CANCELLED. cancelled things don't come BACK. ...do they?",
+        "the old man misses it. i can TELL.",
+        "everyone who was IN it... went somewhere. don't ASK me where."
+      ]
+    },
+    {
+      "id": "market",
+      "match": [
+        "market",
+        "stocks",
+        "stock market",
+        "rend conomy",
+        "rendconomy",
+        "shares",
+        "prices"
+      ],
+      "face": "sly",
+      "replies": [
+        "five companies. fake POLYGONS. REAL bragging rights."
+      ],
+      "live": "market"
+    },
+    {
+      "id": "blu",
+      "match": [
+        "blu",
+        "builders league",
+        "builders league united"
+      ],
+      "face": "neutral",
+      "replies": [
+        "BUILDERS LEAGUE UNITED. they never hit a GOAL and they never SINK. HOW.",
+        "FRANCIS SCOTT runs it. JAMES COBALT manages it. i manage NOTHING."
+      ],
+      "ticker": "BLU"
+    },
+    {
+      "id": "bnw",
+      "match": [
+        "bnw",
+        "business numbers",
+        "business numbers working"
+      ],
+      "face": "sly",
+      "replies": [
+        "BUSINESS NUMBERS WORKING. allegedly.",
+        "JOHN GLAZLOW runs it. and there's a FREQUENCY on the payroll?? how does a FREQUENCY get a JOB."
+      ],
+      "ticker": "BNW"
+    },
+    {
+      "id": "nach",
+      "match": [
+        "nach",
+        "de nacho",
+        "nacho",
+        "nachos"
+      ],
+      "face": "happy",
+      "replies": [
+        "DE NACHO. NACHOS. i can't EAT. i'm told they're GOOD.",
+        "JOHN JACOB JINGLEHEIMER SCHMIDT. his name is MY name TOO. no it ISN'T."
+      ],
+      "ticker": "NACH"
+    },
+    {
+      "id": "rrm",
+      "match": [
+        "rrm",
+        "render room stock"
+      ],
+      "face": "error",
+      "replies": [
+        "RENDER ROOM. the server, ON the market. owned by... HIM.",
+        "HAYZ does the MODERATION. i do the LOANS."
+      ],
+      "ticker": "RRM"
+    },
+    {
+      "id": "bstg",
+      "match": [
+        "bstg",
+        "bastardly",
+        "bastardly glory"
+      ],
+      "face": "surprised",
+      "replies": [
+        "BASTARDLY GLORY. 400 polygons one day. 2 the NEXT. i LOVE them. i HATE them.",
+        "a GAMES company. glorious ones, OCCASIONALLY."
+      ],
+      "ticker": "BSTG"
+    },
+    {
+      "id": "jobs",
+      "match": [
+        "job",
+        "jobs",
+        "work",
+        "apply",
+        "intern",
+        "shift",
+        "promotion",
+        "executive"
+      ],
+      "face": "neutral",
+      "replies": [
+        "r!apply. r!work. INTERN to EXECUTIVE. i've never had a JOB. i'm SELF-employed. as TODD.",
+        "pay follows the STOCK. work for a good company. or BSTG, if you like PAIN."
+      ]
+    },
+    {
+      "id": "shop",
+      "match": [
+        "shop",
+        "coffee",
+        "overtime",
+        "mystery",
+        "resume",
+        "title",
+        "purchase"
+      ],
+      "face": "happy",
+      "replies": [
+        "r!shop. COFFEE resets your cooldown. i don't drink coffee. i drink ELECTRICITY.",
+        "MYSTERY boxes. i love a mystery. i AM a mystery."
+      ]
+    },
+    {
+      "id": "daily",
+      "match": [
+        "daily",
+        "dividends",
+        "free polygons",
+        "reward"
+      ],
+      "face": "sad",
+      "replies": [
+        "r!daily. FREE polygons. nobody gives TODD free polygons.",
+        "r!dividends. your shares pay you. my shares pay me NOTHING. i don't HAVE shares."
+      ]
+    },
+    {
+      "id": "bot",
+      "match": [
+        "bot",
+        "rend conomy bot",
+        "commands",
+        "r help",
+        "discord bot"
+      ],
+      "face": "smile",
+      "replies": [
+        "the BOT. r!help. it does the money stuff. i do the LOANS.",
+        "r!market. r!buy. r!sell. r!chart. i KNOW them all. i'm not a BOT though."
+      ]
+    },
+    {
+      "id": "ai_bot",
+      "match": [
+        "r ai",
+        "setai",
+        "the ai",
+        "ai personality"
+      ],
+      "face": "error",
+      "replies": [
+        "the bot has an AI?? r!ai?? ...is it SMARTER than me. DON'T ANSWER THAT."
+      ]
+    },
+    {
+      "id": "discord",
+      "match": [
+        "discord",
+        "render room",
+        "server",
+        "hayz",
+        "members"
+      ],
+      "face": "neutral",
+      "replies": [
+        "THE RENDER ROOM. everyone's in there. nobody's in HERE. just you.",
+        "go say HI in #welcome. don't mention ME."
+      ]
+    },
+    {
+      "id": "rft",
+      "match": [
+        "file tycoon",
+        "rft",
+        "render's file tycoon",
+        "files",
+        "pipeline"
+      ],
+      "face": "happy",
+      "replies": [
+        "RENDER'S FILE TYCOON. wire up pipes. SELL files. i'd be GREAT at it. i AM a file.",
+        "it sells to the MARKET. the real one. well. the FAKE real one."
+      ]
+    },
+    {
+      "id": "chess",
+      "match": [
+        "chess",
+        "iso chess",
+        "isochess",
+        "power cards"
+      ],
+      "face": "sly",
+      "replies": [
+        "ISO-CHESS. a PROTOTYPE. the enemy shows its moves before it MAKES them. ...like me. sometimes."
+      ]
+    },
+    {
+      "id": "games",
+      "match": [
+        "games",
+        "game",
+        "play"
+      ],
+      "face": "happy",
+      "replies": [
+        "FILE TYCOON. ISO-CHESS. VARANDIA. well. not varandia. NOT ANYMORE."
+      ]
+    },
+    {
+      "id": "patch",
+      "match": [
+        "patch notes",
+        "patch",
+        "changelog",
+        "updates",
+        "whats new",
+        "what is new",
+        "news"
+      ],
+      "face": "sly",
+      "replies": [
+        "the PATCH NOTES. they never mention ME. ...good. KEEP it that way.",
+        "read them CAREFULLY. some of the lines are about places like THIS."
+      ]
+    },
+    {
+      "id": "site",
+      "match": [
+        "render productions",
+        "this site",
+        "the site",
+        "website",
+        "homepage"
+      ],
+      "face": "neutral",
+      "replies": [
+        "RENDER PRODUCTIONS. friends who MAY or may NOT know what they're doing. i'm in their BASEMENT.",
+        "the site has a FRONT. this is the BACK. the back of the back."
       ]
     }
   ],

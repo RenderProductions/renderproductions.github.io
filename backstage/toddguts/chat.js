@@ -77,6 +77,10 @@
     if (reply.never && (had[reply.never] || have[reply.never])) return false;
     if (reply.level != null && (window.TODD ? TODD.level : 0) < reply.level) return false;
     if (reply.named != null && !!mem.name !== reply.named) return false;
+    if (reply.flag) {
+      const not = reply.flag.charAt(0) === '!', f = items('rp_flags')[not ? reply.flag.slice(1) : reply.flag];
+      if (not ? f : !f) return false;
+    }
     return true;
   }
   function choose(list, key) {
@@ -90,6 +94,7 @@
   function fill(text, bit) {
     const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     return String(text).replace(/\{name\}/g, mem.name || 'CURSOR').replace(/\{NAME\}/g, (mem.name || 'CURSOR').toUpperCase())
+      .replace(/\{kills\}/g, (() => { try { return +localStorage.getItem('rvKills') || 0; } catch (e) { return 0; } })())
       .replace(/\{visits\}/g, window.TODD ? TODD.visits : 1).replace(/\{time\}/g, time).replace(/\{1\}/g, bit || '...');
   }
 
@@ -125,6 +130,9 @@
       if (!r) r = choose(BRAIN.fallback, 'fallback');
       const repeat = lastTopic === tp.id && !tp.again && Math.random() < 0.35;
       lastTopic = tp.id;
+      if (tp.live === 'market' || (tp.ticker && /\b(price|prices|worth|doing|stock|stocks|cost|costs|value|up|down|trading|at|chart|buy|sell|invest)\b/.test(t))) {
+        return { live: tp.live === 'market' ? 'market' : 'price', ticker: tp.ticker, lead: fill(r.text || r), face: tp.face };
+      }
       return { text: repeat ? 'you JUST asked that. ' + fill(r.text || r) : fill(r.text || r), face: r.face || tp.face, anger: (tp.anger || 0) + (r.anger || 0), do: tp.do };
     }
     if (echo) { lastTopic = ''; return { text: fill(choose(echo.r.replies, echo.r.pattern), echo.bit), face: echo.r.face }; }
@@ -161,15 +169,38 @@
     })();
   }
 
+  // the real market, from /prices.json
+  let pricesAt = 0, prices = null;
+  function market() {
+    if (prices && Date.now() - pricesAt < 60000) return Promise.resolve(prices);
+    return fetch('/prices.json?v=' + Date.now()).then((r) => r.json()).then((d) => { prices = d; pricesAt = Date.now(); return d; }).catch(() => null);
+  }
+  function quote(c) {
+    const ch = +c.change || 0;
+    return c.id + ' is at ' + (+c.price).toFixed(2) + ' POLYGONS, ' + (ch > 0 ? 'UP ' : ch < 0 ? 'DOWN ' : 'FLAT ') + Math.abs(ch).toFixed(2) + '%' +
+      (ch > 8 ? '. GLORIOUS.' : ch < -8 ? '. OOF. OUCH.' : '.');
+  }
+  function live(reply) {
+    if (!reply || !reply.live) return Promise.resolve(reply);
+    return market().then((d) => {
+      const list = d && d.companies;
+      if (!list) return Object.assign(reply, { text: reply.lead + ' ...the MARKET feed is down. i can\'t SEE the numbers.' });
+      if (reply.live === 'market') return Object.assign(reply, { text: reply.lead + '\n' + list.map((c) => '  ' + quote(c)).join('\n'), keepLines: true });
+      const c = list.find((x) => x.id === reply.ticker);
+      return Object.assign(reply, { text: c ? quote(c) + ' ' + reply.lead : reply.lead });
+    });
+  }
+
   function answer(said) {
     if (!BRAIN || busy) return;
     if (window.TODD && TODD.busy) { line('todd err', 'ERROR: TODD.EXE IS NOT RESPONDING'); return; }
     // his temper cools off over time
     temper = Math.max(0, temper - (Date.now() - temperAt) / 60000); temperAt = Date.now();
     line('you', 'C:\\TODD> ' + said);
-    const reply = think(said);
-    if (!reply) return;
-    if (reply.cls) { log.textContent = ''; return; }
+    const first = think(said);
+    if (!first) return;
+    if (first.cls) { log.textContent = ''; return; }
+    const ready = live(first);   // looks up the market while he 'thinks'
     busy = true; form.classList.add('busy');
     if (window.TODD) { TODD.faceYou(); TODD.face('loading'); }
     // thinking...
@@ -177,7 +208,8 @@
     const spin = '|/-\\';
     let k = 0;
     const thinking = setInterval(() => { el.textContent = 'processing ' + spin[k++ % 4]; }, 90);
-    setTimeout(() => {
+    const minThink = new Promise((ok) => setTimeout(ok, 450 + Math.min(1400, said.length * 25) + Math.random() * 500));
+    Promise.all([ready, minThink]).then(([reply]) => {
       clearInterval(thinking);
       el.className = 'msg todd';
       if (window.TODD && reply.face) TODD.face(reply.face);
@@ -191,7 +223,7 @@
           if (temper >= 3 || reply.do === 'rage') { temper = 0; setTimeout(TODD.rage, 500); }
         }
       });
-    }, 450 + Math.min(1400, said.length * 25) + Math.random() * 500);
+    });
   }
 
   form.addEventListener('submit', (e) => {
