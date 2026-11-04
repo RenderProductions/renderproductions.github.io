@@ -1,5 +1,5 @@
 {
-  "_how": "Every item that can be found on the site. The key (e.g. \"test_token\") is the item's id: use it in data-item=\"...\" on a page, in a frequency code's {\"type\": \"item\", \"id\": \"...\"} action, or in Marquez's \"give\". Fields: name (shown on the found slip and in the drawer), desc (shown when you hover it in the drawer; \\n for a new line), art (an image, ideally a transparent SVG or PNG under /backstage/drawer/art/), size (how big it lies in the drawer: 1 is normal, 0.7 small, 1.4 large), found (optional: the small line on the found slip, default \"into the drawer\"). Items not listed here still go in the drawer, as a plain paper tag with their id. Items without art show as a blank tag with their name until art exists. RIPENING: \"ripens\": {\"into\": \"other_id\", \"hours\": 3, \"chance\": 0.3333} means every <hours> after it was found, there is a <chance> it turns into <into> (it is replaced, with a found slip). RECIPES (Cedar's workbench, once he has seen the Bright Bulb): each recipe is {\"use\": [two item ids, any order], \"make\": \"new_id\", \"say\": \"Cedar dialogue node he says after\"}. Both items in \"use\" are used up; the Bright Bulb is the light you work by and is never used up. Used-up items never come back.",
+  "_how": "Every item that can be found on the site. The key (e.g. \"test_token\") is the item's id: use it in data-item=\"...\" on a page, in a frequency code's {\"type\": \"item\", \"id\": \"...\"} action, or in Marquez's \"give\". Fields: name (shown on the found slip and in the drawer), desc (shown when you hover it in the drawer; \\n for a new line), art (an image, ideally a transparent SVG or PNG under /backstage/drawer/art/), size (how big it lies in the drawer: 1 is normal, 0.7 small, 1.4 large), found (optional: the small line on the found slip, default \"into the drawer\"). Items not listed here still go in the drawer, as a plain paper tag with their id. Items without art show as a blank tag with their name until art exists. SHAKING: \"shakes\": {\"into\": \"other_id\", \"times\": 14} means shaking it in the drawer (dragging it back and forth, or tapping it fast) that many times in a row turns it into <into>. Stop for a few seconds and it settles back down. \"spot\": \"other_id\" makes an item lie where that other item lay in the drawer. RECIPES (Cedar's workbench, once he has seen the Bright Bulb): each recipe is {\"use\": [two item ids, any order], \"make\": \"new_id\", \"say\": \"Cedar dialogue node he says after\"}. Both items in \"use\" are used up; the Bright Bulb is the light you work by and is never used up. Used-up items never come back.",
   "items": {
     "pail": {
       "name": "Pail",
@@ -33,10 +33,9 @@
       "desc": "Burnt out. Found in the dark, which is the only place you'd ever find it.\nShake it and something rattles.",
       "art": "/backstage/drawer/art/dead_bulb.svg",
       "size": 0.7,
-      "ripens": {
+      "shakes": {
         "into": "bright_bulb",
-        "hours": 3,
-        "chance": 0.3333
+        "times": 14
       }
     },
     "polaroid": {
@@ -65,7 +64,8 @@
       "desc": "It glows now. Nobody plugged it in.\nShake it and the rattle's gone. Whatever was in there, it's the light now.",
       "art": "/backstage/drawer/art/bright_bulb.svg",
       "size": 0.7,
-      "found": "it's glowing"
+      "found": "it's glowing",
+      "spot": "dead_bulb"
     },
     "clear_polaroid": {
       "name": "Clear Polaroid",

@@ -2,6 +2,8 @@
 // Each item always lands in the same spot (worked out from its id), so the drawer looks lived-in
 // rather than reshuffled on every visit. Items further back sit a little smaller, for depth.
 // Hover, focus or tap an item to read its tag (art/tag.svg).
+// Items with "shakes" in items.json can be shaken: drag them back and forth (or tap fast)
+// enough times in a row and they turn into something else (the Dead Bulb lights up).
 (function () {
   'use strict';
   var art = document.getElementById('art');
@@ -78,7 +80,7 @@
       var placed = [];
       ids.forEach(function (id) {
         var item = cat[id] || {};
-        var rnd = seeded(id);
+        var rnd = seeded(item.spot || id);
         var size = +item.size || 1;
         // Try a few spots and keep the one furthest from everything already placed.
         var best = null, bestGap = -1;
@@ -125,9 +127,86 @@
         btn.addEventListener('focus', function () { show(btn, item, id, onLeft); });
         btn.addEventListener('blur', function () { hide(btn); });
         btn.addEventListener('click', function (e) { e.stopPropagation(); show(btn, item, id, onLeft); });
+        if (item.shakes && item.shakes.into) shakeable(btn, id, item.shakes);
         floor.appendChild(btn);
       });
     });
+  }
+
+  // ---- shaking ----
+  var actx = null;
+  function noise(len, freq, vol) {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var t = actx.currentTime, n = Math.floor(actx.sampleRate * len);
+      var buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+      var src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 6; g.gain.value = vol;
+      src.connect(f); f.connect(g); g.connect(actx.destination); src.start(t);
+    } catch (e) {}
+  }
+  function hum() {
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var t = actx.currentTime;
+      [880, 1320].forEach(function (hz, i) {
+        var o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'sine'; o.frequency.value = hz;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(i ? 0.02 : 0.05, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+        o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 1.7);
+      });
+    } catch (e) {}
+  }
+
+  function shakeable(btn, id, rule) {
+    var need = rule.times || 14, count = 0, idle = 0, done = false;
+    var down = false, last = null, dir = { x: 0, y: 0 }, from = { x: 0, y: 0 };
+    btn.classList.add('shakeable');
+    function paint() { btn.style.setProperty('--p', (count / need).toFixed(2)); btn.classList.toggle('flicker', count >= need * 0.4); }
+    function settle() { count = 0; paint(); btn.classList.remove('flicker'); }
+    function shake() {
+      if (done) return;
+      count++;
+      btn.classList.remove('rattle'); void btn.offsetWidth; btn.classList.add('rattle');
+      noise(0.05 + Math.random() * 0.03, 2600 + Math.random() * 1800, 0.35);
+      paint();
+      clearTimeout(idle); idle = setTimeout(settle, 2500);
+      if (count >= need) light();
+    }
+    function light() {
+      done = true; clearTimeout(idle);
+      btn.classList.add('lit');
+      hum();
+      setTimeout(function () {
+        RPInventory.swap(id, rule.into);
+      }, 700);
+    }
+    // a shake = the drag turning back on itself after moving far enough one way
+    btn.addEventListener('pointerdown', function (e) {
+      down = true; last = from = { x: e.clientX, y: e.clientY }; dir = { x: 0, y: 0 };
+      try { btn.setPointerCapture(e.pointerId); } catch (er) {}
+    });
+    btn.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      var p = { x: e.clientX, y: e.clientY };
+      ['x', 'y'].forEach(function (k) {
+        var step = p[k] - last[k];
+        if (!step) return;
+        var s = step > 0 ? 1 : -1;
+        if (s !== dir[k]) {
+          if (dir[k] && Math.abs(last[k] - from[k]) > 12) shake();
+          dir[k] = s; from[k] = last[k];
+        }
+      });
+      last = p;
+    });
+    function up() { down = false; }
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointercancel', up);
+    // a tap (or Enter/Space) is one little shake too
+    btn.addEventListener('click', function () { shake(); });
   }
 
   // Tapping anywhere else puts the slip away (for touch screens).

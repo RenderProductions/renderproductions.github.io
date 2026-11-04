@@ -14,23 +14,19 @@
 //   RPInventory.give('brass_key', { quiet: true })   -> no slip
 //   RPInventory.has('brass_key')         -> true / false
 //   RPInventory.take('brass_key')        -> removes it (for trades and puzzles)
+//   RPInventory.swap('old_id', 'new_id') -> turns one into the other, in place (with a found slip)
 //   RPInventory.list()                   -> ['brass_key', ...] in the order they were found
 //   RPInventory.catalog()                -> Promise of the items.json "items" object
 //   RPInventory.recipes()                -> Promise of the items.json "recipes" list (Cedar's workbench)
+//   document.addEventListener('rp:items', ...)   fires whenever the inventory changes
 //
 // Once found, always found: an item that's been used up (crafted, or turned into something else)
 // doesn't come back. Its pickup stays gone and give() won't hand it out again (give(id, { again: true }) will).
-//
-// Items that change with time: an item in items.json with
-//   "ripens": { "into": "other_id", "hours": 3, "chance": 0.3333 }
-// gets one roll every <hours> after it was found; on a hit it's replaced by <into> (with a found slip).
-// The rolls happen on any page that loads this file, and each window is only rolled once ("rp_ripen").
-//   document.addEventListener('rp:items', ...)   fires whenever the inventory changes
 (function () {
   'use strict';
   if (window.RPInventory) return;
 
-  var KEY = 'rp_items', HAD = 'rp_items_had', RIPE = 'rp_ripen';
+  var KEY = 'rp_items', HAD = 'rp_items_had';
   var dataP = null;
 
   function load(k) {
@@ -93,6 +89,19 @@
     return true;
   }
 
+  // swap one item for another in place (it keeps the old one's spot in the found order)
+  function swap(from, to, opts) {
+    var v = read();
+    if (!v[from] || v[to]) return false;
+    var h = had(), at = v[from], out = {};
+    Object.keys(v).forEach(function (k) { out[k === from ? to : k] = v[k]; });
+    if (!write(out)) return false;
+    h[to] = at; save(HAD, h);
+    changed({ id: to, from: from, action: 'swap' });
+    if (!(opts && opts.quiet)) slip(to);
+    return true;
+  }
+
   // ---- the "found" slip: a scrap of paper that drops in at the top of the screen ----
   var slipBox = null;
   function css() {
@@ -105,8 +114,8 @@
       'font:14px "Special Elite","Courier New",monospace;box-shadow:0 2px 2px rgba(0,0,0,.25),0 12px 24px -8px rgba(0,0,0,.7);transform:rotate(-1.2deg);' +
       'animation:rp-slip-in .45s cubic-bezier(.3,1.4,.5,1) both}' +
       '.rp-slip.out{animation:rp-slip-out .35s ease-in forwards}' +
-      '.rp-slip .art{flex:none;width:40px;height:40px;display:grid;place-items:center}' +
-      '.rp-slip .art img{max-width:100%;max-height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}' +
+      '.rp-slip .rp-slip-art{flex:none;width:40px;height:40px;display:grid;place-items:center}' +
+      '.rp-slip .rp-slip-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}' +
       '.rp-slip small{display:block;font-size:11px;letter-spacing:2px;color:#7a6a45;text-transform:uppercase}' +
       '.rp-slip b{display:block;font:400 18px "Permanent Marker","Comic Sans MS",cursive;letter-spacing:.5px}' +
       '@keyframes rp-slip-in{from{opacity:0;transform:translateY(-30px) rotate(-6deg)}to{opacity:1;transform:rotate(-1.2deg)}}' +
@@ -131,7 +140,7 @@
       var el = document.createElement('div');
       el.className = 'rp-slip';
       var art = document.createElement('span');
-      art.className = 'art';
+      art.className = 'rp-slip-art';
       if (item.art) { var img = new Image(); img.src = item.art; img.alt = ''; art.appendChild(img); }
       var words = document.createElement('span');
       var small = document.createElement('small'); small.textContent = item.found || 'into the drawer';
@@ -166,31 +175,12 @@
     });
   }
 
-  // ---- items that change with time (items.json "ripens") ----
-  function ripen() {
-    if (!list().length) return Promise.resolve([]);
-    return catalog().then(function (cat) {
-      var v = read(), r = load(RIPE), now = Date.now(), done = [];
-      Object.keys(v).forEach(function (id) {
-        var rule = cat[id] && cat[id].ripens;
-        if (!rule || !rule.into) return;
-        var every = (rule.hours || 3) * 3600000, chance = rule.chance == null ? 1 / 3 : rule.chance;
-        var win = Math.floor((now - v[id]) / every), last = r[id] || 0, hit = false;
-        while (last < win && !hit) { last++; hit = Math.random() < chance; }
-        r[id] = last;
-        if (hit) { delete r[id]; take(id); give(rule.into, { again: true }); done.push(rule.into); }
-      });
-      save(RIPE, r);
-      return done;
-    });
-  }
-
   // Another tab gave or took something: tell this page too.
   window.addEventListener('storage', function (e) { if (e.key === KEY) changed({ action: 'sync' }); });
 
-  window.RPInventory = { give: give, take: take, has: has, list: list, catalog: catalog, recipes: recipes, wire: wire, ripen: ripen };
+  window.RPInventory = { give: give, take: take, swap: swap, has: has, list: list, catalog: catalog, recipes: recipes, wire: wire };
 
-  function boot() { had(); wire(); ripen(); setInterval(ripen, 60000); }
+  function boot() { had(); wire(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();

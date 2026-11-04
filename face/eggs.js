@@ -507,7 +507,7 @@
   function giveItem(id) {
     if (window.RPInventory) { RPInventory.give(id); return; }
     var s = document.createElement('script');
-    s.src = '/inventory.js?v=2';
+    s.src = '/inventory.js?v=3';
     s.onload = function () { if (window.RPInventory) RPInventory.give(id); };
     document.head.appendChild(s);
   }
