@@ -47,7 +47,7 @@ const TUNE = {
   parry: 0.2, parryBounce: 760,
   spin: 0.34, parryCool: 0.22,      // the parry is its own button: a quick spin; after a miss, a moment before the next
   groundHop: 380, airPop: 220,      // a little hop on the ground, a little lift in the air
-  gold: 0.6                         // how long a successful parry makes you untouchable (you glow gold)    // how long a mid-air jump press can parry for, and how high a parry bounces you
+  gold: 0.45                         // how long a successful parry makes you untouchable (you glow gold)    // how long a mid-air jump press can parry for, and how high a parry bounces you
 };
 
 // ---------------- input ----------------
@@ -603,6 +603,22 @@ function animateTodd(t, dt) {
       else if (atk.state === 'punch' && atk.punch) { a = atk.punch.c.slice(0, 3); f = atk.punch.c[3]; chest = [-0.1, 0, 0]; speed = 18; }
       else if (atk.state === 'lift') speed = 5;
       if (a) { if (S === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; } }
+    } else if (atk && (atk.kind === 'pound' || atk.kind === 'clap')) {
+      const st = atk.state, put = (sd, a, f) => { if (sd === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; } };
+      if (st === 'raise') {
+        speed = 7; pitch = youPitch + 0.1;
+        if (atk.kind === 'pound') { chest = [-0.16, 0, 0]; put('R', [-2.8, 0, 0.2], -0.5); put('L', [-2.8, 0, -0.2], -0.5); }
+        else { chest = [0.1, 0, 0]; put('R', [-1.2, 0, 1.25], -0.4); put('L', [-1.2, 0, -1.25], -0.4); pitch = 0.4; }
+      } else if (st === 'down' || st === 'sweep' || st === 'rest') {
+        for (const sd of atk.sides) { const c = atk.sol2[sd].c; put(sd, c.slice(0, 3), c[3]); }
+        chest = [atk.lean, 0, 0]; pitch = 0.6; speed = st === 'down' ? 26 : st === 'sweep' ? 30 : 10;
+      } else if (st === 'punch' && atk.punch) { put(atk.side, atk.punch.c.slice(0, 3), atk.punch.c[3]); chest = [-0.1, 0, 0]; speed = 18; }
+      else speed = 5;
+    } else if (atk && (atk.kind === 'cursors' || atk.kind === 'popups')) {
+      // pointing his screen at you, a twitch with each one
+      chest = [0.18 - (boss.recoil || 0) * 0.12, 0, 0]; pitch = youPitch + (atk.kind === 'popups' ? -0.25 : 0.12);
+      boss.recoil = Math.max(0, (boss.recoil || 0) - dt * 4);
+      if (atk.kind === 'popups') { const k = Math.sin(t * 20) * 0.08; armR = [-1.6 + k, 0, 0.5]; armL = [-1.6 - k, 0, -0.5]; foreR = foreL = -1.0; speed = 9; }
     } else if (atk && atk.kind === 'rain') {
       // arms up, pounding at the air, his terminal pouring out of the sky
       const pound = Math.sin(t * 9);
@@ -679,7 +695,7 @@ function animateTodd(t, dt) {
 // ---------------- the fight: his attacks, and parrying them back at him ----------------
 // Everything he throws at you hurts if it touches you, unless you parry it: jump, then press jump again in
 // mid-air as you meet it. A parried attack flies back and hits him. That's the only way to hurt him.
-const TODD_HP = 20;   // parries it takes to beat him
+const TODD_HP = 26;   // parries it takes to beat him
 const boss = { hp: TODD_HP, flinch: 0, down: false };
 const threats = [];              // faces in the air
 const fx = [];                   // sparks, rings, the slam target glow
@@ -807,6 +823,20 @@ function rainWave(speed, lastGap, gapW = 150) {
 // --- the static wave: along the floor, from under him outward ---
 function staticWave(dir, speed) { threats.push({ kind: 'wave', x: W / 2, y: FLOOR - 45, w: 38, h: 90, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
 
+// --- shockwaves: low, fast, along the floor (from the double pound) ---
+function shock(x, dir, speed) { threats.push({ kind: 'shock', x, y: FLOOR - 20, w: 30, h: 40, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
+// --- cursors: little pointers from his screen that chase you for a moment, then dive ---
+function fireCursor(i) {
+  const s = screenAt(), a = -Math.PI / 2 + (i - 1) * 0.9;
+  threats.push({ kind: 'cursor', x: s.x, y: s.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 20, home: 1.6 + i * 0.25, state: 'fly', t: 0, rot: 0 });
+}
+// --- error popups: a window locks on above you, then slams down ---
+const POPUP_TEXT = ['ERROR', 'GET OUT', 'NO', 'DENIED', 'FATAL', '404'];
+function popup(x) {
+  x = Math.max(60, Math.min(W - 60, x));
+  threats.push({ kind: 'drop', x, y: -60, w: 116, h: 84, vy: 0, text: POPUP_TEXT[(Math.random() * POPUP_TEXT.length) | 0], state: 'warn', warn: 0.55, t: 0, rot: 0 });
+}
+
 // --- hitting him ---
 function hitTodd(x, y) {
   if (boss.down) return;
@@ -860,10 +890,14 @@ function restart() {
 
 // --- picking and running his attacks ---
 // He gets worse as he takes damage: three phases, each faster, each adding attacks.
-function phase() { return boss.hp > 13 ? 1 : boss.hp > 6 ? 2 : 3; }
-const MOVES = { 1: ['slam', 'slam', 'volley'], 2: ['slam', 'volley', 'sweep', 'sweep', 'rain', 'rain'], 3: ['slam', 'volley', 'sweep', 'rain', 'agony', 'agony'] };
+function phase() { return boss.hp > 18 ? 1 : boss.hp > 9 ? 2 : 3; }
+const MOVES = {
+  1: ['slam', 'slam', 'volley', 'cursors'],
+  2: ['slam', 'volley', 'sweep', 'rain', 'popups', 'pound', 'cursors'],
+  3: ['slam', 'volley', 'sweep', 'rain', 'popups', 'pound', 'clap', 'clap', 'cursors', 'agony', 'agony']
+};
 let lastMove = null;
-function pace() { return [1, 0.9, 0.7, 0.5][phase()]; }   // how long he rests between attacks
+function pace() { return [1, 0.8, 0.6, 0.42][phase()]; }   // how long he rests between attacks
 function startAttack(now, force) {
   let kind = force;
   if (!kind) { const pool = MOVES[phase()]; do { kind = pool[(Math.random() * pool.length) | 0]; } while (kind === lastMove && pool.length > 1 && Math.random() < 0.7); }
@@ -883,6 +917,33 @@ function startAttack(now, force) {
     return;
   }
   if (kind === 'rain') { atk = { kind, state: 'cast', t0: now, waves: 0, next: now + 900, gap: null }; face('error', 300); return; }
+  if (kind === 'cursors') { atk = { kind, t0: now, shots: 0, next: now + 500 }; face('sly', 200); return; }
+  if (kind === 'popups') { atk = { kind, t0: now, shots: 0, next: now + 450 }; face('error', 250); return; }
+  const leftSide = rightArmOnLeft ? 'R' : 'L', rightSide = leftSide === 'R' ? 'L' : 'R';
+  if (kind === 'pound') {
+    // both fists, side by side in front of him; the floor shakes and shockwaves run out both ways
+    const lean = 0.5, sol = {};
+    sol[leftSide] = solveArm(leftSide, fromStage(W / 2 - 85, FLOOR, PLANE * toddH).add(new THREE.Vector3(0, toddH * 0.055, 0)), lean);
+    sol[rightSide] = solveArm(rightSide, fromStage(W / 2 + 85, FLOOR, PLANE * toddH).add(new THREE.Vector3(0, toddH * 0.055, 0)), lean);
+    atk = { kind, fist: true, sides: [leftSide, rightSide], sol2: sol, lean, state: 'raise', t0: now };
+    return;
+  }
+  if (kind === 'clap') {
+    // both fists on the stage at the edges of his reach, dragged in to meet in the middle
+    const lean = 0.45, paths = {};
+    const build = (side, from, to) => {
+      const path = []; let seed = null;
+      for (let i = 0; i <= 5; i++) {
+        const x = from + (to - from) * i / 5, goal = fromStage(x, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;
+        const sol = seed ? solveArmFrom(side, goal, lean, seed) : solveArm(side, goal, lean);
+        path.push(sol); seed = sol.c;
+      }
+      return path;
+    };
+    paths[leftSide] = build(leftSide, 210, W / 2 - 50); paths[rightSide] = build(rightSide, W - 210, W / 2 + 50);
+    atk = { kind, fist: true, sides: [leftSide, rightSide], paths, lean, state: 'raise', t0: now, sol2: { [leftSide]: paths[leftSide][0], [rightSide]: paths[rightSide][0] } };
+    return;
+  }
   if (kind === 'agony') { atk = { kind, state: 'charge', t0: now, waves: 0, next: 0 }; face('agony', 700); return; }
   if (kind === 'slam') {
     const tx = Math.max(190, Math.min(W - 190, P.x + P.vx * 0.3));   // (his reach: right by the walls is out of it)
@@ -975,7 +1036,7 @@ function stepAttack(now, dt) {
     if (atk.shots >= n && now > atk.next + 300) { atk = null; nextAtk = now + (900 + Math.random() * 700) * pace(); }
   } else if (atk.kind === 'sweep') {
     if (atk.state === 'raise' && T > (phase() === 3 ? 0.7 : 0.85)) { atk.state = 'down'; atk.t0 = now; }
-    else if (atk.state === 'down' && T > 0.15) { atk.state = 'sweep'; atk.t0 = now; fight.shake = 0.7; const f = fistOnStage(atk.side); ripple(f.x, 1.6); }
+    else if (atk.state === 'down' && T > 0.15) { atk.state = 'sweep'; atk.t0 = now; fight.shake = 0.7; const f = fistOnStage(atk.side); ripple(f.x, 1.6); if (phase() === 3) fireFace('angry', 400); }
     else if (atk.state === 'sweep') {
       const dur = 0.14 * atk.path.length * (phase() === 3 ? 0.7 : 1), p = Math.min(1, T / dur);
       const at = p * (atk.path.length - 1), i = Math.min(atk.path.length - 2, Math.floor(at)), k = at - i;
@@ -988,6 +1049,38 @@ function stepAttack(now, dt) {
     else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + (800 + Math.random() * 600) * pace(); }
     else if (atk.state === 'punch' && T > 0.32) { const s = screenAt(); hitTodd(s.x, s.y); atk.state = 'lift'; atk.t0 = now; }
     if (atk && (atk.state === 'down' || atk.state === 'sweep' || atk.state === 'rest')) fistContact(now);
+  } else if (atk.kind === 'pound' || atk.kind === 'clap') {
+    const ph = phase();
+    if (atk.state === 'raise' && T > (atk.kind === 'clap' ? [0, 0.9, 0.8, 0.7][ph] : [0, 0.8, 0.65, 0.55][ph])) { atk.state = 'down'; atk.t0 = now; }
+    else if (atk.state === 'down' && T > 0.14) {
+      fight.shake = 1.1;
+      for (const sd of atk.sides) { const f = fistOnStage(sd); ripple(f.x, 2.4); for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 }); }
+      if (atk.kind === 'pound') {
+        const sp = 480 + ph * 50; shock(W / 2 - 150, -1, sp); shock(W / 2 + 150, 1, sp);
+        if (ph === 3) setTimeout(() => { if (atk && atk.kind === 'pound') { shock(W / 2 - 150, -1, sp * 0.7); shock(W / 2 + 150, 1, sp * 0.7); } }, 380);
+        atk.state = 'rest';
+      } else atk.state = 'sweep';
+      atk.t0 = now;
+      if (ph === 3) fireFace('angry', 420);   // and a face at you while his hands are busy
+    }
+    else if (atk.state === 'sweep') {
+      const n = atk.paths[atk.sides[0]].length, dur = 0.13 * n * (ph === 3 ? 0.75 : 1), p = Math.min(1, T / dur);
+      const at = p * (n - 1), i = Math.min(n - 2, Math.floor(at)), k = at - i;
+      for (const sd of atk.sides) { const A = atk.paths[sd][i].c, B = atk.paths[sd][i + 1].c; atk.sol2[sd] = { c: A.map((v, j) => v + (B[j] - v) * k) }; }
+      if (p >= 1) { atk.state = 'rest'; atk.t0 = now; fight.shake = 0.8; ripple(W / 2, 2); }
+    }
+    else if (atk.state === 'rest' && T > (atk.kind === 'pound' ? 0.7 : 0.4)) { atk.state = 'lift'; atk.t0 = now; }
+    else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + (800 + Math.random() * 500) * pace(); }
+    else if (atk.state === 'punch' && T > 0.32) { const s = screenAt(); hitTodd(s.x, s.y); atk.state = 'lift'; atk.t0 = now; }
+    if (atk && (atk.state === 'down' || atk.state === 'sweep' || atk.state === 'rest')) for (const sd of atk.sides) { if (atk.state === 'punch') break; fistContact(now, sd); }
+  } else if (atk.kind === 'cursors') {
+    const n = 1 + phase();
+    if (atk.shots < n && now > atk.next) { fireCursor(atk.shots % 3); atk.shots++; atk.next = now + 330; boss.recoil = 1; }
+    if (atk.shots >= n && now > atk.next + 900) { atk = null; nextAtk = now + (700 + Math.random() * 500) * pace(); }
+  } else if (atk.kind === 'popups') {
+    const n = 2 + phase();
+    if (atk.shots < n && now > atk.next) { popup(P.x + P.vx * 0.2); atk.shots++; atk.next = now + [0, 600, 500, 400][phase()]; }
+    if (atk.shots >= n && now > atk.next + 900) { atk = null; face('angry', 250); nextAtk = now + (700 + Math.random() * 500) * pace(); }
   } else if (atk.kind === 'rain') {
     if (atk.waves < 2 + phase() && now > atk.next) {
       atk.gap = rainWave(250 + phase() * 50, atk.gap, phase() === 3 ? 125 : 145); atk.waves++; atk.next = now + 1000 * pace();
@@ -1009,11 +1102,13 @@ function stepAttack(now, dt) {
   }
 }
 // his fist against you: it hurts, unless you parry it, and then it's knocked back up into his own face
-function fistContact(now) {
-  const f = fistOnStage(atk.side);
+function fistContact(now, side) {
+  side = side || atk.side;
+  const f = fistOnStage(side);
   if (!touches(f.x, f.y, f.r)) return;
   if (P.parryT > 0) {
     parried(f.x, f.y);
+    atk.side = side;                 // that's the fist that goes back into his face
     const s = screenPanel ? screenPanel.getWorldPosition(new THREE.Vector3()) : null;
     if (s) { const goal = s.clone(); goal.z += toddH * 0.12; atk.punch = solveArm(atk.side, goal, -0.1); }
     atk.state = 'punch'; atk.t0 = now;
@@ -1042,15 +1137,17 @@ function parried(x, y) {
 function stepThreats(dt) {
   for (let i = threats.length - 1; i >= 0; i--) {
     const o = threats[i]; o.t += dt; o.rot += dt * (o.state === 'back' ? 14 : 3);
-    if (o.state === 'fly' && (o.kind === 'bar' || o.kind === 'wave')) {
-      if (o.kind === 'bar') o.y += o.vy * dt; else o.x += o.vx * dt;
+    if (o.state === 'warn') { if (o.t > o.warn) { o.state = 'fly'; o.t = 0; o.vy = 950; } continue; }
+    if (o.state === 'fly' && (o.kind === 'bar' || o.kind === 'wave' || o.kind === 'shock' || o.kind === 'drop')) {
+      if (o.kind === 'bar' || o.kind === 'drop') o.y += o.vy * dt; else o.x += o.vx * dt;
       if (touchesRect(o.x, o.y, o.w, o.h)) {
         if (P.parryT > 0) { parried(Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)), o.y); o.state = 'back'; o.t = 0; o.fromX = Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)); o.fromY = o.y; o.x = o.fromX; continue; }
         hurt(1);
       }
-      const gone = o.kind === 'bar' ? o.y > FLOOR - o.h / 2 : (o.x < -o.w || o.x > W + o.w);
+      const gone = (o.kind === 'bar' || o.kind === 'drop') ? o.y > FLOOR - o.h / 2 : (o.x < -o.w || o.x > W + o.w);
       if (gone) {
         threats.splice(i, 1);
+        if (o.kind === 'drop') { ripple(o.x, 1.4); fight.shake = Math.max(fight.shake, 0.35); for (let k = 0; k < 8; k++) fx.push({ kind: 'spark', x: o.x + (Math.random() - 0.5) * o.w, y: FLOOR, vx: (Math.random() - 0.5) * 360, vy: -Math.random() * 260, t: 0, life: 0.45 }); }
         if (o.kind === 'bar') { ripple(o.x, 1.0); for (let k = 0; k < 5; k++) fx.push({ kind: 'spark', x: o.x + (Math.random() - 0.5) * o.w, y: FLOOR, vx: (Math.random() - 0.5) * 200, vy: -Math.random() * 200, t: 0, life: 0.35 }); }
       }
       continue;
@@ -1058,11 +1155,21 @@ function stepThreats(dt) {
     if (o.state === 'fly') {
       o.x += o.vx * dt; o.y += o.vy * dt;
       if (o.name === 'sad') o.vy += 500 * dt;       // the sad ones droop
+      if (o.kind === 'cursor') {
+        // chasing you (it can only turn so fast), then it commits and dives
+        const sp = Math.hypot(o.vx, o.vy) || 1;
+        if (o.t < o.home) {
+          const want = Math.atan2(P.y - 40 - o.y, P.x - o.x), cur = Math.atan2(o.vy, o.vx);
+          const d = Math.atan2(Math.sin(want - cur), Math.cos(want - cur)), turn = Math.max(-3.2 * dt, Math.min(3.2 * dt, d));
+          const ns = Math.min(380, sp + 60 * dt);
+          o.vx = Math.cos(cur + turn) * ns; o.vy = Math.sin(cur + turn) * ns;
+        } else { const ns = Math.min(900, sp + 1400 * dt); o.vx = o.vx / sp * ns; o.vy = o.vy / sp * ns; }
+      }
       if (touches(o.x, o.y, o.r)) {
         if (P.parryT > 0) { parried(o.x, o.y); o.state = 'back'; o.t = 0; o.fromX = o.x; o.fromY = o.y; }
         else { hurt(1); threats.splice(i, 1); fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ff2a3a' }); continue; }
       }
-      if (o.y > FLOOR - 10 || o.x < -60 || o.x > W + 60 || o.y < -80) {
+      if (o.y > FLOOR - 10 || o.x < -60 || o.x > W + 60 || o.y < (o.kind === 'cursor' ? -400 : -80)) {
         threats.splice(i, 1);
         if (o.y > FLOOR - 10) ripple(o.x, 1.4);
         for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: o.x, y: Math.min(o.y, FLOOR), vx: (Math.random() - 0.5) * 300, vy: -Math.random() * 250, t: 0, life: 0.4 });
@@ -1101,8 +1208,48 @@ function drawWave(o) {
   }
   ctx.restore();
 }
-function drawThreats() {
+function drawShock(o) {
+  const k = o.scale || 1, d = Math.sign(o.vx || 1);
+  ctx.save(); ctx.translate(o.x, o.y); ctx.scale(k * d, k);
+  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 18;
+  ctx.fillStyle = o.state === 'back' ? '#ff9bf5' : '#ff5260';
+  for (let j = 0; j < 3; j++) { const x = -j * 12; ctx.globalAlpha = 1 - j * 0.3; ctx.beginPath(); ctx.moveTo(x + 14, 20); ctx.lineTo(x - 2, -20 + j * 8); ctx.lineTo(x - 8, 20); ctx.fill(); }
+  ctx.restore(); ctx.globalAlpha = 1;
+}
+function drawCursor(o) {
+  const k = o.scale || 1;
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.atan2(o.vy, o.vx) + Math.PI * 0.75 + (o.state === 'back' ? o.rot : 0)); ctx.scale(2.1 * k, 2.1 * k);
+  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 12;
+  ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 7); ctx.lineTo(4.5, 3); ctx.lineTo(8, 10); ctx.lineTo(10.5, 9); ctx.lineTo(7, 2); ctx.lineTo(13, 2); ctx.closePath();
+  ctx.translate(-5, 0);
+  ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = '#111'; ctx.stroke();
+  ctx.restore();
+}
+function drawDrop(o, t) {
+  if (o.state === 'warn') {
+    // where it's about to land: a flickering outline and a line down to the floor
+    if (Math.floor(t * 16) % 2) return;
+    ctx.save(); ctx.strokeStyle = 'rgba(255,60,80,.85)'; ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+    ctx.strokeRect(o.x - o.w / 2, 14, o.w, o.h); ctx.beginPath(); ctx.moveTo(o.x, 14 + o.h); ctx.lineTo(o.x, FLOOR); ctx.stroke();
+    ctx.restore(); return;
+  }
+  const k = o.scale || 1;
+  ctx.save(); ctx.translate(o.x, o.y); if (o.state === 'back') ctx.rotate(o.rot * 0.3); ctx.scale(k, k);
+  const x = -o.w / 2, y = -o.h / 2;
+  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 16;
+  ctx.fillStyle = '#d8dde0'; ctx.fillRect(x, y, o.w, o.h); ctx.shadowBlur = 0;
+  ctx.fillStyle = o.state === 'back' ? '#a0279a' : '#a3121f'; ctx.fillRect(x, y, o.w, 18);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px "Courier New", monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText('TODD.EXE', x + 5, y + 9.5);
+  ctx.fillStyle = '#ff4757'; ctx.fillRect(x + o.w - 16, y + 3, 12, 12); ctx.fillStyle = '#fff'; ctx.fillText('x', x + o.w - 13, y + 9);
+  ctx.fillStyle = '#111'; ctx.font = 'bold 18px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.fillText(o.text, 0, 10);
+  ctx.strokeStyle = '#2b3338'; ctx.lineWidth = 2; ctx.strokeRect(x, y, o.w, o.h);
+  ctx.restore();
+}
+function drawThreats(t) {
   for (const o of threats) {
+    if (o.kind === 'shock') { drawShock(o); continue; }
+    if (o.kind === 'cursor') { drawCursor(o); continue; }
+    if (o.kind === 'drop') { drawDrop(o, t); continue; }
     if (o.kind === 'bar') { drawBar(o); continue; }
     if (o.kind === 'wave') { drawWave(o); continue; }
     const img = shotImage(o.name); if (!img) continue;
@@ -1201,13 +1348,13 @@ function frame(now) {
   floorMat.uniforms.uTime.value = t;
   drawFx(t);
   drawPlayer();
-  drawThreats();
+  drawThreats(t);
 }
 
 // for testing from the console
 function hurt(n = 1) {
   if (P.dead || P.hurtT > 0 || P.goldT > 0) return;
-  P.hp = Math.max(0, P.hp - n); P.hurtT = 1.0; P.streak = 0;
+  P.hp = Math.max(0, P.hp - n); P.hurtT = 0.9; P.streak = 0;
   if (Math.random() < 0.6) tauntSoon = true;   // got you
   fight.shake = Math.max(fight.shake, 0.5);
   if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; P.parryT = 0; P.spin = 0; youDied(); }
