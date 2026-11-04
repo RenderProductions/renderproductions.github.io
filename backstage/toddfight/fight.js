@@ -387,7 +387,7 @@ let floorY = 0, ripI = 0;
 function buildFloor() {
   // how high the top must be for the player's line to sit on it
   floorY = fromStage(W / 2, FLOOR, PLANE * toddH).y;
-  const front = (PLANE + 0.16) * toddH, back = -0.45 * toddH, wide = 4 * toddH;
+  const front = (PLANE + 0.16) * toddH, back = 0.12 * toddH, wide = 4 * toddH;   // (back: stops just in front of him, so it doesn't cut through his waist)
   const top = new THREE.Mesh(new THREE.PlaneGeometry(wide, front - back), floorMat);
   top.rotation.x = -Math.PI / 2; top.position.set(0, floorY, (front + back) / 2);
   const face = new THREE.Mesh(new THREE.PlaneGeometry(wide, toddH), slabFront);
@@ -395,7 +395,10 @@ function buildFloor() {
   // the lit front edge
   const lip = new THREE.Mesh(new THREE.BoxGeometry(wide, toddH * 0.0025, toddH * 0.0025), new THREE.MeshBasicMaterial({ color: new THREE.Color(0x00c8c4).convertSRGBToLinear() }));
   lip.position.set(0, floorY, front);
-  slab.add(top, face, lip); scene.add(slab);
+  // and a dimmer one along the back edge, so it reads as the floor's end, in front of him
+  const backLip = new THREE.Mesh(lip.geometry, new THREE.MeshBasicMaterial({ color: new THREE.Color(0x007a78).convertSRGBToLinear() }));
+  backLip.position.set(0, floorY, back);
+  slab.add(top, face, lip, backLip); scene.add(slab);
   floorMat.uniforms.uCell.value = toddH * 0.06; floorMat.uniforms.uHalf.value = toddH * 1.6;
 }
 // a ring of light spreading across the floor from a point on the stage
@@ -483,6 +486,20 @@ function animateTodd(t, dt) {
       else if (atk.state === 'punch' && atk.punch) { a = atk.punch.c.slice(0, 3); f = atk.punch.c[3]; chest = [-0.1, 0, 0]; speed = 18; }
       else if (atk.state === 'lift') speed = 5;
       if (a) { if (S === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; } }
+    } else if (atk && atk.kind === 'taunt') {
+      const T2 = (performance.now() - atk.t0) / 1000, k = tauntFrame(T2);
+      speed = 9;
+      const put = (side, sol, extra) => {
+        if (!sol) return;
+        const a = sol.c.slice(0, 3), f = sol.c[3] + (extra || 0);
+        if (side === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; }
+      };
+      const wig = k.wig ? Math.sin(t * 16) * 0.12 : 0, grind = k.grind ? Math.sin(t * 22) * 0.07 : 0;
+      put('R', k.R, wig + grind); put('L', k.L, wig - grind);
+      if (k.wig) { const sR = k.R ? armR : armL; sR[1] += Math.sin(t * 16) * 0.1; }
+      if (atk.taunt === 'tie') { pitch = youPitch - 0.22; chest = [0.0, 0, Math.sin(t * 3) * 0.04]; }
+      else if (atk.taunt === 'brush') { pitch = youPitch - 0.1; chest = [0.08, 0, 0]; }
+      else { chest = [0.2, 0, 0]; pitch = youPitch + 0.1; if (k.grind) fight.shake = Math.max(fight.shake, 0.12); }
     } else if (atk && atk.kind === 'volley') {
       // leaning his screen at you to fire
       chest = [0.2 + (boss.recoil || 0) * -0.15, 0, 0]; pitch = youPitch + 0.15;
@@ -498,7 +515,7 @@ function animateTodd(t, dt) {
 
   look.yaw += (yaw - look.yaw) * Math.min(1, dt * (speed > 8 ? 12 : 3));
   look.pitch += (pitch - look.pitch) * Math.min(1, dt * (speed > 8 ? 12 : 3));
-  const slamming = atk && atk.kind === 'slam' && atk.state !== 'raise' && atk.state !== 'lift';
+  const slamming = atk && ((atk.kind === 'slam' && atk.state !== 'raise' && atk.state !== 'lift') || atk.kind === 'taunt');
   target('chest', chest[0], chest[1] + (slamming ? 0 : look.yaw * 0.25), chest[2]);   // (no turning while his fist is out: it was aimed without it)
   target('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
   target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
@@ -640,11 +657,54 @@ function startAttack(now) {
     face('angry', 120);
   }
 }
+// --- taunts: a bit of personality between attacks (more likely right after he's hit you) ---
+let tauntSoon = false;
+function bonePos(name) { return bones[name].getWorldPosition(new THREE.Vector3()); }
+function startTaunt(now) {
+  const kinds = ['tie', 'brush', 'knuckles'];
+  const kind = kinds[(Math.random() * kinds.length) | 0], H = toddH, lean = 0.12;
+  const neck = bonePos('neck'), chest = bonePos('chest');
+  const shR = bonePos('Right_Arm'), shL = bonePos('Left_Arm');
+  // his nearer hand (to you) does the one-handed ones
+  const hand = rightArmOnLeft === (P.x < W / 2) ? 'R' : 'L', other = hand === 'R' ? 'L' : 'R';
+  const at = (v, dx, dy, dz) => v.clone().add(new THREE.Vector3(dx * H, dy * H, dz * H));
+  let frames, mood;
+  if (kind === 'tie') {
+    // straightening a tie he doesn't have: a fiddle at the collar, then smoothing it down his front
+    const knot = at(neck, 0, -0.03, 0.11), low = at(chest, 0, -0.1, 0.12);
+    frames = [{ t: 0, [hand]: solveArm(hand, knot, lean), wig: 1 }, { t: 1.2, [hand]: solveArm(hand, low, lean) }, { t: 1.65 }];
+    mood = 'sly';
+  } else if (kind === 'brush') {
+    // brushing something off his shoulder, with the other hand
+    const sh = other === 'R' ? shR : shL, out = Math.sign(sh.x) || 1;
+    const on = at(sh, 0, 0.03, 0.08), off = at(sh, out * 0.1, 0.07, 0.1);
+    const A = solveArm(hand, on, lean), B = solveArm(hand, off, lean);
+    frames = [{ t: 0, [hand]: A }, { t: 0.35, [hand]: B }, { t: 0.55, [hand]: A }, { t: 0.9, [hand]: B }, { t: 1.1, [hand]: A }, { t: 1.45, [hand]: B }, { t: 1.8 }];
+    mood = 'sly';
+  } else {
+    // cracking his knuckles: fists together in front of him, a grind, a shake
+    const mid = at(chest, 0, 0.02, 0.3);
+    const fR = solveArm('R', at(mid, Math.sign(shR.x) * 0.05, 0, 0), lean), fL = solveArm('L', at(mid, Math.sign(shL.x) * 0.05, 0, 0), lean);
+    frames = [{ t: 0, R: fR, L: fL, grind: 1 }, { t: 1.4 }];
+    mood = 'angry';
+  }
+  atk = { kind: 'taunt', taunt: kind, frames, t0: now };
+  face(mood, 260);
+}
+function tauntFrame(T) { let f = atk.frames[0]; for (const k of atk.frames) if (k.t <= T) f = k; return f; }
 const PUNCH = { goal: null };
 function stepAttack(now, dt) {
   if (fight.phase !== 'fight' || P.dead) return;
-  if (!atk) { if (!nextAtk) nextAtk = now + 1200; if (now > nextAtk) { startAttack(now); } return; }
+  if (!atk) {
+    if (!nextAtk) nextAtk = now + 1200;
+    if (now > nextAtk) { if (tauntSoon || Math.random() < 0.18) { tauntSoon = false; startTaunt(now); } else startAttack(now); }
+    return;
+  }
   const T = (now - atk.t0) / 1000;
+  if (atk.kind === 'taunt') {
+    if (T > atk.frames[atk.frames.length - 1].t) { atk = null; face('angry', 250); nextAtk = now + 500 + Math.random() * 400; }
+    return;
+  }
   if (atk.kind === 'slam') {
     if (atk.state === 'raise' && T > 0.85) { atk.state = 'down'; atk.t0 = now; }
     else if (atk.state === 'down' && T > 0.14) {
@@ -789,12 +849,13 @@ function frame(now) {
 function hurt(n = 1) {
   if (P.dead || P.hurtT > 0) return;
   P.hp = Math.max(0, P.hp - n); P.hurtT = 1.2;
+  if (Math.random() < 0.6) tauntSoon = true;   // got you
   fight.shake = Math.max(fight.shake, 0.5);
   if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; P.parryT = 0; P.spin = 0; youDied(); }
   paintHud();
 }
 function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
