@@ -6,20 +6,23 @@
 <meta name="robots" content="noindex">
 <title>...</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="todd.css?v=3">
+<link rel="stylesheet" href="todd.css?v=4">
 </head>
 <body>
 <!-- TODD, alone in the void, looking around.
      Nothing on the site links here. The model is todd.gltf (made in Blockbench);
      his face is a screen: faces.png holds his expressions (18 x 14 pixels each, side by side,
-     in the order listed at the top of todd.js), and todd.js fizzles between them. -->
+     in the order listed at the top of todd.js), and todd.js fizzles between them.
+     terminal.json holds the TODD.OS lines that flicker into the void (and flood it in a tantrum). -->
 <main class="void" id="void">
   <canvas id="stage" aria-label="TODD, standing in the dark, looking around"></canvas>
+  <div class="term" id="term" aria-hidden="true"></div>
   <div class="scan" aria-hidden="true"></div>
+  <canvas class="crash" id="crash" width="160" height="90" aria-hidden="true"></canvas>
   <p class="boot" id="boot">TODD.OS</p>
   <a class="leave" href="/backstage/">&larr; back</a>
 </main>
 <noscript><p class="nojs">(Something is standing in the dark. You can't see it without JavaScript.)</p></noscript>
-<script type="module" src="todd.js?v=8"></script>
+<script type="module" src="todd.js?v=9"></script>
 </body>
 </html>

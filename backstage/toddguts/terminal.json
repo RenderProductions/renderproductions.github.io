@@ -1,0 +1,51 @@
+{
+  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. {visits} becomes how many times they've been here.",
+  "idle": [
+    "TODD.OS v0.?? // BOOT DISK 1 OF ??",
+    "> mem check ... 640K OK",
+    "> heartbeat ... ok",
+    "> scanning the dark ... nothing",
+    "> scanning the dark ... something",
+    "> walk.exe",
+    "> SIGNAL 75.40 ... lost",
+    "> reboot? [Y/N] N",
+    "> idle",
+    "> it is very quiet in here"
+  ],
+  "aware": [
+    "> user detected",
+    "> user STILL detected",
+    "> visit #{visits} logged",
+    "> i know this cursor",
+    "> why do you keep coming back",
+    "> stop watching",
+    "> i can see you moving"
+  ],
+  "papa": [
+    "> BIG PAPA BUILT THIS WORLD FROM NOTHING",
+    "> i could never be like him",
+    "> big papa?",
+    "> papa.exe is not responding"
+  ],
+  "disk": [
+    "> BOOT DISK 1 ... MISSING",
+    "> DISK 1 LOCATED: YOUR DRAWER",
+    "> give it back"
+  ],
+  "rage": [
+    "ERROR ERROR ERROR",
+    "STOP",
+    "GET OUT",
+    "GET OUT GET OUT GET OUT",
+    "STACK OVERFLOW",
+    "!!!!!!!!!!!!!!",
+    "0xDEADBEEF",
+    "SEGFAULT",
+    "TODD.OS HAS STOPPED RESPONDING",
+    "WHY ARE YOU LOOKING",
+    "I SEE YOU",
+    "KILL -9",
+    "##############",
+    "NO NO NO NO NO NO"
+  ]
+}
