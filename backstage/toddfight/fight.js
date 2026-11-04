@@ -358,7 +358,7 @@ function loadBot() {
     const box = new THREE.Box3().setFromObject(o), c = new THREE.Vector3(); box.getCenter(c);
     const h = box.max.y - box.min.y, k = toddH * 0.5 / h;            // half TODD's height (he's far back, so he looks small)
     o.position.set(-c.x, -box.min.y, -c.z); holder.scale.setScalar(k);
-    bot.obj = holder; bot.size = toddH;
+    bot.obj = holder; bot.size = toddH; bot.k0 = k; bot.rawH = h;
     bot.mixer = new THREE.AnimationMixer(o);
     g.animations.forEach((a) => { bot.acts[a.name] = bot.mixer.clipAction(a); });
     if (bot.acts.run) bot.acts.run.play();
@@ -370,6 +370,7 @@ function loadBot() {
 function stepBot(dt, now) {
   if (!bot.obj) return;
   bot.mixer.update(dt);
+  if (stomp.on) return stepStomp(dt, now);   // he's busy: in the fight
   const end = LEDGE.half * toddH * 0.92;
   if (bot.mode === 'run' || bot.mode === 'walk') {
     const v = (bot.mode === 'run' ? 0.95 : 0.35) * toddH;
@@ -383,6 +384,116 @@ function stepBot(dt, now) {
   const diff = Math.atan2(Math.sin(wantRot - bot.obj.rotation.y), Math.cos(wantRot - bot.obj.rotation.y));   // the short way round
   bot.obj.rotation.y += diff * Math.min(1, dt * 8);
   bot.obj.position.set(bot.x, LEDGE.y * toddH, LEDGE.z * toddH);
+}
+// ---- the TV robot joins in (phase 2 on) ----
+// He jumps down off his ledge onto the stage, then keeps leaping up out of sight and stomping down on you
+// (a shadow on the floor shows where). Touching him hurts. Parry him three times and he's sent flying back
+// to his ledge. His parries don't hurt TODD, but they do count toward your heal streak.
+const stomp = { on: false, state: '', t0: 0, x: W / 2, sx: W / 2, hits: 0, next: 0, from: null, to: null, k: 1, spin: 0, ledgeX: 0 };
+const STOMP_PX = 250;       // how tall he stands on the stage, in stage units (the player is about 84)
+function stompScale() {
+  // world units per stage unit at the stage's depth, so he stands the right size on the floor
+  const a = fromStage(0, FLOOR, PLANE * toddH), b = fromStage(100, FLOOR, PLANE * toddH);
+  return STOMP_PX * (a.distanceTo(b) / 100) / bot.rawH;
+}
+function stageToWorld(x, y) { return fromStage(x, y, PLANE * toddH); }
+function startStomp(now) {
+  if (!bot.obj || stomp.on) return;
+  Object.assign(stomp, { on: true, state: 'leap', t0: now, hits: 0, k: stompScale(), spin: 0 });
+  stomp.from = bot.obj.position.clone(); stomp.k0 = bot.obj.scale.x;
+  stomp.x = stomp.sx = Math.max(140, Math.min(W - 140, P.x));
+  stomp.to = stageToWorld(stomp.x, -240);       // up out of sight above the stage
+  setBotMode('walk');
+}
+function endStomp(now, flung) {
+  if (!stomp.on) return;
+  stomp.state = 'fling'; stomp.t0 = now; stomp.from = bot.obj.position.clone(); stomp.k0 = bot.obj.scale.x;
+  stomp.ledgeX = (Math.random() - 0.5) * LEDGE.half * toddH; stomp.flung = flung;
+}
+// where he is on the stage right now (for touching you): feet at (x, y), STOMP_PX tall
+function stompBox() { const c = toStage(bot.obj.position); return { x: c.x, y: c.y - STOMP_PX * 0.4, w: 92, h: STOMP_PX * 0.78 }; }
+function stepStomp(dt, now) {
+  const T = (now - stomp.t0) / 1000, ph = phase(), o = bot.obj;
+  const face = (yaw) => { const d = Math.atan2(Math.sin(yaw - o.rotation.y), Math.cos(yaw - o.rotation.y)); o.rotation.y += d * Math.min(1, dt * 10); };
+  const arc = (a, b, p, lift) => a.clone().lerp(b, p).add(new THREE.Vector3(0, Math.sin(p * Math.PI) * lift, 0));
+  bot.mixer.timeScale = 1;
+  if (stomp.state === 'leap') {
+    // off the ledge, up and over TODD's shoulder, out of sight above the stage
+    const p = Math.min(1, T / 0.9), e = p * p * (3 - 2 * p);
+    o.position.copy(arc(stomp.from, stomp.to, e, toddH * 0.4)); o.scale.setScalar(stomp.k0 + (stomp.k - stomp.k0) * e);
+    face(Math.PI); o.rotation.z = Math.sin(p * Math.PI) * 0.4;
+    if (p >= 1) { stomp.state = 'aim'; stomp.t0 = now; o.rotation.z = 0; }
+  } else if (stomp.state === 'aim') {
+    // out of sight; his shadow on the floor follows you, then locks
+    const lock = [0, 1.0, 0.85, 0.7][ph];
+    if (T < lock - 0.25) stomp.sx += (Math.max(60, Math.min(W - 60, P.x)) - stomp.sx) * Math.min(1, dt * 5);
+    o.position.copy(stageToWorld(stomp.sx, -240));
+    if (T > lock) { stomp.state = 'drop'; stomp.t0 = now; stomp.x = stomp.sx; }
+  } else if (stomp.state === 'drop') {
+    const p = Math.min(1, T / 0.2);
+    o.position.copy(stageToWorld(stomp.x, -240 + (FLOOR + 240) * p * p));
+    o.rotation.z = 0; face(Math.PI);
+    if (p >= 1) {
+      stomp.state = 'stand'; stomp.t0 = now; fight.shake = Math.max(fight.shake, 0.9); ripple(stomp.x, 2.2);
+      for (let k = 0; k < 8; k++) fx.push({ kind: 'spark', x: stomp.x + (Math.random() - 0.5) * 80, y: FLOOR, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 280, t: 0, life: 0.45 });
+    }
+  } else if (stomp.state === 'stand') {
+    o.position.copy(stageToWorld(stomp.x, FLOOR));
+    if (T > [0, 0.6, 0.5, 0.4][ph]) { stomp.state = 'up'; stomp.t0 = now; }
+  } else if (stomp.state === 'up') {
+    const p = Math.min(1, T / 0.3);
+    o.position.copy(stageToWorld(stomp.x, FLOOR - (FLOOR + 240) * Math.sqrt(p)));
+    if (p >= 1) { stomp.state = 'aim'; stomp.t0 = now; stomp.sx = stomp.x; }
+  } else if (stomp.state === 'bounced') {
+    // parried: knocked up and tumbling, then back up out of sight to try again
+    const p = Math.min(1, T / 0.55);
+    o.position.copy(stageToWorld(stomp.x, stomp.by - 260 * Math.sin(p * Math.PI * 0.5) - (p > 0.6 ? (p - 0.6) * 600 : 0)));
+    o.rotation.z = Math.sin(p * Math.PI * 3) * 0.35;
+    if (p >= 1) { o.rotation.z = 0; stomp.state = 'aim'; stomp.t0 = now; stomp.sx = stomp.x; }
+  } else if (stomp.state === 'fling') {
+    // sent flying back to his ledge, spinning, and he carries on like nothing happened
+    const p = Math.min(1, T / 1.1), e = 1 - (1 - p) * (1 - p);
+    const to = new THREE.Vector3(stomp.ledgeX, LEDGE.y * toddH, LEDGE.z * toddH);
+    o.position.copy(arc(stomp.from, to, e, toddH * 0.5)); o.scale.setScalar(stomp.k0 + (bot.k0 - stomp.k0) * e);
+    o.rotation.z = stomp.flung ? p * Math.PI * 4 : 0;
+    if (p >= 1) {
+      o.rotation.z = 0; stomp.on = false; bot.x = stomp.ledgeX; setBotMode('run'); bot.mode = 'turn'; bot.until = now + 900;
+      stomp.next = now + [0, 22000, 22000, 15000][phase()] + Math.random() * 8000;
+    }
+  }
+  // touching him hurts, unless you parry him
+  if (stomp.state === 'drop' || stomp.state === 'stand' || stomp.state === 'up') {
+    const b = stompBox();
+    if (touchesRect(b.x, b.y, b.w, b.h)) {
+      if (P.parryT > 0) {
+        parried(Math.max(b.x - b.w / 2, Math.min(P.x, b.x + b.w / 2)), Math.min(P.y - 40, b.y));
+        stomp.hits++;
+        if (stomp.hits >= 3) endStomp(now, true);
+        else { stomp.state = 'bounced'; stomp.t0 = now; stomp.by = toStage(o.position).y; fight.shake = Math.max(fight.shake, 0.4); }
+      } else hurt(1);
+    }
+  }
+}
+// his shadow (where he's coming down) and how many more parries he takes
+function drawStomp(t) {
+  if (!stomp.on || !bot.obj) return;
+  if (stomp.state === 'aim' || stomp.state === 'drop') {
+    const lock = [0, 1.0, 0.85, 0.7][phase()], T = (performance.now() - stomp.t0) / 1000;
+    const p = stomp.state === 'drop' ? 1 : Math.min(1, T / lock), x = stomp.state === 'drop' ? stomp.x : stomp.sx;
+    ctx.save();
+    ctx.fillStyle = `rgba(0,0,0,${0.35 + p * 0.35})`; ctx.beginPath(); ctx.ellipse(x, FLOOR + 2, 30 + p * 26, 7 + p * 4, 0, 0, Math.PI * 2); ctx.fill();
+    if (p > 0.6) { ctx.strokeStyle = `rgba(255,60,80,${(p - 0.6) * 2.2})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, FLOOR + 2, 60, 12, 0, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.restore();
+  }
+  if (stomp.state !== 'leap' && stomp.state !== 'fling') {
+    const b = stompBox(), y = Math.max(16, b.y - b.h / 2 - 16);
+    for (let i = 0; i < 3; i++) {
+      const x = (stomp.state === 'aim' ? stomp.sx : b.x) - 18 + i * 18, on = i >= stomp.hits;
+      ctx.save(); ctx.translate(x, stomp.state === 'aim' ? FLOOR - 30 : y); ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = on ? '#ff5260' : 'rgba(255,82,96,.15)'; ctx.strokeStyle = '#ff5260'; ctx.lineWidth = 1.5;
+      ctx.fillRect(-4, -4, 8, 8); ctx.strokeRect(-4, -4, 8, 8); ctx.restore();
+    }
+  }
 }
 function setBotMode(m, until) {
   const from = bot.acts[bot.mode === 'walk' ? 'walk' : 'run'], to = bot.acts[m === 'walk' ? 'walk' : 'run'];
@@ -884,7 +995,7 @@ function youDied() {
 }
 function restart() {
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
-  threats.length = 0; fx.length = 0; atk = null; nextAtk = 0;
+  threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
   revive(); startIntro();
 }
 
@@ -996,7 +1107,11 @@ function startTaunt(now) {
 function tauntFrame(T) { let f = atk.frames[0]; for (const k of atk.frames) if (k.t <= T) f = k; return f; }
 const PUNCH = { goal: null };
 function stepAttack(now, dt) {
-  if (fight.phase !== 'fight' || P.dead) return;
+  if (fight.phase !== 'fight' || P.dead) { if (stomp.on && stomp.state !== 'fling') endStomp(now, false); return; }
+  if (!stomp.on && phase() >= 2 && bot.obj) {
+    if (!stomp.next) stomp.next = now + 3500;          // the first time: soon after phase 2 starts
+    if (now > stomp.next && (!atk || atk.kind !== 'agony')) startStomp(now);
+  }
   if (!atk) {
     if (!nextAtk) nextAtk = now + 1200;
     if (now > nextAtk) { if (tauntSoon || Math.random() < 0.18) { tauntSoon = false; startTaunt(now); } else startAttack(now); }
@@ -1347,6 +1462,7 @@ function frame(now) {
   ctx.clearRect(0, 0, W, H);
   floorMat.uniforms.uTime.value = t;
   drawFx(t);
+  drawStomp(t);
   drawPlayer();
   drawThreats(t);
 }
@@ -1361,7 +1477,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
