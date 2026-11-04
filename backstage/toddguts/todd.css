@@ -1,0 +1,22 @@
+/* TODD's void: dark, with a faint screen-glow of his own cyan. */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #030506; color: #00fffa; overflow: hidden; font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+.void { position: relative; height: 100vh; height: 100dvh;
+  background: radial-gradient(ellipse 60% 50% at 50% 62%, #08161a, #030506 70%); }
+#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* very faint scanlines, like looking at him through a monitor */
+.scan { position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background: repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); }
+
+/* the boot text while he loads */
+.boot { position: absolute; left: 0; right: 0; top: 50%; text-align: center; font-size: 13px; letter-spacing: 6px; color: rgba(0,255,250,.55);
+  animation: blink 1s steps(1) infinite; transition: opacity .6s; }
+.boot.gone { opacity: 0; animation: none; }
+@keyframes blink { 50% { opacity: .25 } }
+
+.leave { position: absolute; top: 14px; left: 16px; font-size: 11px; letter-spacing: 2px; color: #1d3336; text-decoration: none; z-index: 2; }
+.leave:hover, .leave:focus-visible { color: #00fffa; outline: none; }
+.nojs { position: fixed; inset: auto 0 40px; text-align: center; font-style: italic; color: #2b4b4f; }
+@media (prefers-reduced-motion: reduce) { .boot { animation: none; } }
