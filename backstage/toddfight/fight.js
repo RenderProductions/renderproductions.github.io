@@ -274,9 +274,72 @@ new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   // (like Saltbaker: his belt at the stage's edge, his screen up near the top, much bigger than you)
   camera.position.set(0, toddH * 0.6, toddH * 1.2);
   camera.lookAt(0, toddH * 0.74, 0);
+  ledge.scale.set(LEDGE.half * 2 * toddH, toddH * 1.2, 1); ledge.position.set(0, LEDGE.y * toddH, LEDGE.z * toddH);
+  ledge.material.uniforms.uCell.value = toddH * 0.09; ledge.material.uniforms.uHalf.value = LEDGE.half * toddH;
+  scene.add(ledge);
+  loadBot();
   facesReady.then(() => { buildScreen(); startIntro(); });
   document.getElementById('boot').classList.add('gone');
 }, undefined, (e) => { console.warn('[fight] todd.gltf did not load', e); document.getElementById('boot').textContent = 'NO SIGNAL'; });
+
+// ---- the background: a ledge far behind TODD, and the TV robot running back and forth along it ----
+const LEDGE = { y: 0.78, z: -3.4, half: 2.0 };   // in TODD-heights: how high (about his shoulders), how far back, how wide (just past the screen's edges)
+const ledge = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,   // seen from below
+  uniforms: { uCell: { value: 0.2 }, uHalf: { value: 1 } },
+  vertexShader: 'varying vec2 vP; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vP = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }',
+  fragmentShader: `uniform float uCell; uniform float uHalf; varying vec2 vP;
+    void main() {
+      vec2 g = vP / uCell, f = abs(fract(g - 0.5) - 0.5) / fwidth(g);
+      float line = 1.0 - min(min(f.x, f.y), 1.0);
+      float fade = smoothstep(uHalf, uHalf * 0.55, abs(vP.x)) * 0.6;
+      gl_FragColor = vec4(vec3(0.0, 1.0, 0.98) * line * fade * 0.5, 1.0);
+    }`
+}));
+ledge.rotation.x = -Math.PI / 2;
+const bot = { obj: null, mixer: null, acts: {}, x: 0, dir: 1, speed: 0, mode: 'run', until: 0, turn: 0, size: 1 };
+function loadBot() {
+  new THREE.GLTFLoader().load('bg/tvbot.gltf?v=1', (g) => {
+    const o = g.scene;
+    o.traverse((m) => {
+      if (!m.isMesh || !m.material.map) return;
+      m.material.map.magFilter = THREE.NearestFilter; m.material.map.needsUpdate = true;
+      // lit a little from within, so he reads against the dark back there
+      m.material.emissiveMap = m.material.map; m.material.emissive = new THREE.Color(0x777777);
+    });
+    const holder = new THREE.Group(); holder.add(o);
+    const box = new THREE.Box3().setFromObject(o), c = new THREE.Vector3(); box.getCenter(c);
+    const h = box.max.y - box.min.y, k = toddH * 0.5 / h;            // half TODD's height (he's far back, so he looks small)
+    o.position.set(-c.x, -box.min.y, -c.z); holder.scale.setScalar(k);
+    bot.obj = holder; bot.size = toddH;
+    bot.mixer = new THREE.AnimationMixer(o);
+    g.animations.forEach((a) => { bot.acts[a.name] = bot.mixer.clipAction(a); });
+    if (bot.acts.run) bot.acts.run.play();
+    bot.x = -LEDGE.half * toddH; bot.dir = 1;
+    scene.add(holder);
+  }, undefined, (e) => console.warn('[fight] tv robot did not load', e));
+}
+// runs to one end, sometimes stops for a breather (walking in place), turns round, runs back
+function stepBot(dt, now) {
+  if (!bot.obj) return;
+  bot.mixer.update(dt);
+  const end = LEDGE.half * toddH * 0.92;
+  if (bot.mode === 'run' || bot.mode === 'walk') {
+    const v = (bot.mode === 'run' ? 0.95 : 0.35) * toddH;
+    bot.x += bot.dir * v * dt;
+    if (Math.abs(bot.x) > end && Math.sign(bot.x) === bot.dir) { bot.mode = 'turn'; bot.turn = 0; bot.until = now + 450 + Math.random() * 1600; }
+    else if (bot.mode === 'run' && Math.random() < dt * 0.08) setBotMode('walk', now + 1500 + Math.random() * 2000);
+    else if (bot.mode === 'walk' && now > bot.until) setBotMode('run');
+  } else if (bot.mode === 'turn' && now > bot.until) { bot.dir = -bot.dir; setBotMode(Math.random() < 0.75 ? 'run' : 'walk', now + 2000); }
+  const wantRot = (bot.mode === 'turn' ? 0 : bot.dir) * Math.PI / 2;   // side-on while running, facing you while turning
+  bot.obj.rotation.y += (wantRot - bot.obj.rotation.y) * Math.min(1, dt * 8);
+  bot.obj.position.set(bot.x, LEDGE.y * toddH, LEDGE.z * toddH);
+}
+function setBotMode(m, until) {
+  const from = bot.acts[bot.mode === 'walk' ? 'walk' : 'run'], to = bot.acts[m === 'walk' ? 'walk' : 'run'];
+  if (to && from !== to) { to.reset().play(); from && from.crossFadeTo(to, 0.25, false); }
+  bot.mode = m; if (until) bot.until = until;
+}
 
 // ---- how he moves ----
 // Every frame he has a target pose (bone -> [x, y, z]), and each bone eases toward it at the current speed:
@@ -307,7 +370,7 @@ function animateTodd(t, dt) {
   if (!todd) return;
   const T = (performance.now() - fight.t0) / 1000;
   // where you are, from where he stands
-  const youYaw = -((P.x / W) - 0.5) * 0.9, youPitch = 0.32 - (FLOOR - P.y) / H * 0.35;
+  const youYaw = ((P.x / W) - 0.5) * 0.9, youPitch = 0.32 - (FLOOR - P.y) / H * 0.35;
   let yaw = youYaw, pitch = youPitch;
   const breathe = Math.sin(t * 1.3);
   speed = 4;
@@ -375,6 +438,7 @@ function frame(now) {
   while (acc >= STEP) { step(STEP); acc -= STEP; }
   const t = now / 1000;
   animateTodd(t, dt);
+  stepBot(dt, now);
   faceStep(now);
   const sh = fight.shake * fight.shake * 9, sx = (Math.random() - 0.5) * sh, sy = (Math.random() - 0.5) * sh;
   document.getElementById('arena').style.transform = sh > 0.05 ? `translate(${sx}px, ${sy}px)` : '';
@@ -393,7 +457,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: 3, dead: false, deadT: 0, hurtT: 0, x: 200, y: FLOOR, vx: 0, vy: 0 }); paintHud(); }
-window.FIGHT = { P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
