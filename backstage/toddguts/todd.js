@@ -348,12 +348,14 @@ function think(now) {
   if (rage.on) return rageThink(now);
   if (now > rage.next) return startRage(now);
   stroll(now);
+  reachThink(now);
   if (mode === 'watch') {
-    approach(now);
+    if (!reach.on) approach(now);
     goal.yaw = THREE.MathUtils.clamp(towardYou() + mouse.x * 0.8, -1.1, 1.1);
     goal.pitch = THREE.MathUtils.clamp(-mouse.y * 0.45 + 0.1 - orbit.pitch * 0.7, -0.6, 0.45);   // and up at you, if you're above him
+    if (reach.on) { goal.yaw = THREE.MathUtils.clamp(towardYou(), -0.6, 0.6); goal.pitch = -0.75; }   // head right back, looking up at you
     goal.roll = 0;
-    if (now > modeUntil || now - mouse.moved > 2600 + 800 * level) { mode = 'glance'; nextGlance = now + 400; walk.approach = false; }
+    if (!reach.on && (now > modeUntil || now - mouse.moved > 2600 + 800 * level)) { mode = 'glance'; nextGlance = now + 400; walk.approach = false; }
   } else if (now > nextGlance) {
     const g = GLANCES[(Math.random() * GLANCES.length) | 0];
     const busy = walk.state === 'walk' ? 0.45 : 1;   // walking: mostly eyes front
@@ -517,7 +519,8 @@ function legs() {
   // (a lifted leg on the spot doesn't count: the other one's holding him up)
   const lifted = shuffle.lift * 0.5;
   const sr = shuffle.side === 'R' ? Math.abs(hr) - lifted : Math.abs(hr), sl = shuffle.side === 'L' ? Math.abs(hl) - lifted : Math.abs(hl);
-  body.position.y = -hipH * (1 - Math.cos(Math.max(0, sr, sl)));
+  body.position.y = -hipH * (1 - Math.cos(Math.max(0, sr, sl))) + reach.amt * height * 0.025;
+  if (reach.amt > 0.01) ['R', 'L'].forEach((side) => { pose('foot_' + side, 0.45 * reach.amt, 0, 0); pose('toe_' + side, -0.45 * reach.amt, 0, 0); });   // up on his toes
   // he leans his weight over the planted foot while the other is up
   shuffle.lean = (shuffle.side === 'R' ? 1 : -1) * shuffle.lift;
   return ph;
@@ -562,13 +565,16 @@ function balance(now, dt, t) {
   const out = 0.04 + speed * 0.32 + Math.abs(lean) * 0.6;
   const gait = STRIDE * walk.amp * 0.7 * Math.sin(walk.phase);   // arms swing against the legs
   const swing = -rock * 1.1;
-  pose('Right_Arm', S('raX', swing + gait + speed * -0.12, 110), S('raY', look.yaw * -0.1), S('raZ', -lean * 0.9 + out - 0.07, 150));
-  pose('Left_Arm', S('laX', swing - gait + speed * -0.12, 110), S('laY', look.yaw * -0.1), S('laZ', -lean * 0.9 - out + 0.07, 150));
+  // reaching up for you: arms up and forward toward the camera, trembling at full stretch
+  const ra = reach.amt, tremble = (Math.sin(t * 23) * 0.03 + (Math.random() - 0.5) * 0.03) * ra;
+  const mix = (a, b) => a * (1 - ra) + b * ra;
+  pose('Right_Arm', mix(S('raX', swing + gait + speed * -0.12, 110), -2.55 + tremble), S('raY', look.yaw * -0.1), mix(S('raZ', -lean * 0.9 + out - 0.07, 150), 0.18 + tremble));
+  pose('Left_Arm', mix(S('laX', swing - gait + speed * -0.12, 110), -2.45 - tremble), S('laY', look.yaw * -0.1), mix(S('laZ', -lean * 0.9 - out + 0.07, 150), -0.18 - tremble));
   if (rage.frenzy > 0.01) frenzy(t, rage.frenzy);
   // elbows bend a little more the harder he's working to stay up
   const bend = -(0.06 + speed * 0.5 + Math.abs(lean) * 0.5);
-  pose('forearm_R', S('frX', bend + Math.max(0, lean) * -0.4, 200), 0, 0);
-  pose('forearm_L', S('flX', bend + Math.max(0, -lean) * -0.4, 200), 0, 0);
+  pose('forearm_R', S('frX', bend + Math.max(0, lean) * -0.4, 200) * (1 - ra) - 0.12 * ra, 0, 0);
+  pose('forearm_L', S('flX', bend + Math.max(0, -lean) * -0.4, 200) * (1 - ra) - 0.12 * ra, 0, 0);
   if (rage.frenzy > 0.01) frenzyForearms(t, rage.frenzy);
 }
 // a tantrum: arms windmilling and slamming about, body shaking
@@ -649,6 +655,31 @@ function colours(dt) {
   // re-tint his screen as it turns (a few times a second is plenty)
   const now = performance.now();
   if (lastFace && !fizz && Math.abs(rageAmt - lastTint) > 0.02 && now - tintAt > 60) { lastTint = rageAmt; tintAt = now; putFace(lastFace === faceData[shownFace] ? faceData[shownFace] : lastFace); }
+}
+
+// ---- reaching for you ----
+// When you're well above him (the camera dragged up) and he's watching you, now and then he tips his
+// head back and reaches up toward you, arms trembling at full stretch, up on his toes. Then lets them fall.
+const ABOVE = 0.55;   // how high the camera has to be (orbit pitch) for him to reach
+const reach = { on: false, t0: 0, until: 0, amt: 0, last: -1e9 };
+function reachThink(now) {
+  if (reach.on) {
+    if (rage.on || mode !== 'watch' || now > reach.until || orbit.pitch < ABOVE - 0.2) {
+      reach.on = false; reach.last = now;
+      if (!rage.on && Math.random() < 0.5) fizzle(faceIndex(Math.random() < 0.5 ? 'sad' : 'neutral'));
+    }
+    return;
+  }
+  if (mode !== 'watch' || orbit.pitch < ABOVE || now - reach.last < 15000 || now - lastNotice < 1200) return;
+  if (walk.state !== 'stand' || shuffle.on || walk.approach || Math.random() > 0.012) return;
+  Object.assign(reach, { on: true, t0: now, until: now + 3200 + Math.random() * 2800 });
+  modeUntil = Math.max(modeUntil, reach.until + 500);
+  fizzle(faceIndex(Math.random() < 0.6 ? 'sad' : 'surprised'));
+  if (LINES.reach && LINES.reach.length) setTimeout(() => { if (reach.on) say(pick(LINES.reach)); }, 700);
+}
+function reachStep(dt) {
+  // arms come up slowly and stiffly, and fall a little faster
+  reach.amt += ((reach.on ? 1 : 0) - reach.amt) * Math.min(1, dt * (reach.on ? 1.1 : 2.2));
 }
 
 // ---- the tantrum ----
@@ -743,7 +774,7 @@ function crashStep(now) {
 
 // ---- TODD.OS: terminal lines that flicker into the void ----
 const termEl = document.getElementById('term');
-let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [] }, nextLine = performance.now() + 6000, flooding = false;
+let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [] }, nextLine = performance.now() + 6000, flooding = false;
 fetch('terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { LINES = Object.assign(LINES, d); }).catch(() => {});
 const pick = (a) => a[(Math.random() * a.length) | 0];
 function hasDisk() { try { return !!(JSON.parse(localStorage.getItem('rp_items')) || {}).todd_floppy; } catch (e) { return false; } }
@@ -809,6 +840,7 @@ function tick(now) {
     think(now);
     spring(reduce ? 18 : 60, reduce ? 9 : 13, dt);
     move(now, dt);
+    reachStep(dt);
     legs();
     balance(now, dt, t);
     fadePrints(now);
@@ -859,6 +891,7 @@ window.TODD = {
   rage: () => { if (!rage.on) startRage(performance.now()); },   // set off a tantrum now
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
   say: (t, red) => say(t, red), state: rage,
+  reach: () => { const now = performance.now(); mode = 'watch'; mouse.moved = now; Object.assign(reach, { on: true, t0: now, until: now + 5000 }); modeUntil = now + 5500; },
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
   render: () => renderer.render(scene, camera), bones,
   // for the chat (chat.js)
