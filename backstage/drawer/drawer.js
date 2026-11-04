@@ -82,19 +82,21 @@
         var item = cat[id] || {};
         var rnd = seeded(item.spot || id);
         var size = +item.size || 1;
-        // Try a few spots and keep the one furthest from everything already placed.
-        var best = null, bestGap = -1;
-        for (var tries = 0; tries < 30; tries++) {
-          var v = 0.22 + rnd() * 0.56;                          // 0 = back wall, 1 = front panel
+        // Try lots of spots and keep the one with the most room around it, so things spread out
+        // over the whole floor instead of piling up. Every spot keeps the item fully inside the drawer.
+        var best = null, bestGap = -Infinity;
+        for (var tries = 0; tries < 60; tries++) {
+          var v = 0.08 + rnd() * 0.84;                          // 0 = back wall, 1 = front panel
           var depth = 0.8 + 0.25 * v;                           // further back = a bit smaller
           var w = W * ITEM * size * depth;
           var y = FLOOR.back + v * (FLOOR.front - FLOOR.back);
-          var room = Math.max(0, halfAt(y) - w * 0.45);
+          // an item is centred on its point and tilted up to 25 degrees, so its corners reach ~0.62 of its width out
+          y = Math.min(Math.max(y, FLOOR.back + w * 0.45), FLOOR.front - w * 0.64);
+          var room = Math.max(0, halfAt(y) - w * 0.64);
           var x = FLOOR.cx + (rnd() * 2 - 1) * room;
           var gap = 999;
-          placed.forEach(function (p) { gap = Math.min(gap, Math.hypot(p.x - x, (p.y - y) * 1.6) - (p.w + w) * 0.42); });
-          if (gap > bestGap) { bestGap = gap; best = { x: x, y: y, w: w, v: v }; }
-          if (gap > 6) break;
+          placed.forEach(function (p) { gap = Math.min(gap, Math.hypot(p.x - x, (p.y - y) * 1.3) - (p.w + w) * 0.55); });
+          if (gap > bestGap) { bestGap = gap; best = { x: x, y: y, w: w, v: (y - FLOOR.back) / (FLOOR.front - FLOOR.back) }; }
         }
         placed.push(best);
 
