@@ -73,6 +73,8 @@
     } catch (e) {}
   }
 
+  function flagSet(name) { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[name]; } catch (e) { return false; } }
+
   // Once he's been found out (DATA.knownFlag set), his nameplate shows his real name.
   function known() {
     if (!DATA || !DATA.knownName || !DATA.knownFlag) return false;
@@ -217,6 +219,8 @@
   function go(id) {
     var n = DATA.nodes[id];
     if (!n) { console.warn('[' + WHO.toLowerCase() + '] no node called "' + id + '"'); return end(); }
+    // "ifFlag": {"flag": "nodeId"}: once that shared rp_flags flag is set (by anything on the site), go there instead.
+    if (n.ifFlag) for (var fl in n.ifFlag) { if (flagSet(fl) && DATA.nodes[n.ifFlag[fl]] && n.ifFlag[fl] !== id) return go(n.ifFlag[fl]); }
     // Already heard it, and there's a shorter version for next time? Use that instead.
     if (n.repeat && seen[id] && DATA.nodes[n.repeat] && n.repeat !== id) return go(n.repeat);
     // Lines can have "needs" too (same rules as choices): they're skipped unless it holds,

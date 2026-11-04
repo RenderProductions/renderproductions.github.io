@@ -1,5 +1,5 @@
 {
-  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. A line can have \"needs\" (and \"has\"), with the same rules as choices: it's skipped unless they hold. A line or node can have \"mark\": \"word\" to remember that word (for needs) once it's said/heard. 'Dear God... Is there more?' plays once: on the second item ever shown (needs any_shown, marks said_dear_god). Items: the second time an item is shown he gives an alternate telling (<node>_again), and keeps giving it after that. WORKBENCH: a node with \"panel\": \"bench\" opens Cedar's workbench after its lines (bench.js). The recipes are in /items.json; after a match he says that recipe's \"say\" node. The bench also uses craft_miss (no recipe), craft_key (the rusted key is in a slot), craft_empty (fewer than two things to work with) and craft_cancel (they walk away). Showing him the Bright Bulb marks can_craft, which puts \"Make something\" in his menus.",
+  "_how": "Each node is one stretch of talk. 'say' is a list of text boxes. Then 'choices' (a menu), 'ask' (a text box: see finds), 'next' (another node), or nothing (the talk ends). Markup: [red]..[/] [yellow] [blue] [gray] [gold] [shake] [wave], ^1-^9 pauses, \\n new line. A line can be {\"text\": \"..\", \"face\": \"smile\", \"speed\": 60} to swap to art/marquez-smile.svg or type slower. Faces: smile, angry, point; each talks on its own using its -talk1/-talk2 art. A line wrapped in (parentheses) is narration: no nameplate, in italics. 'name' is the nameplate; a line or node can set its own \"name\". A choice can have \"needs\": \"nodeId\" (only shows once that node was heard; \"!nodeId\" means NOT heard yet) and \"once\": true (hides after it's been picked). 'returning' is where he starts for someone who has talked to him before. FINDS: a node with \"ask\": \"nodeId\" opens a text box after its lines. What the visitor types (any case, extra spaces ignored) is looked up in 'finds' (\"WHAT THEY TYPE\": \"nodeId\"); several codes can point at the same node. No match goes to 'findMiss'. An empty answer or Esc goes back to the 'ask' node. A node can have \"repeat\": \"nodeId\" (if they've already heard this node, he says that one instead) and \"flag\": \"name\" (sets a shared rp_flags flag, the same ones the frequency scanner and RFT use). ITEMS (see /items.json): a node can have \"give\": \"itemId\" (puts it in their drawer when he says that node) or \"takeItem\": \"itemId\" (takes it away, for trades). A choice can have \"has\": \"itemId\" (only shows if it's in their drawer; \"!itemId\" = only if it isn't). NAMEPLATE: once the rp_flags flag in 'knownFlag' is set (by hearing find_cedar), the nameplate reads 'knownName' instead of 'name'. A choice \"has\": \"*\" shows if their drawer has anything in it. A line can have \"needs\" (and \"has\"), with the same rules as choices: it's skipped unless they hold. A line or node can have \"mark\": \"word\" to remember that word (for needs) once it's said/heard. 'Dear God... Is there more?' plays once: on the second item ever shown (needs any_shown, marks said_dear_god). Items: the second time an item is shown he gives an alternate telling (<node>_again), and keeps giving it after that. WORKBENCH: a node with \"panel\": \"bench\" opens Cedar's workbench after its lines (bench.js). The recipes are in /items.json; after a match he says that recipe's \"say\" node. The bench also uses craft_miss (no recipe), craft_key (the rusted key is in a slot), craft_empty (fewer than two things to work with) and craft_cancel (they walk away). Showing him the Bright Bulb marks can_craft, which puts \"Make something\" in his menus. A node can have \"ifFlag\": {\"flagName\": \"nodeId\"}: once that shared rp_flags flag is set, he goes to that node instead (todd_dead is set when TODD is beaten in /backstage/toddfight/).",
   "name": "MARQUEZ",
   "voice": {
     "pitch": 92,
@@ -207,7 +207,10 @@
         "Don't listen to him. Ever! He lies!",
         "[gray]Lies . . .[/]"
       ],
-      "next": "advice"
+      "next": "advice",
+      "ifFlag": {
+        "todd_dead": "adv_todd_dead"
+      }
     },
     "found": {
       "say": [
@@ -306,7 +309,10 @@
           "face": "point"
         }
       ],
-      "next": "ask"
+      "next": "ask",
+      "ifFlag": {
+        "todd_dead": "find_todd_dead"
+      }
     },
     "find_404": {
       "say": [
@@ -915,6 +921,68 @@
         "Someone should remember them too."
       ],
       "next": "craft_more"
+    },
+    "find_todd_dead": {
+      "say": [
+        {
+          "text": "(He sets his pen down.)"
+        },
+        {
+          "text": "...^3 So you fought him.^2 And you won."
+        },
+        {
+          "text": "Don't look so pleased with yourself.",
+          "face": "point"
+        },
+        "All you destroyed was his [blue]digital form[/].^2 A body made of code.",
+        {
+          "text": "[gray]Code can be rewritten.[/]",
+          "speed": 48
+        }
+      ],
+      "next": "ask",
+      "repeat": "todd_dead_again"
+    },
+    "adv_todd_dead": {
+      "say": [
+        {
+          "text": "(He sets his pen down.)"
+        },
+        {
+          "text": "...^3 So you fought him.^2 And you won."
+        },
+        {
+          "text": "Don't look so pleased with yourself.",
+          "face": "point"
+        },
+        "All you destroyed was his [blue]digital form[/].^2 A body made of code.",
+        {
+          "text": "[gray]Code can be rewritten.[/]",
+          "speed": 48
+        }
+      ],
+      "next": "advice",
+      "repeat": "todd_dead_again_adv"
+    },
+    "todd_dead_again": {
+      "say": [
+        "His digital form. Only his [blue]digital form[/].",
+        {
+          "text": "Remember that.",
+          "face": "point"
+        }
+      ],
+      "next": "ask"
+    },
+    "todd_dead_again_adv": {
+      "say": [
+        "His digital form. Only his [blue]digital form[/].",
+        {
+          "text": "Remember that.",
+          "face": "point"
+        }
+      ],
+      "next": "advice"
     }
   },
   "knownName": "CEDAR",
