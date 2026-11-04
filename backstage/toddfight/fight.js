@@ -117,12 +117,14 @@ function step(dt) {
   P.walkT = P.ground && Math.abs(P.vx) > 20 ? P.walkT + dt * Math.abs(P.vx) / TUNE.run : 0;
 }
 
+const WALK = ['Walk1', 'Walk2', 'Walk3', 'Idle', 'Walk4', 'Walk5', 'Walk6', 'Idle'];
 function frameFor() {
   if (P.dead) return 'Die';
   if (P.spin > 0 || P.parryT > 0) return 'Jump';
   if (P.wall) return 'Wall_Slide';
   if (!P.ground) return P.vy < 0 ? 'Jump' : 'Fall';
-  if (Math.abs(P.vx) > 20) return 'Walk' + (1 + Math.floor(P.walkT * 11) % 6);
+  // the idle frame is the passing pose between each half of the step
+  if (Math.abs(P.vx) > 20) return WALK[Math.floor(P.walkT * 14) % WALK.length];
   return 'Idle';
 }
 
@@ -529,6 +531,28 @@ function animateTodd(t, dt) {
       chest = [0.2 + (boss.recoil || 0) * -0.15, 0, 0]; pitch = youPitch + 0.15;
       boss.recoil = Math.max(0, (boss.recoil || 0) - dt * 4);
     }
+  } else if (fight.phase === 'won' && fight.won) {
+    const w = fight.won, W2 = (performance.now() - w.t0) / 1000;
+    const put = (side, sol, extra) => { const a = sol.c.slice(0, 3), f = sol.c[3] + (extra || 0); if (side === 'R') { armR = a; foreR = f; } else { armL = a; foreL = f; } };
+    if (W2 < 0.8) {
+      // ...wait. did that just happen?
+      pitch = youPitch + 0.15; chest = [0.15, 0, 0]; speed = 4;
+    } else if (W2 < 3.2) {
+      // laughing: hands on his belly, shoulders bouncing, head thrown back
+      const ha = Math.abs(Math.sin(t * 17));
+      put('R', w.bellyR, ha * 0.12); put('L', w.bellyL, ha * 0.12);
+      chest = [-0.22 - ha * 0.07, 0, Math.sin(t * 5) * 0.05]; pitch = -0.45 - ha * 0.12; yaw = Math.sin(t * 2.5) * 0.15;
+      speed = 12;
+    } else if (W2 < 4.9) {
+      // straightening the tie he doesn't have
+      put(w.hand, W2 < 4.3 ? w.knot : w.low, W2 < 4.3 ? Math.sin(t * 16) * 0.12 : 0);
+      pitch = youPitch - 0.2; chest = [0.05, 0, 0]; speed = 8;
+    } else {
+      // leaning over the stage to look at what's left of you
+      chest = [0.38 + Math.sin(t * 1.2) * 0.02, 0, 0.06]; pitch = youPitch + 0.2;
+      armR = [0.2, 0, 0.1]; armL = [0.2, 0, -0.1]; foreR = foreL = -0.3; speed = 3;
+    }
+    red = Math.max(0, red - dt * 0.6);   // cooling off: the red drains out of his screen
   } else if (fight.phase === 'down') {
     // knocked out: slumped, arms hanging, his screen showing an error
     chest = [0.5, 0, 0.1]; armR = [0.1, 0, 0.05]; armL = [0.1, 0, -0.05]; foreR = foreL = -0.1;
@@ -539,7 +563,7 @@ function animateTodd(t, dt) {
 
   look.yaw += (yaw - look.yaw) * Math.min(1, dt * (speed > 8 ? 12 : 3));
   look.pitch += (pitch - look.pitch) * Math.min(1, dt * (speed > 8 ? 12 : 3));
-  const slamming = atk && ((atk.fist && atk.state !== 'raise' && atk.state !== 'lift') || atk.kind === 'taunt');
+  const slamming = (atk && ((atk.fist && atk.state !== 'raise' && atk.state !== 'lift') || atk.kind === 'taunt')) || fight.phase === 'won';
   target('chest', chest[0], chest[1] + (slamming ? 0 : look.yaw * 0.25), chest[2]);   // (no turning while his fist is out: it was aimed without it)
   target('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
   target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
@@ -704,9 +728,26 @@ function knockout() {
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
   setTimeout(() => banner('WHAT??!'), 600);
 }
+// When he kills you: a moment of disbelief, then he laughs (hands on his belly, shaking, head back) while
+// his screen cools from red back to cyan; then he fixes his tie, very pleased, and leans over to look at you.
 function youDied() {
-  atk = null;
-  setTimeout(() => { banner('YOU DIED'); fight.retry = true; }, 900);
+  atk = null; tauntSoon = false;
+  setTimeout(() => { for (const o of threats) if (o.state === 'fly') fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ff2a3a' }); threats.length = 0; }, 400);
+  const H = toddH, at = (v, dx, dy, dz) => v.clone().add(new THREE.Vector3(dx * H, dy * H, dz * H));
+  const chest = bonePos('chest'), neck = bonePos('neck'), sR = Math.sign(bonePos('Right_Arm').x), sL = -sR;
+  const hand = rightArmOnLeft === (P.x < W / 2) ? 'R' : 'L';
+  fight.won = {
+    t0: performance.now(),
+    bellyR: solveArm('R', at(chest, sR * 0.07, -0.06, 0.12), 0),
+    bellyL: solveArm('L', at(chest, sL * 0.07, -0.06, 0.12), 0),
+    hand, knot: solveArm(hand, at(neck, 0, -0.03, 0.11), 0.1), low: solveArm(hand, at(chest, 0, -0.1, 0.12), 0.1)
+  };
+  fight.phase = 'won';
+  setTimeout(() => face('surprised', 200), 250);
+  setTimeout(() => face('happy', 300), 800);
+  setTimeout(() => face('sly', 300), 3300);
+  setTimeout(() => face('smile', 400), 5000);
+  setTimeout(() => { banner('YOU DIED'); fight.retry = true; }, 2600);
 }
 function restart() {
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
