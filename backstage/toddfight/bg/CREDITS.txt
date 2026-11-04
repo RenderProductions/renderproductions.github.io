@@ -1,0 +1,5 @@
+tvbot.gltf
+  "Retro TV Robot (animation ready Blockbench file)" by ArtsByKev
+  https://sketchfab.com/ArtsByKev
+  Licensed under Creative Commons Attribution 4.0 (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/
+  Used unchanged (scaled and placed in the scene in code). Credited on /backstage/toddfight/.
