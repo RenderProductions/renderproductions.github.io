@@ -1227,7 +1227,7 @@ function restart() {
   if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; } screen.until = 0; screen.next = 0;
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
-  revive(); startIntro(true);   // (no monologue on a retry)
+  revive(); startIntro(OPT.skip);   // the monologue again (jump or parry skips it), unless it's turned off in Settings
 }
 
 // --- picking and running his attacks ---
