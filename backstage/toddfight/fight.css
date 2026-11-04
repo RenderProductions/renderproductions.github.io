@@ -46,7 +46,7 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
 .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
   z-index: 5; padding: 0 6%; }
 .card[hidden] { display: none; }
-.title-card { background: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0,0,0,.35), rgba(0,0,0,.85)); animation: cardin .5s ease-out; }
+.title-card { cursor: pointer; background: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(0,0,0,.35), rgba(0,0,0,.85)); animation: cardin .5s ease-out; }
 .t-name { font: bold clamp(40px, 11vw, 128px)/1 'Courier New', monospace; letter-spacing: .08em; color: #fff;
   text-shadow: 0 0 26px rgba(255,40,60,.75), 5px 0 rgba(255,40,60,.75), -5px 0 rgba(0,255,250,.65); animation: jitter .12s steps(2) infinite; }
 .t-kicker { margin-top: .4em; font: bold clamp(14px, 2.4vw, 26px)/1 'Courier New', monospace; letter-spacing: .3em; color: #ff5260; text-transform: uppercase; }

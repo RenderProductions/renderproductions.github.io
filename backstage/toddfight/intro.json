@@ -80,12 +80,12 @@
       "page": "https://commons.wikimedia.org/wiki/File:Magnifying_glass_with_focus_on_paper.png"
     }
   },
-  "_how2": "'title' is the card before the fight (press jump to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
+  "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
   "title": {
     "name": "TODD.EXE",
     "kicker": "has stopped responding",
     "tagline": "“Everything is 3D in here. Except you.”",
-    "start": "press jump to start"
+    "start": "click to start"
   },
   "death": {
     "heading": "YOU DIED",

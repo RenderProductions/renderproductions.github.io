@@ -1132,15 +1132,15 @@ function youDied() {
   setTimeout(() => { showDeathCard(); fight.retry = true; }, 2600);
 }
 // ---- the cards ----
-// Before the fight: his title, and press jump to start.
+// Before the fight: his title; click (or tap) anywhere on it to start the cutscene.
 function showTitle() {
   const T = (MONO && MONO.title) || {}, el = document.getElementById('title');
   const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v || ''; };
-  set('t-name', T.name || 'TODD.EXE'); set('t-kicker', T.kicker); set('t-tag', T.tagline); set('t-start', T.start || 'press jump to start');
+  set('t-name', T.name || 'TODD.EXE'); set('t-kicker', T.kicker); set('t-tag', T.tagline); set('t-start', T.start || 'click to start');
   fight.phase = 'title'; el.hidden = false;
   const go = () => { if (fight.phase !== 'title') return; el.hidden = true; jumpPressed = false; parryPressed = false; startIntro(); };
   fight.startFromTitle = go;
-  el.addEventListener('pointerdown', go, { once: true });
+  el.addEventListener('click', go, { once: true });
 }
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
@@ -1615,8 +1615,7 @@ const STEP = 1 / 120;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - then) / 1000); then = now;
-  // the title card waits for a press (checked before the player gets to use it as a jump)
-  if (fight.phase === 'title' && (jumpPressed || parryPressed) && fight.startFromTitle) fight.startFromTitle();
+  if (fight.phase === 'title') { jumpPressed = parryPressed = false; }   // the title card waits for a click, not a key
   // a parry freezes everything for a split second
   if (hitstop > 0) { hitstop -= dt; acc = 0; }
   else { acc += dt; while (acc >= STEP) { step(STEP); stepThreats(STEP); acc -= STEP; } }
