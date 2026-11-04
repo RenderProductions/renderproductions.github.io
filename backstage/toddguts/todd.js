@@ -14,16 +14,20 @@
 // And at random (more often the more aware he is) he has a tantrum: his screen and the void go red,
 // he turns on the camera and charges it with his arms flailing, terminal text going wild, until he
 // hits the screen in a burst of static. Try it in the console: TODD.rage()
+//
+// The floor is a grid that only lights up around him (and ripples where his feet land). Old monitors,
+// a chair and a dead PC lie around the edges of the void; now and then he goes and stares at one.
+// Between midnight and 5 AM (your time) he's asleep, sitting on the floor; poke him to wake him. TODD.sleep()
 import * as THREE from './vendor/three-gltf.min.js';
 
-const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading', 'agony'];
+const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading', 'agony', 'sleep'];
 // 'agony' isn't in faces.png: it's agony.jpg, a full 1024 x 1024 picture shown on a panel laid over his
 // screen (the screen itself is far too small for it). It flashes up rarely, after he hits the screen in a
 // tantrum, and if you ask him whether it hurts. Swap agony.jpg for any square picture to change it.
 const AGONY_SRC = 'agony.jpg?v=1';
 const AGONY_ZOOM = 0.8;   // how much of the picture's width fills the screen (1 = all of it)
 // how often each face comes up on its own (higher = more often)
-const MOODS = { smile: 5, neutral: 6, happy: 2, angry: 1.5, surprised: 0, sly: 3, sad: 1.5, error: 0.6, loading: 0.6, agony: 0 };
+const MOODS = { smile: 5, neutral: 6, happy: 2, angry: 1.5, surprised: 0, sly: 3, sad: 1.5, error: 0.6, loading: 0.6, agony: 0, sleep: 0 };
 const FACE = { x: 1, y: 145, w: 18, h: 14 };
 
 // how aware of you he is: 0 on a first visit, up to 4 (visits 1, 2-3, 4-5, 6-7, 8+)
@@ -157,6 +161,16 @@ function loadFaces() {
   }));
 }
 let agonyImg = null, agonyPanel = null;
+// asleep: a dark screen with a little standby light (and now and then a 'z'), made here rather than in faces.png
+function sleepFace(led, z) {
+  const d = new Uint8ClampedArray(FACE.w * FACE.h * 4);
+  for (let i = 0; i < d.length; i += 4) { d[i] = 3; d[i + 1] = 22; d[i + 2] = 24; d[i + 3] = 255; }
+  const px = (x, y, c) => { const o = (y * FACE.w + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; };
+  if (led) { px(15, 11, [0, 200, 196]); px(16, 11, [0, 200, 196]); }
+  if (z) [[2, 2], [3, 2], [4, 2], [4, 3], [3, 4], [2, 5], [3, 5], [4, 5]].forEach(([x, y]) => px(x + z - 1, y, [0, 120, 118]));
+  return d;
+}
+const SLEEP_FACES = [sleepFace(true, 0), sleepFace(false, 0), sleepFace(true, 1), sleepFace(true, 6)];
 
 // ---- the fizzle: tearing, static, then the new face settling in ----
 let fizz = null;   // { from, to, t0, dur }
@@ -232,6 +246,7 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=2', o
       }
       if (o.isBone || o.type === 'Bone') { bones[o.name] = o; rest[o.name] = o.quaternion.clone(); }
     });
+    faceData[faceIndex('sleep')] = SLEEP_FACES[0];
     // keep the face he was made with as his first face if faces.png is missing it
     if (!faceData[0]) {
       facePixCtx.drawImage(skin, FACE.x * TEX_SCALE, FACE.y * TEX_SCALE, FACE.w * TEX_SCALE, FACE.h * TEX_SCALE, 0, 0, FACE.w, FACE.h);
@@ -253,6 +268,8 @@ Promise.all([loadFaces(), new Promise((ok, no) => loader.load('todd.gltf?v=2', o
     pool.position.y = 0.01;
     pool.scale.setScalar(height * 0.9);
     buildAgonyPanel();
+    buildDebris();
+    if (isNight()) fallAsleep(performance.now(), true);
     frame();
     boot.classList.add('gone');
     setTimeout(() => { if (!rage.on) fizzle(pickMood(0)); }, 1800);
@@ -349,7 +366,7 @@ const mouse = { x: 0, y: 0, moved: -1e9 };
 function onPoint(cx, cy) {
   mouse.x = (cx / innerWidth) * 2 - 1; mouse.y = -((cy / innerHeight) * 2 - 1);
   const now = performance.now();
-  if (mode !== 'watch' && !rage.on && now - mouse.moved > 900 && now - lastNotice > 8000 - 1300 * level && Math.random() < 0.45 + 0.12 * level) {
+  if (mode !== 'watch' && !rage.on && !sleep.on && !sleep.waking && now - mouse.moved > 900 && now - lastNotice > 8000 - 1300 * level && Math.random() < 0.45 + 0.12 * level) {
     // he notices you (sooner, and for longer, the more aware of you he is)
     mode = 'watch'; lastNotice = now; modeUntil = now + (2500 + Math.random() * 3500) * (1 + 0.35 * level);
     stopAndFaceYou(now);
@@ -370,6 +387,7 @@ function towardYou() { return wrap(Math.atan2(camera.position.x - body.position.
 function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
 
 function think(now) {
+  if (sleep.on || sleep.waking) return sleepThink(now);
   if (rage.on) return rageThink(now);
   if (bc.on) return broadcastThink(now);
   if (now > rage.next) return startRage(now);
@@ -416,7 +434,7 @@ function pose(name, x, y, z) {
 const ROAM = 7;                       // how far from the middle of the void he wanders
 const STRIDE = 0.4;                   // how far his legs swing (radians)
 const CYCLE = 0.62;                   // steps per second, per leg
-const walk = { state: 'stand', until: 0, heading: 0, aim: 0, to: new THREE.Vector2(), amp: 0, phase: 0, then: 'walk', pace: 1, approach: false, stopAt: 0 };
+const walk = { state: 'stand', until: 0, heading: 0, aim: 0, to: new THREE.Vector2(), amp: 0, phase: 0, then: 'walk', pace: 1, approach: false, stopAt: 0, visit: null };
 const prints = [];
 const printMat = new THREE.MeshBasicMaterial({ map: glowTexture(), color: 0x00fffa, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 });
 function footprint(foot) {
@@ -451,8 +469,28 @@ function stroll(now) {
       walk.to.set(Math.cos(a) * r, Math.sin(a) * r);
       if (walk.to.distanceTo(here) > height * 0.8) break;
     }
+    walk.visit = null;
+    if (debris.length && Math.random() < 0.3) {
+      // go and look at one of the old things lying in the dark
+      const dbr = debris[(Math.random() * debris.length) | 0], dx = dbr.x - here.x, dz = dbr.z - here.y, dd = Math.hypot(dx, dz) || 1;
+      walk.to.set(dbr.x - dx / dd * height * 0.42, dbr.z - dz / dd * height * 0.42);
+      walk.visit = dbr;
+    }
     walk.aim = Math.atan2(walk.to.x - here.x, walk.to.y - here.y);
     walk.state = 'turn'; walk.then = 'walk';
+  }
+  // arrived at a piece of debris: stand and stare down at it for a while
+  if (walk.visit && walk.state === 'stand' && mode !== 'watch') {
+    const v = walk.visit;
+    if (!v.staring) {
+      v.staring = now; walk.until = now + 5000 + Math.random() * 3000;
+      if (LINES.debris && LINES.debris.length) say(pick(LINES.debris));
+      if (Math.random() < 0.5) fizzle(faceIndex(Math.random() < 0.5 ? 'sad' : 'neutral'));
+    }
+    const a = wrap(Math.atan2(v.x - body.position.x, v.z - body.position.z) - walk.heading);
+    goal.yaw = THREE.MathUtils.clamp(a, -1, 1); goal.pitch = 0.45; goal.roll = 0.12 * Math.sin(now / 1700);
+    nextGlance = now + 500;
+    if (now > walk.until - 100) { v.staring = 0; walk.visit = null; }
   }
 }
 // one step on the spot: lift (hip up, knee bends), turn by "by" while the foot's in the air, plant
@@ -519,10 +557,13 @@ function move(now, dt) {
   }
   lastPhase = walk.phase;
   pool.position.x = body.position.x; pool.position.z = body.position.z;
+  grid.material.uniforms.uCenter.value.set(body.position.x, body.position.z);
+  grid.position.x = body.position.x; grid.position.z = body.position.z;
 }
 function step(foot, now) {
   walk.lastStep = now;
   footprint(foot);
+  const fp = new THREE.Vector3(); if (bones[foot]) { bones[foot].getWorldPosition(fp); ripple(fp.x, fp.z, now); }
   // the jolt of a heavy foot coming down
   if (servos.upX) servos.upX.v += 0.5 * walk.amp * walk.pace;
   if (servos.chZ) servos.chZ.v += (foot === 'foot_R' ? 0.3 : -0.3) * walk.amp;
@@ -691,6 +732,8 @@ function colours(dt) {
   rageAmt += ((rage.on && rage.phase !== 'cool' ? 1 : 0) - rageAmt) * Math.min(1, dt * (rage.on && rage.phase !== 'cool' ? 3 : 0.5));
   tint.copy(CYAN).lerp(REDC, rageAmt);
   rim.color.copy(tint); pool.material.color.copy(tint); dust.material.color.copy(tint);
+  gridMats.forEach((m) => m.uniforms.uColor.value.copy(tint));
+  grid.material.uniforms.uStrength.value = 1 - 0.55 * sleep.amt;
   prints.forEach((m) => m.material.color.lerp(tint, Math.min(1, dt * 2)));
   voidEl.style.setProperty('--rage', rageAmt.toFixed(3));
   // re-tint his screen as it turns (a few times a second is plenty)
@@ -815,7 +858,7 @@ function crashStep(now) {
 
 // ---- TODD.OS: terminal lines that flicker into the void ----
 const termEl = document.getElementById('term');
-let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [], poke: [], poke_screen: [], poke_annoyed: [], broadcast_after: [], wonder: [], wonder_reply: [] }, nextLine = performance.now() + 6000, flooding = false;
+let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [], held: [], reach: [], poke: [], poke_screen: [], poke_annoyed: [], poke_blocked: [], poke_arm: [], poke_leg: [], poke_low: [], broadcast_after: [], wonder: [], wonder_reply: [], sleep: [], wake: [], sleep_talk: [], debris: [] }, nextLine = performance.now() + 6000, flooding = false;
 fetch('terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { LINES = Object.assign(LINES, d); }).catch(() => {});
 const pick = (a) => a[(Math.random() * a.length) | 0];
 function hasDisk() { try { return !!(JSON.parse(localStorage.getItem('rp_items')) || {}).todd_floppy; } catch (e) { return false; } }
@@ -858,6 +901,7 @@ function breakUp(el) {
 }
 function flood(on) { flooding = on; if (!on) [].forEach.call(termEl.querySelectorAll('.red'), breakUp); }
 function terminal(now) {
+  if (sleep.on) return;   // asleep: only his mumbles
   if (flooding) {
     if (Math.random() < 0.35 && termEl.childElementCount < 40) say(pick(LINES.rage.length ? LINES.rage : ['ERROR']), true);
     return;
@@ -926,12 +970,230 @@ function wonderEcho(now) {
   if (LINES.wonder_reply.length) setTimeout(() => { if (!rage.on) say(pick(LINES.wonder_reply)); }, 1300);
 }
 
+// ---- the grid floor: only there around him ----
+// A world-space grid on the ground that fades in around TODD and out into the dark, with a ripple
+// spreading out wherever a foot lands. (It'll be the arena floor when he fights.)
+const RIPPLES = 6;
+// (the patch is small and travels with him; the lines are anchored to the world, so it reads as one endless floor)
+const grid = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.ShaderMaterial({
+  // pure light added on top: where there's no grid it writes nothing at all (so the page's dark backdrop,
+  // which shows through the canvas, isn't covered up)
+  transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation,
+  blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.OneFactor, blendDstAlpha: THREE.OneFactor,
+  uniforms: {
+    uCenter: { value: new THREE.Vector2() }, uRadius: { value: 6.5 }, uColor: { value: new THREE.Color(0x00fffa) },
+    uCell: { value: 0.62 }, uTime: { value: 0 }, uStrength: { value: 1 },
+    uRipples: { value: Array.from({ length: RIPPLES }, () => new THREE.Vector3(0, 0, -100)) }
+  },
+  vertexShader: `varying vec2 vP; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vP = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+  fragmentShader: `
+    uniform vec2 uCenter; uniform float uRadius; uniform vec3 uColor; uniform float uCell; uniform float uTime; uniform float uStrength;
+    uniform vec3 uRipples[${RIPPLES}];
+    varying vec2 vP;
+    void main() {
+      vec2 g = vP / uCell;
+      vec2 f = abs(fract(g - 0.5) - 0.5) / fwidth(g);
+      float line = 1.0 - min(min(f.x, f.y), 1.0);
+      vec2 f2 = abs(fract(g / 4.0 - 0.5) - 0.5) / fwidth(g / 4.0);
+      float major = 1.0 - min(min(f2.x, f2.y), 1.0);
+      float d = distance(vP, uCenter);
+      float near = smoothstep(uRadius, uRadius * 0.15, d);
+      float glow = (line * 0.32 + major * 0.35) * near * near;
+      for (int i = 0; i < ${RIPPLES}; i++) {
+        float age = uTime - uRipples[i].z;
+        if (age < 0.0 || age > 1.6) continue;
+        float r = age * 3.2, rd = distance(vP, uRipples[i].xy);
+        glow += (line * 0.9 + 0.12) * smoothstep(0.35, 0.0, abs(rd - r)) * (1.0 - age / 1.6) * 0.8;
+      }
+      float a = clamp(glow * uStrength, 0.0, 1.0);
+      if (a < 0.002) discard;
+      gl_FragColor = vec4(uColor * a, a);
+    }`
+}));
+grid.rotation.x = -Math.PI / 2; grid.position.y = 0.004; grid.renderOrder = -1;
+scene.add(grid);
+const gridMats = [grid.material];
+// a faint patch of the same grid under something (the debris), so it sits on the floor
+function gridPatch(x, z, r) {
+  const m = grid.material.clone();
+  m.uniforms.uCenter.value = new THREE.Vector2(x, z); m.uniforms.uRadius.value = r; m.uniforms.uStrength.value = 0.45;
+  m.uniforms.uRipples.value = grid.material.uniforms.uRipples.value.map(() => new THREE.Vector3(0, 0, -100));
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(r * 2.2, r * 2.2), m);
+  mesh.rotation.x = -Math.PI / 2; mesh.position.set(x, 0.003, z); mesh.renderOrder = -1;
+  scene.add(mesh); gridMats.push(m);
+}
+let rippleAt = 0;
+function ripple(x, z, now) {
+  const r = grid.material.uniforms.uRipples.value[rippleAt++ % RIPPLES];
+  r.set(x, z, now / 1000);
+}
+
+// ---- debris: old things lying around the edges of the dark ----
+// Dead monitors frozen on old faces of his, a toppled desk chair, a PC tower. Built from plain boxes in
+// his palette. Now and then he walks over to one and stands staring down at it.
+const debris = [];
+function boxMesh(w, h, d, color) {
+  return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+}
+function frozenFace(name) {
+  const c = document.createElement('canvas'); c.width = FACE.w; c.height = FACE.h;
+  const g = c.getContext('2d'), data = faceData[faceIndex(name)];
+  if (data) { const im = g.createImageData(FACE.w, FACE.h); im.data.set(data); g.putImageData(im, 0, 0); }
+  // old screens: dimmer, a little dead
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, FACE.w, FACE.h);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+  return t;
+}
+function monitor(face, cracked) {
+  const m = new THREE.Group();
+  m.add(boxMesh(1.25, 1.0, 1.0, 0x3e4646));
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(1.08, 0.86), new THREE.MeshBasicMaterial({ map: frozenFace(face), fog: true }));
+  scr.position.z = 0.501; m.add(scr);
+  if (cracked) {
+    const crack = new THREE.Mesh(new THREE.PlaneGeometry(1.08, 0.86), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 }));
+    crack.position.z = 0.503; crack.scale.set(0.5, 1, 1); crack.position.x = -0.27; m.add(crack);
+  }
+  m.userData.screen = scr;
+  return m;
+}
+function chair() {
+  const c = new THREE.Group();
+  const seat = boxMesh(0.75, 0.12, 0.75, 0x22262e); seat.position.y = 0.55; c.add(seat);
+  const back = boxMesh(0.75, 0.8, 0.1, 0x22262e); back.position.set(0, 1.0, -0.33); c.add(back);
+  const pole = boxMesh(0.1, 0.45, 0.1, 0x555c5c); pole.position.y = 0.28; c.add(pole);
+  for (let i = 0; i < 5; i++) { const leg = boxMesh(0.42, 0.06, 0.08, 0x555c5c); leg.position.y = 0.04; leg.rotation.y = i * Math.PI * 2 / 5; leg.translateX(0.2); c.add(leg); }
+  return c;
+}
+function tower() {
+  const tw = new THREE.Group();
+  tw.add(boxMesh(0.55, 1.25, 1.1, 0x3a4040));
+  const drive = boxMesh(0.42, 0.08, 0.02, 0x1a1e1e); drive.position.set(0, 0.35, 0.56); tw.add(drive);
+  const led = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 0.05), new THREE.MeshBasicMaterial({ color: 0x00fffa }));
+  led.position.set(0.18, -0.4, 0.556); tw.add(led); tw.userData.led = led;
+  return tw;
+}
+function buildDebris() {
+  if (debris.length) return;
+  const place = (obj, angle, r, rotY, y, tiltX, tiltZ, kind) => {
+    obj.position.set(Math.sin(angle) * r, y, Math.cos(angle) * r);
+    obj.rotation.set(tiltX || 0, rotY, tiltZ || 0);
+    scene.add(obj);
+    debris.push({ obj, x: obj.position.x, z: obj.position.z, kind });
+  };
+  // monitors on the floor, facing in toward the middle, a few knocked over
+  place(monitor('sad'), 2.4, 9.5, 2.4 + Math.PI, 0.5, 0, 0, 'monitor');
+  place(monitor('smile', true), 0.9, 10.5, 0.9 + Math.PI + 0.4, 0.5, 0, 0, 'monitor');
+  place(monitor('error'), -1.7, 9.0, -1.7 + Math.PI - 0.3, 0.42, -0.35, 0, 'monitor');
+  place(monitor('loading'), 4.1, 11.0, 4.1 + Math.PI, 0.62, 0, Math.PI / 2, 'monitor');
+  place(chair(), -0.5, 10.0, 1.2, 0.35, 0, Math.PI / 2 - 0.05, 'chair');
+  place(tower(), 3.3, 9.0, 3.3 + Math.PI + 0.6, 0.62, 0, 0, 'tower');
+  // a faint patch of grid under each one, so they're sitting on something
+  debris.forEach((dbr) => gridPatch(dbr.x, dbr.z, 2.2));
+}
+function debrisStep(now) {
+  // the old screens flicker, the tower's light blinks
+  debris.forEach((dbr, i) => {
+    const sc = dbr.obj.userData.screen;
+    if (sc) sc.material.color.setScalar(Math.random() < 0.015 ? 0.35 : 0.82 + 0.18 * Math.sin(now / 900 + i * 2));
+    const led = dbr.obj.userData.led;
+    if (led) led.visible = Math.sin(now / 600) > 0;
+  });
+}
+
+// ---- asleep (midnight to 5 AM, his visitor's time) ----
+// He sits down on the floor, legs out, slumps, his head drops, his screen goes dark (a standby light,
+// the odd 'z'). He breathes slowly and twitches now and then. Poke him and he wakes up, grumpy, and
+// gets to his feet; talking to him only gets mumbles (chat.js asks TODD.asleep).
+const sleep = { on: false, amt: 0, waking: false, frame: 0, nextFrame: 0, nextMumble: 0, wokeAt: 0 };
+function isNight() { const h = new Date().getHours(); return h < 5; }
+function fallAsleep(now, instant) {
+  if (rage.on || bc.on) return;
+  Object.assign(sleep, { on: true, waking: false, nextFrame: now + 800, nextMumble: now + 9000 + Math.random() * 8000 });
+  if (instant) sleep.amt = 1;
+  mode = 'sleep'; walk.state = 'stand'; walk.amp = 0; walk.approach = false; walk.visit = null; walk.until = 1e15;
+  reach.on = false;
+  fizzle(faceIndex('sleep'), instant ? 0 : 900);
+  if (!instant && LINES.sleep && LINES.sleep.length) say(pick(LINES.sleep));
+}
+function wake(now) {
+  sleep.on = false; sleep.waking = true; sleep.wokeAt = now;
+  // nothing that came due while he slept goes off the second he's up
+  rage.next = Math.max(rage.next, now + 45000); bc.next = Math.max(bc.next, now + 60000); echo.next = Math.max(echo.next, now + 40000);
+  fizzle(faceIndex('error'), 300);
+  setTimeout(() => fizzle(faceIndex('angry'), 400), 1400);
+  const hh = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (LINES.wake && LINES.wake.length) say(pick(LINES.wake).replace('{time}', hh));
+  if (servos.upX) servos.upX.v -= 3;
+}
+function sleepThink(now) {
+  if (sleep.waking) {
+    // getting up, then looking at whoever woke him
+    goal.pitch = 0.1; goal.yaw = THREE.MathUtils.clamp(towardYou() * 0.7, -0.9, 0.9); goal.roll = 0;
+    if (sleep.amt < 0.02) {
+      sleep.waking = false; sleep.backToBed = now + 120000 + Math.random() * 120000;
+      mode = 'watch'; lastNotice = now; mouse.moved = now; modeUntil = now + 6000; stopAndFaceYou(now);
+      walk.until = now + 6000; nextMood = now + 8000;
+    }
+    return;
+  }
+  // sleeping: head down, the odd twitch; the screen's standby light blinks, a 'z' drifts across
+  goal.yaw = Math.sin(now / 5200) * 0.08; goal.pitch = 0.75 + Math.sin(now / 3900) * 0.04; goal.roll = 0.14 + Math.sin(now / 4700) * 0.05;
+  if (now > sleep.nextFrame && !fizz) {
+    sleep.frame++;
+    const f = sleep.frame % 8;
+    putFace(f === 5 ? SLEEP_FACES[2] : f === 6 ? SLEEP_FACES[3] : f % 2 ? SLEEP_FACES[1] : SLEEP_FACES[0]);
+    sleep.nextFrame = now + 900;
+  }
+  if (Math.random() < 0.0015 && servos.chX) servos.chX.v += 1.5;    // a twitch
+  if (now > sleep.nextMumble) {
+    if (LINES.sleep && LINES.sleep.length) say(pick(LINES.sleep));
+    sleep.nextMumble = now + 14000 + Math.random() * 16000;
+  }
+}
+// The sitting pose, blended in over whatever balance() set: knees up, feet flat, slumped forward over
+// his knees with his forearms resting on them, head hanging.
+const SIT = {
+  // knees up: thighs angled up, shins forward and down, feet flat on the floor (worked out from his leg lengths)
+  Right_Leg: [-2.2, 0.14, -0.1], Left_Leg: [-2.2, -0.14, 0.1], lowerleg_R: [1.17, 0, 0], lowerleg_L: [1.17, 0, 0],
+  foot_R: [1.03, 0, 0], foot_L: [1.03, 0, 0], toe_R: [0, 0, 0], toe_L: [0, 0, 0],
+  // slumped forward over his knees, forearms resting across them
+  hips: [0, 0, 0], upper_body: [0.3, 0, 0.02], chest: [0.24, 0, 0.02],
+  Right_Arm: [-0.62, 0.1, -0.08], Left_Arm: [-0.6, -0.1, 0.08], forearm_R: [-0.75, 0, 0], forearm_L: [-0.72, 0, 0]
+};
+const sitQ = new THREE.Quaternion(), sitE = new THREE.Euler();
+function sleepPose(now, dt, t) {
+  const want = sleep.on ? 1 : 0;
+  sleep.amt += (want - sleep.amt) * Math.min(1, dt * (sleep.on ? 0.8 : 1.3));
+  if (!sleep.on && !sleep.waking && sleep.amt < 0.001) {
+    sleep.amt = 0;
+    if (isNight() && !rage.on && !bc.on && performance.now() > (sleep.backToBed || 0) && mode !== 'watch' && walk.state === 'stand') fallAsleep(performance.now());
+    return;
+  }
+  const a = sleep.amt, breath = Math.sin(t * 0.9) * 0.025 * a;
+  Object.keys(SIT).forEach((name) => {
+    const b = bones[name]; if (!b) return;
+    const v = SIT[name], extra = name === 'chest' ? breath : 0;
+    sitE.set(v[0] + extra, v[1], v[2], 'YXZ'); sitQ.setFromEuler(sitE);
+    sitQ.premultiply(rest[name]);
+    b.quaternion.slerp(sitQ, a);
+  });
+  // sitting down: his hips drop to just above the floor
+  body.position.y = body.position.y * (1 - a) + (-(hipH - height * 0.07)) * a;
+}
+
 // ---- poking him ----
 // Tap him and he's shoved back a step and stumbles, then turns to look at you. Tap his screen and it
 // glitches and his head snaps back. Each poke annoys him more; five close together and he loses it.
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 const shove = { x: 0, z: 0 };
 let irk = 0, irkAt = 0, pokes = 0;
+// Where you hit matters: his screen, his body, an arm, a leg, or below the belt. After a hit he brings
+// an arm up to guard that spot for a few seconds; hit the same place again and you hit his arm instead.
+const PART = {
+  fat_fucking_dome: 'head', neck: 'head', chest: 'body', upper_body: 'body', hips: 'body', pelvis: 'low',
+  Right_Arm: 'armR', no_elbow: 'armR', forearm_R: 'armR', hand_R: 'armR', Left_Arm: 'armL', no_elbow2: 'armL', forearm_L: 'armL', hand_L: 'armL',
+  Right_Leg: 'legR', lowerleg_R: 'legR', foot_R: 'legR', toe_R: 'legR', Left_Leg: 'legL', lowerleg_L: 'legL', foot_L: 'legL', toe_L: 'legL', Legs: 'low'
+};
 function hitTodd(cx, cy) {
   if (!todd) return null;
   const r = canvas.getBoundingClientRect();
@@ -939,35 +1201,96 @@ function hitTodd(cx, cy) {
   ray.setFromCamera(ndc, camera);
   const hits = ray.intersectObject(todd, true);
   if (!hits.length) return null;
-  const head = new THREE.Vector3(); bones.fat_fucking_dome.getWorldPosition(head);
-  return { point: hits[0].point, head: hits[0].point.y > head.y - 0.05 };
+  const h = hits[0], m = h.object;
+  let part = 'body';
+  if (m.isSkinnedMesh && h.face) {
+    const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight, a = h.face.a;
+    let best = 0, bw = -1;
+    const get = (attr, i, k) => [attr.getX, attr.getY, attr.getZ, attr.getW][k].call(attr, i);
+    for (let k = 0; k < 4; k++) { const w = get(sw, a, k); if (w > bw) { bw = w; best = get(si, a, k); } }
+    part = PART[m.skeleton.bones[best].name] || 'body';
+  }
+  const local = body.worldToLocal(h.point.clone());
+  return { point: h.point, part, side: local.x > 0 ? 'R' : 'L', head: part === 'head' };
+}
+// his guard: one arm up across his screen ('face') or across his chest ('chest')
+const guard = { side: 'R', target: 'face', amt: 0, until: 0, kick: 0 };
+const GUARD = {
+  face: { R: { Right_Arm: [-1.8, 0.3, -0.5], forearm_R: [-1.55, 0, 0] }, L: { Left_Arm: [-1.8, -0.3, 0.5], forearm_L: [-1.55, 0, 0] } },
+  chest: { R: { Right_Arm: [-0.95, 0.2, -0.6], forearm_R: [-1.75, 0, 0] }, L: { Left_Arm: [-0.95, -0.2, 0.6], forearm_L: [-1.75, 0, 0] } }
+};
+const gQ = new THREE.Quaternion(), gE = new THREE.Euler();
+function guardUp(target, side, now) { Object.assign(guard, { target, side, until: now + 3200 }); }
+function guardPose(now, dt, t) {
+  const want = now < guard.until && !rage.on && !sleep.on && !reach.on ? 1 : 0;
+  guard.amt += (want - guard.amt) * Math.min(1, dt * (want ? 9 : 3));
+  guard.kick *= Math.exp(-dt * 8);
+  if (guard.amt < 0.01) return;
+  const set = GUARD[guard.target][guard.side];
+  Object.keys(set).forEach((name) => {
+    const b = bones[name]; if (!b) return;
+    const v = set[name], shake = Math.sin(t * 21) * 0.025;
+    gE.set(v[0] + guard.kick * 0.5 + shake, v[1], v[2], 'YXZ'); gQ.setFromEuler(gE); gQ.premultiply(rest[name]);
+    b.quaternion.slerp(gQ, guard.amt);
+  });
 }
 function poke(cx, cy) {
   if (rage.on) return;
   const hit = hitTodd(cx, cy);
   if (!hit) return;
+  if (sleep.on) return wake(performance.now());
   const now = performance.now();
-  irk = Math.max(0, irk - (now - irkAt) / 8000) + 1; irkAt = now; pokes++;
-  // knocked back, away from the camera
+  const decay = Math.max(0, irk - (now - irkAt) / 8000); irkAt = now; pokes++;
   const dx = body.position.x - camera.position.x, dz = body.position.z - camera.position.z, d = Math.hypot(dx, dz) || 1;
-  const push = hit.head ? 0.6 : 1.4;
-  shove.x += dx / d * push; shove.z += dz / d * push;
-  if (servos.upX) servos.upX.v -= hit.head ? 2.5 : 4;          // the jolt goes through him
-  if (servos.chZ) servos.chZ.v += (Math.random() - 0.5) * 3;
-  look.vp -= hit.head ? 9 : 3; look.vy += (Math.random() - 0.5) * 6;   // head snaps back
-  if (hit.head) glitch();
-  walk.approach = false; walk.stopAt = 0;
+  const knock = (push) => { shove.x += dx / d * push; shove.z += dz / d * push; };
+  const blocked = guard.amt > 0.5 && hit.part === 'arm' + guard.side;
+  let pool = null, mood = null, add = 1, lookLater = 650;
+  if (blocked) {
+    // he saw it coming
+    guard.kick = 1; guard.until = now + 2600; knock(0.25); add = 0.25;
+    pool = LINES.poke_blocked; mood = 'sly';
+  } else if (hit.part === 'head') {
+    knock(0.6); look.vp -= 9; look.vy += (Math.random() - 0.5) * 6; glitch();
+    if (servos.upX) servos.upX.v -= 2.5;
+    guardUp('face', hit.side, now);
+    pool = LINES.poke_screen;
+  } else if (hit.part === 'low') {
+    // below the belt: he doubles over
+    knock(0.8); look.vp += 8; if (servos.chX) servos.chX.v += 7; if (servos.upX) servos.upX.v += 5;
+    guardUp('chest', hit.side, now); add = 1.5;
+    pool = LINES.poke_low; mood = 'angry';
+  } else if (hit.part === 'armR' || hit.part === 'armL') {
+    // his arm gets knocked away, and he turns toward it
+    const R = hit.part === 'armR';
+    knock(0.4);
+    if (servos[R ? 'raZ' : 'laZ']) servos[R ? 'raZ' : 'laZ'].v += R ? 7 : -7;
+    if (servos[R ? 'raX' : 'laX']) servos[R ? 'raX' : 'laX'].v += 5;
+    look.vy += R ? 5 : -5;
+    pool = LINES.poke_arm;
+  } else if (hit.part === 'legR' || hit.part === 'legL') {
+    // he hops that foot up and looks down at it
+    const side = hit.part === 'legR' ? 'R' : 'L';
+    knock(0.5);
+    if (!shuffle.on) startShuffle(0, side);
+    goal.pitch = 0.6; goal.yaw = side === 'R' ? -0.35 : 0.35; nextGlance = now + 1400; lookLater = 1300;
+    pool = LINES.poke_leg;
+  } else {
+    knock(1.4); look.vp -= 3; look.vy += (Math.random() - 0.5) * 6;
+    if (servos.upX) servos.upX.v -= 4; if (servos.chZ) servos.chZ.v += (Math.random() - 0.5) * 3;
+    guardUp('chest', hit.side, now);
+    setTimeout(() => { if (!rage.on && !shuffle.on) startShuffle(0, Math.random() < 0.5 ? 'L' : 'R'); }, 180);
+  }
+  irk = decay + add;
+  walk.approach = false; walk.stopAt = 0; walk.visit = null;
   if (walk.state === 'walk') { walk.state = 'stand'; walk.until = now + 4000; }
-  // a step to catch himself, then he looks at you
-  setTimeout(() => { if (!rage.on && !shuffle.on) startShuffle(0, Math.random() < 0.5 ? 'L' : 'R'); }, 180);
   setTimeout(() => {
-    if (rage.on) return;
+    if (rage.on || sleep.on) return;
     mode = 'watch'; lastNotice = performance.now(); mouse.moved = performance.now(); modeUntil = performance.now() + 5000;
     stopAndFaceYou(performance.now());
-  }, 650);
-  const mood = irk < 1.6 ? 'surprised' : irk < 3 ? 'neutral' : 'angry';
-  fizzle(faceIndex(mood), 260);
-  const pool = hit.head ? LINES.poke_screen : irk >= 3 ? LINES.poke_annoyed : LINES.poke;
+  }, lookLater);
+  fizzle(faceIndex(mood || (irk < 1.6 ? 'surprised' : irk < 3 ? 'neutral' : 'angry')), 260);
+  if (irk >= 3 && !blocked) pool = LINES.poke_annoyed;
+  if (!pool || !pool.length) pool = LINES.poke;
   if (pool && pool.length) say(pick(pool));
   nextMood = now + 4000;
   if (irk >= 4.5) { irk = 0; setTimeout(() => startRage(performance.now()), 600); }
@@ -987,8 +1310,12 @@ function tick(now) {
     reachStep(dt);
     legs();
     balance(now, dt, t);
+    guardPose(now, dt, t);
+    sleepPose(now, dt, t);
     fadePrints(now);
+    gridMats.forEach((m) => { m.uniforms.uTime.value = now / 1000; });
     fizzStep(now);
+    debrisStep(now);
     agonyStep(now);
     crashStep(now);
     // the camera sways a little, so the void doesn't feel like a photo
@@ -1035,12 +1362,17 @@ window.TODD = {
   rage: () => { if (!rage.on) startRage(performance.now()); },   // set off a tantrum now
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
   say: (t, red) => say(t, red), state: rage,
-  poke: (head) => { const r = canvas.getBoundingClientRect(); let hx = r.left + r.width / 2, hy = r.top + r.height / 2;
-    const v = new THREE.Vector3(); (head ? bones.fat_fucking_dome : bones.chest).getWorldPosition(v); if (head) v.y += 0.4; v.project(camera);
+  poke: (where) => { const r = canvas.getBoundingClientRect(); let hx = r.left + r.width / 2, hy = r.top + r.height / 2;
+    const name = where === true ? 'fat_fucking_dome' : typeof where === 'string' ? where : 'chest';
+    const v = new THREE.Vector3(); bones[name].getWorldPosition(v); if (name === 'fat_fucking_dome') v.y += 0.4;
+    if (/lowerleg/.test(name)) v.y -= 0.4; if (/forearm|no_elbow/.test(name)) v.y -= 0.1; v.project(camera);
     hx = r.left + (v.x + 1) / 2 * r.width; hy = r.top + (1 - v.y) / 2 * r.height; poke(hx, hy); },
+  sleep: () => fallAsleep(performance.now()), wake: () => { if (sleep.on) wake(performance.now()); },
+  get asleep() { return sleep.on; },
   broadcast: () => { if (!rage.on && !bc.on) startBroadcast(performance.now()); },
   wonder: () => { echo.next = 0; wonderEcho(performance.now()); },
   reach: () => { const now = performance.now(); mode = 'watch'; mouse.moved = now; Object.assign(reach, { on: true, t0: now, until: now + 5000 }); modeUntil = now + 5500; },
+  guard, get irk() { return irk; },
   get showing() { return FACES[fizz ? fizz.to : shownFace]; },
   render: () => renderer.render(scene, camera), bones,
   // for the chat (chat.js)
