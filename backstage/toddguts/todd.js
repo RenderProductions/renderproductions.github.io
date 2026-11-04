@@ -254,6 +254,9 @@ function onPoint(cx, cy) {
     // he notices you (sooner, and for longer, the more aware of you he is)
     mode = 'watch'; lastNotice = now; modeUntil = now + (2500 + Math.random() * 3500) * (1 + 0.35 * level);
     stopAndFaceYou(now);
+    // and TODD.OS says so
+    say(pick(level >= 1 && LINES.notice_aware.length ? LINES.notice_aware : (LINES.notice.length ? LINES.notice : LINES.idle)));
+    nextLine = Math.max(nextLine, now + 5000);
     fizzle(faceIndex('surprised'), 380);
     setTimeout(() => { if (mode === 'watch' && !rage.on) fizzle(Math.random() < 0.4 + 0.12 * level ? faceIndex('sly') : faceIndex(level >= 3 ? 'angry' : 'neutral')); }, 1300);
     nextMood = now + 5000;
@@ -427,9 +430,10 @@ function legs() {
     // and the toes bend as it pushes off; in the air it hangs a little, then flicks up to land
     const k = walk.amp;
     const strike = bump(p, Math.PI / 2, 0.42), push = bump(p, Math.PI * 1.5 - 0.3, 0.42), air = bump(p, 0, 0.6);
-    const foot = -(hip + knee) * 0.9 - 0.6 * strike * k + 1.0 * push * k + 0.3 * air * k + up * 0.2;
+    const foot = -(hip + knee) * 0.96 - 0.6 * strike * k + 0.62 * push * k + 0.2 * air * k + up * 0.2;
     pose('foot_' + side, foot, 0, 0);
-    pose('toe_' + side, -1.1 * push * k + 0.25 * strike * k, 0, 0);   // toes stay on the ground as the heel comes up
+    // (on this rig + tips the toes down, - lifts them) toes stay flat as the heel comes up, and lift as the heel lands
+    pose('toe_' + side, -0.62 * push * k - 0.3 * strike * k, 0, 0);
     return hip;
   };
   const hr = leg('R', ph), hl = leg('L', ph + Math.PI);
@@ -552,6 +556,7 @@ function approach(now) {
   const stop = height * (2.7 - 0.35 * level);
   if (d < stop + 0.8) return;
   walk.to.set(cx, cz); walk.stopAt = stop; walk.approach = true;
+  if (LINES.approach.length) say(pick(LINES.approach));
   walk.aim = Math.atan2(dx, dz); walk.state = 'turn'; walk.then = 'walk';
 }
 
@@ -659,7 +664,7 @@ function crashStep(now) {
 
 // ---- TODD.OS: terminal lines that flicker into the void ----
 const termEl = document.getElementById('term');
-let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [] }, nextLine = performance.now() + 6000, flooding = false;
+let LINES = { idle: [], aware: [], papa: [], disk: [], rage: [], notice: [], notice_aware: [], approach: [] }, nextLine = performance.now() + 6000, flooding = false;
 fetch('terminal.json?v=' + Date.now()).then((r) => r.json()).then((d) => { LINES = Object.assign(LINES, d); }).catch(() => {});
 const pick = (a) => a[(Math.random() * a.length) | 0];
 function hasDisk() { try { return !!(JSON.parse(localStorage.getItem('rp_items')) || {}).todd_floppy; } catch (e) { return false; } }
@@ -771,5 +776,6 @@ window.TODD = {
   rage: () => { if (!rage.on) startRage(performance.now()); },   // set off a tantrum now
   get level() { return level; }, set level(v) { level = Math.max(0, Math.min(4, v | 0)); },
   say: (t, red) => say(t, red), state: rage,
-  get showing() { return FACES[fizz ? fizz.to : shownFace]; }
+  get showing() { return FACES[fizz ? fizz.to : shownFace]; },
+  render: () => renderer.render(scene, camera), bones
 };

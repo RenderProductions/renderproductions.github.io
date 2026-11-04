@@ -1,5 +1,5 @@
 {
-  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. {visits} becomes how many times they've been here.",
+  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here.",
   "idle": [
     "TODD.OS v0.?? // BOOT DISK 1 OF ??",
     "> mem check ... 640K OK",
@@ -20,6 +20,27 @@
     "> why do you keep coming back",
     "> stop watching",
     "> i can see you moving"
+  ],
+  "notice": [
+    "> movement detected",
+    "> oh. hello",
+    "> cursor found",
+    "> there you are",
+    "> who's there?"
+  ],
+  "notice_aware": [
+    "> you again",
+    "> there you are. again",
+    "> I SAW THAT",
+    "> cursor recognised: visit #{visits}",
+    "> don't think i can't see you",
+    "> back so soon?"
+  ],
+  "approach": [
+    "> closer",
+    "> let me get a better look at you",
+    "> stay right there",
+    "> coming"
   ],
   "papa": [
     "> BIG PAPA BUILT THIS WORLD FROM NOTHING",
