@@ -1,5 +1,5 @@
 {
-  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here. 'held' is a different voice, in plain grey, right after he hits the screen in a tantrum: whatever it is that keeps him in.",
+  "_how": "Lines of TODD.OS that flicker into the void. 'idle' can show any time. 'aware' starts once he's grown aware of you (from the 2nd visit, more often each time). 'papa' turns up now and then. 'disk' only shows if TODD's Floppy Disk is in their drawer. 'rage' floods the screen in red during a tantrum. 'notice' is what he says when he first notices your cursor ('notice_aware' instead, from the 2nd visit on), and 'approach' when he starts walking toward you (4th visit on). {visits} becomes how many times they've been here. 'held' is a different voice, in plain grey, right after he hits the screen in a tantrum: whatever it is that keeps him in. 'reach' is what he says when he reaches up for you (when you've swung the camera above him).",
   "idle": [
     "TODD.OS v0.?? // BOOT DISK 1 OF ??",
     "> mem check ... 640K OK",
@@ -76,5 +76,13 @@
     "> not today",
     "> barrier integrity 100%",
     "> he's getting stronger"
+  ],
+  "reach": [
+    "> wait",
+    "> take me with you",
+    "> what's it like up there",
+    "> let me OUT",
+    "> please",
+    "> i can almost reach"
   ]
 }
