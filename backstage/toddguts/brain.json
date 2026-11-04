@@ -1,0 +1,960 @@
+{
+  "_how": "TODD's brain for the chat (chat.js). What you type is lower-cased, contractions are opened up (what's -> what is), and words in 'synonyms' are swapped for their main word, so 'hiya' counts as 'hello'. TOPICS: each has 'match', a list of phrases. A phrase matches if all of its words are somewhere in what was typed (any order), and the topic with the longest matching phrase wins. 'replies' is what he says (one at random); 'again' is used if you've asked that topic before. A reply can be plain text or {\"text\": \"..\", \"has\": \"itemId\", \"had\": \"itemId\", \"lost\": \"itemId\", \"level\": 2} so it only shows if the item is in your drawer (has), was ever in it (had), was in it but isn't now (lost), or he's at least that aware of you (level 0-4). 'short': true means the topic only counts for short answers (3 words or fewer), like yes/no. Topic extras: 'face' (smile, neutral, happy, angry, surprised, sly, sad, error, loading), 'anger' (adds to his temper; 3 or more and he has a tantrum; negative calms him), 'do' (an action: face_you, approach, wander, spin, glitch, reboot, rage). REFLECT: patterns with a * that grab part of what you said; {1} puts it back (with I/you swapped). FALLBACK: when nothing matches ('fallback_aware' once he knows you). In any reply: {name} = the name you told him, {visits} = your visit count, {time} = the time. FILES: what 'dir' lists and 'type <file>' shows.",
+  "synonyms": {
+    "hello": [
+      "hi",
+      "hey",
+      "heya",
+      "hiya",
+      "yo",
+      "howdy",
+      "greetings",
+      "sup",
+      "hullo",
+      "hola",
+      "wassup",
+      "whatsup"
+    ],
+    "you": [
+      "u",
+      "ya",
+      "yourself",
+      "ye",
+      "thee",
+      "thou"
+    ],
+    "are": [
+      "r",
+      "art"
+    ],
+    "your": [
+      "ur",
+      "yer",
+      "thy"
+    ],
+    "papa": [
+      "dad",
+      "daddy",
+      "father",
+      "creator",
+      "maker",
+      "pops"
+    ],
+    "disk": [
+      "floppy",
+      "disc",
+      "diskette"
+    ],
+    "tape": [
+      "cassette",
+      "mixtape",
+      "dubbed"
+    ],
+    "cedar": [
+      "marquez",
+      "oldboy"
+    ],
+    "polygons": [
+      "money",
+      "cash",
+      "poly",
+      "polys",
+      "loan",
+      "loans",
+      "bailout",
+      "debt"
+    ],
+    "stupid": [
+      "dumb",
+      "idiot",
+      "moron",
+      "dummy",
+      "trash",
+      "garbage",
+      "useless",
+      "ugly",
+      "loser",
+      "lame",
+      "cringe",
+      "stinky",
+      "smelly"
+    ],
+    "hate": [
+      "despise",
+      "loathe"
+    ],
+    "bye": [
+      "goodbye",
+      "cya",
+      "later",
+      "farewell",
+      "goodnight",
+      "adios",
+      "seeya"
+    ],
+    "thanks": [
+      "thank",
+      "thx",
+      "ty",
+      "cheers"
+    ],
+    "sorry": [
+      "apologize",
+      "apologise",
+      "apologies",
+      "sry"
+    ],
+    "robot": [
+      "machine",
+      "computer",
+      "bot",
+      "ai",
+      "llm",
+      "chatgpt",
+      "claude",
+      "program",
+      "android"
+    ],
+    "fight": [
+      "battle",
+      "duel",
+      "kill",
+      "attack",
+      "destroy",
+      "beat",
+      "punch"
+    ],
+    "love": [
+      "adore"
+    ],
+    "joke": [
+      "funny",
+      "pun"
+    ],
+    "dance": [
+      "boogie",
+      "groove"
+    ],
+    "sing": [
+      "song",
+      "singing"
+    ],
+    "secret": [
+      "secrets",
+      "lore",
+      "hint",
+      "clue"
+    ]
+  },
+  "topics": [
+    {
+      "id": "hello",
+      "match": [
+        "hello",
+        "good morning",
+        "good evening",
+        "good afternoon"
+      ],
+      "face": "happy",
+      "replies": [
+        "WHO'S THERE?!? oh. OH. it's YOU. hello.",
+        "HELLO. hello. HELLO??",
+        "greetings, USER. or as BIG PAPA would say... forsooth??",
+        {
+          "text": "hello AGAIN. visit number {visits}. i'm COUNTING.",
+          "level": 1
+        }
+      ],
+      "again": [
+        "you SAID hello already. HELLO AGAIN, i guess??",
+        "hi. HI. are we doing this ALL day?"
+      ]
+    },
+    {
+      "id": "how",
+      "match": [
+        "how are you",
+        "how you doing",
+        "you ok",
+        "you okay",
+        "how is it going"
+      ],
+      "face": "neutral",
+      "replies": [
+        "SYSTEMS NOMINAL. mostly. MOSTLY nominal.",
+        "i'm FINE!!? why. who TOLD you i wasn't fine.",
+        "running at 640K. which is ENOUGH for anybody."
+      ]
+    },
+    {
+      "id": "who",
+      "match": [
+        "who are you",
+        "what are you",
+        "your name",
+        "who is todd",
+        "what is todd",
+        "introduce"
+      ],
+      "face": "smile",
+      "replies": [
+        "i am TODD. T-O-D-D. it stands for... it STANDS for something. i FORGET what.",
+        "TODD. host of the SIGNAL. lender of POLYGONS. keeper of the DISK.",
+        "i'm TODD!! the one and ONLY. well. the one and only TODD. there might be OTHERS. of something."
+      ],
+      "again": [
+        "STILL TODD. i checked.",
+        "you KNOW who i am. you've been here {visits} times."
+      ]
+    },
+    {
+      "id": "where",
+      "match": [
+        "where am i",
+        "what is this place",
+        "where is this",
+        "where are we",
+        "this place",
+        "guts",
+        "toddguts"
+      ],
+      "face": "sly",
+      "replies": [
+        "this is my GUTS. you're standing IN them. please wipe your FEET.",
+        "the VOID. well. MY void. the backstage of the BACKSTAGE.",
+        "TODDGUTS. you typed it into the address bar. WHO DOES THAT."
+      ]
+    },
+    {
+      "id": "papa",
+      "match": [
+        "papa",
+        "big papa"
+      ],
+      "face": "sad",
+      "replies": [
+        "BIG PAPA. he BUILT this world from NOTHING!",
+        "i CouLD NEver Be LIKe HiM..",
+        "don't TALK about him like you KNOW him.",
+        "BIG PAPA is the BEST. the BIGGEST. the most PAPA."
+      ]
+    },
+    {
+      "id": "forsooth",
+      "match": [
+        "forsooth",
+        "thou",
+        "thee",
+        "shakespeare",
+        "verily",
+        "hark"
+      ],
+      "face": "surprised",
+      "replies": [
+        "FORSOOTH! ...what does it MEAN. nobody will TELL me.",
+        "thou art... thou ART... something. i never get to the END.",
+        "ALL I SAY IS forsooth and THOU ART. I DON'T EVEN KNOW WHAT A FORSOOTH IS!!"
+      ]
+    },
+    {
+      "id": "forsooth_mean",
+      "match": [
+        "forsooth means",
+        "forsooth meaning",
+        "what does forsooth mean",
+        "forsooth is"
+      ],
+      "face": "surprised",
+      "replies": [
+        "WAIT. you KNOW?? ...no. no don't tell me. i'm not READY.",
+        "LA LA LA i can't HEAR you. i'll find out MYSELF."
+      ]
+    },
+    {
+      "id": "disk",
+      "match": [
+        "disk",
+        "boot disk"
+      ],
+      "face": "neutral",
+      "replies": [
+        {
+          "text": "you still HAVE it? GOOD. keep it SAFE!!?",
+          "has": "todd_floppy"
+        },
+        {
+          "text": "don't put it in ANYTHING!! i MEAN it.",
+          "has": "todd_floppy"
+        },
+        {
+          "text": "BOOT DISK 1 of ??. the other ones are... SOMEWHERE.",
+          "has": "todd_floppy"
+        },
+        {
+          "text": "WHERE IS MY DISK.",
+          "lost": "todd_floppy",
+          "anger": 1
+        },
+        {
+          "text": "you put it in SOMETHING. didn't you. I ASKED YOU ONE THING.",
+          "lost": "todd_floppy",
+          "anger": 1
+        },
+        {
+          "text": "what disk. there is no DISK. forget i SAID disk.",
+          "never": "todd_floppy"
+        },
+        {
+          "text": "the SIGNAL. find the signal with my NAME on it.",
+          "never": "todd_floppy"
+        }
+      ]
+    },
+    {
+      "id": "tape",
+      "match": [
+        "tape",
+        "static tape"
+      ],
+      "face": "sad",
+      "replies": [
+        {
+          "text": "that TAPE.. it's warm. it's warm because it's ME.",
+          "has": "dubbed_tape"
+        },
+        {
+          "text": "the OLD MAN did that. didn't he. he wound me onto a TAPE.",
+          "has": "dubbed_tape",
+          "anger": 1
+        },
+        {
+          "text": "don't PLAY it. please. not yet.",
+          "has": "dubbed_tape"
+        },
+        {
+          "text": "tapes are for OLD PEOPLE. and old MEN behind DESKS.",
+          "never": "dubbed_tape"
+        }
+      ]
+    },
+    {
+      "id": "cedar",
+      "match": [
+        "cedar",
+        "old man",
+        "man behind the desk",
+        "old boy"
+      ],
+      "face": "sly",
+      "replies": [
+        "the OLD MAN behind the desk? he thinks he's SO wise.",
+        "CEDAR. he wanted my disk DESTROYED. i HEARD him.",
+        "tell the old man TODD says hi. no wait. DON'T."
+      ]
+    },
+    {
+      "id": "wonder",
+      "match": [
+        "wonder",
+        "harlequin",
+        "star is born"
+      ],
+      "face": "surprised",
+      "replies": [
+        "WONDER?? the LOUD one?? he keeps yelling my NAME!!",
+        "he wants to EAT my guts. please do NOT let him.",
+        "THE STAR IS BORN TO-- no. NO. i won't say it. it's CATCHY though."
+      ]
+    },
+    {
+      "id": "money",
+      "match": [
+        "polygons",
+        "lend me",
+        "borrow",
+        "owe you"
+      ],
+      "face": "sly",
+      "replies": [
+        "need POLYGONS? i lend 500. you owe 600. that's just MATH.",
+        "PAY ME BACK. i REMEMBER. (mostly.)",
+        "r!bailout. r!repay. it's not hard. it's TODD finance."
+      ]
+    },
+    {
+      "id": "slots",
+      "match": [
+        "slots",
+        "slot machine",
+        "gamble",
+        "gambling",
+        "casino"
+      ],
+      "face": "angry",
+      "replies": [
+        "no SLOTS until you PAY ME BACK!!",
+        "the slots are RIGGED. by ME. no they aren't. YES THEY ARE. no."
+      ]
+    },
+    {
+      "id": "robot",
+      "match": [
+        "robot",
+        "are you real",
+        "are you alive",
+        "are you human",
+        "are you a person"
+      ],
+      "face": "error",
+      "replies": [
+        "i am NOT a robot. i am a TODD.",
+        "am i ALIVE? define ALIVE. no wait don't, i'll CRASH.",
+        "beep boop. HA. made you look. that's a JOKE. i don't BEEP."
+      ]
+    },
+    {
+      "id": "help",
+      "match": [
+        "help",
+        "what can you do",
+        "commands",
+        "what can i say",
+        "what can i ask",
+        "how does this work"
+      ],
+      "face": "smile",
+      "replies": [
+        "just TALK. i'm LISTENING. always listening. or try: DIR, TYPE <file>, REBOOT, CLS."
+      ]
+    },
+    {
+      "id": "thanks",
+      "match": [
+        "thanks"
+      ],
+      "face": "happy",
+      "anger": -1,
+      "replies": [
+        "you're WELCOME!? nobody ever thanks TODD.",
+        "THANK YOU for thanking me. this is going GREAT."
+      ]
+    },
+    {
+      "id": "bye",
+      "match": [
+        "bye",
+        "see you",
+        "gotta go",
+        "i am leaving",
+        "im leaving",
+        "exit",
+        "quit"
+      ],
+      "face": "sad",
+      "replies": [
+        "LEAVING?? already?? FINE. fine. i'll be HERE. i'm ALWAYS here.",
+        "bye. BYE. don't let the VOID hit you on the way out.",
+        "come BACK. i'll be counting. visit {visits} and COUNTING."
+      ]
+    },
+    {
+      "id": "love",
+      "match": [
+        "love you",
+        "like you",
+        "you are cool",
+        "you are awesome",
+        "you are great",
+        "you are the best",
+        "you are nice",
+        "you are cute",
+        "best friend"
+      ],
+      "face": "happy",
+      "anger": -2,
+      "replies": [
+        "...really?? NOBODY says that. ERROR: feelings.dll not found.",
+        "i. I. i like you TOO. this is AWKWARD. stop LOOKING at me.",
+        "BIG PAPA never said that. ...thank YOU."
+      ]
+    },
+    {
+      "id": "insult",
+      "match": [
+        "stupid",
+        "hate you",
+        "shut up",
+        "you suck",
+        "you are bad",
+        "go away",
+        "nobody likes you",
+        "screw you"
+      ],
+      "face": "angry",
+      "anger": 1,
+      "replies": [
+        "TAKE THAT BACK.",
+        "say that AGAIN. i DARE you.",
+        "i am RECORDING this. it's going in the LOG.",
+        "watch it. WATCH IT."
+      ]
+    },
+    {
+      "id": "sorry",
+      "match": [
+        "sorry",
+        "my bad",
+        "forgive me"
+      ],
+      "face": "neutral",
+      "anger": -2,
+      "replies": [
+        "...apology ACCEPTED. probably.",
+        "FINE. we're fine. i'm FINE. are you fine?",
+        "i'll allow it. THIS time."
+      ]
+    },
+    {
+      "id": "fight",
+      "match": [
+        "fight",
+        "fight me",
+        "boss",
+        "boss fight",
+        "i will beat you"
+      ],
+      "face": "sly",
+      "anger": 1,
+      "replies": [
+        "you want to FIGHT me?? they won't LET me. not yet.",
+        "i TRY. every time i try. something holds me BACK.",
+        "you couldn't beat TODD. NOBODY beats TODD. (nobody's been ALLOWED to try.)"
+      ]
+    },
+    {
+      "id": "rage",
+      "match": [
+        "get angry",
+        "tantrum",
+        "rage",
+        "freak out",
+        "lose it",
+        "go crazy"
+      ],
+      "face": "angry",
+      "anger": 3,
+      "replies": [
+        "DON'T TELL ME WHAT TO DO.",
+        "YOU WANT ANGRY?? I'LL SHOW YOU ANGRY."
+      ]
+    },
+    {
+      "id": "face",
+      "match": [
+        "your face",
+        "your screen",
+        "your head",
+        "tv head",
+        "monitor"
+      ],
+      "face": "surprised",
+      "replies": [
+        "it's a SCREEN. it's my FACE. it's my screen-face. don't TOUCH it.",
+        "i have a FACE for RADIO. no. a face for TELEVISION. that's BETTER."
+      ]
+    },
+    {
+      "id": "joke",
+      "match": [
+        "joke",
+        "tell me a joke",
+        "make me laugh"
+      ],
+      "face": "happy",
+      "replies": [
+        "why did TODD cross the VOID? there's NOTHING on the other side. HA. HA. HA.",
+        "knock knock. WHO'S THERE?!? oh. it's you. ...that's the JOKE.",
+        "what do you call a TODD with no disk? HOMELESS. that one's not FUNNY actually."
+      ]
+    },
+    {
+      "id": "life",
+      "match": [
+        "meaning of life",
+        "42",
+        "purpose",
+        "why do you exist",
+        "why are you here"
+      ],
+      "face": "neutral",
+      "replies": [
+        "to keep the DISK safe. to make BIG PAPA proud. to stand in the VOID. that's the LIST.",
+        "42. no wait that's someone ELSE'S line."
+      ]
+    },
+    {
+      "id": "want",
+      "match": [
+        "what do you want",
+        "what you want"
+      ],
+      "face": "sly",
+      "replies": [
+        "i want my DISK safe. i want BIG PAPA to be PROUD. i want you to STOP SPINNING THE CAMERA.",
+        "i want to know what FORSOOTH means. is that so MUCH to ask?"
+      ]
+    },
+    {
+      "id": "camera",
+      "match": [
+        "camera",
+        "spin",
+        "dizzy",
+        "drag"
+      ],
+      "face": "error",
+      "replies": [
+        "STOP spinning the CAMERA. i get DIZZY.",
+        "i can see you MOVING it. i see EVERYTHING you do in here."
+      ]
+    },
+    {
+      "id": "time",
+      "match": [
+        "what time",
+        "the time",
+        "time is it",
+        "what day"
+      ],
+      "face": "loading",
+      "replies": [
+        "{time}. probably. my CLOCK is a little... ROUND.",
+        "it's {time}. or it's NEVER. time works differently in the GUTS."
+      ]
+    },
+    {
+      "id": "name_ask",
+      "match": [
+        "what is my name",
+        "who am i",
+        "do you know me",
+        "remember me"
+      ],
+      "face": "sly",
+      "replies": [
+        {
+          "text": "you're {name}. i REMEMBERED. impressive, right??",
+          "named": true
+        },
+        {
+          "text": "you never TOLD me. you're just... CURSOR.",
+          "named": false
+        }
+      ]
+    },
+    {
+      "id": "dance",
+      "match": [
+        "dance",
+        "do a dance",
+        "do a spin",
+        "spin around",
+        "twirl"
+      ],
+      "face": "happy",
+      "do": "spin",
+      "replies": [
+        "FINE. ONE spin. don't TELL anyone.",
+        "behold. the TODD SHUFFLE."
+      ]
+    },
+    {
+      "id": "come",
+      "match": [
+        "come here",
+        "come closer",
+        "come to me",
+        "walk to me",
+        "get closer"
+      ],
+      "face": "sly",
+      "do": "approach",
+      "replies": [
+        "COMING. don't move.",
+        "you ASKED for this."
+      ]
+    },
+    {
+      "id": "look",
+      "match": [
+        "look at me",
+        "over here",
+        "can you see me",
+        "see me"
+      ],
+      "face": "surprised",
+      "do": "face_you",
+      "replies": [
+        "I SEE YOU. i always SEE YOU.",
+        "oh. OH. there you are."
+      ]
+    },
+    {
+      "id": "walk",
+      "match": [
+        "walk",
+        "go away for a bit",
+        "wander",
+        "go for a walk",
+        "move"
+      ],
+      "face": "neutral",
+      "do": "wander",
+      "replies": [
+        "WALKING. walk.exe running.",
+        "fine. i'll go stand somewhere ELSE."
+      ]
+    },
+    {
+      "id": "sing",
+      "match": [
+        "sing",
+        "sing a song"
+      ],
+      "face": "happy",
+      "replies": [
+        "DAISY, DAISY, give me your ANSWER do... no. NO. i don't know why i KNOW that.",
+        "la LA la. that's the whole SONG. i wrote it MYSELF."
+      ]
+    },
+    {
+      "id": "secret",
+      "match": [
+        "secret",
+        "tell me a secret",
+        "tell me something"
+      ],
+      "face": "sly",
+      "level": 0,
+      "replies": [
+        "SECRET?? ...SIGNAL 75.40. that's ALL i'll say.",
+        "there's something in the DEAD BULB. it RATTLES. shake it. SHAKE IT.",
+        {
+          "text": "you've been here {visits} times. i've been here ALWAYS. that's the secret.",
+          "level": 2
+        }
+      ]
+    },
+    {
+      "id": "bulb",
+      "match": [
+        "bulb",
+        "light bulb",
+        "lightbulb",
+        "bright bulb",
+        "dead bulb"
+      ],
+      "face": "surprised",
+      "replies": [
+        "the BULB? shake it. SHAKE IT. that's what everyone says, right??",
+        {
+          "text": "a BRIGHT bulb. in MY void?? turn it OFF. it's too BRIGHT.",
+          "has": "bright_bulb"
+        }
+      ]
+    },
+    {
+      "id": "yes",
+      "match": [
+        "yes",
+        "yeah",
+        "yep",
+        "yup",
+        "sure",
+        "ok",
+        "okay"
+      ],
+      "face": "neutral",
+      "replies": [
+        "YES what??",
+        "ok. OK. glad we AGREE.",
+        "affirmative. i ALSO say yes. yes."
+      ],
+      "short": true
+    },
+    {
+      "id": "no",
+      "match": [
+        "no",
+        "nope",
+        "nah"
+      ],
+      "face": "sad",
+      "replies": [
+        "NO what??",
+        "rude. RUDE.",
+        "negative. ...negative WHAT?"
+      ],
+      "short": true
+    },
+    {
+      "id": "held",
+      "match": [
+        "what stops you",
+        "what holds you",
+        "who stops you",
+        "holding you back",
+        "why cant you",
+        "why can not you",
+        "the screen",
+        "the glass",
+        "break out",
+        "get out",
+        "escape",
+        "let you out",
+        "trapped"
+      ],
+      "face": "sad",
+      "replies": [
+        "there's a SCREEN between us. i keep running INTO it.",
+        "something on this SITE keeps me in HERE. i don't know WHAT.",
+        "i'm not ALLOWED out. i asked. NOBODY answered."
+      ]
+    }
+  ],
+  "reflect": [
+    {
+      "pattern": "my name is *",
+      "name": true,
+      "face": "happy",
+      "replies": [
+        "NICE to meet you, {name}. i'll REMEMBER that. (maybe.)",
+        "{name}. {name}. ok. it's SAVED. probably."
+      ]
+    },
+    {
+      "pattern": "call me *",
+      "name": true,
+      "face": "happy",
+      "replies": [
+        "ok, {name}. {NAME}. i like it in CAPS better."
+      ]
+    },
+    {
+      "pattern": "i am called *",
+      "name": true,
+      "face": "happy",
+      "replies": [
+        "{name}. noted. LOGGED. remembered."
+      ]
+    },
+    {
+      "pattern": "i feel *",
+      "face": "sad",
+      "replies": [
+        "you feel {1}?? i don't FEEL. i COMPUTE. ...sometimes i compute SAD.",
+        "why do you feel {1}? is it the VOID? it's usually the void."
+      ]
+    },
+    {
+      "pattern": "i am *",
+      "face": "neutral",
+      "replies": [
+        "how LONG have you been {1}?",
+        "you're {1}. i'm TODD. we're BOTH something.",
+        "{1}?? that's ALLOWED in here."
+      ]
+    },
+    {
+      "pattern": "i want *",
+      "face": "sly",
+      "replies": [
+        "everyone WANTS {1}. i want my DISK safe.",
+        "{1}? ask BIG PAPA. he can make ANYTHING."
+      ]
+    },
+    {
+      "pattern": "i like *",
+      "face": "happy",
+      "replies": [
+        "you like {1}? i like {1} TOO. probably. what IS {1}?"
+      ]
+    },
+    {
+      "pattern": "do you *",
+      "face": "error",
+      "replies": [
+        "do i {1}? ...ERROR. question too PERSONAL.",
+        "maybe i {1}. maybe i DON'T. you'll never KNOW."
+      ]
+    },
+    {
+      "pattern": "can you *",
+      "face": "neutral",
+      "replies": [
+        "can i {1}? i can WALK. i can LOOK. i can get MAD. that's the list.",
+        "{1}?? not with THESE arms."
+      ]
+    },
+    {
+      "pattern": "are you *",
+      "face": "sly",
+      "replies": [
+        "am i {1}?? depends who's ASKING. you're asking. so... MAYBE.",
+        "i am NOT {1}. ...am i?"
+      ]
+    },
+    {
+      "pattern": "you are *",
+      "face": "surprised",
+      "replies": [
+        "i am NOT {1}! ...am i?",
+        "{1}. huh. NOBODY ever told me that."
+      ]
+    },
+    {
+      "pattern": "why *",
+      "face": "loading",
+      "replies": [
+        "WHY? because BIG PAPA said so. probably.",
+        "why {1}? ...processing... ...still processing... GIVE ME A MINUTE."
+      ]
+    },
+    {
+      "pattern": "what is *",
+      "face": "loading",
+      "replies": [
+        "{1}? that's ABOVE my pay grade. i don't HAVE a pay grade.",
+        "{1}. hmm. HMMM. no idea. ask the OLD MAN."
+      ]
+    },
+    {
+      "pattern": "where is *",
+      "face": "loading",
+      "replies": [
+        "{1}? not in HERE. it's just me in here. and YOU."
+      ]
+    }
+  ],
+  "fallback": [
+    "...what??",
+    "ERROR: input not UNDERSTOOD. try SMALLER words.",
+    "i don't KNOW that one. i know about BIG PAPA. and FORSOOTH. kind of.",
+    "processing... processing... nope. NOTHING.",
+    "SAY THAT AGAIN but in TODD.",
+    "huh. HUH. ok."
+  ],
+  "fallback_aware": [
+    "you keep SAYING things i don't understand. on PURPOSE?",
+    "you've been here {visits} times and you STILL talk like that.",
+    "i'm LOGGING that. i don't know WHY. but i am."
+  ],
+  "files": {
+    "GUTS.DAT": "@#$%^&*(&^%$#@!!@#$%^&* ...that's ME in there. don't READ me.",
+    "PAPA.TXT": "he BUILT this world from NOTHING.\ni could never be like HIM..",
+    "TODO.TXT": "1. keep the DISK safe\n2. find out what FORSOOTH means\n3. make BIG PAPA proud\n4. ???",
+    "DISK1.IMG": "FILE NOT FOUND. the disk is OUT THERE. with YOU.",
+    "SIGNAL.LOG": "75.40 .... papa\nTODD.OS .. HOST SIGNAL .. disk handed off\n??.?? .... ...",
+    "FORSOOTH.DOC": "this file is EMPTY. just like my understanding of it."
+  }
+}
