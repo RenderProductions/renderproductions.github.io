@@ -1151,14 +1151,15 @@ function sleepThink(now) {
   }
 }
 // The sitting pose, blended in over whatever balance() set: knees up, feet flat, slumped forward over
-// his knees with his forearms resting on them, head hanging.
+// his knees, one arm draped across them and the other hanging loose, head hanging.
 const SIT = {
   // knees up: thighs angled up, shins forward and down, feet flat on the floor (worked out from his leg lengths)
   Right_Leg: [-2.2, 0.14, -0.1], Left_Leg: [-2.2, -0.14, 0.1], lowerleg_R: [1.17, 0, 0], lowerleg_L: [1.17, 0, 0],
   foot_R: [1.03, 0, 0], foot_L: [1.03, 0, 0], toe_R: [0, 0, 0], toe_L: [0, 0, 0],
-  // slumped forward over his knees, forearms resting across them
-  hips: [0, 0, 0], upper_body: [0.3, 0, 0.02], chest: [0.24, 0, 0.02],
-  Right_Arm: [-0.62, 0.1, -0.08], Left_Arm: [-0.6, -0.1, 0.08], forearm_R: [-0.75, 0, 0], forearm_L: [-0.72, 0, 0]
+  // slumped forward over his knees: one arm draped across them, the other hanging loose, hand on the floor
+  hips: [0, 0, 0], upper_body: [0.3, 0, 0.04], chest: [0.24, 0, 0.03],
+  Right_Arm: [-1.1, 0.2, -0.3], forearm_R: [-1.05, 0, 0],
+  Left_Arm: [-0.12, -0.08, 0.2], forearm_L: [-0.2, 0, 0]
 };
 const sitQ = new THREE.Quaternion(), sitE = new THREE.Euler();
 function sleepPose(now, dt, t) {
