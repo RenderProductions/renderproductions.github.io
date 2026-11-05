@@ -524,14 +524,14 @@ function endStomp(now, flung) {
   stomp.ledgeX = (Math.random() - 0.5) * LEDGE.half * toddH; stomp.flung = flung;
 }
 function stompBox() { const c = toStage(bot.obj.position); return { x: c.x, y: c.y - STOMP_PX * 0.4, w: 92, h: STOMP_PX * 0.78 }; }
-function chargeSpeed() { return [0, 720, 800, 900][phase()] * (HARD ? 1.3 : 1); }
+function chargeSpeed() { return [0, 720, 800, 900][phase()] * (HARD ? 1.15 : 1); }
 function nextCharge(now) {
   // off to one side, out of sight; the warning comes up at that edge
   stomp.dir = Math.random() < 0.5 ? 1 : -1; stomp.x = stomp.dir > 0 ? -OFF : W + OFF;
   stomp.state = 'warn'; stomp.t0 = now;
 }
 function stepStomp(dt, now) {
-  const T = (now - stomp.t0) / 1000 / (HARD ? 0.6 : 1), ph = phase(), o = bot.obj;
+  const T = (now - stomp.t0) / 1000 / (HARD ? 0.8 : 1), ph = phase(), o = bot.obj;
   const turn = (yaw, k = 12) => { const d = Math.atan2(Math.sin(yaw - o.rotation.y), Math.cos(yaw - o.rotation.y)); o.rotation.y += d * Math.min(1, dt * k); };
   const arc = (a, b, p, lift) => a.clone().lerp(b, p).add(new THREE.Vector3(0, Math.sin(p * Math.PI) * lift, 0));
   bot.mixer.timeScale = stomp.state === 'charge' ? 1.9 : 1;
@@ -566,7 +566,7 @@ function stepStomp(dt, now) {
     o.rotation.z = stomp.flung ? p * Math.PI * 4 : 0;
     if (p >= 1) {
       o.rotation.z = 0; stomp.on = false; bot.x = stomp.ledgeX; setBotMode('run'); bot.mode = 'turn'; bot.until = now + 900;
-      stomp.next = now + ([0, 22000, 22000, 15000][phase()] + Math.random() * 8000) * (HARD ? 0.55 : 1);
+      stomp.next = now + ([0, 22000, 22000, 15000][phase()] + Math.random() * 8000) * (HARD ? 0.75 : 1);
     }
   }
   // running into you hurts, unless you parry him
@@ -1085,7 +1085,7 @@ function animateTodd(t, dt) {
   target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
   target('Right_Arm', armR[0], armR[1], armR[2]); target('Left_Arm', armL[0], armL[1], armL[2]);
   target('forearm_R', foreR, 0, 0); target('forearm_L', foreL, 0, 0);
-  if (HARD) speed *= 1.6;
+  if (HARD) speed *= 1.3;
   settle(dt);
   shudder(performance.now());
   // the screen shakes when he does something big
@@ -1098,8 +1098,8 @@ function animateTodd(t, dt) {
 // HARD MODE (unlocked by beating him): double health, everything he does twice as fast, faster projectiles,
 // homing cursors pouring in from every edge all fight long, and the TV robot from the start.
 let HARD = false;
-const HS = () => (HARD ? 0.5 : 1);            // how long his wind-ups and rests last (half in hard mode)
-const QUICK = () => (HARD ? 1.35 : 1);        // how fast what he throws flies
+const HS = () => (HARD ? 0.72 : 1);           // how long his wind-ups and rests last (shorter in hard mode)
+const QUICK = () => (HARD ? 1.15 : 1);        // how fast what he throws flies
 let TODD_HP = 26;   // parries it takes to beat him (52 in hard mode)
 const boss = { hp: TODD_HP, flinch: 0, down: false };
 const threats = [];              // faces in the air
@@ -1511,9 +1511,9 @@ function tauntFrame(T) { let f = atk.frames[0]; for (const k of atk.frames) if (
 const PUNCH = { goal: null };
 function stepAttack(now, dt) {
   if (fight.phase !== 'fight' || P.dead) { if (stomp.on && stomp.state !== 'fling') endStomp(now, false); return; }
-  if (HARD && now > edgeAt) { if (edgeAt) edgeCursor(); edgeAt = now + [0, 1700, 1300, 950][phase()] * (0.7 + Math.random() * 0.6); }
+  if (HARD && now > edgeAt) { if (edgeAt) edgeCursor(); edgeAt = now + [0, 2600, 2100, 1600][phase()] * (0.75 + Math.random() * 0.5); }
   if (!stomp.on && (phase() >= 2 || HARD) && bot.obj) {
-    if (!stomp.next) stomp.next = now + (HARD ? 6000 : 3500);          // the first time: soon after phase 2 starts
+    if (!stomp.next) stomp.next = now + (HARD ? 15000 : 3500);          // the first time: soon after phase 2 starts
     if (now > stomp.next && (!atk || atk.kind !== 'agony')) startStomp(now);
   }
   if (!atk) {
@@ -1857,16 +1857,17 @@ function drawFx(t) {
 
 // ---------------- the loop ----------------
 const hud = document.getElementById('hud');
-// Three parries in a row without getting hit gives you one health back, up to 4 (one more than you start with).
-const HP_START = 3, HP_MAX = 4, STREAK = 3;
+// Three parries in a row without getting hit gives you one health back, up to 4 (one more than you start with; no cap in hard mode).
+const HP_START = 3, STREAK = 3;
+const hpMax = () => (HARD ? Infinity : 4);   // hard mode: no cap, every streak keeps adding health
 function paintHud() {
   if (P.dead) { hud.textContent = 'DEAD'; hud.className = 'hud low'; return; }
   hud.innerHTML = (HARD ? '<b class="hd">HARD</b> ' : '') + 'HP. ' + P.hp + ' <span class="pips">' + Array.from({ length: STREAK }, (_, i) => `<i class="${i < P.streak ? 'on' : ''}"></i>`).join('') + '</span>';
   hud.className = 'hud' + (P.hp <= 1 ? ' low' : '') + (P.hp > HP_START ? ' over' : '');
 }
 function heal() {
-  if (P.hp < HP_MAX) sfx('parry', 0.7, 1.6);
-  if (P.hp >= HP_MAX) return;
+  if (P.hp < hpMax()) sfx('parry', 0.7, 1.6);
+  if (P.hp >= hpMax()) return;
   P.hp++;
   fx.push({ kind: 'ring', x: P.x, y: P.y - 40, t: 0, life: 0.5, color: '#ffd23a' });
   fx.push({ kind: 'ring', x: P.x, y: P.y - 40, t: -0.1, life: 0.55, color: '#fff3b0' });
