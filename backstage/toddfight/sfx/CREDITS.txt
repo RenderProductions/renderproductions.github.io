@@ -1,4 +1,4 @@
-music.mp3   "Tribal Sci-Fi" by Mark_Murray, https://freesound.org/s/648393/, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Converted to MP3.
+music/      The score: Render Productions' own (intro, phase1-3, death, papa).
 pew.mp3     "Louder pewing sound" by AceOfSpadesProduc100, https://freesound.org/s/341696/, CC BY 4.0. Converted to MP3.
 hurt1-3.mp3 "Robot hurt.wav" by GreenFireSound, https://freesound.org/s/484107/, CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Cut into its three sounds (fades at the cuts), converted to MP3.
 Credited on /backstage/toddfight/ (Credits).
@@ -8,5 +8,4 @@ impact.mp3   "Impact 2" by Daftrio, https://freesound.org/s/816738/, CC0.
 ow.mp3       "Man getting hit" by Under7dude, https://freesound.org/s/163441/, CC0.
 jump.mp3     "jump.wav" by cartchaos, https://freesound.org/s/678839/, CC0.
 run.mp3      "FastRunning.mp3" by Topschool, https://freesound.org/s/361072/, CC0.
-gameover.mp3 "Game Over 3" by melokacool, https://freesound.org/s/615457/, CC0.
 (TV static and shockwave rumbles are generated in fight.js.)
