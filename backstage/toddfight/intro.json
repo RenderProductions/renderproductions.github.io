@@ -1,5 +1,5 @@
 {
-  "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows what's in 'show' (one after another, if there's more than one): a picture from 'pictures', or 'face:NAME' for one of his own faces (smile, neutral, happy, angry, surprised, sly, sad, error, loading). 'pose' is what his body does: lean, preach, slump, point, peer, rage, palm or look. 'shake' is a word that shakes the screen when it's typed. 'secs' is how long the line stays. After the last line he throws his arms in the air and the fight starts. Pictures with 'urls' load from Wikimedia while the page runs (never copied into the repo); 'drawn' ones are made from the site's own art. 'focus' ([x, y], 0 to 1 from the top left) is the part of a picture to keep in the middle when it's cropped to his screen.",
+  "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows what's in 'show' (one after another, if there's more than one): a picture from 'pictures', or 'face:NAME' for one of his own faces (smile, neutral, happy, angry, surprised, sly, sad, error, loading). 'pose' is what his body does: lean, preach, slump, point, peer, rage, palm or look. 'shake' is a word that shakes the screen when it's typed; 'on_shake' is a picture that takes over his screen at that moment. 'secs' is how long the line stays. After the last line he throws his arms in the air and the fight starts. Pictures with 'urls' load from Wikimedia while the page runs (never copied into the repo); 'drawn' ones are made from the site's own art. 'focus' ([x, y], 0 to 1 from the top left) is the part of a picture to keep in the middle when it's cropped to his screen.",
   "lines": [
     {
       "text": "Took you long enough.",
@@ -57,6 +57,7 @@
       ],
       "pose": "rage",
       "shake": "DIE",
+      "on_shake": "fire",
       "secs": 2.6
     }
   ],
