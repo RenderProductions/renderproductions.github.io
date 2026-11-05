@@ -560,6 +560,8 @@ function stompScale() {
 }
 function stageToWorld(x, y) { return fromStage(x, y, PLANE * toddH); }
 const OFF = 170;            // how far past the edge of the screen he waits
+// how many parries send the TV robot home (3, or the editor's number)
+function botParries() { const n = CFG && CFG.counts && CFG.counts.robot; return n > 0 ? n : 3; }
 function startStomp(now) {
   if (!bot.obj || stomp.on) return;
   stomp.dir = Math.random() < 0.5 ? 1 : -1;
@@ -625,7 +627,7 @@ function stepStomp(dt, now) {
       if (P.parryT > 0) {
         parried(b.x - stomp.dir * b.w / 2, Math.min(P.y - 40, b.y));
         stomp.hits++;
-        if (stomp.hits >= 3) endStomp(now, true);
+        if (stomp.hits >= botParries()) endStomp(now, true);
         else { stomp.state = 'bounced'; stomp.t0 = now; fight.shake = Math.max(fight.shake, 0.5); }
       } else hurt(1);
     }
@@ -650,9 +652,14 @@ function drawStomp(t) {
   if (showPips) {
     const b = stompBox(), px = stomp.state === 'warn' ? (stomp.dir > 0 ? 58 : W - 58) : Math.max(30, Math.min(W - 30, b.x));
     const py = stomp.state === 'warn' ? FLOOR - 205 : Math.max(16, b.y - b.h / 2 - 16);
-    for (let i = 0; i < 3; i++) {
+    const need = botParries();
+    if (need > 6) {
+      // too many for pips: a countdown instead
+      ctx.save(); ctx.font = 'bold 15px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ff5260'; ctx.fillText('\u00d7' + (need - stomp.hits).toLocaleString(), px, py); ctx.restore();
+    } else for (let i = 0; i < need; i++) {
       const on = i >= stomp.hits;
-      ctx.save(); ctx.translate(px - 18 + i * 18, py); ctx.rotate(Math.PI / 4);
+      ctx.save(); ctx.translate(px - (need - 1) * 9 + i * 18, py); ctx.rotate(Math.PI / 4);
       ctx.fillStyle = on ? '#ff5260' : 'rgba(255,82,96,.15)'; ctx.strokeStyle = '#ff5260'; ctx.lineWidth = 1.5;
       ctx.fillRect(-4, -4, 8, 8); ctx.strokeRect(-4, -4, 8, 8); ctx.restore();
     }
@@ -1445,7 +1452,7 @@ function showGone() {
 // fast he is, how hard he throws, how much health you get, the cursor stream, the TV robot, taunts, the heal
 // cap. Saved in this browser (rvFightCustom); a share code carries the whole setup to someone else.
 // the attacks that throw things, and what one of their things is called (for the "how many" box)
-const ED_COUNTS = { volley: 'faces', cursors: 'cursors', popups: 'popups', rain: 'waves', agony: 'waves' };
+const ED_COUNTS = { volley: 'faces', cursors: 'cursors', popups: 'popups', rain: 'waves', agony: 'waves', pound: 'shockwaves', robot: 'parries' };
 const ED_MOVES = [['slam', 'Fist slam'], ['volley', 'Face volley'], ['sweep', 'Arm sweep'], ['rain', 'Terminal rain'], ['popups', 'Error popups'],
   ['cursors', 'Homing cursors'], ['pound', 'Double pound'], ['clap', 'Clap'], ['agony', 'Agony']];
 const ED_DIALS = [
@@ -1514,7 +1521,15 @@ function edBuild() {
   ED_TOGGLES.forEach(([k, label]) => {
     const l = document.createElement('label'), i = document.createElement('input'); i.type = 'checkbox'; i.checked = ED[k];
     i.addEventListener('change', () => { ED[k] = i.checked; edSave(); });
-    const sp = document.createElement('span'); sp.textContent = label; l.append(i, sp); tg.appendChild(l);
+    const sp = document.createElement('span'); sp.textContent = label; l.append(i, sp);
+    if (k === 'robot') {
+      // how many parries it takes to send him home
+      const row = document.createElement('div'); row.className = 'ed-trow';
+      const nb = document.createElement('input'); nb.type = 'number'; nb.min = 0; nb.max = 1e9; nb.step = 1; nb.className = 'ed-n';
+      nb.placeholder = '3 parries'; nb.title = 'Parries to send him home (blank: 3)'; nb.setAttribute('aria-label', nb.title); nb.value = ED.counts.robot || '';
+      nb.addEventListener('input', () => { const v = Math.floor(Number(nb.value)); if (v > 0) ED.counts.robot = Math.min(v, 1e9); else delete ED.counts.robot; edSave(); });
+      row.append(l, nb); tg.appendChild(row);
+    } else tg.appendChild(l);
   });
   edCode();
 }
@@ -1773,7 +1788,11 @@ function stepAttack(now, dt) {
       for (const sd of atk.sides) { const f = fistOnStage(sd); ripple(f.x, 2.4); for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 }); }
       if (atk.kind === 'pound') {
         const sp = 480 + ph * 50, cx = toddCenter(); shock(cx - 150, -1, sp); shock(cx + 150, 1, sp);
-        if (ph === 3) setTimeout(() => { if (atk && atk.kind === 'pound') { shock(cx - 150, -1, sp * 0.7); shock(cx + 150, 1, sp * 0.7); } }, 380);
+        const pairs = howMany('pound', ph === 3 ? 2 : 1);
+        if (pairs > 1) {
+          // the rest follow one after another, a little slower each time (he holds his fists down until they're out)
+          atk.more = { left: pairs - 1, cx, sp, next: now + Math.max(60, 380 * Math.min(1, 6 / pairs)), gap: Math.max(60, 380 * Math.min(1, 6 / pairs)), k: 0 };
+        }
         atk.state = 'rest';
       } else atk.state = 'sweep';
       atk.t0 = now;
@@ -1784,6 +1803,12 @@ function stepAttack(now, dt) {
       const at = p * (n - 1), i = Math.min(n - 2, Math.floor(at)), k = at - i;
       for (const sd of atk.sides) { const A = atk.paths[sd][i].c, B = atk.paths[sd][i + 1].c; atk.sol2[sd] = { c: A.map((v, j) => v + (B[j] - v) * k) }; }
       if (p >= 1) { atk.state = 'rest'; atk.t0 = now; fight.shake = 0.8; ripple(W / 2, 2); thud(1, 0.75); }
+    }
+    if (atk && atk.more && atk.state === 'rest' && now > atk.more.next && threats.length < MAX_ON) {
+      const m = atk.more, v = m.sp * (0.7 + 0.3 * Math.abs(Math.sin(m.k * 1.7)));
+      shock(m.cx - 150, -1, v); shock(m.cx + 150, 1, v); m.k++; m.left--; m.next = now + m.gap;
+      if (m.k % 3 === 0) { fight.shake = Math.max(fight.shake, 0.4); sfx('rumble', 0.35); }
+      if (m.left <= 0) atk.more = null; else atk.t0 = now;   // keeps the fists down
     }
     else if (atk.state === 'rest' && T > (atk.kind === 'pound' ? 0.7 : 0.4)) { atk.state = 'lift'; atk.t0 = now; }
     else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + (800 + Math.random() * 500) * pace(); }
