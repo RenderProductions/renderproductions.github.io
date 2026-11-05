@@ -1417,12 +1417,35 @@ function shotImage(name) {
   g.imageSmoothingEnabled = false; g.drawImage(px, 6, 6, FACE.w * S, FACE.h * S);
   return (shotArt[name] = c);
 }
+// ---- panic (phase 3): shaky aim, and glitched shots ----
+// When he's terrified, his aim goes: a good share of what he throws goes wide. And some of it comes out
+// corrupted: static, not a face or a cursor or a window. Glitched things can't be parried (a parry does nothing
+// to them: they still hurt), so you have to read what's coming and dodge those.
+const panicking = () => phase() === 3 && (!CFG || ENDLESS);
+const glitchy = (p) => panicking() && Math.random() < p;
+function wobble() { if (!panicking()) return 0; return Math.random() < 0.4 ? (Math.random() < 0.5 ? -1 : 1) * (0.35 + Math.random() * 0.45) : (Math.random() - 0.5) * 0.24; }
+function glitchFrame(n, w, h) {
+  return bake('glitch:' + n + ':' + w + 'x' + h, w, h, 14, (g) => {
+    g.shadowColor = '#ffffff'; g.shadowBlur = 10 * g.getTransform().a;
+    const cell = 6;
+    for (let y = -h / 2; y < h / 2; y += cell) for (let x = -w / 2; x < w / 2; x += cell) {
+      if (Math.random() < 0.28) continue;
+      const v = Math.random(), c = v < 0.5 ? [235, 235, 235] : v < 0.8 ? [120, 120, 120] : [20, 20, 20];
+      g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; g.fillRect(x + (Math.random() < 0.15 ? cell : 0), y, cell, cell);
+    }
+    g.shadowBlur = 0; g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 2; g.strokeRect(-w / 2, -h / 2, w, h);
+  });
+}
+function drawGlitch(o, w, h) {
+  ctx.save(); ctx.translate(o.x + (Math.random() - 0.5) * 4, o.y); if (Math.random() < 0.1) ctx.globalAlpha = 0.45;
+  stamp(glitchFrame((Math.random() * 5) | 0, Math.round(w), Math.round(h))); ctx.restore();
+}
 function fireFace(name, speed) {
   pew(); speed *= QUICK();
   const s = screenAt();
   const lead = 0.25, tx = P.x + P.vx * lead, ty = P.y - 40;
-  const dx = tx - s.x, dy = ty - s.y, d = Math.hypot(dx, dy) || 1;
-  threats.push({ kind: 'face', name, x: s.x, y: s.y, vx: dx / d * speed, vy: dy / d * speed, r: 28, rot: 0, state: 'fly', t: 0 });
+  const a = Math.atan2(ty - s.y, tx - s.x) + wobble();
+  threats.push({ kind: 'face', name, x: s.x, y: s.y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, r: 28, rot: 0, state: 'fly', t: 0, glitch: glitchy(0.3) });
   fx.push({ kind: 'ring', x: s.x, y: s.y, t: 0, life: 0.3, color: '#ff2a3a' });
 }
 
@@ -1466,15 +1489,16 @@ let edgeAt = 0;
 let pewAt = 0;
 function fireCursor(i, quiet) {
   if (!quiet || performance.now() - pewAt > 90) { pew(); pewAt = performance.now(); }
-  const s = screenAt(), a = -Math.PI / 2 + (i - 1) * 0.9;
-  threats.push({ kind: 'cursor', x: s.x, y: s.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 20, home: 1.6 + i * 0.25, state: 'fly', t: 0, rot: 0 });
+  const s = screenAt(), a = -Math.PI / 2 + (i - 1) * 0.9 + wobble() * 2, shaky = panicking();
+  threats.push({ kind: 'cursor', x: s.x, y: s.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 20, home: (1.6 + i * 0.25) * (shaky ? 0.7 : 1), state: 'fly', t: 0, rot: 0, shaky, glitch: glitchy(0.3) });
 }
 // --- error popups: a window locks on above you, then slams down ---
 const POPUP_TEXT = ['ERROR', 'GET OUT', 'NO', 'DENIED', 'FATAL', '404'];
 function popup(x, quiet) {
   if (!quiet || performance.now() - pewAt > 90) { pew(); pewAt = performance.now(); }
+  if (panicking() && Math.random() < 0.35) x += (Math.random() < 0.5 ? -1 : 1) * (120 + Math.random() * 140);   // shaky: off to one side
   x = Math.max(60, Math.min(W - 60, x));
-  threats.push({ kind: 'drop', x, y: -60, w: 116, h: 84, vy: 0, text: POPUP_TEXT[(Math.random() * POPUP_TEXT.length) | 0], state: 'warn', warn: 0.55 * HS(), t: 0, rot: 0 });
+  threats.push({ kind: 'drop', x, y: -60, w: 116, h: 84, vy: 0, text: POPUP_TEXT[(Math.random() * POPUP_TEXT.length) | 0], state: 'warn', warn: 0.55 * HS(), t: 0, rot: 0, glitch: glitchy(0.25) });
 }
 
 // --- hitting him ---
@@ -2229,7 +2253,7 @@ function stepThreats(dt) {
     if (o.state === 'fly' && (o.kind === 'bar' || o.kind === 'wave' || o.kind === 'shock' || o.kind === 'drop')) {
       if (o.kind === 'bar' || o.kind === 'drop') o.y += o.vy * dt; else o.x += o.vx * dt;
       if (touchesRect(o.x, o.y, o.w, o.h)) {
-        if (P.parryT > 0) { parried(Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)), o.y); o.state = 'back'; o.t = 0; o.fromX = Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)); o.fromY = o.y; o.x = o.fromX; continue; }
+        if (P.parryT > 0 && !o.glitch) { parried(Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)), o.y); o.state = 'back'; o.t = 0; o.fromX = Math.max(o.x - o.w / 2, Math.min(P.x, o.x + o.w / 2)); o.fromY = o.y; o.x = o.fromX; continue; }
         hurt(1);
       }
       const gone = (o.kind === 'bar' || o.kind === 'drop') ? o.y > FLOOR - o.h / 2 : (o.x < -o.w || o.x > W + o.w);
@@ -2248,13 +2272,13 @@ function stepThreats(dt) {
         const sp = Math.hypot(o.vx, o.vy) || 1;
         if (o.t < o.home) {
           const want = Math.atan2(P.y - 40 - o.y, P.x - o.x), cur = Math.atan2(o.vy, o.vx);
-          const d = Math.atan2(Math.sin(want - cur), Math.cos(want - cur)), turn = Math.max(-3.2 * dt, Math.min(3.2 * dt, d));
+          const tr = o.shaky ? 1.7 : 3.2, d = Math.atan2(Math.sin(want - cur), Math.cos(want - cur)) + (o.shaky ? Math.sin(o.t * 7) * 0.6 : 0), turn = Math.max(-tr * dt, Math.min(tr * dt, d));
           const ns = Math.min(380, sp + 60 * dt);
           o.vx = Math.cos(cur + turn) * ns; o.vy = Math.sin(cur + turn) * ns;
         } else { const ns = Math.min(900, sp + 1400 * dt); o.vx = o.vx / sp * ns; o.vy = o.vy / sp * ns; }
       }
       if (touches(o.x, o.y, o.r)) {
-        if (P.parryT > 0) { parried(o.x, o.y); o.state = 'back'; o.t = 0; o.fromX = o.x; o.fromY = o.y; }
+        if (P.parryT > 0 && !o.glitch) { parried(o.x, o.y); o.state = 'back'; o.t = 0; o.fromX = o.x; o.fromY = o.y; }
         else { hurt(1); threats.splice(i, 1); fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ff2a3a' }); continue; }
       }
       if (o.y > FLOOR - 10 || o.x < -60 || o.x > W + 60 || o.y < (o.kind === 'cursor' ? -400 : -80)) {
@@ -2324,7 +2348,7 @@ function drawDrop(o, t) {
   if (o.state === 'warn') {
     // where it's about to land: a flickering outline and a line down to the floor
     if (Math.floor(t * 16) % 2) return;
-    ctx.save(); ctx.strokeStyle = 'rgba(255,60,80,.85)'; ctx.setLineDash([6, 5]); ctx.lineWidth = 2;
+    ctx.save(); ctx.strokeStyle = o.glitch ? 'rgba(255,255,255,.95)' : 'rgba(255,60,80,.85)'; ctx.setLineDash(o.glitch ? [3, 3] : [6, 5]); ctx.lineWidth = 2;
     ctx.strokeRect(o.x - o.w / 2, 14, o.w, o.h); ctx.beginPath(); ctx.moveTo(o.x, 14 + o.h); ctx.lineTo(o.x, FLOOR); ctx.stroke();
     ctx.restore(); return;
   }
@@ -2343,6 +2367,10 @@ function drawDrop(o, t) {
 }
 function drawThreats(t) {
   for (const o of threats) {
+    if (o.glitch && o.state !== 'back') {
+      if (o.kind === 'drop') { if (o.state === 'warn') drawDrop(o, t); else drawGlitch(o, o.w, o.h); continue; }   // (a white warning, not red)
+      drawGlitch(o, o.kind === 'cursor' ? 30 : 50, o.kind === 'cursor' ? 30 : 50); continue;
+    }
     if (o.kind === 'shock') { drawShock(o); continue; }
     if (o.kind === 'cursor') { drawCursor(o); continue; }
     if (o.kind === 'drop') { drawDrop(o, t); continue; }
