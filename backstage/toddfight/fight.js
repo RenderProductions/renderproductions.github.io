@@ -1022,7 +1022,7 @@ function animateTodd(t, dt) {
     if (introStep === 0 && T > INTRO.shock) { introStep = 1; face('surprised', 220); fight.shake = 0.25; }
     if (introStep === 1 && T > INTRO.windup) { introStep = 2; }
     if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; }
-    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner(HARD ? 'HARD MODE' : 'FIGHT!'); musicStart(); }
+    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner(HARD ? 'HARD MODE' : CFG ? 'CUSTOM' : 'FIGHT!'); musicStart(); }
     if (introStep === 0) {
       // not looking at you yet: idly glancing off to the side
       yaw = 0.35 + Math.sin(t * 0.6) * 0.08; pitch = 0.2;
@@ -1158,8 +1158,10 @@ function animateTodd(t, dt) {
 // HARD MODE (unlocked by beating him): double health, everything he does twice as fast, faster projectiles,
 // homing cursors pouring in from every edge all fight long, and the TV robot from the start.
 let HARD = false;
-const HS = () => (HARD ? 0.72 : 1);           // how long his wind-ups and rests last (shorter in hard mode)
-const QUICK = () => (HARD ? 1.15 : 1);        // how fast what he throws flies
+// A custom TODD from the attack editor (Extras), or null. See the editor further down for what's in it.
+let CFG = null;
+const HS = () => (HARD ? 0.72 : CFG ? 1 / CFG.speed : 1);       // how long his wind-ups and rests last (shorter in hard mode)
+const QUICK = () => (HARD ? 1.15 : CFG ? CFG.proj : 1);        // how fast what he throws flies
 let TODD_HP = 26;   // parries it takes to beat him (52 in hard mode)
 const boss = { hp: TODD_HP, flinch: 0, down: false };
 const threats = [];              // faces in the air
@@ -1310,15 +1312,16 @@ function edgeCursor() {
   threats.push({ kind: 'cursor', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 20, home: 1.0 + Math.random() * 0.4, state: 'fly', t: 0, rot: 0 });
 }
 let edgeAt = 0;
-function fireCursor(i) {
-  pew();
+let pewAt = 0;
+function fireCursor(i, quiet) {
+  if (!quiet || performance.now() - pewAt > 90) { pew(); pewAt = performance.now(); }
   const s = screenAt(), a = -Math.PI / 2 + (i - 1) * 0.9;
   threats.push({ kind: 'cursor', x: s.x, y: s.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 20, home: 1.6 + i * 0.25, state: 'fly', t: 0, rot: 0 });
 }
 // --- error popups: a window locks on above you, then slams down ---
 const POPUP_TEXT = ['ERROR', 'GET OUT', 'NO', 'DENIED', 'FATAL', '404'];
-function popup(x) {
-  pew();
+function popup(x, quiet) {
+  if (!quiet || performance.now() - pewAt > 90) { pew(); pewAt = performance.now(); }
   x = Math.max(60, Math.min(W - 60, x));
   threats.push({ kind: 'drop', x, y: -60, w: 116, h: 84, vy: 0, text: POPUP_TEXT[(Math.random() * POPUP_TEXT.length) | 0], state: 'warn', warn: 0.55 * HS(), t: 0, rot: 0 });
 }
@@ -1383,8 +1386,9 @@ function youDied() {
 const OPT = { shake: true, skip: false, music: true, sfx: true };
 try { Object.assign(OPT, JSON.parse(localStorage.getItem('rvFightOpts')) || {}); } catch (e) {}
 function saveOpts() { try { localStorage.setItem('rvFightOpts', JSON.stringify(OPT)); } catch (e) {} }
+const SCREENS = ['title', 'settings', 'credits', 'extras', 'editor'];
 function showScreen(id) {
-  for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = k !== id;
+  for (const k of SCREENS) document.getElementById(k).hidden = k !== id;
   const first = document.querySelector('#' + id + ' button'); if (first) setTimeout(() => first.focus({ preventScroll: true }), 30);
 }
 function showTitle() {
@@ -1398,15 +1402,16 @@ document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click'
   const go = b.dataset.go;
   if (go === 'start') {
     if (fight.phase !== 'title') return;
-    for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = true;
+    for (const k of SCREENS) document.getElementById(k).hidden = true;
     jumpPressed = parryPressed = false; b.blur();
     startIntro(OPT.skip);
   } else if (go === 'replay' || go === 'hard') {
     // a replay: the whole fight again; the story doesn't change (he's still dead everywhere else)
-    for (const k of ['title', 'settings', 'credits']) document.getElementById(k).hidden = true;
-    HARD = go === 'hard'; TODD_HP = HARD ? 52 : 26; edgeAt = 0;
-    document.getElementById('arena').classList.toggle('hard', HARD);
+    for (const k of SCREENS) document.getElementById(k).hidden = true;
+    HARD = go === 'hard'; CFG = null; TODD_HP = HARD ? 52 : 26; edgeAt = 0;
+    const ar = document.getElementById('arena'); ar.classList.toggle('hard', HARD); ar.classList.remove('custom');
     b.blur(); fight.replay = true; restart();
+  } else if (go === 'editor') { editorOpen();
   } else showScreen(go === 'menu' ? 'title' : go);
 }));
 const optShake = document.getElementById('opt-shake'), optSkip = document.getElementById('opt-skip');
@@ -1426,14 +1431,114 @@ function showGone() {
   set('t-name', G.name || 'TODD.EXE'); set('t-kicker', G.kicker); set('t-tag', G.tagline);
   const st = document.querySelector('[data-go=start]'); if (st) st.hidden = true;
   const rp = document.querySelector('[data-go=replay]'); if (rp) rp.hidden = false;   // ...but you can fight him again, just for fun
-  const hd = document.querySelector('[data-go=hard]'); if (hd) { hd.hidden = false; hd.textContent = flagSet('todd_hard_beaten') ? 'HARD MODE \u2605' : 'HARD MODE'; }
-  document.getElementById('arena').classList.remove('hard'); HARD = false;
+  const hd = document.querySelector('[data-go=hard]'); if (hd) hd.textContent = flagSet('todd_hard_beaten') ? 'HARD MODE \u2605' : 'HARD MODE';
+  const ex = document.querySelector('#menu [data-go=extras]'); if (ex) { ex.hidden = false; ex.textContent = flagSet('todd_hard_beaten') ? 'EXTRAS \u2605' : 'EXTRAS'; }
+  document.getElementById('arena').classList.remove('hard', 'custom'); HARD = false; CFG = null;
   hideDeathCard(); fight.retry = false;
   boss.hp = 0; boss.down = true; fight.phase = 'down'; red = 0; face('error', 300);
   const skull = () => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } else setTimeout(skull, 400); };
   skull();
   showScreen('title');
 }
+// ---- EXTRAS: the attack editor ----
+// Build your own TODD: which of his attacks he uses (picked at random from your list, all fight), how tough and
+// fast he is, how hard he throws, how much health you get, the cursor stream, the TV robot, taunts, the heal
+// cap. Saved in this browser (rvFightCustom); a share code carries the whole setup to someone else.
+// the attacks that throw things, and what one of their things is called (for the "how many" box)
+const ED_COUNTS = { volley: 'faces', cursors: 'cursors', popups: 'popups', rain: 'waves', agony: 'waves' };
+const ED_MOVES = [['slam', 'Fist slam'], ['volley', 'Face volley'], ['sweep', 'Arm sweep'], ['rain', 'Terminal rain'], ['popups', 'Error popups'],
+  ['cursors', 'Homing cursors'], ['pound', 'Double pound'], ['clap', 'Clap'], ['agony', 'Agony']];
+const ED_DIALS = [
+  ['hp', 'His health', 3, 150, 1, 26, (v) => v + ''], ['speed', 'His speed', 0.5, 2.5, 0.05, 1, (v) => v.toFixed(2) + '\u00d7'],
+  ['rest', 'Rest between attacks', 0.2, 2.5, 0.05, 1, (v) => v.toFixed(2) + '\u00d7'], ['proj', 'Projectile speed', 0.5, 2, 0.05, 1, (v) => v.toFixed(2) + '\u00d7'],
+  ['php', 'Your health', 1, 9, 1, 3, (v) => v + ''], ['cursors', 'Cursor stream', 0, 3, 0.1, 0, (v) => (v ? v.toFixed(1) + '\u00d7' : 'off')]
+];
+const ED_TOGGLES = [['robot', 'The TV robot', false], ['taunts', 'Taunts', true], ['cap', 'Heal cap (one over your health)', true]];
+function edDefault() {
+  const c = { moves: ED_MOVES.map((m) => m[0]), counts: {} };
+  ED_DIALS.forEach((d) => (c[d[0]] = d[5])); ED_TOGGLES.forEach((t) => (c[t[0]] = t[2]));
+  return c;
+}
+function edClean(c) {
+  // whatever comes in (saved, or a pasted code), make it a valid setup
+  const d = edDefault(), out = {};
+  out.moves = Array.isArray(c && c.moves) ? c.moves.filter((m) => ED_MOVES.some((x) => x[0] === m)) : d.moves;
+  if (!out.moves.length) out.moves = d.moves;
+  out.counts = {};
+  for (const k in ED_COUNTS) { const v = Math.floor(Number(c && c.counts && c.counts[k])); if (v > 0) out.counts[k] = Math.min(v, 1e9); }
+  ED_DIALS.forEach(([k, , lo, hi, , def]) => { const raw = c && c[k], v = Number(raw); out[k] = raw != null && raw !== '' && isFinite(v) ? Math.max(lo, Math.min(hi, v)) : def; });
+  ED_TOGGLES.forEach(([k, , def]) => (out[k] = c && typeof c[k] === 'boolean' ? c[k] : def));
+  return out;
+}
+let ED = edDefault();
+try { ED = edClean(JSON.parse(localStorage.getItem('rvFightCustom'))); } catch (e) {}
+function edSave() { try { localStorage.setItem('rvFightCustom', JSON.stringify(ED)); } catch (e) {} edCode(); }
+function edCode() { try { document.getElementById('ed-code').value = 'TODD1:' + btoa(JSON.stringify(ED)); } catch (e) {} }
+function edMsg(t) { const m = document.getElementById('ed-msg'); m.textContent = t || ''; clearTimeout(edMsg.t); if (t) edMsg.t = setTimeout(() => (m.textContent = ''), 3000); }
+function edBuild() {
+  const mv = document.getElementById('ed-moves'); mv.textContent = '';
+  ED_MOVES.forEach(([k, label]) => {
+    const box = document.createElement('div'); box.className = 'ed-move';
+    const l = document.createElement('label'), i = document.createElement('input'); i.type = 'checkbox'; i.checked = ED.moves.includes(k);
+    i.addEventListener('change', () => {
+      box.classList.toggle('on', i.checked);
+      const on = new Set(ED.moves); i.checked ? on.add(k) : on.delete(k);
+      if (!on.size) { i.checked = true; box.classList.add('on'); edMsg('He needs at least one attack.'); return; }
+      ED.moves = ED_MOVES.map((m) => m[0]).filter((m) => on.has(m)); edSave();
+    });
+    l.append(i, document.createTextNode(label)); box.appendChild(l); box.classList.toggle('on', i.checked);
+    if (ED_COUNTS[k]) {
+      // how many: blank is his usual amount
+      const nb = document.createElement('input'); nb.type = 'number'; nb.min = 0; nb.max = 1e9; nb.step = 1; nb.className = 'ed-n';
+      nb.placeholder = '# ' + ED_COUNTS[k]; nb.title = 'How many ' + ED_COUNTS[k] + ' (blank: his usual amount)'; nb.setAttribute('aria-label', nb.title);
+      nb.value = ED.counts[k] || '';
+      nb.addEventListener('input', () => {
+        const v = Math.floor(Number(nb.value));
+        if (v > 0) ED.counts[k] = Math.min(v, 1e9); else delete ED.counts[k];
+        edSave();
+        if (v > 5000) edMsg('That many is a storm: the screen holds ' + MAX_ON + ' at a time and he keeps going until they\u2019re all out.');
+      });
+      box.append(nb);
+    }
+    mv.appendChild(box);
+  });
+  const dl = document.getElementById('ed-dials'); dl.textContent = '';
+  ED_DIALS.forEach(([k, label, lo, hi, st, , fmt]) => {
+    const name = document.createElement('span'); name.textContent = label;
+    const r = document.createElement('input'); r.type = 'range'; r.min = lo; r.max = hi; r.step = st; r.value = ED[k]; r.setAttribute('aria-label', label);
+    const o = document.createElement('output'); o.textContent = fmt(ED[k]);
+    r.addEventListener('input', () => { ED[k] = Number(r.value); o.textContent = fmt(ED[k]); edSave(); });
+    dl.append(name, r, o);
+  });
+  const tg = document.getElementById('ed-toggles'); tg.textContent = '';
+  ED_TOGGLES.forEach(([k, label]) => {
+    const l = document.createElement('label'), i = document.createElement('input'); i.type = 'checkbox'; i.checked = ED[k];
+    i.addEventListener('change', () => { ED[k] = i.checked; edSave(); });
+    const sp = document.createElement('span'); sp.textContent = label; l.append(i, sp); tg.appendChild(l);
+  });
+  edCode();
+}
+function editorOpen() { edBuild(); showScreen('editor'); }
+function playCustom() {
+  for (const k of SCREENS) document.getElementById(k).hidden = true;
+  CFG = edClean(ED); HARD = false; TODD_HP = CFG.hp; edgeAt = 0;
+  const ar = document.getElementById('arena'); ar.classList.remove('hard'); ar.classList.add('custom');
+  fight.replay = true; restart();
+}
+document.getElementById('ed-play').addEventListener('click', (e) => { e.currentTarget.blur(); playCustom(); });
+document.getElementById('ed-reset').addEventListener('click', () => { ED = edDefault(); edSave(); edBuild(); edMsg('Back to the usual TODD.'); });
+document.getElementById('ed-copy').addEventListener('click', () => {
+  const c = document.getElementById('ed-code'); c.select();
+  (navigator.clipboard ? navigator.clipboard.writeText(c.value) : Promise.reject()).then(() => edMsg('Copied. Paste it to a friend.'), () => { try { document.execCommand('copy'); edMsg('Copied.'); } catch (e) { edMsg('Select the code and copy it.'); } });
+});
+document.getElementById('ed-load').addEventListener('click', () => {
+  const v = document.getElementById('ed-code').value.trim().replace(/^TODD1:/, '');
+  try { ED = edClean(JSON.parse(atob(v))); edSave(); edBuild(); edMsg('Loaded.'); } catch (e) { edMsg("That code didn't work."); }
+});
+document.getElementById('d-edit').addEventListener('click', () => {
+  hideDeathCard(); fight.retry = false; showGone(); editorOpen();
+});
+
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
   sfx('gameover', 0.7);
@@ -1441,6 +1546,7 @@ function showDeathCard() {
   const q = D.quotes && D.quotes.length ? D.quotes[(Math.random() * D.quotes.length) | 0] : '';
   document.getElementById('d-head').textContent = D.heading || 'YOU DIED';
   document.getElementById('d-quote').textContent = q; document.getElementById('d-quote').hidden = !q;
+  document.getElementById('d-edit').hidden = !CFG;
   const tip = document.getElementById('d-tip'); if (tip) { tip.textContent = canParry() ? '' : ((MONO && MONO.no_parry_tip) || ''); tip.hidden = canParry(); }
   const far = Math.max(0, Math.min(1, (TODD_HP - boss.hp) / TODD_HP));
   // his phases, marked where they start
@@ -1463,7 +1569,7 @@ function restart() {
   if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; } screen.until = 0; screen.next = 0;
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
-  revive(); startIntro(OPT.skip);   // the monologue again (jump or parry skips it), unless it's turned off in Settings
+  revive(); startIntro(OPT.skip || !!CFG);   // the monologue again (jump or parry skips it), unless it's off in Settings (or it's a custom fight)
 }
 
 // --- picking and running his attacks ---
@@ -1475,10 +1581,24 @@ const MOVES = {
   3: ['slam', 'volley', 'sweep', 'rain', 'popups', 'pound', 'clap', 'clap', 'cursors', 'agony', 'agony']
 };
 let lastMove = null;
-function pace() { return [1, 0.8, 0.6, 0.42][phase()] * HS(); }   // how long he rests between attacks
+function pace() { return [1, 0.8, 0.6, 0.42][phase()] * HS() * (CFG ? CFG.rest : 1); }   // how long he rests between attacks
+// how many things an attack throws: the editor's number if there is one, otherwise his usual amount.
+// Big numbers become a swarm: the more there are, the faster he fires (a few a frame at most), and the screen
+// never holds more than MAX_ON at once (he waits for room), so "a billion cursors" is a storm, not a crash.
+const MAX_ON = 200;
+function howMany(kind, usual) { const n = CFG && CFG.counts && CFG.counts[kind]; return n > 0 ? n : usual; }
+function swarmGap(n, usual, base) { return n <= usual ? base : Math.max(base * usual / n, 16); }
+function fireN(now, n, gap, shoot) {
+  // shoot until it's time to wait again (up to 4 in a frame), as long as there's room on screen
+  let k = 0;
+  while (atk.shots < n && now > atk.next && k < 4) {
+    if (threats.length >= MAX_ON) { atk.next = now + 60; break; }
+    shoot(atk.shots); atk.shots++; k++; atk.next = (k > 1 ? atk.next : now) + gap;
+  }
+}
 function startAttack(now, force) {
   let kind = force;
-  if (!kind) { const pool = MOVES[phase()]; do { kind = pool[(Math.random() * pool.length) | 0]; } while (kind === lastMove && pool.length > 1 && Math.random() < 0.7); }
+  if (!kind) { const pool = CFG ? CFG.moves : MOVES[phase()]; do { kind = pool[(Math.random() * pool.length) | 0]; } while (kind === lastMove && pool.length > 1 && Math.random() < 0.7); }
   lastMove = kind;
   if (kind === 'sweep') {
     // he lays his fist on the stage at one end and drags it across
@@ -1589,14 +1709,15 @@ function tauntFrame(T) { let f = atk.frames[0]; for (const k of atk.frames) if (
 const PUNCH = { goal: null };
 function stepAttack(now, dt) {
   if (fight.phase !== 'fight' || P.dead) { if (stomp.on && stomp.state !== 'fling') endStomp(now, false); return; }
-  if (HARD && now > edgeAt) { if (edgeAt) edgeCursor(); edgeAt = now + [0, 2600, 2100, 1600][phase()] * (0.75 + Math.random() * 0.5); }
-  if (!stomp.on && (phase() >= 2 || HARD) && bot.obj) {
+  const stream = HARD ? 1 : CFG ? CFG.cursors : 0;   // the cursor stream (1 = hard mode's rate)
+  if (stream > 0 && now > edgeAt) { if (edgeAt) edgeCursor(); edgeAt = now + [0, 2600, 2100, 1600][phase()] / stream * (0.75 + Math.random() * 0.5); }
+  if (!stomp.on && (CFG ? CFG.robot : (phase() >= 2 || HARD)) && bot.obj) {
     if (!stomp.next) stomp.next = now + (HARD ? 15000 : 3500);          // the first time: soon after phase 2 starts
     if (now > stomp.next && (!atk || atk.kind !== 'agony')) startStomp(now);
   }
   if (!atk) {
     if (!nextAtk) nextAtk = now + 1200;
-    if (now > nextAtk) { if (tauntSoon || Math.random() < 0.18) { tauntSoon = false; startTaunt(now); } else startAttack(now); }
+    if (now > nextAtk) { if ((!CFG || CFG.taunts) && (tauntSoon || Math.random() < 0.18)) { tauntSoon = false; startTaunt(now); } else startAttack(now); }
     return;
   }
   const T = (now - atk.t0) / 1000 / HS();
@@ -1625,11 +1746,8 @@ function stepAttack(now, dt) {
     // his fist hurts on the way down and while it's on the stage, unless you parry it
     if (atk && (atk.state === 'down' || atk.state === 'rest')) fistContact(now);
   } else if (atk.kind === 'volley') {
-    const n = 2 + phase();
-    if (atk.shots < n && now > atk.next) {
-      fireFace(Math.random() < 0.35 ? 'sad' : 'angry', 330 + phase() * 45 + atk.shots * 20);
-      atk.shots++; atk.next = now + HS() * ([0, 520, 430, 340][phase()]); boss.recoil = 1;
-    }
+    const u = 2 + phase(), n = howMany('volley', u);
+    fireN(now, n, swarmGap(n, u, HS() * ([0, 520, 430, 340][phase()])), (i) => { fireFace(Math.random() < 0.35 ? 'sad' : 'angry', 330 + phase() * 45 + Math.min(i, 8) * 20); boss.recoil = 1; });
     if (atk.shots >= n && now > atk.next + 300) { atk = null; nextAtk = now + (900 + Math.random() * 700) * pace(); }
   } else if (atk.kind === 'sweep') {
     if (atk.state === 'raise' && T > (phase() === 3 ? 0.7 : 0.85)) { atk.state = 'down'; atk.t0 = now; }
@@ -1672,30 +1790,32 @@ function stepAttack(now, dt) {
     else if (atk.state === 'punch' && T > 0.32) { const s = screenAt(); hitTodd(s.x, s.y); atk.state = 'lift'; atk.t0 = now; }
     if (atk && (atk.state === 'down' || atk.state === 'sweep' || atk.state === 'rest')) for (const sd of atk.sides) { if (atk.state === 'punch') break; fistContact(now, sd); }
   } else if (atk.kind === 'cursors') {
-    const n = 1 + phase();
-    if (atk.shots < n && now > atk.next) { fireCursor(atk.shots % 3); atk.shots++; atk.next = now + HS() * (330); boss.recoil = 1; }
+    const u = 1 + phase(), n = howMany('cursors', u);
+    fireN(now, n, swarmGap(n, u, HS() * 330), (i) => { fireCursor(n > 6 ? Math.random() * 2 : i % 3, n > 40); boss.recoil = 1; });
     if (atk.shots >= n && now > atk.next + 900) { atk = null; nextAtk = now + (700 + Math.random() * 500) * pace(); }
   } else if (atk.kind === 'popups') {
-    const n = 2 + phase();
-    if (atk.shots < n && now > atk.next) { popup(P.x + P.vx * 0.2); atk.shots++; atk.next = now + HS() * ([0, 600, 500, 400][phase()]); }
+    const u = 2 + phase(), n = howMany('popups', u);
+    fireN(now, n, swarmGap(n, u, HS() * ([0, 600, 500, 400][phase()])), (i) => popup(i === 0 || n <= u ? P.x + P.vx * 0.2 : P.x + (Math.random() - 0.5) * 500, n > 40));
     if (atk.shots >= n && now > atk.next + 900) { atk = null; face('angry', 250); nextAtk = now + (700 + Math.random() * 500) * pace(); }
   } else if (atk.kind === 'rain') {
-    if (atk.waves < 2 + phase() && now > atk.next) {
-      atk.gap = rainWave(250 + phase() * 50, atk.gap, phase() === 3 ? 125 : 145); atk.waves++; atk.next = now + 1000 * pace();
+    const u = 2 + phase(), n = howMany('rain', u);
+    if (atk.waves < n && now > atk.next && threats.length < MAX_ON) {
+      atk.gap = rainWave(250 + phase() * 50, atk.gap, phase() === 3 ? 125 : 145); atk.waves++; atk.next = now + Math.max(350, 1000 * pace() * Math.min(1, u / n * 1.6));
       fight.shake = Math.max(fight.shake, 0.2);
     }
-    if (atk.waves >= 3 && now > atk.next + 600 && !threats.some((o) => o.kind === 'bar' && o.state === 'fly')) { atk = null; face('angry', 300); nextAtk = now + 800 * pace(); }
+    if (atk.waves >= n && now > atk.next + 600 && !threats.some((o) => o.kind === 'bar' && o.state === 'fly')) { atk = null; face('angry', 300); nextAtk = now + 800 * pace(); }
   } else if (atk.kind === 'agony') {
     // his worst: the agony face, and static rolling out along the floor
     agonyAmt = atk.state === 'charge' ? Math.min(1, T / 0.8) : 1;
     if (atk.state === 'charge') { fight.shake = Math.max(fight.shake, T * 0.5); if (T > 1.3) { atk.state = 'blast'; atk.t0 = now; atk.next = now; } }
     else if (atk.state === 'blast') {
       // waves out both ways, at uneven speeds and spacing so there's no rhythm to settle into
-      if (atk.waves < 4 && now > atk.next) {
+      const n = howMany('agony', 4);
+      if (atk.waves < n && now > atk.next && threats.length < MAX_ON) {
         const v = 400 + Math.random() * 160; staticWave(-1, v); staticWave(1, atk.waves % 2 ? v * 0.8 : v * 1.15);
-        atk.waves++; atk.next = now + HS() * (700 + Math.random() * 350); fight.shake = 1; ripple(toddCenter(), 2.6);
+        atk.waves++; atk.next = now + swarmGap(n, 4, HS() * (700 + Math.random() * 350)) * (n > 4 ? 1.6 : 1); fight.shake = 1; ripple(toddCenter(), 2.6);
       }
-      if (atk.waves >= 4 && now > atk.next + 400) { atk = null; agonyAmt = 0; face('angry', 400); nextAtk = now + 1200 * pace(); }
+      if (atk.waves >= n && now > atk.next + 400) { atk = null; agonyAmt = 0; face('angry', 400); nextAtk = now + 1200 * pace(); }
     }
   }
 }
@@ -1946,11 +2066,11 @@ function drawFx(t) {
 const hud = document.getElementById('hud');
 // Three parries in a row without getting hit gives you one health back, up to 4 (one more than you start with; no cap in hard mode).
 const HP_START = 3, STREAK = 3;
-const hpMax = () => (HARD ? Infinity : 4);   // hard mode: no cap, every streak keeps adding health
+const hpMax = () => (HARD ? Infinity : CFG ? (CFG.cap ? Math.max(4, CFG.php + 1) : Infinity) : 4);   // hard mode: no cap
 function paintHud() {
   if (P.dead) { hud.textContent = 'DEAD'; hud.className = 'hud low'; return; }
-  hud.innerHTML = (HARD ? '<b class="hd">HARD</b> ' : '') + 'HP. ' + P.hp + ' <span class="pips">' + Array.from({ length: STREAK }, (_, i) => `<i class="${i < P.streak ? 'on' : ''}"></i>`).join('') + '</span>';
-  hud.className = 'hud' + (P.hp <= 1 ? ' low' : '') + (P.hp > HP_START ? ' over' : '');
+  hud.innerHTML = (HARD ? '<b class="hd">HARD</b> ' : CFG ? '<b class="cu">CUSTOM</b> ' : '') + 'HP. ' + P.hp + ' <span class="pips">' + Array.from({ length: STREAK }, (_, i) => `<i class="${i < P.streak ? 'on' : ''}"></i>`).join('') + '</span>';
+  hud.className = 'hud' + (P.hp <= 1 ? ' low' : '') + (P.hp > (CFG ? CFG.php : HP_START) ? ' over' : '');
 }
 function heal() {
   if (P.hp < hpMax()) sfx('parry', 0.7, 1.6);
@@ -2020,8 +2140,8 @@ function hurt(n = 1) {
   if (P.hp === 0) { P.dead = true; P.vx = 0; P.vy = -500; P.wall = 0; P.parryT = 0; P.spin = 0; youDied(); }
   paintHud();
 }
-function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+function revive() { Object.assign(P, { hp: CFG ? CFG.php : HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
+window.FIGHT = { get CFG() { return CFG; }, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
