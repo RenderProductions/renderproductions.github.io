@@ -338,7 +338,19 @@ const camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.1, 200);
 scene.add(new THREE.HemisphereLight(0xcfefff, 0x0a1a20, 1.1));
 const key = new THREE.DirectionalLight(0xffffff, 0.9); key.position.set(3, 6, 8); scene.add(key);
 const rim = new THREE.DirectionalLight(0x00fffa, 0.7); rim.position.set(-6, 4, -5); scene.add(rim);
-let todd = null, toddH = 1;
+let todd = null, toddH = 1, baseX = 0;
+// He shuffles left and right behind the stage: drifting toward your side between attacks, and stepping out
+// toward you for a slam or a sweep, so there's nowhere along the walls he can't reach.
+const shift = { x: 0, want: 0, v: 0 };
+let PPW = 0;   // stage units per world unit, at the stage's depth
+function ppw() { if (!PPW) { const a = fromStage(0, FLOOR, PLANE * toddH), b = fromStage(100, FLOOR, PLANE * toddH); PPW = 100 / a.distanceTo(b); } return PPW; }
+function toddCenter() { return W / 2 + shift.x * ppw(); }   // where he's standing, on the stage
+// work out a pose as if he were already standing somewhere else (where he's about to step to)
+function standingAt(sx, fn) {
+  const was = todd.position.x; todd.position.x = baseX + sx; todd.updateMatrixWorld(true);
+  try { return fn(); } finally { todd.position.x = was; todd.updateMatrixWorld(true); }
+}
+const REACH = 190;   // how close to the walls his fist gets without stepping
 const bones = {}, rest = {};
 function sizeTodd(w, h) {
   renderer.setPixelRatio(Math.min(1.5, devicePixelRatio || 1) * quality);
@@ -464,7 +476,7 @@ new THREE.GLTFLoader().load('../toddguts/todd.gltf?v=2', (gltf) => {
   todd.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(todd), c = new THREE.Vector3();
   box.getCenter(c); toddH = box.max.y - box.min.y;
-  todd.position.set(-c.x, -box.min.y, -c.z);
+  todd.position.set(-c.x, -box.min.y, -c.z); baseX = -c.x;
   // Fixed camera, low and in front of him: he fills the screen from the waist up, looking down at the stage.
   // (like Saltbaker: his belt at the stage's edge, his screen up near the top, much bigger than you)
   camera.position.set(0, toddH * 0.6, toddH * 1.2);
@@ -938,8 +950,19 @@ function banner(text) {
   b.textContent = text; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
 }
 
+function stepShift(dt) {
+  const fistOut = atk && atk.stand !== undefined;
+  if (fistOut) shift.want = atk.stand;                                   // stepping out for a fist attack
+  else if (fight.phase === 'fight' && !boss.down) shift.want = Math.max(-150, Math.min(150, (P.x - W / 2) * 0.3)) / ppw();   // drifting your way
+  else shift.want = 0;
+  const k = fistOut ? 7 : 1.4, before = shift.x;
+  shift.x += (shift.want - shift.x) * Math.min(1, dt * k);
+  shift.v = (shift.x - before) / Math.max(dt, 1e-3);
+  todd.position.x = baseX + shift.x;
+}
 function animateTodd(t, dt) {
   if (!todd) return;
+  stepShift(dt);
   const T = (performance.now() - fight.t0) / 1000;
   // where you are, from where he stands
   const youYaw = ((P.x / W) - 0.5) * 0.9, youPitch = 0.32 - (FLOOR - P.y) / H * 0.35;
@@ -1117,7 +1140,7 @@ function animateTodd(t, dt) {
   look.yaw += (yaw - look.yaw) * Math.min(1, dt * (speed > 8 ? 12 : 3));
   look.pitch += (pitch - look.pitch) * Math.min(1, dt * (speed > 8 ? 12 : 3));
   const slamming = (atk && ((atk.fist && atk.state !== 'raise' && atk.state !== 'lift') || atk.kind === 'taunt')) || fight.phase === 'won';
-  target('chest', chest[0], chest[1] + (slamming ? 0 : look.yaw * 0.25), chest[2]);   // (no turning while his fist is out: it was aimed without it)
+  target('chest', chest[0], chest[1] + (slamming ? 0 : look.yaw * 0.25), chest[2] - Math.max(-0.12, Math.min(0.12, shift.v * 0.06)));   // (leaning into a sideways step)   // (no turning while his fist is out: it was aimed without it)
   target('neck', look.pitch * 0.4, look.yaw * 0.35, 0);
   target('fat_fucking_dome', look.pitch * 0.6, look.yaw * 0.5, Math.sin(t * 0.7) * 0.03);
   target('Right_Arm', armR[0], armR[1], armR[2]); target('Left_Arm', armL[0], armL[1], armL[2]);
@@ -1274,7 +1297,7 @@ function rainWave(speed, lastGap, gapW = 150) {
 // --- the static wave: along the floor, from under him outward ---
 function staticWave(dir, speed) {
   speed *= QUICK();
-  if (dir < 0) sfx('rumble', 0.7, 0.8); threats.push({ kind: 'wave', x: W / 2, y: FLOOR - 45, w: 38, h: 90, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
+  if (dir < 0) sfx('rumble', 0.7, 0.8); threats.push({ kind: 'wave', x: toddCenter(), y: FLOOR - 45, w: 38, h: 90, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
 
 // --- shockwaves: low, fast, along the floor (from the double pound) ---
 function shock(x, dir, speed) {
@@ -1460,15 +1483,20 @@ function startAttack(now, force) {
   if (kind === 'sweep') {
     // he lays his fist on the stage at one end and drags it across
     const fromLeft = Math.random() < 0.5, side = fromLeft === rightArmOnLeft ? 'R' : 'L', lean = 0.45;
-    const xs = []; for (let x = fromLeft ? 150 : W - 150; fromLeft ? x <= W - 260 : x >= 260; x += fromLeft ? 70 : -70) xs.push(x);
-    const path = []; let seed = null;
-    for (const x of xs) {
-      const goal = fromStage(x, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;
-      const sol = seed ? solveArmFrom(side, goal, lean, seed) : solveArm(side, goal, lean);
-      if (sol.cost > toddH * 0.06 && path.length > 3) break;          // as far as he can reach
-      path.push(sol); seed = sol.c;
-    }
-    atk = { kind, fist: true, side, lean, path, fromLeft, state: 'raise', t0: now, sol: path[0] };
+    // he steps toward that end first, so the sweep starts right at the wall
+    const sx = (fromLeft ? -1 : 1) * 100 / ppw();
+    const x0 = fromLeft ? 70 : W - 70, xs = []; for (let x = x0; fromLeft ? x <= W - 160 : x >= 160; x += fromLeft ? 70 : -70) xs.push(x);
+    const path = standingAt(sx, () => {
+      const out = []; let seed = null;
+      for (const x of xs) {
+        const goal = fromStage(x, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;
+        const sol = seed ? solveArmFrom(side, goal, lean, seed) : solveArm(side, goal, lean);
+        if (sol.cost > toddH * 0.06 && out.length > 3) break;          // as far as he can reach
+        out.push(sol); seed = sol.c;
+      }
+      return out;
+    });
+    atk = { kind, fist: true, side, lean, path, fromLeft, state: 'raise', t0: now, sol: path[0], stand: sx };
     return;
   }
   if (kind === 'rain') { atk = { kind, state: 'cast', t0: now, waves: 0, next: now + 900, gap: null }; face('error', 300); return; }
@@ -1478,9 +1506,12 @@ function startAttack(now, force) {
   if (kind === 'pound') {
     // both fists, side by side in front of him; the floor shakes and shockwaves run out both ways
     const lean = 0.5, sol = {};
-    sol[leftSide] = solveArm(leftSide, fromStage(W / 2 - 85, FLOOR, PLANE * toddH).add(new THREE.Vector3(0, toddH * 0.055, 0)), lean);
-    sol[rightSide] = solveArm(rightSide, fromStage(W / 2 + 85, FLOOR, PLANE * toddH).add(new THREE.Vector3(0, toddH * 0.055, 0)), lean);
-    atk = { kind, fist: true, sides: [leftSide, rightSide], sol2: sol, lean, state: 'raise', t0: now };
+    const sx = shift.x, cx = toddCenter();
+    standingAt(sx, () => {
+      sol[leftSide] = solveArm(leftSide, fromStage(cx - 85, FLOOR, PLANE * toddH).add(new THREE.Vector3(0, toddH * 0.055, 0)), lean);
+      sol[rightSide] = solveArm(rightSide, fromStage(cx + 85, FLOOR, PLANE * toddH).add(new THREE.Vector3(0, toddH * 0.055, 0)), lean);
+    });
+    atk = { kind, fist: true, sides: [leftSide, rightSide], sol2: sol, lean, state: 'raise', t0: now, stand: sx };
     return;
   }
   if (kind === 'clap') {
@@ -1495,19 +1526,22 @@ function startAttack(now, force) {
       }
       return path;
     };
-    paths[leftSide] = build(leftSide, 210, W / 2 - 50); paths[rightSide] = build(rightSide, W - 210, W / 2 + 50);
-    atk = { kind, fist: true, sides: [leftSide, rightSide], paths, lean, state: 'raise', t0: now, sol2: { [leftSide]: paths[leftSide][0], [rightSide]: paths[rightSide][0] } };
+    standingAt(0, () => { paths[leftSide] = build(leftSide, 210, W / 2 - 50); paths[rightSide] = build(rightSide, W - 210, W / 2 + 50); });   // (centred for the clap)
+    atk = { stand: 0, kind, fist: true, sides: [leftSide, rightSide], paths, lean, state: 'raise', t0: now, sol2: { [leftSide]: paths[leftSide][0], [rightSide]: paths[rightSide][0] } };
     return;
   }
   if (kind === 'agony') { atk = { kind, state: 'charge', t0: now, waves: 0, next: 0 }; face('agony', 700); return; }
   if (kind === 'slam') {
-    const tx = Math.max(190, Math.min(W - 190, P.x + P.vx * 0.3));   // (his reach: right by the walls is out of it)
-    const onLeft = tx < W / 2, side = onLeft === rightArmOnLeft ? 'R' : 'L';
+    const tx = Math.max(60, Math.min(W - 60, P.x + P.vx * 0.3));   // right up to the walls: he steps over if he has to
+    // where he has to stand to reach it (stay put if he already can)
+    let sx = shift.x; const lo = REACH + sx * ppw(), hi = W - REACH + sx * ppw();
+    if (tx < lo) sx = (tx - REACH) / ppw(); else if (tx > hi) sx = (tx - (W - REACH)) / ppw();
+    const onLeft = tx < toddCenter() + (sx - shift.x) * ppw(), side = onLeft === rightArmOnLeft ? 'R' : 'L';
     const lean = 0.45;
     // the fist lands on the stage, its bottom on the floor line, a little in front of him
     const goal = fromStage(tx, FLOOR, PLANE * toddH); goal.y += toddH * 0.055;   // his fist's knuckles on the floor
-    const sol = solveArm(side, goal, lean);
-    atk = { kind, fist: true, side, tx, lean, sol, state: 'raise', t0: now };
+    const sol = standingAt(sx, () => solveArm(side, goal, lean));
+    atk = { kind, fist: true, side, tx, lean, sol, state: 'raise', t0: now, stand: sx };
     fx.push({ kind: 'target', x: tx, t: 0, life: 0.95 });
   } else {
     atk = { kind, state: 'aim', t0: now, shots: 0, next: now + 600 };
@@ -1601,7 +1635,7 @@ function stepAttack(now, dt) {
     if (atk.state === 'raise' && T > (phase() === 3 ? 0.7 : 0.85)) { atk.state = 'down'; atk.t0 = now; }
     else if (atk.state === 'down' && T > 0.15) { atk.state = 'sweep'; atk.t0 = now; fight.shake = 0.7; thud(0.8); sfx('rumble', 0.5, 1.3); const f = fistOnStage(atk.side); ripple(f.x, 1.6); if (phase() === 3) fireFace('angry', 400); }
     else if (atk.state === 'sweep') {
-      const dur = 0.14 * atk.path.length * (phase() === 3 ? 0.7 : 1), p = Math.min(1, T / dur);
+      const dur = 0.14 * atk.path.length * (phase() === 3 ? 0.7 : 1), p = Math.max(0, Math.min(1, T / dur));
       const at = p * (atk.path.length - 1), i = Math.min(atk.path.length - 2, Math.floor(at)), k = at - i;
       const A = atk.path[i].c, B = atk.path[i + 1].c;
       atk.sol = { c: A.map((v, j) => v + (B[j] - v) * k) };
@@ -1620,15 +1654,15 @@ function stepAttack(now, dt) {
       if (atk.kind === 'pound') setTimeout(() => sfx('rumble', 0.8), 60);
       for (const sd of atk.sides) { const f = fistOnStage(sd); ripple(f.x, 2.4); for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 }); }
       if (atk.kind === 'pound') {
-        const sp = 480 + ph * 50; shock(W / 2 - 150, -1, sp); shock(W / 2 + 150, 1, sp);
-        if (ph === 3) setTimeout(() => { if (atk && atk.kind === 'pound') { shock(W / 2 - 150, -1, sp * 0.7); shock(W / 2 + 150, 1, sp * 0.7); } }, 380);
+        const sp = 480 + ph * 50, cx = toddCenter(); shock(cx - 150, -1, sp); shock(cx + 150, 1, sp);
+        if (ph === 3) setTimeout(() => { if (atk && atk.kind === 'pound') { shock(cx - 150, -1, sp * 0.7); shock(cx + 150, 1, sp * 0.7); } }, 380);
         atk.state = 'rest';
       } else atk.state = 'sweep';
       atk.t0 = now;
       if (ph === 3) fireFace('angry', 420);   // and a face at you while his hands are busy
     }
     else if (atk.state === 'sweep') {
-      const n = atk.paths[atk.sides[0]].length, dur = 0.13 * n * (ph === 3 ? 0.75 : 1), p = Math.min(1, T / dur);
+      const n = atk.paths[atk.sides[0]].length, dur = 0.13 * n * (ph === 3 ? 0.75 : 1), p = Math.max(0, Math.min(1, T / dur));
       const at = p * (n - 1), i = Math.min(n - 2, Math.floor(at)), k = at - i;
       for (const sd of atk.sides) { const A = atk.paths[sd][i].c, B = atk.paths[sd][i + 1].c; atk.sol2[sd] = { c: A.map((v, j) => v + (B[j] - v) * k) }; }
       if (p >= 1) { atk.state = 'rest'; atk.t0 = now; fight.shake = 0.8; ripple(W / 2, 2); thud(1, 0.75); }
@@ -1659,7 +1693,7 @@ function stepAttack(now, dt) {
       // waves out both ways, at uneven speeds and spacing so there's no rhythm to settle into
       if (atk.waves < 4 && now > atk.next) {
         const v = 400 + Math.random() * 160; staticWave(-1, v); staticWave(1, atk.waves % 2 ? v * 0.8 : v * 1.15);
-        atk.waves++; atk.next = now + HS() * (700 + Math.random() * 350); fight.shake = 1; ripple(W / 2, 2.6);
+        atk.waves++; atk.next = now + HS() * (700 + Math.random() * 350); fight.shake = 1; ripple(toddCenter(), 2.6);
       }
       if (atk.waves >= 4 && now > atk.next + 400) { atk = null; agonyAmt = 0; face('angry', 400); nextAtk = now + 1200 * pace(); }
     }
@@ -1987,7 +2021,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
