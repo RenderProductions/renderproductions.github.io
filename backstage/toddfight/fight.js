@@ -900,6 +900,60 @@ function stepSmoke(dt) {
     m.material.opacity = u.a * Math.min(1, p * 6) * (1 - p);
   }
 }
+// Fire: once he's badly hurt (past halfway), little blocky flames lick up out of him: first from the top of
+// his monitor, then his shoulders, then his chest. Glowing cubes that shoot up, flicker, go from yellow to
+// orange to red, and shrink away; an orange glow on him that flickers with them. Knocked out, it flares up.
+const FIRE_N = 48;
+const fireGeo = new THREE.BoxGeometry(1, 1, 1);
+const flames = Array.from({ length: FIRE_N }, () => {
+  const m = new THREE.Mesh(fireGeo, new THREE.MeshBasicMaterial({ color: 0xffd040, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  m.visible = false; m.userData = { life: 0, age: 0, vel: new THREE.Vector3(), s0: 1 };
+  return m;
+});
+let fireI = 0, fireAcc = 0, fireGlow = null;
+const FIRE_VENTS = [
+  { at: 0.5, bone: 'fat_fucking_dome', off: [0.17, 0.02, 0.05] }, { at: 0.5, bone: 'fat_fucking_dome', off: [-0.17, -0.02, 0.05] },   // the sides of his monitor
+  { at: 0.62, bone: 'Right_Arm', off: [0, 0.05, 0.05] }, { at: 0.62, bone: 'Left_Arm', off: [0, 0.05, 0.05] },                       // his shoulders
+  { at: 0.78, bone: 'chest', off: [0.05, -0.02, 0.09] }, { at: 0.78, bone: 'neck', off: [0, 0.0, 0.06] },                            // his chest, his neck
+  { at: 0.9, bone: 'fat_fucking_dome', off: [0.0, 0.12, 0.02] }
+];
+const FIRE_COL = [new THREE.Color(0xffe066), new THREE.Color(0xff9a00), new THREE.Color(0xff3c00), new THREE.Color(0x5a0800)];
+const fireTmp = new THREE.Color();
+function flame(pos, big) {
+  const m = flames[fireI++ % FIRE_N], u = m.userData, H = toddH;
+  if (!m.parent) scene.add(m);
+  m.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.05 * H, 0, (Math.random() - 0.5) * 0.04 * H));
+  u.age = 0; u.life = 0.5 + Math.random() * 0.4;
+  u.vel.set((Math.random() - 0.5) * 0.04 * H, (0.13 + Math.random() * 0.1) * H * (big ? 1.4 : 1), (Math.random() - 0.5) * 0.03 * H);
+  u.s0 = (0.028 + Math.random() * 0.026) * H * (big ? 1.4 : 1);
+  m.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+  m.visible = true;
+}
+function stepFire(dt) {
+  if (!todd) return;
+  const w = boss.down ? 1.15 : wear();
+  if (!fireGlow) { fireGlow = new THREE.PointLight(0xff7a20, 0, toddH * 1.2); scene.add(fireGlow); }
+  const open = FIRE_VENTS.filter((v) => w >= v.at), heat = open.length ? Math.min(1, (w - 0.45) / 0.55) : 0;
+  fireAcc += dt * (4 + heat * 46) * (open.length ? 1 : 0);
+  while (fireAcc > 1) { fireAcc--; flame(ventAt(open[(Math.random() * open.length) | 0]).clone()); }
+  let lit = 0;
+  for (const m of flames) {
+    if (!m.visible) continue;
+    const u = m.userData; u.age += dt;
+    const p = u.age / u.life; if (p >= 1) { m.visible = false; continue; }
+    lit++;
+    m.position.addScaledVector(u.vel, dt); u.vel.x += Math.sin(u.age * 20 + u.s0) * dt * 0.15 * toddH;   // licking side to side
+    m.rotation.y += dt * 4; m.rotation.z += dt * 3;
+    m.scale.setScalar(u.s0 * (1 - p * 0.85) * (0.8 + Math.random() * 0.4));                              // shrinking, flickering
+    const k = Math.min(2.999, p * 3), i = Math.floor(k);
+    fireTmp.copy(FIRE_COL[i]).lerp(FIRE_COL[i + 1], k - i); m.material.color.copy(fireTmp);
+    m.material.opacity = Math.min(1, (1 - p) * 1.3);
+  }
+  // the glow on him: from the top of his monitor, flickering with the flames
+  if (lit && bones.fat_fucking_dome) { bones.fat_fucking_dome.getWorldPosition(fireGlow.position); fireGlow.position.y += 0.2 * toddH; fireGlow.position.z += 0.15 * toddH; }
+  fireGlow.intensity = Math.min(1.6, lit / 14) * (0.75 + Math.random() * 0.5);
+}
+function fireBurst(n) { if (!todd || wear() < 0.5) return; const open = FIRE_VENTS.filter((v) => wear() >= v.at); for (let i = 0; i < n; i++) flame(ventAt(open[(Math.random() * open.length) | 0]).clone(), true); }
 // a burst of it when you land a hit (from his screen)
 function smokeBurst(n) { if (!screenPanel) return; screenPanel.getWorldPosition(ventPos); for (let i = 0; i < n; i++) puff(ventPos.clone().add(new THREE.Vector3(0, 0.08 * toddH, -0.05 * toddH)), true); }
 
@@ -1537,7 +1591,7 @@ function hitTodd(x, y) {
   }
   fight.shake = Math.max(fight.shake, 0.8);
   fx.push({ kind: 'burst', x, y, t: 0, life: 0.5 });
-  smokeBurst(3 + Math.round(wear() * 6));
+  smokeBurst(3 + Math.round(wear() * 6)); fireBurst(4 + Math.round(wear() * 6));   // (fire: once he's past halfway)
   face(phase() === 3 ? (Math.random() < 0.5 ? 'panic' : 'surprised') : Math.random() < 0.5 ? 'surprised' : 'sad', 180);
   clearTimeout(hitTodd.back);
   hitTodd.back = setTimeout(() => { if (!boss.down) face(mood(), 300); }, 700);
@@ -2558,7 +2612,7 @@ function frame(now) {
   const t = now / 1000;
   animateTodd(t, dt);
   stepAttack(now, dt);
-  stepSmoke(dt);
+  stepSmoke(dt); stepFire(dt);
   loopSound('run', stomp.on && stomp.state === 'charge', 0.55);
   loopSound('static', !!(atk && atk.kind === 'agony'), 0.32);
   stepScreen(now); musicTick();
