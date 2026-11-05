@@ -97,9 +97,9 @@ function step(dt) {
   // jump: off the ground (or just after leaving it), or off a wall
   if (P.buffer > 0) {
     if (P.ground || P.coyote > 0) {
-      P.vy = -TUNE.jump; P.ground = false; P.coyote = 0; P.buffer = 0; P.cutReady = true;
+      P.vy = -TUNE.jump; P.ground = false; P.coyote = 0; P.buffer = 0; P.cutReady = true; sfx('jump', 0.35, 0.95 + Math.random() * 0.1);
     } else if (P.wall) {
-      P.vy = -TUNE.wallJumpY; P.vx = -P.wall * TUNE.wallJumpX; P.face = -P.wall;
+      P.vy = -TUNE.wallJumpY; P.vx = -P.wall * TUNE.wallJumpX; P.face = -P.wall; sfx('jump', 0.35, 1.1);
       P.lock = TUNE.wallLock; P.wall = 0; P.buffer = 0; P.cutReady = true;
     }
   }
@@ -167,7 +167,10 @@ function hint(text) {
 // when he summons things out of his screen; "Robot hurt" (GreenFireSound), cut into three, at random when he's hit.
 // (Credits screen.) Web Audio, started on the first click (browsers won't play sound before one).
 const AUDIO = { ctx: null, bufs: {}, music: null, musicGain: null, sfxGain: null, lastPew: 0 };
-const SOUNDS = { music: 'sfx/music.mp3', pew: 'sfx/pew.mp3', hurt1: 'sfx/hurt1.mp3', hurt2: 'sfx/hurt2.mp3', hurt3: 'sfx/hurt3.mp3' };
+const SOUNDS = { music: 'sfx/music.mp3', pew: 'sfx/pew.mp3', hurt1: 'sfx/hurt1.mp3', hurt2: 'sfx/hurt2.mp3', hurt3: 'sfx/hurt3.mp3',
+  parry: 'sfx/parry.mp3', ow: 'sfx/ow.mp3', impact: 'sfx/impact.mp3', jump: 'sfx/jump.mp3', run: 'sfx/run.mp3', crash: 'sfx/crash.mp3', gameover: 'sfx/gameover.mp3' };
+// (more credits: Retro Collection 3 = the parry; Man getting hit = you hurt; Impact 2 = his fists and things landing;
+//  jump.wav; FastRunning = the TV robot charging; metal crash with glass debris = his knockout; Game Over 3.)
 function audioOn() {
   if (AUDIO.ctx) { if (AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume(); return; }
   try {
@@ -175,9 +178,48 @@ function audioOn() {
     AUDIO.ctx = C;
     AUDIO.musicGain = C.createGain(); AUDIO.musicGain.gain.value = 0; AUDIO.musicGain.connect(C.destination);
     AUDIO.sfxGain = C.createGain(); AUDIO.sfxGain.gain.value = 0.8; AUDIO.sfxGain.connect(C.destination);
+    makeNoise(C);
     for (const k in SOUNDS) fetch(SOUNDS[k] + '?v=1').then((r) => r.arrayBuffer()).then((a) => new Promise((ok, no) => C.decodeAudioData(a, ok, no))).then((b) => { AUDIO.bufs[k] = b; if (k === 'music' && AUDIO.wantMusic) musicStart(); }).catch(() => {});
   } catch (e) {}
 }
+// garbled noise, made here rather than recorded (like the Dubbed Tape in the drawer): 'static' is his TV static
+// (crunchy, stuttering, loops), 'rumble' is a shockwave rolling along the floor
+function makeNoise(C) {
+  const sr = C.sampleRate, mk = (secs, fn) => { const b = C.createBuffer(1, Math.floor(sr * secs), sr), d = b.getChannelData(0); fn(d, d.length); return b; };
+  AUDIO.bufs.static = mk(2, (d, n) => {
+    let hold = 0, k = 0, gate = 1;
+    for (let i = 0; i < n; i++) {
+      if (i % 4 === 0) hold = Math.random() * 2 - 1;                     // sample-and-hold: crunchy
+      if (i % 900 === 0) gate = Math.random() < 0.8 ? 0.4 + Math.random() * 0.6 : 0.05;   // stutter
+      if (i % 3000 === 0) k = Math.random();
+      d[i] = Math.round(hold * 5) / 5 * gate * (0.55 + 0.2 * Math.sin(i / 35 + k * 9));
+    }
+  });
+  AUDIO.bufs.rumble = mk(0.9, (d, n) => {
+    let y = 0;
+    for (let i = 0; i < n; i++) {
+      y += ((Math.random() * 2 - 1) - y) * 0.04;                            // low, rolling noise
+      const env = Math.pow(1 - i / n, 1.6) * Math.min(1, i / 400), gate = (Math.floor(i / 1300) % 3) ? 1 : 0.35;
+      d[i] = Math.max(-1, Math.min(1, y * 9)) * env * gate;
+    }
+  });
+}
+// a looping sound that runs while something's going on (the TV robot running, his static)
+const loops = {};
+function loopSound(name, on, vol = 0.6) {
+  const C = AUDIO.ctx; if (!C) return;
+  const L = loops[name];
+  if (on && OPT.sfx && !L && AUDIO.bufs[name]) {
+    const s = C.createBufferSource(), g = C.createGain(); s.buffer = AUDIO.bufs[name]; s.loop = true;
+    g.gain.setValueAtTime(0.0001, C.currentTime); g.gain.linearRampToValueAtTime(vol, C.currentTime + 0.12);
+    s.connect(g); g.connect(AUDIO.sfxGain); s.start(); loops[name] = { s, g };
+  } else if ((!on || !OPT.sfx) && L) {
+    L.g.gain.cancelScheduledValues(C.currentTime); L.g.gain.setValueAtTime(L.g.gain.value, C.currentTime); L.g.gain.linearRampToValueAtTime(0, C.currentTime + 0.25);
+    try { L.s.stop(C.currentTime + 0.3); } catch (e) {}
+    delete loops[name];
+  }
+}
+function thud(vol = 0.9, rate = 1) { sfx('impact', vol, rate * (0.94 + Math.random() * 0.12)); }
 function sfx(name, vol = 1, rate = 1) {
   const C = AUDIO.ctx, b = AUDIO.bufs[name]; if (!C || !b || !OPT.sfx) return;
   const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol;
@@ -1180,7 +1222,8 @@ function rainWave(speed, lastGap, gapW = 150) {
   return gap;
 }
 // --- the static wave: along the floor, from under him outward ---
-function staticWave(dir, speed) { threats.push({ kind: 'wave', x: W / 2, y: FLOOR - 45, w: 38, h: 90, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
+function staticWave(dir, speed) {
+  if (dir < 0) sfx('rumble', 0.7, 0.8); threats.push({ kind: 'wave', x: W / 2, y: FLOOR - 45, w: 38, h: 90, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
 
 // --- shockwaves: low, fast, along the floor (from the double pound) ---
 function shock(x, dir, speed) { threats.push({ kind: 'shock', x, y: FLOOR - 20, w: 30, h: 40, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
@@ -1221,7 +1264,7 @@ function hitTodd(x, y) {
 function setFlag(name) { try { const f = JSON.parse(localStorage.getItem('rp_flags')) || {}; if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); } } catch (e) {} }
 function flagSet(name) { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[name]; } catch (e) { return false; } }
 function knockout() {
-  musicStop(2.5);
+  musicStop(2.5); sfx('crash', 0.9);
   boss.down = true; atk = null; threats.length = 0;
   setFlag('todd_dead');   // for good: he stays dead here, and Cedar and Wonder know
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
@@ -1306,6 +1349,7 @@ function showGone() {
 }
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
+  sfx('gameover', 0.7);
   const D = (MONO && MONO.death) || {}, el = document.getElementById('death');
   const q = D.quotes && D.quotes.length ? D.quotes[(Math.random() * D.quotes.length) | 0] : '';
   document.getElementById('d-head').textContent = D.heading || 'YOU DIED';
@@ -1464,7 +1508,7 @@ function stepAttack(now, dt) {
   if (atk.kind === 'slam') {
     if (atk.state === 'raise' && T > [0, 0.8, 0.65, 0.5][phase()]) { atk.state = 'down'; atk.t0 = now; }
     else if (atk.state === 'down' && T > 0.14) {
-      atk.state = 'rest'; atk.t0 = now; fight.shake = 1; ripple(atk.tx, 2.2);
+      atk.state = 'rest'; atk.t0 = now; fight.shake = 1; ripple(atk.tx, 2.2); thud(1);
       const f = fistOnStage(atk.side);
       for (let i = 0; i < 10; i++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 });
     }
@@ -1490,7 +1534,7 @@ function stepAttack(now, dt) {
     if (atk.shots >= n && now > atk.next + 300) { atk = null; nextAtk = now + (900 + Math.random() * 700) * pace(); }
   } else if (atk.kind === 'sweep') {
     if (atk.state === 'raise' && T > (phase() === 3 ? 0.7 : 0.85)) { atk.state = 'down'; atk.t0 = now; }
-    else if (atk.state === 'down' && T > 0.15) { atk.state = 'sweep'; atk.t0 = now; fight.shake = 0.7; const f = fistOnStage(atk.side); ripple(f.x, 1.6); if (phase() === 3) fireFace('angry', 400); }
+    else if (atk.state === 'down' && T > 0.15) { atk.state = 'sweep'; atk.t0 = now; fight.shake = 0.7; thud(0.8); sfx('rumble', 0.5, 1.3); const f = fistOnStage(atk.side); ripple(f.x, 1.6); if (phase() === 3) fireFace('angry', 400); }
     else if (atk.state === 'sweep') {
       const dur = 0.14 * atk.path.length * (phase() === 3 ? 0.7 : 1), p = Math.min(1, T / dur);
       const at = p * (atk.path.length - 1), i = Math.min(atk.path.length - 2, Math.floor(at)), k = at - i;
@@ -1507,7 +1551,8 @@ function stepAttack(now, dt) {
     const ph = phase();
     if (atk.state === 'raise' && T > (atk.kind === 'clap' ? [0, 0.9, 0.8, 0.7][ph] : [0, 0.8, 0.65, 0.55][ph])) { atk.state = 'down'; atk.t0 = now; }
     else if (atk.state === 'down' && T > 0.14) {
-      fight.shake = 1.1;
+      fight.shake = 1.1; thud(1, 0.85);
+      if (atk.kind === 'pound') setTimeout(() => sfx('rumble', 0.8), 60);
       for (const sd of atk.sides) { const f = fistOnStage(sd); ripple(f.x, 2.4); for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: f.x + (Math.random() - 0.5) * f.r * 2, y: FLOOR, vx: (Math.random() - 0.5) * 400, vy: -Math.random() * 300, t: 0, life: 0.5 }); }
       if (atk.kind === 'pound') {
         const sp = 480 + ph * 50; shock(W / 2 - 150, -1, sp); shock(W / 2 + 150, 1, sp);
@@ -1521,7 +1566,7 @@ function stepAttack(now, dt) {
       const n = atk.paths[atk.sides[0]].length, dur = 0.13 * n * (ph === 3 ? 0.75 : 1), p = Math.min(1, T / dur);
       const at = p * (n - 1), i = Math.min(n - 2, Math.floor(at)), k = at - i;
       for (const sd of atk.sides) { const A = atk.paths[sd][i].c, B = atk.paths[sd][i + 1].c; atk.sol2[sd] = { c: A.map((v, j) => v + (B[j] - v) * k) }; }
-      if (p >= 1) { atk.state = 'rest'; atk.t0 = now; fight.shake = 0.8; ripple(W / 2, 2); }
+      if (p >= 1) { atk.state = 'rest'; atk.t0 = now; fight.shake = 0.8; ripple(W / 2, 2); thud(1, 0.75); }
     }
     else if (atk.state === 'rest' && T > (atk.kind === 'pound' ? 0.7 : 0.4)) { atk.state = 'lift'; atk.t0 = now; }
     else if (atk.state === 'lift' && T > 0.45) { atk = null; nextAtk = now + (800 + Math.random() * 500) * pace(); }
@@ -1580,6 +1625,7 @@ function touches(x, y, r) {
   return (x - nx) ** 2 + (y - ny) ** 2 < r * r;
 }
 function parried(x, y) {
+  sfx('parry', 0.8, 0.95 + Math.random() * 0.1);
   P.vy = -TUNE.parryBounce; P.cutReady = false; P.parryT = 0; P.spin = TUNE.spin; P.parryCool = 0; P.goldT = TUNE.gold;   // (you can parry again straight away, and you're untouchable for a moment)
   P.streak = (P.streak || 0) + 1;
   if (P.streak >= STREAK) { P.streak = 0; heal(); }
@@ -1601,7 +1647,7 @@ function stepThreats(dt) {
       const gone = (o.kind === 'bar' || o.kind === 'drop') ? o.y > FLOOR - o.h / 2 : (o.x < -o.w || o.x > W + o.w);
       if (gone) {
         threats.splice(i, 1);
-        if (o.kind === 'drop') { ripple(o.x, 1.4); fight.shake = Math.max(fight.shake, 0.35); for (let k = 0; k < 8; k++) fx.push({ kind: 'spark', x: o.x + (Math.random() - 0.5) * o.w, y: FLOOR, vx: (Math.random() - 0.5) * 360, vy: -Math.random() * 260, t: 0, life: 0.45 }); }
+        if (o.kind === 'drop') { thud(0.55, 1.25); ripple(o.x, 1.4); fight.shake = Math.max(fight.shake, 0.35); for (let k = 0; k < 8; k++) fx.push({ kind: 'spark', x: o.x + (Math.random() - 0.5) * o.w, y: FLOOR, vx: (Math.random() - 0.5) * 360, vy: -Math.random() * 260, t: 0, life: 0.45 }); }
         if (o.kind === 'bar') { ripple(o.x, 1.0); for (let k = 0; k < 5; k++) fx.push({ kind: 'spark', x: o.x + (Math.random() - 0.5) * o.w, y: FLOOR, vx: (Math.random() - 0.5) * 200, vy: -Math.random() * 200, t: 0, life: 0.35 }); }
       }
       continue;
@@ -1797,6 +1843,7 @@ function paintHud() {
   hud.className = 'hud' + (P.hp <= 1 ? ' low' : '') + (P.hp > HP_START ? ' over' : '');
 }
 function heal() {
+  if (P.hp < HP_MAX) sfx('parry', 0.7, 1.6);
   if (P.hp >= HP_MAX) return;
   P.hp++;
   fx.push({ kind: 'ring', x: P.x, y: P.y - 40, t: 0, life: 0.5, color: '#ffd23a' });
@@ -1819,6 +1866,8 @@ function frame(now) {
   animateTodd(t, dt);
   stepAttack(now, dt);
   stepSmoke(dt);
+  loopSound('run', stomp.on && stomp.state === 'charge', 0.55);
+  loopSound('static', !!(atk && atk.kind === 'agony'), 0.32);
   stepScreen(now);
   stepAgony();
   stepFx(dt);
@@ -1839,6 +1888,7 @@ function frame(now) {
 // for testing from the console
 function hurt(n = 1) {
   if (P.dead || P.hurtT > 0 || P.goldT > 0) return;
+  sfx('ow', 0.85, 0.95 + Math.random() * 0.1);
   P.hp = Math.max(0, P.hp - n); P.hurtT = 0.9; P.streak = 0;
   if (Math.random() < 0.6) tauntSoon = true;   // got you
   fight.shake = Math.max(fight.shake, 0.5);
