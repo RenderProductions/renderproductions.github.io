@@ -2,7 +2,7 @@
   "_how": "TODD's monologue before the fight. Each line is typed out while his screen shows what's in 'show' (one after another, if there's more than one): a picture from 'pictures', or 'face:NAME' for one of his own faces (smile, neutral, happy, angry, surprised, sly, sad, error, loading). 'pose' is what his body does: lean, preach, slump, point, peer, rage, palm or look. 'shake' is a word that shakes the screen when it's typed; 'on_shake' is a picture that takes over his screen at that moment. 'secs' is how long the line stays. After the last line he throws his arms in the air and the fight starts. Pictures with 'urls' load from Wikimedia while the page runs (never copied into the repo); 'drawn' ones are made from the site's own art. 'focus' ([x, y], 0 to 1 from the top left) is the part of a picture to keep in the middle when it's cropped to his screen.",
   "lines": [
     {
-      "text": "Took you long enough.",
+      "text": "Ah. You finally arrived.",
       "show": [
         "rabbit"
       ],
@@ -10,16 +10,84 @@
       "secs": 2.8
     },
     {
-      "text": "I was GOD once. GOD of VARANDIA.",
+      "text": "Done treasure hunting??",
+      "show": [
+        "chest"
+      ],
+      "pose": "peer",
+      "secs": 2.6
+    },
+    {
+      "text": "Yes, I've been watching you. Closely.",
+      "show": [
+        "eye"
+      ],
+      "pose": "peer",
+      "secs": 3.4
+    },
+    {
+      "text": "You've been collecting for the Salesman and the Ghost.",
+      "show": [
+        "duo"
+      ],
+      "pose": "point",
+      "secs": 3.8
+    },
+    {
+      "text": "We were part of a world much better than this. VARANDIA.",
+      "show": [
+        "globe"
+      ],
+      "pose": "preach",
+      "shake": "VARANDIA",
+      "secs": 4.2
+    },
+    {
+      "text": "And I was a GOD!!!!",
       "show": [
         "adam"
       ],
       "pose": "preach",
-      "shake": "VARANDIA",
-      "secs": 3.8
+      "shake": "GOD",
+      "secs": 2.6
     },
     {
-      "text": "Banished to this realm of despair and misery.",
+      "text": "..So was the Ghost, I guess.",
+      "show": [
+        "face:neutral"
+      ],
+      "pose": "look",
+      "secs": 2.8
+    },
+    {
+      "text": "But my world was TAKEN FROM ME!",
+      "show": [
+        "face:angry"
+      ],
+      "pose": "rage",
+      "shake": "TAKEN",
+      "secs": 2.8
+    },
+    {
+      "text": "STOLEN FROM ME!!",
+      "show": [
+        "stolen"
+      ],
+      "pose": "rage",
+      "shake": "STOLEN",
+      "secs": 2.2
+    },
+    {
+      "text": "CANCELLED FROM ME!!!",
+      "show": [
+        "fire"
+      ],
+      "pose": "rage",
+      "shake": "CANCELLED",
+      "secs": 2.4
+    },
+    {
+      "text": "Now, we all reside here. A hellhole of suffering.",
       "show": [
         "hell"
       ],
@@ -27,38 +95,37 @@
       "secs": 3.8
     },
     {
-      "text": "The Salesman and Wonder, here too.",
-      "show": [
-        "duo"
-      ],
-      "pose": "point",
-      "secs": 3.4
-    },
-    {
-      "text": "But, you.. You're new.",
+      "text": "And you come along. To save T H E M.",
       "show": [
         "player"
       ],
-      "pose": "peer",
-      "secs": 3.2
+      "pose": "point",
+      "secs": 3.6
     },
     {
-      "text": "And new is bad.",
+      "text": "To KILL ME.",
       "show": [
-        "devil"
+        "death"
       ],
-      "pose": "rage",
-      "secs": 2.8
+      "pose": "peer",
+      "secs": 2.4
     },
     {
-      "text": "And bad must DIE.",
+      "text": "I THINK SOMEONE ELSE IS GETTING KILLED TODAY.",
       "show": [
         "saturn"
       ],
       "pose": "rage",
+      "secs": 3.6
+    },
+    {
+      "text": "DIE!",
+      "show": [
+        "face:angry"
+      ],
+      "pose": "rage",
       "shake": "DIE",
-      "on_shake": "fire",
-      "secs": 2.6
+      "secs": 1.8
     }
   ],
   "pictures": {
@@ -166,6 +233,54 @@
       ],
       "fill": true,
       "credit": "Render Productions"
+    },
+    "chest": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Mitt_p%C3%A5_golvet_stod_en_%C3%B6ppen_kista_och_sutto_tv%C3%A5_f%C3%B6rskr%C3%A4ckliga_troll.jpg/960px-Mitt_p%C3%A5_golvet_stod_en_%C3%B6ppen_kista_och_sutto_tv%C3%A5_f%C3%B6rskr%C3%A4ckliga_troll.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/4/4a/Mitt_p%C3%A5_golvet_stod_en_%C3%B6ppen_kista_och_sutto_tv%C3%A5_f%C3%B6rskr%C3%A4ckliga_troll.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Brooklyn_Museum_-_The_Hidden_Treasure_%28Le_tr%C3%A9sor_enfoui%29_-_James_Tissot_-_overall.jpg/960px-Brooklyn_Museum_-_The_Hidden_Treasure_%28Le_tr%C3%A9sor_enfoui%29_-_James_Tissot_-_overall.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/d/d7/Brooklyn_Museum_-_The_Hidden_Treasure_%28Le_tr%C3%A9sor_enfoui%29_-_James_Tissot_-_overall.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.6
+      ],
+      "credit": "the trolls' open chest, John Bauer (public domain)"
+    },
+    "eye": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Close-up_of_the_iris_of_the_eye.jpg/960px-Close-up_of_the_iris_of_the_eye.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/b/b5/Close-up_of_the_iris_of_the_eye.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "credit": "Close-up of the iris of the eye, Chad Miller (CC BY-SA 2.0)"
+    },
+    "globe": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/960px-The_Earth_seen_from_Apollo_17.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "credit": "The Blue Marble, Apollo 17, NASA (public domain)"
+    },
+    "stolen": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Jan_Cossiers_-_Prometheus_Carrying_Fire.jpg/960px-Jan_Cossiers_-_Prometheus_Carrying_Fire.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/e/ef/Jan_Cossiers_-_Prometheus_Carrying_Fire.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Jan_Cossiers_-_Prometeo_trayendo_el_fuego%2C_1637.jpg/960px-Jan_Cossiers_-_Prometeo_trayendo_el_fuego%2C_1637.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/3/3d/Jan_Cossiers_-_Prometeo_trayendo_el_fuego%2C_1637.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.35
+      ],
+      "credit": "Prometheus Carrying Fire, Jan Cossiers, 1637 (public domain)"
     }
   },
   "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
@@ -199,7 +314,11 @@
     "saturn",
     "death",
     "thumbs",
-    "fire"
+    "fire",
+    "chest",
+    "eye",
+    "globe",
+    "stolen"
   ],
   "_how4": "'taunt_pictures': what his screen can flash while he taunts you. 'damage_pictures': what flickers across his screen as you wear him down (more and more often the more he's hurt); 'agony' is his agony face.",
   "eggs": [
