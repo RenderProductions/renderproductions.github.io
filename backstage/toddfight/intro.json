@@ -333,5 +333,36 @@
     "kicker": "is not responding",
     "tagline": "“...”"
   },
-  "_how6": "'no_parry' shows (now and then) when you try to parry without the Clear Polaroid or the Dubbed Tape; 'no_parry_tip' goes on the death card. 'gone' is the title once he's been beaten (rp_flags.todd_dead): no START, just him, dead. These are drafts."
+  "_how6": "'no_parry' shows (now and then) when you try to parry without the Clear Polaroid or the Dubbed Tape; 'no_parry_tip' goes on the death card. 'gone' is the title once he's been beaten (rp_flags.todd_dead): no START, just him, dead. These are drafts.",
+  "_how7": "'dying': his last words when you beat him, typed out slowly while his screen shows 'show' (then the skull stays, and WIN!).",
+  "dying": [
+    {
+      "text": "No.",
+      "show": [
+        "fire"
+      ],
+      "secs": 1.8
+    },
+    {
+      "text": "Not like this.",
+      "show": [
+        "fire"
+      ],
+      "secs": 2.4
+    },
+    {
+      "text": "Papa.",
+      "show": [
+        "death"
+      ],
+      "secs": 2.2
+    },
+    {
+      "text": "I failed. you.",
+      "show": [
+        "death"
+      ],
+      "secs": 2.8
+    }
+  ]
 }
