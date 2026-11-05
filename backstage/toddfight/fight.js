@@ -1363,10 +1363,12 @@ function knockout() {
   setFlag('todd_dead');   // for good: he stays dead here, and Cedar and Wonder know
   if (HARD) setFlag('todd_hard_beaten');
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
-  // his screen goes to the skull
-  setTimeout(() => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } }, 700);
-  setTimeout(() => banner((MONO && MONO.win) || 'WIN!'), 600);
-  if (fight.replay) setTimeout(() => { if (boss.down) showGone(); }, 6000);   // a replay: back to his dead screen
+  // his last words (intro.json 'dying'), his screen going through the fire to the skull; then WIN!
+  const last = (MONO && MONO.dying) || [], talk = last.reduce((a, l) => a + (l.secs || 2), 0) * 1000, start = 900;
+  if (last.length) setTimeout(() => { if (boss.down) Object.assign(dying, { on: true, t0: performance.now(), line: -1, pic: null, cut: 0 }); }, start);
+  else setTimeout(() => showDying('death'), 700);
+  setTimeout(() => banner((MONO && MONO.win) || 'WIN!'), last.length ? start + talk + 300 : 600);
+  if (fight.replay) setTimeout(() => { if (boss.down) showGone(); }, (last.length ? start + talk : 0) + 4500);   // a replay: back to his dead screen
 }
 // When he kills you: a moment of disbelief, then he laughs (hands on his belly, shaking, head back) while
 // his screen cools from red back to cyan; then he fixes his tie, very pleased, and leans over to look at you.
@@ -1738,7 +1740,7 @@ function restart() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // give the keys back to the game
   if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; } screen.until = 0; screen.next = 0;
   if (ENDLESS) endlessRound(1);
-  fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
+  fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0; dying.on = false;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
   revive(); startIntro(OPT.skip || !!CFG);   // the monologue again (jump or parry skips it), unless it's off in Settings (or it's a custom fight)
 }
@@ -2178,7 +2180,36 @@ function showPic(key, ms) {
   const e = egg(0.04); if (e) { key = e; ms = Math.max(ms, 1100); }
   if (!pics[key]) return; seePic(key); screen.key = key; screen.until = performance.now() + ms; glitchFace();
 }
+// his last words, while he's down
+const dying = { on: false, t0: 0, line: -1, pic: null, cut: 0 };
+function showDying(key) {
+  if (!picPanel || !pics[key]) return;
+  if (key === 'fire') fire.step(performance.now());
+  if (picPanel.material.map !== pics[key]) { picPanel.material.map = pics[key]; picPanel.material.needsUpdate = true; }
+  picPanel.visible = true; picPanel.material.opacity = 1; seePic(key);
+}
+function stepDying(now) {
+  const L = MONO.dying, T = (now - dying.t0) / 1000;
+  let at = 0, i = 0; while (i < L.length && T >= at + (L[i].secs || 2)) { at += L[i].secs || 2; i++; }
+  if (i >= L.length || !boss.down) {
+    // done: the words go, the skull stays
+    dying.on = false; if (sayEl) { sayEl.hidden = true; sayEl.textContent = ''; }
+    if (boss.down) showDying('death'); return;
+  }
+  const l = L[i], lt = T - at;
+  if (i !== dying.line) { dying.line = i; if (sayEl) { sayEl.hidden = false; sayEl.textContent = ''; } }
+  const typed = l.text.slice(0, Math.floor(lt * 14));                 // slower than his monologue: he's fading
+  if (sayEl && sayEl.textContent !== typed) sayEl.textContent = typed;
+  const key = (l.show && l.show[0]) || 'death';
+  if (key !== dying.pic) { dying.pic = key; dying.cut = now + 120; glitchFace(); }
+  if (key === 'fire') fire.step(now);
+  if (now < dying.cut || !pics[key]) { picPanel.visible = false; return; }
+  if (picPanel.material.map !== pics[key]) { picPanel.material.map = pics[key]; picPanel.material.needsUpdate = true; seePic(key); }
+  // a dying screen: it flickers, more and more
+  picPanel.visible = true; picPanel.material.opacity = Math.random() < 0.06 + i * 0.04 ? 0.25 : 0.85 + Math.random() * 0.15;
+}
 function stepScreen(now) {
+  if (picPanel && dying.on && MONO) return stepDying(now);
   if (!picPanel || mono.on || boss.down) return;      // the monologue and the skull look after themselves
   // the more you've hurt him, the more often random pictures flicker across his face
   const w = wear(), pool = ((MONO && MONO.damage_pictures) || []).filter((k) => pics[k]);
