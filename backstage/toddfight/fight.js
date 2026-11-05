@@ -279,12 +279,13 @@ function musicLoaded(k, b) {
   if (k === 'm_intro' && mono.on && !MUS.cur) musicMono();   // it arrived after he started talking: catch up
 }
 const MUS = { cur: null, voices: [] };
-function musicPlay(key, when, from = 0, bus) {
+function musicPlay(key, when, from = 0, bus, fadeIn = 0) {
   // start a section at ctx time 'when', 'from' seconds into it; it becomes the current one
   const C = AUDIO.ctx, b = AUDIO.bufs[key], m = MUSIC[key]; if (!C || !b) return null;
   const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = 1;
   s.connect(g); g.connect(bus || AUDIO.musicGain);
   when = Math.max(C.currentTime + 0.01, when); s.start(when, m.at + from);
+  if (fadeIn) { g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.25, when + fadeIn * 0.6); g.gain.linearRampToValueAtTime(1, when + fadeIn); }   // a swell
   const v = { s, g, end: when + b.duration - m.at - from }; MUS.voices.push(v); s.onended = () => { const i = MUS.voices.indexOf(v); if (i >= 0) MUS.voices.splice(i, 1); };
   MUS.cur = { key, T: when - from, queued: when - from, pending: 0 };
   return MUS.cur;
@@ -320,7 +321,8 @@ function musicMono() {
   const said = mono.on ? (performance.now() - mono.t0) / 1000 : 0;   // (if the music loaded late, part of it's been said)
   const toRage = (MONO.lines || []).reduce((a, l) => a + l.secs, 0) + (INTRO.rage - INTRO.windup) - said;
   const lead = toRage - m.start[m.rage];
-  if (lead >= 0) musicPlay('m_intro', C.currentTime + lead, 0); else musicPlay('m_intro', C.currentTime, -lead);
+  // it swells in over the drone (the first two bars); joining late, a shorter swell
+  if (lead >= 0) musicPlay('m_intro', C.currentTime + lead, 0, null, m.start[2]); else musicPlay('m_intro', C.currentTime, -lead, null, Math.min(3, m.start[2]));
 }
 function musicRage() {
   // he's angry: TAKEN. STOLEN. CANCELLED. then phase 1 right after (jumping there if the monologue was skipped)
