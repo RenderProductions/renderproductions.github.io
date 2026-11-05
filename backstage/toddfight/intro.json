@@ -281,6 +281,33 @@
         0.35
       ],
       "credit": "Prometheus Carrying Fire, Jan Cossiers, 1637 (public domain)"
+    },
+    "flag": {
+      "drawn": "art",
+      "art": [
+        "peace/flag.svg"
+      ],
+      "credit": "a white flag, Render Productions (draft)"
+    },
+    "peace": {
+      "drawn": "art",
+      "art": [
+        "peace/peace.svg"
+      ],
+      "credit": "the peace symbol, Render Productions (draft)"
+    },
+    "breda": {
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Velazquez-The_Surrender_of_Breda.jpg/960px-Velazquez-The_Surrender_of_Breda.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/8/8e/Velazquez-The_Surrender_of_Breda.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Vel%C3%A1zquez_-_de_Breda_o_Las_Lanzas_%28Museo_del_Prado%2C_1634-35%29.jpg/960px-Vel%C3%A1zquez_-_de_Breda_o_Las_Lanzas_%28Museo_del_Prado%2C_1634-35%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/4/4e/Vel%C3%A1zquez_-_de_Breda_o_Las_Lanzas_%28Museo_del_Prado%2C_1634-35%29.jpg"
+      ],
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "credit": "The Surrender of Breda, Diego Velázquez, 1635 (public domain)"
     }
   },
   "_how2": "'title' is the card before the fight (click to start). 'death' is the card when you die: 'heading', and one of 'quotes' (TODD talking) picked at random. 'win' is the banner when you beat him. These are drafts: rewrite them.",
@@ -364,5 +391,11 @@
       ],
       "secs": 4.14
     }
-  ]
+  ],
+  "scared_pictures": [
+    "flag",
+    "peace",
+    "breda"
+  ],
+  "_how8": "'scared_pictures': in phase 3, when he's terrified, most of what flickers across his screen is from here instead of 'damage_pictures' (and the first one is what he holds up when he begs). 'flag' and 'peace' are drafts in peace/ to redraw."
 }
