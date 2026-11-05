@@ -249,13 +249,34 @@ addEventListener('pointerdown', audioOn); addEventListener('keydown', audioOn);
 // ---------------- the stage (2D) ----------------
 const stage = document.getElementById('stage'), ctx = stage.getContext('2d');
 let scale = 1, dpr = 1;
+// Resolution: at most 1.5x the screen's pixels (2x is a lot of pixels for little gain), and if frames start
+// running slow it steps down by itself (see the frame loop), as far as 1x (or lower on a struggling machine).
+let quality = 1;
 function fit() {
   const r = stage.getBoundingClientRect();
-  dpr = Math.min(2, devicePixelRatio || 1);
+  dpr = Math.min(1.5, devicePixelRatio || 1) * quality;
   stage.width = Math.round(r.width * dpr); stage.height = Math.round(r.height * dpr);
   scale = stage.width / W;
   sizeTodd(r.width, r.height);
 }
+
+// ---- baked sprites ----
+// Glows (canvas shadowBlur) are very slow to draw, and filters too. So anything that glows is drawn once, glow
+// and all, into a little canvas at the screen's resolution, and after that each frame just stamps it.
+const baked = new Map();
+function bake(key, w, h, pad, draw) {
+  const R = Math.max(1, Math.round(scale * 4) / 4), k = key + '@' + R;
+  let b = baked.get(k);
+  if (!b) {
+    const c = document.createElement('canvas'); c.width = Math.ceil((w + pad * 2) * R); c.height = Math.ceil((h + pad * 2) * R);
+    const g = c.getContext('2d'); g.scale(R, R); g.translate(pad + w / 2, pad + h / 2); draw(g);
+    b = { c, w: w + pad * 2, h: h + pad * 2 };
+    if (baked.size > 400) baked.clear();      // (a resize leaves old sizes behind)
+    baked.set(k, b);
+  }
+  return b;
+}
+function stamp(b, k = 1) { ctx.drawImage(b.c, -b.w / 2 * k, -b.h / 2 * k, b.w * k, b.h * k); }
 
 function drawFloor(t) {
   // the floor he's standing on: a lit edge, and a grid running back under TODD
@@ -281,20 +302,36 @@ function drawPlayer() {
   if (P.hurtT > 0 && Math.floor(P.hurtT * 20) % 2) ctx.globalAlpha = 0.35;
   // a parry: a quick flip, and a flash around him while the window's open
   if (P.spin > 0) ctx.rotate((1 - P.spin / TUNE.spin) * Math.PI * 2 * P.face);
-  if (P.fizzleT > 0) { ctx.filter = 'grayscale(1) brightness(.75)'; }
+  const name = frameFor();
   if (P.goldT > 0) {
-    // just parried: golden, and nothing can touch you
+    // just parried: golden, and nothing can touch you (fading back out at the end)
     const k = Math.min(1, P.goldT / 0.15);
-    ctx.shadowColor = '#ffd23a'; ctx.shadowBlur = 26 * k;
-    ctx.filter = `sepia(${k}) saturate(${1 + 5 * k}) hue-rotate(${-8 * k}deg) brightness(${1 + 0.15 * k})`;
-  } else if (P.parryT > 0) { ctx.shadowColor = '#ff5cf0'; ctx.shadowBlur = 22; }
-  ctx.drawImage(a.img, a.ox, a.oy, a.w, a.h);
+    if (k < 1) ctx.drawImage(a.img, a.ox, a.oy, a.w, a.h);
+    ctx.globalAlpha *= k; drawTinted(a, name, 'gold');
+  } else if (P.fizzleT > 0) drawTinted(a, name, 'grey');
+  else if (P.parryT > 0) drawTinted(a, name, 'pink');
+  else ctx.drawImage(a.img, a.ox, a.oy, a.w, a.h);
   ctx.restore();
+}
+
+// the player's frames, tinted and glowing (baked once per frame and tint)
+const TINT = { gold: ['rgba(255,196,40,.62)', '#ffd23a', 26], grey: ['rgba(60,66,70,.55)', null, 0], pink: [null, '#ff5cf0', 22] };
+function drawTinted(a, name, tint) {
+  const [fill, glow, blur] = TINT[tint], pad = blur + 4;
+  const b = bake('p:' + name + ':' + tint, a.w, a.h, pad, (g) => {
+    const R = g.getTransform().a, c = document.createElement('canvas'); c.width = Math.ceil(a.w * R); c.height = Math.ceil(a.h * R);
+    const cg = c.getContext('2d'); cg.drawImage(a.img, 0, 0, c.width, c.height);
+    if (fill) { cg.globalCompositeOperation = 'source-atop'; cg.fillStyle = fill; cg.fillRect(0, 0, c.width, c.height); }
+    if (glow) { g.shadowColor = glow; g.shadowBlur = blur * R; }
+    g.drawImage(c, -a.w / 2, -a.h / 2, a.w, a.h);
+  });
+  // (a frame's top-left is at (ox, oy) from the centre; the baked one is centred on the frame itself)
+  ctx.drawImage(b.c, a.ox - pad, a.oy - pad, b.w, b.h);
 }
 
 // ---------------- TODD (3D, behind) ----------------
 const toddCanvas = document.getElementById('todd');
-const renderer = new THREE.WebGLRenderer({ canvas: toddCanvas, antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ canvas: toddCanvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
 renderer.outputEncoding = THREE.sRGBEncoding;
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.1, 200);
@@ -304,7 +341,7 @@ const rim = new THREE.DirectionalLight(0x00fffa, 0.7); rim.position.set(-6, 4, -
 let todd = null, toddH = 1;
 const bones = {}, rest = {};
 function sizeTodd(w, h) {
-  renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  renderer.setPixelRatio(Math.min(1.5, devicePixelRatio || 1) * quality);
   renderer.setSize(w, h, false);
 }
 // ---- his face: the same 18 x 14 faces as the void (toddguts/faces.png), on a panel over his screen ----
@@ -671,7 +708,7 @@ function ripple(stageX, speed = 1.2) {
 function wear() { return Math.max(0, Math.min(1, 1 - boss.hp / TODD_HP)); }
 // Grey, see-through cubes of smoke billowing off him: wisps from his shoulders early on, pouring out of his
 // monitor and chest by the end. Each one rises, swells, tumbles and fades.
-const SMOKE_N = 90;
+const SMOKE_N = 60;
 const smokeGeo = new THREE.BoxGeometry(1, 1, 1);
 const smoke = Array.from({ length: SMOKE_N }, () => {
   const m = new THREE.Mesh(smokeGeo, new THREE.MeshLambertMaterial({ color: 0x8e979c, transparent: true, opacity: 0, depthWrite: false }));
@@ -704,7 +741,7 @@ function stepSmoke(dt) {
   if (!todd) return;
   const w = boss.down ? 1.2 : wear();
   const open = VENTS.filter((v) => w >= v.at);
-  smokeAcc += dt * (open.length ? Math.pow(w, 1.4) * 22 : 0);
+  smokeAcc += dt * (open.length ? Math.pow(w, 1.4) * 16 : 0);
   while (smokeAcc > 1) { smokeAcc--; puff(ventAt(open[(Math.random() * open.length) | 0])); }
   for (const m of smoke) {
     if (!m.visible) continue;
@@ -1133,15 +1170,20 @@ function fistOnStage(side) {
   return { x: c.x, y: c.y, r: Math.hypot(e.x - c.x, e.y - c.y) };
 }
 // Reach: search his arm's angles (and how far he leans in) for the pose that puts his fist on a point.
+// (answers are remembered: he slams the same few spots a lot, and the search is the costly part)
+const solved = new Map();
 function solveArm(side, goal, lean) {
+  const key = side + ':' + goal.x.toFixed(2) + ',' + goal.y.toFixed(2) + ',' + goal.z.toFixed(2) + ':' + lean;
+  if (solved.has(key)) return solved.get(key);
   const [arm, fore] = ARM[side], A = bones[arm], F = bones[fore], C = bones.chest;
   const keep = [A.quaternion.clone(), F.quaternion.clone(), C.quaternion.clone()];
   const m = side === 'R' ? 1 : -1, e = new THREE.Euler(), q = new THREE.Quaternion();
+  // the lean is the same for every try: set it (and his chest's matrices) once; each try only re-poses the arm
+  e.set(lean, 0, 0, 'YXZ'); C.quaternion.copy(rest.chest).multiply(q.setFromEuler(e)); C.updateMatrixWorld(true);
   const set = (c) => {
-    e.set(lean, 0, 0, 'YXZ'); C.quaternion.copy(rest.chest).multiply(q.setFromEuler(e));
     e.set(c[0], c[1], c[2], 'YXZ'); A.quaternion.copy(rest[arm]).multiply(q.setFromEuler(e));
     e.set(c[3], 0, 0, 'YXZ'); F.quaternion.copy(rest[fore]).multiply(q.setFromEuler(e));
-    C.updateMatrixWorld(true);
+    A.updateMatrixWorld(true);
     return palmOf(side).distanceTo(goal);
   };
   let best = null;
@@ -1154,6 +1196,8 @@ function solveArm(side, goal, lean) {
     const k = set(c); if (k < best.cost) best = { c, cost: k };
   }
   A.quaternion.copy(keep[0]); F.quaternion.copy(keep[1]); C.quaternion.copy(keep[2]); C.updateMatrixWorld(true);
+  if (solved.size > 300) solved.clear();
+  solved.set(key, best);
   return best;
 }
 // the same, but starting from a nearby solution (cheap: for a path of points)
@@ -1161,11 +1205,11 @@ function solveArmFrom(side, goal, lean, seed) {
   const [arm, fore] = ARM[side], A = bones[arm], F = bones[fore], C = bones.chest;
   const keep = [A.quaternion.clone(), F.quaternion.clone(), C.quaternion.clone()];
   const e = new THREE.Euler(), q = new THREE.Quaternion();
+  e.set(lean, 0, 0, 'YXZ'); C.quaternion.copy(rest.chest).multiply(q.setFromEuler(e)); C.updateMatrixWorld(true);
   const set = (c) => {
-    e.set(lean, 0, 0, 'YXZ'); C.quaternion.copy(rest.chest).multiply(q.setFromEuler(e));
     e.set(c[0], c[1], c[2], 'YXZ'); A.quaternion.copy(rest[arm]).multiply(q.setFromEuler(e));
     e.set(c[3], 0, 0, 'YXZ'); F.quaternion.copy(rest[fore]).multiply(q.setFromEuler(e));
-    C.updateMatrixWorld(true);
+    A.updateMatrixWorld(true);
     return palmOf(side).distanceTo(goal);
   };
   let best = { c: seed.slice(), cost: set(seed) };
@@ -1706,46 +1750,53 @@ function stepThreats(dt) {
   }
 }
 function drawBar(o) {
-  const k = o.scale || 1;
-  ctx.save(); ctx.translate(o.x, o.y); if (o.state === 'back') ctx.rotate(o.rot * 0.3); ctx.scale(k, k);
-  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 14;
-  ctx.fillStyle = 'rgba(40,0,6,.92)'; ctx.fillRect(-o.w / 2, -o.h / 2, o.w, o.h);
-  ctx.shadowBlur = 0; ctx.strokeStyle = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.lineWidth = 2; ctx.strokeRect(-o.w / 2, -o.h / 2, o.w, o.h);
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 17px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  let txt = '> ' + o.text; while (ctx.measureText(txt).width > o.w - 12 && txt.length > 4) txt = txt.slice(0, -2) + '_';
-  ctx.fillText(txt, 0, 1);
-  ctx.restore();
+  const k = o.scale || 1, back = o.state === 'back', col = back ? '#ff5cf0' : '#ff2a3a';
+  const b = bake('bar:' + o.text + ':' + Math.round(o.w) + ':' + back, o.w, o.h, 16, (g) => {
+    g.shadowColor = col; g.shadowBlur = 14 * g.getTransform().a;
+    g.fillStyle = 'rgba(40,0,6,.92)'; g.fillRect(-o.w / 2, -o.h / 2, o.w, o.h);
+    g.shadowBlur = 0; g.strokeStyle = col; g.lineWidth = 2; g.strokeRect(-o.w / 2, -o.h / 2, o.w, o.h);
+    g.fillStyle = '#fff'; g.font = 'bold 17px "Courier New", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let txt = '> ' + o.text; while (g.measureText(txt).width > o.w - 12 && txt.length > 4) txt = txt.slice(0, -2) + '_';
+    g.fillText(txt, 0, 1);
+  });
+  ctx.save(); ctx.translate(o.x, o.y); if (back) ctx.rotate(o.rot * 0.3); stamp(b, k); ctx.restore();
+}
+// a column of static: a handful of baked frames, flicked through
+function waveFrame(back, n) {
+  return bake('wave:' + back + ':' + n, 38, 90, 18, (g) => {
+    g.shadowColor = back ? '#ff5cf0' : '#ffffff'; g.shadowBlur = 16 * g.getTransform().a;
+    const cell = 6, w = 38, h = 90;
+    for (let y = -h / 2; y < h / 2; y += cell) for (let x = -w / 2; x < w / 2; x += cell) {
+      const edge = 1 - Math.abs(x) / (w / 2), top = (y + h / 2) / h;
+      if (Math.random() > edge * (0.4 + top * 0.6)) continue;
+      const c = STATIC[(Math.random() * STATIC.length) | 0];
+      g.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; g.fillRect(x, y, cell, cell);
+    }
+  });
 }
 function drawWave(o) {
-  // a column of static
-  const k = o.scale || 1;
-  ctx.save(); ctx.translate(o.x, o.y); ctx.scale(k, k);
-  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ffffff'; ctx.shadowBlur = 16;
-  const cell = 6;
-  for (let y = -o.h / 2; y < o.h / 2; y += cell) for (let x = -o.w / 2; x < o.w / 2; x += cell) {
-    const edge = 1 - Math.abs(x) / (o.w / 2), top = (y + o.h / 2) / o.h;
-    if (Math.random() > edge * (0.4 + top * 0.6)) continue;
-    const c = STATIC[(Math.random() * STATIC.length) | 0];
-    ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(x, y, cell, cell);
-  }
+  ctx.save(); ctx.translate(o.x, o.y);
+  stamp(waveFrame(o.state === 'back', (Math.random() * 6) | 0), o.scale || 1);
   ctx.restore();
 }
 function drawShock(o) {
-  const k = o.scale || 1, d = Math.sign(o.vx || 1);
-  ctx.save(); ctx.translate(o.x, o.y); ctx.scale(k * d, k);
-  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 18;
-  ctx.fillStyle = o.state === 'back' ? '#ff9bf5' : '#ff5260';
-  for (let j = 0; j < 3; j++) { const x = -j * 12; ctx.globalAlpha = 1 - j * 0.3; ctx.beginPath(); ctx.moveTo(x + 14, 20); ctx.lineTo(x - 2, -20 + j * 8); ctx.lineTo(x - 8, 20); ctx.fill(); }
-  ctx.restore(); ctx.globalAlpha = 1;
+  const back = o.state === 'back', d = Math.sign(o.vx || 1);
+  const b = bake('shock:' + back, 40, 44, 20, (g) => {
+    g.shadowColor = back ? '#ff5cf0' : '#ff2a3a'; g.shadowBlur = 18 * g.getTransform().a;
+    g.fillStyle = back ? '#ff9bf5' : '#ff5260';
+    for (let j = 0; j < 3; j++) { const x = -j * 12 + 10; g.globalAlpha = 1 - j * 0.3; g.beginPath(); g.moveTo(x + 14, 20); g.lineTo(x - 2, -20 + j * 8); g.lineTo(x - 8, 20); g.fill(); }
+  });
+  ctx.save(); ctx.translate(o.x, o.y); ctx.scale(d, 1); stamp(b, o.scale || 1); ctx.restore();
 }
 function drawCursor(o) {
-  const k = o.scale || 1;
-  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.atan2(o.vy, o.vx) + Math.PI * 0.75 + (o.state === 'back' ? o.rot : 0)); ctx.scale(2.1 * k, 2.1 * k);
-  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 12;
-  ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 7); ctx.lineTo(4.5, 3); ctx.lineTo(8, 10); ctx.lineTo(10.5, 9); ctx.lineTo(7, 2); ctx.lineTo(13, 2); ctx.closePath();
-  ctx.translate(-5, 0);
-  ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = '#111'; ctx.stroke();
-  ctx.restore();
+  const back = o.state === 'back';
+  const b = bake('cursor:' + back, 30, 50, 14, (g) => {
+    g.scale(2.1, 2.1); g.translate(-5, 0);
+    g.shadowColor = back ? '#ff5cf0' : '#ff2a3a'; g.shadowBlur = 12 * g.getTransform().a / 2.1;
+    g.beginPath(); g.moveTo(5, -12); g.lineTo(5, 7); g.lineTo(9.5, 3); g.lineTo(13, 10); g.lineTo(15.5, 9); g.lineTo(12, 2); g.lineTo(18, 2); g.closePath();
+    g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0; g.lineWidth = 1.6; g.strokeStyle = '#111'; g.stroke();
+  });
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.atan2(o.vy, o.vx) + Math.PI * 0.75 + (back ? o.rot : 0)); stamp(b, o.scale || 1); ctx.restore();
 }
 function drawDrop(o, t) {
   if (o.state === 'warn') {
@@ -1755,17 +1806,18 @@ function drawDrop(o, t) {
     ctx.strokeRect(o.x - o.w / 2, 14, o.w, o.h); ctx.beginPath(); ctx.moveTo(o.x, 14 + o.h); ctx.lineTo(o.x, FLOOR); ctx.stroke();
     ctx.restore(); return;
   }
-  const k = o.scale || 1;
-  ctx.save(); ctx.translate(o.x, o.y); if (o.state === 'back') ctx.rotate(o.rot * 0.3); ctx.scale(k, k);
-  const x = -o.w / 2, y = -o.h / 2;
-  ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 16;
-  ctx.fillStyle = '#d8dde0'; ctx.fillRect(x, y, o.w, o.h); ctx.shadowBlur = 0;
-  ctx.fillStyle = o.state === 'back' ? '#a0279a' : '#a3121f'; ctx.fillRect(x, y, o.w, 18);
-  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px "Courier New", monospace'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillText('TODD.EXE', x + 5, y + 9.5);
-  ctx.fillStyle = '#ff4757'; ctx.fillRect(x + o.w - 16, y + 3, 12, 12); ctx.fillStyle = '#fff'; ctx.fillText('x', x + o.w - 13, y + 9);
-  ctx.fillStyle = '#111'; ctx.font = 'bold 18px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.fillText(o.text, 0, 10);
-  ctx.strokeStyle = '#2b3338'; ctx.lineWidth = 2; ctx.strokeRect(x, y, o.w, o.h);
-  ctx.restore();
+  const back = o.state === 'back';
+  const b = bake('drop:' + o.text + ':' + back, o.w, o.h, 18, (g) => {
+    const x = -o.w / 2, y = -o.h / 2;
+    g.shadowColor = back ? '#ff5cf0' : '#ff2a3a'; g.shadowBlur = 16 * g.getTransform().a;
+    g.fillStyle = '#d8dde0'; g.fillRect(x, y, o.w, o.h); g.shadowBlur = 0;
+    g.fillStyle = back ? '#a0279a' : '#a3121f'; g.fillRect(x, y, o.w, 18);
+    g.fillStyle = '#fff'; g.font = 'bold 11px "Courier New", monospace'; g.textBaseline = 'middle'; g.textAlign = 'left'; g.fillText('TODD.EXE', x + 5, y + 9.5);
+    g.fillStyle = '#ff4757'; g.fillRect(x + o.w - 16, y + 3, 12, 12); g.fillStyle = '#fff'; g.fillText('x', x + o.w - 13, y + 9);
+    g.fillStyle = '#111'; g.font = 'bold 18px "Courier New", monospace'; g.textAlign = 'center'; g.fillText(o.text, 0, 10);
+    g.strokeStyle = '#2b3338'; g.lineWidth = 2; g.strokeRect(x, y, o.w, o.h);
+  });
+  ctx.save(); ctx.translate(o.x, o.y); if (back) ctx.rotate(o.rot * 0.3); stamp(b, o.scale || 1); ctx.restore();
 }
 function drawThreats(t) {
   for (const o of threats) {
@@ -1775,11 +1827,12 @@ function drawThreats(t) {
     if (o.kind === 'bar') { drawBar(o); continue; }
     if (o.kind === 'wave') { drawWave(o); continue; }
     const img = shotImage(o.name); if (!img) continue;
-    ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.sin(o.rot) * 0.25 + (o.state === 'back' ? o.rot : 0));
-    const k = (o.scale || 1);
-    ctx.shadowColor = o.state === 'back' ? '#ff5cf0' : '#ff2a3a'; ctx.shadowBlur = 18;
-    ctx.drawImage(img, -img.width / 2 * k, -img.height / 2 * k, img.width * k, img.height * k);
-    ctx.restore();
+    const back = o.state === 'back';
+    const b = bake('face:' + o.name + ':' + back, img.width, img.height, 20, (g) => {
+      g.shadowColor = back ? '#ff5cf0' : '#ff2a3a'; g.shadowBlur = 18 * g.getTransform().a;
+      g.drawImage(img, -img.width / 2, -img.height / 2);
+    });
+    ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(Math.sin(o.rot) * 0.25 + (back ? o.rot : 0)); stamp(b, o.scale || 1); ctx.restore();
   }
 }
 // ---- what his screen shows outside the monologue: a taunt picture, or flickers of pictures as he breaks ----
@@ -1875,13 +1928,28 @@ function heal() {
 }
 let then = performance.now(), acc = 0;
 const STEP = 1 / 120;
+// If frames keep running slow, render at a lower resolution (and come back up when things are smooth again).
+let slowFor = 0, fastFor = 0, ema = 1 / 60;
+function adapt(dt, now) {
+  if (document.hidden || dt <= 0) return;
+  ema += (dt - ema) * 0.05;
+  if (ema > 1 / 42) { slowFor += dt; fastFor = 0; } else if (ema < 1 / 57) { fastFor += dt; slowFor = 0; } else { slowFor = fastFor = 0; }
+  if (slowFor > 1.5 && quality > 0.5) { quality = Math.max(0.5, quality - 0.17); slowFor = 0; fit(); }
+  else if (fastFor > 8 && quality < 1) { quality = Math.min(1, quality + 0.17); fastFor = 0; fit(); }
+}
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - then) / 1000); then = now;
   if (fight.phase === 'title') { jumpPressed = parryPressed = false; }   // the title card waits for a click, not a key
   // a parry freezes everything for a split second
   if (hitstop > 0) { hitstop -= dt; acc = 0; }
-  else { acc += dt; while (acc >= STEP) { step(STEP); stepThreats(STEP); acc -= STEP; } }
+  else {
+    acc += dt;
+    let n = 0;
+    while (acc >= STEP && n < 6) { step(STEP); stepThreats(STEP); acc -= STEP; n++; }
+    if (n >= 6) acc = 0;     // a long stall: let it go rather than trying to catch up (that only makes the next frame slower)
+  }
+  adapt(dt, now);
   if (fight.retry && jumpPressed) { jumpPressed = false; restart(); }
 
   if (mono.on && (keys.jump || keys.parry) && seenIntro()) skipMonologue();
@@ -1919,7 +1987,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
