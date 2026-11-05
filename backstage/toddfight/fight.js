@@ -13,8 +13,11 @@ const WALL_L = 0, WALL_R = W;      // he can slide down the edges of the screen
 const ORIGIN = { x: 240, y: 180 };
 const FRAMES = ['Idle', 'Walk1', 'Walk2', 'Walk3', 'Walk4', 'Walk5', 'Walk6', 'Jump', 'Fall', 'Wall_Slide', 'Die'];
 const art = {};
+// frames that are used if they exist: Parry (the spin; until then it's the Jump frame)
+const OPTIONAL_FRAMES = ['Parry'];
 function loadFrame(name) {
-  return fetch('player/' + name + '.svg').then((r) => r.text()).then((txt) => new Promise((ok) => {
+  return fetch('player/' + name + '.svg').then((r) => (r.ok ? r.text() : '')).then((txt) => new Promise((ok) => {
+    if (!/<svg/.test(txt)) return ok();     // not there (yet): fine, see OPTIONAL_FRAMES
     const w = parseFloat(/width="([\d.]+)"/.exec(txt)[1]), h = parseFloat(/height="([\d.]+)"/.exec(txt)[1]);
     const t = /translate\((-?[\d.]+),(-?[\d.]+)\)/.exec(txt);
     const img = new Image();
@@ -138,7 +141,7 @@ function step(dt) {
 const WALK = ['Walk1', 'Walk2', 'Walk3', 'Idle', 'Walk4', 'Walk5', 'Walk6', 'Idle'];
 function frameFor() {
   if (P.dead) return 'Die';
-  if (P.spin > 0 || P.parryT > 0) return 'Jump';
+  if (P.spin > 0 || P.parryT > 0) return art.Parry ? 'Parry' : 'Jump';
   if (P.wall) return 'Wall_Slide';
   if (!P.ground) return P.vy < 0 ? 'Jump' : 'Fall';
   // the idle frame is the passing pose between each half of the step
@@ -416,7 +419,8 @@ function drawPlayer() {
   if (P.wall < 0) ctx.scale(-1, 1);         // the wall-slide frame has his feet on a wall to his right
   if (P.hurtT > 0 && Math.floor(P.hurtT * 20) % 2) ctx.globalAlpha = 0.35;
   // a parry: a quick flip, and a flash around him while the window's open
-  if (P.spin > 0) ctx.rotate((1 - P.spin / TUNE.spin) * Math.PI * 2 * P.face);
+  // (the flip goes the way you're facing: forwards. The canvas may already be mirrored, so undo that first.)
+  if (P.spin > 0) { const m = ((P.face < 0 && !P.wall) ? -1 : 1) * (P.wall < 0 ? -1 : 1); ctx.rotate((1 - P.spin / TUNE.spin) * Math.PI * 2 * P.face * m); }
   const name = frameFor();
   if (P.goldT > 0) {
     // just parried: golden, and nothing can touch you (fading back out at the end)
@@ -2540,3 +2544,4 @@ window.FIGHT = { hold: false, hitTodd, MUS, MUSIC, musicPlay, get CFG() { return
 addEventListener('resize', fit);
 fit(); paintHud();
 Promise.all(FRAMES.map(loadFrame)).then(() => requestAnimationFrame(frame));
+OPTIONAL_FRAMES.forEach((n) => loadFrame(n).catch(() => {}));
