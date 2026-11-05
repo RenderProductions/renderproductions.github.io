@@ -878,7 +878,7 @@ const fire = (() => {
   const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding; tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false;
   let last = 0, warm = false;
   return { tex, step(now) {
-    if (!warm) { warm = true; for (let k = 0; k < 70; k++) { last = 0; this.step(1e9 + k * 100); } }   // already burning when it appears
+    if (!warm) { warm = true; for (let k = 0; k < 70; k++) { last = 0; this.step(1e9 + k * 100); } last = 0; }   // already burning when it appears (then back to the real clock)
     if (now - last < 40) return; last = now;
     for (let x = 0; x < w; x++) heat[(h - 1) * w + x] = 30 + Math.random() * 7;
     for (let y = 0; y < h - 1; y++) for (let x = 0; x < w; x++) {
@@ -1645,14 +1645,29 @@ try { SEEN = JSON.parse(localStorage.getItem('rvFightSeen')) || {}; } catch (e) 
 function seePic(key) { if (!key || SEEN[key]) return; SEEN[key] = 1; try { localStorage.setItem('rvFightSeen', JSON.stringify(SEEN)); } catch (e) {} }
 function gThumb(key) {
   // a still of a picture (its image, or a snapshot of a drawn one)
-  if (key === 'fire') fire.step(performance.now() + 1e9);   // light it first
+  if (key === 'fire') fire.step(performance.now());   // light it first (it's already burning: it warms up on its first step)
   const t = pics[key]; if (!t || !t.image) return null;
   const im = t.image, c = document.createElement('canvas'), w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
   c.width = 360; c.height = 280;
   const g = c.getContext('2d'), k = Math.max(c.width / w, c.height / h), f = (MONO && MONO.pictures[key] && MONO.pictures[key].focus) || [0.5, 0.5];
   const dw = w * k, dh = h * k; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
   try { g.drawImage(im, (c.width - dw) * f[0], (c.height - dh) * f[1], dw, dh); } catch (e) { return null; }
+  if (key === 'fire') { gLive.add(c); gFire(); }   // the fire keeps burning in here too
   return c;
+}
+// the fire is drawn live (not a GIF), so its tiles redraw it every frame while they're on screen
+const gLive = new Set();
+function gFire() {
+  if (gFire.on) return; gFire.on = true;
+  const tick = (now) => {
+    for (const c of gLive) if (!c.isConnected) gLive.delete(c);
+    const open = !document.getElementById('gallery').hidden || !document.getElementById('g-view').hidden;
+    if (!gLive.size || !open) { gFire.on = false; return; }
+    fire.step(now);
+    for (const c of gLive) c.getContext('2d').drawImage(fire.tex.image, 0, 0, c.width, c.height);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 function gOpen(key) {
   const v = document.getElementById('g-view'), big = document.getElementById('g-big'), t = gThumb(key); if (!t) return;
