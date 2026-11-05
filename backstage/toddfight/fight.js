@@ -472,7 +472,8 @@ function sizeTodd(w, h) {
   renderer.setSize(w, h, false);
 }
 // ---- his face: the same 18 x 14 faces as the void (toddguts/faces.png), on a panel over his screen ----
-const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading', 'agony'];
+const FACES = ['smile', 'neutral', 'happy', 'angry', 'surprised', 'sly', 'sad', 'error', 'loading', 'agony', 'scared', 'panic'];
+const EXTRA_FACES = { scared: 0, panic: 1 };   // in faces_scared.png (the fight's own, not the void's)
 const FACE = { x: 1, y: 145, w: 18, h: 14 };      // where the screen is on his texture (256 x 256 units)
 const STATIC = [[0, 255, 250], [255, 255, 255], [10, 40, 44], [0, 120, 118], [200, 255, 255]];
 const RED = [255, 34, 46];
@@ -488,8 +489,16 @@ function loadFaces() {
     img.onload = () => {
       const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
       const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(img, 0, 0);
-      faceData = FACES.map((_, i) => (i + 1) * FACE.w <= img.width ? g.getImageData(i * FACE.w, 0, FACE.w, FACE.h).data : null);
-      ok();
+      faceData = FACES.map((n, i) => (!(n in EXTRA_FACES) && (i + 1) * FACE.w <= img.width) ? g.getImageData(i * FACE.w, 0, FACE.w, FACE.h).data : null);
+      const ex = new Image();
+      ex.onload = () => {
+        const c2 = document.createElement('canvas'); c2.width = ex.width; c2.height = ex.height;
+        const g2 = c2.getContext('2d', { willReadFrequently: true }); g2.drawImage(ex, 0, 0);
+        for (const n in EXTRA_FACES) faceData[FACES.indexOf(n)] = g2.getImageData(EXTRA_FACES[n] * FACE.w, 0, FACE.w, FACE.h).data;
+        ok();
+      };
+      ex.onerror = () => ok();
+      ex.src = 'faces_scared.png?v=1';
     };
     img.onerror = () => ok();
     img.src = '../toddguts/faces.png?v=1';
@@ -1077,7 +1086,7 @@ function banner(text) {
 function stepShift(dt) {
   const fistOut = atk && atk.stand !== undefined;
   if (fistOut) shift.want = atk.stand;                                   // stepping out for a fist attack
-  else if (fight.phase === 'fight' && !boss.down) shift.want = Math.max(-150, Math.min(150, (P.x - W / 2) * 0.3)) / ppw();   // drifting your way
+  else if (fight.phase === 'fight' && !boss.down) shift.want = Math.max(-150, Math.min(150, (P.x - W / 2) * (phase() === 3 && !CFG ? -0.4 : 0.3))) / ppw();   // drifting your way (backing off, once he's scared)
   else shift.want = 0;
   const k = fistOut ? 7 : 1.4, before = shift.x;
   shift.x += (shift.want - shift.x) * Math.min(1, dt * k);
@@ -1172,10 +1181,17 @@ function animateTodd(t, dt) {
     }
   } else if (fight.phase === 'fight') {
     // angry and ready: leaning in, fists up, breathing hard
-    const huff = Math.sin(t * 3.2);
+    const huff = Math.sin(t * 3.2), ph = phase();
     chest = [0.12 + huff * 0.03, 0, 0];
     armR = [-0.9 + huff * 0.04, 0.1, 0.35]; armL = [-0.9 - huff * 0.04, -0.1, -0.35]; foreR = foreL = -1.3;
     speed = 5; red = 1;
+    if (ph === 2 && Math.sin(t * 0.9) + Math.sin(t * 2.3) > 1.6) { yaw = youYaw + (P.x < W / 2 ? 0.5 : -0.5); }   // rattled: a glance away now and then
+    if (ph === 3) {
+      // terrified: leaning back, hands up and out in front of him (stay away), trembling
+      const tr = Math.sin(t * 38) * 0.035, sh = Math.sin(t * 2.1);
+      chest = [-0.14 + sh * 0.02, 0, tr]; armR = [-1.25 + tr, 0.35, 0.12]; armL = [-1.25 - tr, -0.35, -0.12]; foreR = foreL = -1.15 + tr;
+      pitch = youPitch - 0.08 + tr; speed = 7; red = 0.35;
+    }
     if (atk && (atk.kind === 'slam' || atk.kind === 'sweep')) {
       const S = atk.side, T2 = (performance.now() - atk.t0) / 1000;
       let a = null, f = null;
@@ -1223,7 +1239,13 @@ function animateTodd(t, dt) {
       const wig = k.wig ? Math.sin(t * 16) * 0.12 : 0, grind = k.grind ? Math.sin(t * 22) * 0.07 : 0;
       put('R', k.R, wig + grind); put('L', k.L, wig - grind);
       if (k.wig) { const sR = k.R ? armR : armL; sR[1] += Math.sin(t * 16) * 0.1; }
-      if (atk.taunt === 'tie') { pitch = youPitch - 0.22; chest = [0.0, 0, Math.sin(t * 3) * 0.04]; }
+      if (atk.taunt === 'plead') {
+        // don't shoot: both hands up, his screen shaking "no"
+        const tr = Math.sin(t * 40) * 0.05;
+        armR = [-2.6 + tr, 0, 0.75]; armL = [-2.6 - tr, 0, -0.75]; foreR = foreL = -0.55;
+        chest = [-0.12, 0, 0]; pitch = youPitch - 0.05; yaw = youYaw + Math.sin(t * 9) * 0.35; speed = 12;
+      }
+      else if (atk.taunt === 'tie') { pitch = youPitch - 0.22; chest = [0.0, 0, Math.sin(t * 3) * 0.04]; }
       else if (atk.taunt === 'brush') { pitch = youPitch - 0.1; chest = [0.08, 0, 0]; }
       else { chest = [0.2, 0, 0]; pitch = youPitch + 0.1; if (k.grind) fight.shake = Math.max(fight.shake, 0.12); }
     } else if (atk && atk.kind === 'volley') {
@@ -1455,19 +1477,19 @@ function hitTodd(x, y) {
   if (!boss.down) ouch();
   if (boss.down) return;
   const before = phase();
-  boss.hp--; boss.flinch = 1;
+  boss.hp--; boss.flinch = [1, 1, 1.35, 1.7][phase()];   // the more scared, the harder he reels
   if (boss.hp > 0 && phase() !== before) {
     // a new phase: he glitches out, then comes back angrier
     setTimeout(() => { if (!boss.down) { face('error', 300); fight.shake = 1.3; } }, 750);
-    setTimeout(() => { if (!boss.down) face('angry', 400); }, 1500);
+    setTimeout(() => { if (!boss.down) face(mood(), 400); }, 1500);
     nextAtk = performance.now() + 2200;
   }
   fight.shake = Math.max(fight.shake, 0.8);
   fx.push({ kind: 'burst', x, y, t: 0, life: 0.5 });
   smokeBurst(3 + Math.round(wear() * 6));
-  face(Math.random() < 0.5 ? 'surprised' : 'sad', 180);
+  face(phase() === 3 ? (Math.random() < 0.5 ? 'panic' : 'surprised') : Math.random() < 0.5 ? 'surprised' : 'sad', 180);
   clearTimeout(hitTodd.back);
-  hitTodd.back = setTimeout(() => { if (!boss.down) face('angry', 300); }, 700);
+  hitTodd.back = setTimeout(() => { if (!boss.down) face(mood(), 300); }, 700);
   if (boss.hp <= 0) knockout();
 }
 function setFlag(name) { try { const f = JSON.parse(localStorage.getItem('rp_flags')) || {}; if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); } } catch (e) {} }
@@ -1874,10 +1896,20 @@ function restart() {
 // --- picking and running his attacks ---
 // He gets worse as he takes damage: three phases, each faster, each adding attacks.
 function phase() { const f = boss.hp / TODD_HP; return f > 18 / 26 ? 1 : f > 9 / 26 ? 2 : 3; }
+// ---- fear: he's never lost before ----
+// Phase 1 he's the bully. Phase 2 he's rattled (now and then a scared face slips through, he flinches harder,
+// glances away). Phase 3 he's terrified: scared and panicking faces, hands up keeping you away, backing off,
+// no more fists (only things he can throw, and more of them), white flags on his screen, begging instead of taunting.
+function mood() {
+  const ph = phase();
+  if (ph === 3) return Math.random() < 0.55 ? 'scared' : 'panic';
+  if (ph === 2) return Math.random() < 0.3 ? 'scared' : 'angry';
+  return 'angry';
+}
 const MOVES = {
   1: ['slam', 'slam', 'volley', 'cursors'],
   2: ['slam', 'volley', 'sweep', 'rain', 'popups', 'pound', 'cursors'],
-  3: ['slam', 'volley', 'sweep', 'rain', 'popups', 'pound', 'clap', 'clap', 'cursors', 'agony', 'agony']
+  3: ['volley', 'volley', 'rain', 'rain', 'popups', 'cursors', 'cursors', 'agony', 'agony']   // nothing that needs him to come close
 };
 let lastMove = null;
 function pace() { return [1, 0.8, 0.6, 0.42][phase()] * HS() * (CFG ? CFG.rest : 1); }   // how long he rests between attacks
@@ -1885,7 +1917,10 @@ function pace() { return [1, 0.8, 0.6, 0.42][phase()] * HS() * (CFG ? CFG.rest :
 // Big numbers become a swarm: the more there are, the faster he fires (a few a frame at most), and the screen
 // never holds more than MAX_ON at once (he waits for room), so "a billion cursors" is a storm, not a crash.
 const MAX_ON = 200;
-function howMany(kind, usual) { const n = CFG && CFG.counts && CFG.counts[kind]; return n > 0 ? n : usual; }
+function howMany(kind, usual) {
+  const n = CFG && CFG.counts && CFG.counts[kind]; if (n > 0) return n;
+  return !CFG && phase() === 3 ? Math.round(usual * 1.5) : usual;   // phase 3: panic fire
+}
 function swarmGap(n, usual, base) { return n <= usual ? base : Math.max(base * usual / n, 16); }
 function fireN(now, n, gap, shoot) {
   // shoot until it's time to wait again (up to 4 in a frame), as long as there's room on screen
@@ -1919,7 +1954,7 @@ function startAttack(now, force) {
     return;
   }
   if (kind === 'rain') { atk = { kind, state: 'cast', t0: now, waves: 0, next: now + 900, gap: null }; face('error', 300); return; }
-  if (kind === 'cursors') { atk = { kind, t0: now, shots: 0, next: now + 500 }; face('sly', 200); return; }
+  if (kind === 'cursors') { atk = { kind, t0: now, shots: 0, next: now + 500 }; face(phase() === 3 ? 'panic' : 'sly', 200); return; }
   if (kind === 'popups') { atk = { kind, t0: now, shots: 0, next: now + 450 }; face('error', 250); return; }
   const leftSide = rightArmOnLeft ? 'R' : 'L', rightSide = leftSide === 'R' ? 'L' : 'R';
   if (kind === 'pound') {
@@ -1964,13 +1999,21 @@ function startAttack(now, force) {
     fx.push({ kind: 'target', x: tx, t: 0, life: 0.95 });
   } else {
     atk = { kind, state: 'aim', t0: now, shots: 0, next: now + 600 };
-    face('angry', 120);
+    face(phase() === 3 ? 'panic' : 'angry', 120);
   }
 }
 // --- taunts: a bit of personality between attacks (more likely right after he's hit you) ---
 let tauntSoon = false;
 function bonePos(name) { return bones[name].getWorldPosition(new THREE.Vector3()); }
 function startTaunt(now) {
+  if (phase() === 3) {
+    // not taunting any more: hands up, shaking his head, a white flag on his screen
+    atk = { kind: 'taunt', taunt: 'plead', frames: [{ t: 0 }, { t: 2.2 }], t0: now };
+    face('scared', 200);
+    const sp = (MONO && MONO.scared_pictures) || [];
+    if (sp.length) setTimeout(() => { if (atk && atk.kind === 'taunt') showPic(sp[0], 1300); }, 350);
+    return;
+  }
   const kinds = ['tie', 'brush', 'knuckles'];
   const kind = kinds[(Math.random() * kinds.length) | 0], H = toddH, lean = 0.12;
   const neck = bonePos('neck'), chest = bonePos('chest');
@@ -2016,12 +2059,12 @@ function stepAttack(now, dt) {
   }
   if (!atk) {
     if (!nextAtk) nextAtk = now + 1200;
-    if (now > nextAtk) { if ((!CFG || CFG.taunts) && (tauntSoon || Math.random() < 0.18)) { tauntSoon = false; startTaunt(now); } else startAttack(now); }
+    if (now > nextAtk && !FIGHT.hold) { if ((!CFG || CFG.taunts) && (tauntSoon || Math.random() < 0.18)) { tauntSoon = false; startTaunt(now); } else startAttack(now); }
     return;
   }
   const T = (now - atk.t0) / 1000 / HS();
   if (atk.kind === 'taunt') {
-    if (T > atk.frames[atk.frames.length - 1].t) { atk = null; face('angry', 250); nextAtk = now + 500 + Math.random() * 400; }
+    if (T > atk.frames[atk.frames.length - 1].t) { atk = null; face(mood(), 250); nextAtk = now + 500 + Math.random() * 400; }
     return;
   }
   if (atk.kind === 'slam') {
@@ -2105,14 +2148,14 @@ function stepAttack(now, dt) {
   } else if (atk.kind === 'popups') {
     const u = 2 + phase(), n = howMany('popups', u);
     fireN(now, n, swarmGap(n, u, HS() * ([0, 600, 500, 400][phase()])), (i) => popup(i === 0 || n <= u ? P.x + P.vx * 0.2 : P.x + (Math.random() - 0.5) * 500, n > 40));
-    if (atk.shots >= n && now > atk.next + 900) { atk = null; face('angry', 250); nextAtk = now + (700 + Math.random() * 500) * pace(); }
+    if (atk.shots >= n && now > atk.next + 900) { atk = null; face(mood(), 250); nextAtk = now + (700 + Math.random() * 500) * pace(); }
   } else if (atk.kind === 'rain') {
     const u = 2 + phase(), n = howMany('rain', u);
     if (atk.waves < n && now > atk.next && threats.length < MAX_ON) {
       atk.gap = rainWave(250 + phase() * 50, atk.gap, phase() === 3 ? 125 : 145); atk.waves++; atk.next = now + Math.max(350, 1000 * pace() * Math.min(1, u / n * 1.6));
       fight.shake = Math.max(fight.shake, 0.2);
     }
-    if (atk.waves >= n && now > atk.next + 600 && !threats.some((o) => o.kind === 'bar' && o.state === 'fly')) { atk = null; face('angry', 300); nextAtk = now + 800 * pace(); }
+    if (atk.waves >= n && now > atk.next + 600 && !threats.some((o) => o.kind === 'bar' && o.state === 'fly')) { atk = null; face(mood(), 300); nextAtk = now + 800 * pace(); }
   } else if (atk.kind === 'agony') {
     // his worst: the agony face, and static rolling out along the floor
     agonyAmt = atk.state === 'charge' ? Math.min(1, T / 0.8) : 1;
@@ -2124,7 +2167,7 @@ function stepAttack(now, dt) {
         const v = 400 + Math.random() * 160; staticWave(-1, v); staticWave(1, atk.waves % 2 ? v * 0.8 : v * 1.15);
         atk.waves++; atk.next = now + swarmGap(n, 4, HS() * (700 + Math.random() * 350)) * (n > 4 ? 1.6 : 1); fight.shake = 1; ripple(toddCenter(), 2.6);
       }
-      if (atk.waves >= n && now > atk.next + 400) { atk = null; agonyAmt = 0; face('angry', 400); nextAtk = now + 1200 * pace(); }
+      if (atk.waves >= n && now > atk.next + 400) { atk = null; agonyAmt = 0; face(mood(), 400); nextAtk = now + 1200 * pace(); }
     }
   }
 }
@@ -2338,7 +2381,8 @@ function stepScreen(now) {
   if (picPanel && dying.on && MONO) return stepDying(now);
   if (!picPanel || mono.on || boss.down) return;      // the monologue and the skull look after themselves
   // the more you've hurt him, the more often random pictures flicker across his face
-  const w = wear(), pool = ((MONO && MONO.damage_pictures) || []).filter((k) => pics[k]);
+  const scaredPool = phase() === 3 ? ((MONO && MONO.scared_pictures) || []).filter((k) => pics[k]) : [];
+  const w = wear(), pool = scaredPool.length && Math.random() < 0.75 ? scaredPool : ((MONO && MONO.damage_pictures) || []).filter((k) => pics[k]);
   if (fight.phase === 'fight' && pool.length && w > 0.08 && now > screen.until && now > screen.next) {
     screen.next = now + (2600 - w * 2300) * (0.6 + Math.random() * 0.8);
     if (Math.random() < 0.35 + w * 0.6) {
@@ -2479,7 +2523,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: CFG ? CFG.php : HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { hitTodd, MUS, MUSIC, musicPlay, get CFG() { return CFG; }, get ENDLESS() { return ENDLESS; }, playEndless, SEEN: () => SEEN, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { hold: false, hitTodd, MUS, MUSIC, musicPlay, get CFG() { return CFG; }, get ENDLESS() { return ENDLESS; }, playEndless, SEEN: () => SEEN, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();

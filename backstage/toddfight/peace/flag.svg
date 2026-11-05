@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- a white flag on a pole, waving: a draft by Claude, for Render Productions to redraw -->
+  <rect x="96" y="30" width="10" height="250" rx="4" fill="#c9b08a"/>
+  <circle cx="101" cy="28" r="9" fill="#e8d8b8"/>
+  <path d="M106 42 C150 22 190 62 236 44 C268 32 292 40 312 50 L312 148 C292 138 268 130 236 142 C190 160 150 120 106 140 Z" fill="#ffffff"/>
+  <path d="M106 42 C150 22 190 62 236 44 L236 142 C190 160 150 120 106 140 Z" fill="#000" opacity=".07"/>
+  <path d="M170 58 C176 90 172 118 168 132" stroke="#000" stroke-opacity=".08" stroke-width="6" fill="none"/>
+  <path d="M262 40 C266 80 264 112 262 134" stroke="#000" stroke-opacity=".06" stroke-width="6" fill="none"/>
+</svg>

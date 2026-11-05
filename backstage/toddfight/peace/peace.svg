@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- the peace symbol: a draft by Claude, for Render Productions to redraw -->
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round">
+    <circle cx="200" cy="150" r="104"/>
+    <line x1="200" y1="46" x2="200" y2="254"/>
+    <line x1="200" y1="150" x2="127" y2="223"/>
+    <line x1="200" y1="150" x2="273" y2="223"/>
+  </g>
+</svg>
