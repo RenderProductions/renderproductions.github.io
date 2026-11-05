@@ -2,11 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>...</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="todd.css?v=6">
+<!-- as an app (Add to Home Screen): manifest.webmanifest, sw.js keeps it working offline -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TODD.OS">
+<link rel="stylesheet" href="todd.css?v=7">
 </head>
 <body>
 <!-- TODD, alone in the void, looking around.
@@ -34,5 +42,11 @@
 <noscript><p class="nojs">(Something is standing in the dark. You can't see it without JavaScript.)</p></noscript>
 <script type="module" src="todd.js?v=40"></script>
 <script type="module" src="chat.js?v=6"></script>
+<script>
+  // as an app: work offline, and there's no site to go "back" to
+  if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  const app = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+  if (app) document.documentElement.classList.add('app');
+</script>
 </body>
 </html>
