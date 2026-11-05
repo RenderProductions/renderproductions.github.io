@@ -1,0 +1,4 @@
+music.mp3   "Tribal Sci-Fi" by Mark_Murray, https://freesound.org/s/648393/, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Converted to MP3.
+pew.mp3     "Louder pewing sound" by AceOfSpadesProduc100, https://freesound.org/s/341696/, CC BY 4.0. Converted to MP3.
+hurt1-3.mp3 "Robot hurt.wav" by GreenFireSound, https://freesound.org/s/484107/, CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). Cut into its three sounds (fades at the cuts), converted to MP3.
+Credited on /backstage/toddfight/ (Credits).
