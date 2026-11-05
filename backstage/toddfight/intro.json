@@ -283,18 +283,26 @@
       "credit": "Prometheus Carrying Fire, Jan Cossiers, 1637 (public domain)"
     },
     "flag": {
-      "drawn": "art",
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/White_flag_of_surrender.svg/800px-White_flag_of_surrender.svg.png",
+        "https://upload.wikimedia.org/wikipedia/commons/a/ac/White_flag_of_surrender.svg"
+      ],
+      "contain": true,
       "art": [
         "peace/flag.svg"
       ],
-      "credit": "a white flag, Render Productions (draft)"
+      "credit": "White flag of surrender, Wikimedia Commons"
     },
     "peace": {
-      "drawn": "art",
+      "urls": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Peace_sign.svg/800px-Peace_sign.svg.png",
+        "https://upload.wikimedia.org/wikipedia/commons/d/d2/Peace_sign.svg"
+      ],
+      "contain": true,
       "art": [
         "peace/peace.svg"
       ],
-      "credit": "the peace symbol, Render Productions (draft)"
+      "credit": "Peace sign, Wikimedia Commons"
     },
     "breda": {
       "urls": [
@@ -397,5 +405,5 @@
     "peace",
     "breda"
   ],
-  "_how8": "'scared_pictures': in phase 3, when he's terrified, most of what flickers across his screen is from here instead of 'damage_pictures' (and the first one is what he holds up when he begs). 'flag' and 'peace' are drafts in peace/ to redraw."
+  "_how8": "'scared_pictures': in phase 3, when he's terrified, most of what flickers across his screen is from here instead of 'damage_pictures' (and the first one is what he holds up when he begs). 'contain' puts a picture whole in the middle of his screen (for symbols); 'art' alongside 'urls' is the fallback if none of the addresses load."
 }

@@ -963,17 +963,39 @@ function loadPictures(list) {
   for (const key in list) {
     const p = list[key];
     if (p.drawn === 'fire') { pics[key] = fire.tex; continue; }
-    if (p.art) { drawArt(key, p.art, p.fill); continue; }
+    if (p.art && !p.urls) { drawArt(key, p.art, p.fill); continue; }
     const urls = (p.urls || []).slice();
     const next = () => {
-      const url = urls.shift(); if (!url) return;
+      const url = urls.shift(); if (!url) { if (p.art) drawArt(key, p.art, p.fill); return; }   // (none loaded: our own drawing instead)
       const img = new Image(); img.crossOrigin = 'anonymous';
-      img.onload = () => { const tex = new THREE.Texture(img); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true; cover(tex, img.width, img.height, p.focus); pics[key] = tex; };
+      img.onload = () => {
+        if (p.contain) { pics[key] = contained(img); return; }
+        const tex = new THREE.Texture(img); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true; cover(tex, img.width, img.height, p.focus); pics[key] = tex;
+      };
       img.onerror = next;                        // try the next address (or give up: he shows static instead)
       img.src = url;
     };
     next();
   }
+}
+// a symbol (see-through background) in the middle of his screen, on a background it shows up on: dark for a
+// light symbol, light for a dark one
+function contained(img) {
+  const Wc = 640, Hc = Math.round(640 / picAspect), c = document.createElement('canvas'); c.width = Wc; c.height = Hc;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  const k = Math.min(Wc * 0.78 / img.width, Hc * 0.78 / img.height), w = img.width * k, h = img.height * k;
+  let light = 1;
+  try {
+    g.drawImage(img, 0, 0, 64, 64); const d = g.getImageData(0, 0, 64, 64).data; let sum = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { sum += (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / 255; n++; }
+    light = n ? sum / n : 1; g.clearRect(0, 0, 64, 64);
+  } catch (e) {}
+  const bg = g.createRadialGradient(Wc / 2, Hc / 2, 20, Wc / 2, Hc / 2, Wc * 0.7);
+  if (light > 0.5) { bg.addColorStop(0, '#1d3a40'); bg.addColorStop(1, '#050d10'); } else { bg.addColorStop(0, '#f4f8f8'); bg.addColorStop(1, '#a9bfc2'); }
+  g.fillStyle = bg; g.fillRect(0, 0, Wc, Hc);
+  g.drawImage(img, (Wc - w) / 2, (Hc - h) / 2, w, h);
+  g.fillStyle = 'rgba(0,0,0,.12)'; for (let y = 0; y < Hc; y += 4) g.fillRect(0, y, Wc, 1);   // scanlines
+  const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding; return tex;
 }
 // pictures made from the site's own art (Cedar and Wonder side by side; the player): drawn onto a little
 // screen-shaped canvas, with scanlines so it looks like it's on his monitor
