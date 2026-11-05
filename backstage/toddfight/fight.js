@@ -928,7 +928,8 @@ function stepMonologue(now) {
   // which picture: in order; on a line with several, once through each, then flicking through them fast
   const show = L.show || [], n = show.length;
   let key = show[0];
-  if (mono.egg && lt > mono.eggAt && lt < mono.eggAt + 0.7) key = mono.egg;
+  if (L.on_shake && mono.shook) key = L.on_shake;                     // the shake word swaps the picture (and it stays)
+  else if (mono.egg && lt > mono.eggAt && lt < mono.eggAt + 0.7) key = mono.egg;
   else if (n > 1) { const slow = L.secs * 0.55; key = lt < slow ? show[Math.min(n - 1, Math.floor(lt / (slow / n)))] : show[Math.floor((lt - slow) / 0.16) % n]; }
   const isFace = key && key.startsWith('face:');
   if (key !== mono.pic) { mono.pic = key; mono.cut = now + (n > 1 && lt > L.secs * 0.55 ? 40 : 130); if (isFace) face(key.slice(5), 260); else glitchFace(); }
