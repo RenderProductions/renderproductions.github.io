@@ -935,7 +935,7 @@ function stepMonologue(now) {
   if (key === 'fire') fire.step(now);
   if (picPanel) {
     const tex = isFace ? null : pics[key], live = tex && now > mono.cut;
-    if (live && picPanel.material.map !== tex) { picPanel.material.map = tex; picPanel.material.needsUpdate = true; }
+    if (live && picPanel.material.map !== tex) { picPanel.material.map = tex; picPanel.material.needsUpdate = true; seePic(key); }
     picPanel.visible = !!live;
     picPanel.material.opacity = live ? (Math.random() < 0.04 ? 0.35 : 0.92 + Math.random() * 0.08) : 0;
   }
@@ -1029,7 +1029,7 @@ function animateTodd(t, dt) {
     if (introStep === 0 && T > INTRO.shock) { introStep = 1; face('surprised', 220); fight.shake = 0.25; }
     if (introStep === 1 && T > INTRO.windup) { introStep = 2; }
     if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; }
-    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner(HARD ? 'HARD MODE' : CFG ? 'CUSTOM' : 'FIGHT!'); musicStart(); }
+    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner(HARD ? 'HARD MODE' : ENDLESS ? 'ROUND ' + ENDLESS.round : CFG ? 'CUSTOM' : 'FIGHT!'); musicStart(); }
     if (introStep === 0) {
       // not looking at you yet: idly glancing off to the side
       yaw = 0.35 + Math.sin(t * 0.6) * 0.08; pitch = 0.2;
@@ -1356,7 +1356,8 @@ function hitTodd(x, y) {
 function setFlag(name) { try { const f = JSON.parse(localStorage.getItem('rp_flags')) || {}; if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); } } catch (e) {} }
 function flagSet(name) { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[name]; } catch (e) { return false; } }
 function knockout() {
-  musicStop(2.5); sfx('crash', 0.9);
+  if (ENDLESS) return endlessClear();
+  musicStop(2.5); sfx('crash', 0.9); seePic('death');
   boss.down = true; atk = null; threats.length = 0;
   setFlag('todd_dead');   // for good: he stays dead here, and Cedar and Wonder know
   if (HARD) setFlag('todd_hard_beaten');
@@ -1393,7 +1394,7 @@ function youDied() {
 const OPT = { shake: true, skip: false, music: true, sfx: true };
 try { Object.assign(OPT, JSON.parse(localStorage.getItem('rvFightOpts')) || {}); } catch (e) {}
 function saveOpts() { try { localStorage.setItem('rvFightOpts', JSON.stringify(OPT)); } catch (e) {} }
-const SCREENS = ['title', 'settings', 'credits', 'extras', 'editor'];
+const SCREENS = ['title', 'settings', 'credits', 'extras', 'editor', 'sounds', 'gallery'];
 function showScreen(id) {
   for (const k of SCREENS) document.getElementById(k).hidden = k !== id;
   const first = document.querySelector('#' + id + ' button'); if (first) setTimeout(() => first.focus({ preventScroll: true }), 30);
@@ -1415,10 +1416,13 @@ document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click'
   } else if (go === 'replay' || go === 'hard') {
     // a replay: the whole fight again; the story doesn't change (he's still dead everywhere else)
     for (const k of SCREENS) document.getElementById(k).hidden = true;
-    HARD = go === 'hard'; CFG = null; TODD_HP = HARD ? 52 : 26; edgeAt = 0;
-    const ar = document.getElementById('arena'); ar.classList.toggle('hard', HARD); ar.classList.remove('custom');
+    HARD = go === 'hard'; CFG = null; ENDLESS = null; TODD_HP = HARD ? 52 : 26; edgeAt = 0;
+    const ar = document.getElementById('arena'); ar.classList.toggle('hard', HARD); ar.classList.remove('custom', 'endless');
     b.blur(); fight.replay = true; restart();
   } else if (go === 'editor') { editorOpen();
+  } else if (go === 'endless') { b.blur(); playEndless();
+  } else if (go === 'sounds') { stBuild(); showScreen('sounds');
+  } else if (go === 'gallery') { gBuild(); showScreen('gallery');
   } else showScreen(go === 'menu' ? 'title' : go);
 }));
 const optShake = document.getElementById('opt-shake'), optSkip = document.getElementById('opt-skip');
@@ -1440,7 +1444,8 @@ function showGone() {
   const rp = document.querySelector('[data-go=replay]'); if (rp) rp.hidden = false;   // ...but you can fight him again, just for fun
   const hd = document.querySelector('[data-go=hard]'); if (hd) hd.textContent = flagSet('todd_hard_beaten') ? 'HARD MODE \u2605' : 'HARD MODE';
   const ex = document.querySelector('#menu [data-go=extras]'); if (ex) { ex.hidden = false; ex.textContent = flagSet('todd_hard_beaten') ? 'EXTRAS \u2605' : 'EXTRAS'; }
-  document.getElementById('arena').classList.remove('hard', 'custom'); HARD = false; CFG = null;
+  document.getElementById('arena').classList.remove('hard', 'custom', 'endless'); HARD = false; CFG = null; ENDLESS = null; musicStop(1.5);
+  const en = document.querySelector('[data-go=endless]'); if (en) en.textContent = endlessBest() ? 'ENDLESS (best: ' + endlessBest() + ')' : 'ENDLESS';
   hideDeathCard(); fight.retry = false;
   boss.hp = 0; boss.down = true; fight.phase = 'down'; red = 0; face('error', 300);
   const skull = () => { if (pics.death && picPanel) { picPanel.material.map = pics.death; picPanel.material.needsUpdate = true; picPanel.visible = true; picPanel.material.opacity = 1; } else setTimeout(skull, 400); };
@@ -1536,8 +1541,8 @@ function edBuild() {
 function editorOpen() { edBuild(); showScreen('editor'); }
 function playCustom() {
   for (const k of SCREENS) document.getElementById(k).hidden = true;
-  CFG = edClean(ED); HARD = false; TODD_HP = CFG.hp; edgeAt = 0;
-  const ar = document.getElementById('arena'); ar.classList.remove('hard'); ar.classList.add('custom');
+  CFG = edClean(ED); HARD = false; ENDLESS = null; TODD_HP = CFG.hp; edgeAt = 0;
+  const ar = document.getElementById('arena'); ar.classList.remove('hard', 'endless'); ar.classList.add('custom');
   fight.replay = true; restart();
 }
 document.getElementById('ed-play').addEventListener('click', (e) => { e.currentTarget.blur(); playCustom(); });
@@ -1554,6 +1559,135 @@ document.getElementById('d-edit').addEventListener('click', () => {
   hideDeathCard(); fight.retry = false; showGone(); editorOpen();
 });
 
+// ---- EXTRAS: endless ----
+// A new TODD every round, made the way the editor makes one, a little worse each time: more health, more
+// attacks, faster, more of everything he throws, and later the cursor stream and the TV robot. Your health
+// carries over from round to round (+1 for each round you clear). Best run saved here (rvFightEndless).
+let ENDLESS = null;   // { round, record }
+function endlessBest() { try { return (JSON.parse(localStorage.getItem('rvFightEndless')) || {}).best || 0; } catch (e) { return 0; } }
+function endlessCfg(r) {
+  const all = ED_MOVES.map((m) => m[0]).sort(() => Math.random() - 0.5);
+  const moves = all.slice(0, Math.min(all.length, 2 + Math.floor(r / 2)));
+  const usual = { volley: 4, cursors: 3, popups: 4, rain: 4, agony: 4, pound: 1 }, counts = {};
+  if (r >= 4) for (const k of moves) if (usual[k] && Math.random() < 0.5) counts[k] = Math.round(usual[k] * (1 + (r - 3) * (0.3 + Math.random() * 0.3)));
+  const robot = r >= 3 && Math.random() < 0.45;
+  if (robot) counts.robot = 3 + Math.floor((r - 3) / 3);
+  return edClean({ moves, counts, hp: Math.min(40, 5 + r * 2), speed: Math.min(2, 0.9 + r * 0.07), rest: Math.max(0.4, 1.05 - r * 0.05),
+    proj: Math.min(1.7, 0.95 + r * 0.04), php: 3, cursors: r >= 5 ? Math.min(2, (r - 4) * 0.15) : 0, robot, taunts: true, cap: true });
+}
+function endlessRound(r) {
+  ENDLESS.round = r; CFG = endlessCfg(r); TODD_HP = CFG.hp; edgeAt = 0; stomp.next = 0;
+  if (r === 1) ENDLESS.record = false;
+}
+function playEndless() {
+  for (const k of SCREENS) document.getElementById(k).hidden = true;
+  HARD = false; ENDLESS = { round: 1, record: false };
+  const ar = document.getElementById('arena'); ar.classList.remove('hard', 'custom'); ar.classList.add('endless');
+  fight.replay = true; restart();
+}
+function endlessClear() {
+  // he goes down for a moment, reboots as something worse
+  const cleared = ENDLESS.round;
+  if (cleared > endlessBest()) { ENDLESS.record = true; try { localStorage.setItem('rvFightEndless', JSON.stringify({ best: cleared })); } catch (e) {} }
+  boss.down = true; atk = null; fight.phase = 'down'; face('error', 400); fight.shake = 1;
+  sfx('crash', 0.5, 1.25); smokeBurst(10);
+  setTimeout(() => { for (const o of threats) if (o.state === 'fly') fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ffc43d' }); threats.length = 0; }, 200);
+  if (stomp.on && stomp.state !== 'fling') endStomp(performance.now(), true);
+  banner('ROUND ' + cleared + ' CLEAR');
+  P.hp = Math.min(hpMax(), P.hp + 1); paintHud();
+  setTimeout(() => { if (ENDLESS && boss.down && !P.dead) face('loading', 300); }, 1100);
+  setTimeout(() => {
+    if (!ENDLESS || P.dead) return;
+    endlessRound(cleared + 1);
+    boss.hp = TODD_HP; boss.down = false; boss.flinch = 0; nextAtk = performance.now() + 900;
+    fight.phase = 'fight'; face('angry', 300); fight.shake = 0.8; banner('ROUND ' + ENDLESS.round); paintHud();
+  }, 2600);
+}
+
+// ---- EXTRAS: sound test ----
+const ST = [
+  ['music', 'Tribal Sci-Fi', 'the fight music \u00b7 Mark_Murray'], ['pew', 'Pew', 'him summoning things \u00b7 AceOfSpadesProduc100'],
+  ['hurt1', 'Hurt 1', 'him, hit \u00b7 GreenFireSound'], ['hurt2', 'Hurt 2', 'him, hit \u00b7 GreenFireSound'], ['hurt3', 'Hurt 3', 'him, hit \u00b7 GreenFireSound'],
+  ['parry', 'Parry', 'Retro Collection 3 \u00b7 Xiko__'], ['ow', 'Ow', 'you, hit \u00b7 Under7dude'], ['impact', 'Impact', 'his fists landing \u00b7 Daftrio'],
+  ['jump', 'Jump', 'cartchaos'], ['run', 'Running', 'the TV robot charging \u00b7 Topschool'], ['crash', 'Crash', 'his knockout \u00b7 Artninja'],
+  ['gameover', 'Game Over', 'melokacool'], ['static', 'Static', 'his agony (made in the page)'], ['rumble', 'Rumble', 'shockwaves (made in the page)']
+];
+let stMusic = null;
+function stStop() { if (stMusic) { try { stMusic.s.stop(); } catch (e) {} stMusic = null; } document.querySelectorAll('.st-list button.on').forEach((b) => b.classList.remove('on')); }
+function stPlay(key, btn) {
+  audioOn();
+  const C = AUDIO.ctx; if (!C) return;
+  if (key === 'music' && stMusic) { stStop(); return; }
+  const go = () => {
+    const b = AUDIO.bufs[key]; if (!b) return setTimeout(go, 200);   // still loading
+    const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = key === 'music' ? 0.55 : 0.9; s.connect(g); g.connect(C.destination);
+    if (key === 'music') { s.loop = true; stMusic = { s }; }
+    s.start(); btn.classList.add('on');
+    if (key !== 'music') setTimeout(() => btn.classList.remove('on'), Math.min(4000, b.duration * 1000));
+  };
+  go();
+}
+function stBuild() {
+  const L = document.getElementById('st-list'); if (L.childElementCount) return;
+  for (const [k, name, what] of ST) {
+    const b = document.createElement('button'); b.type = 'button';
+    b.innerHTML = '<span class="ic">' + (k === 'music' ? '\u266b' : '\u25b6') + '</span><span><b></b><small></small></span>';
+    b.querySelector('b').textContent = name; b.querySelector('small').textContent = what;
+    b.addEventListener('click', () => stPlay(k, b)); L.appendChild(b);
+  }
+}
+document.querySelectorAll('#sounds [data-go]').forEach((b) => b.addEventListener('click', stStop));
+
+// ---- EXTRAS: gallery ----
+// everything that's been on his screen, locked until you've seen it in a fight (rvFightSeen); and all his faces
+let SEEN = {};
+try { SEEN = JSON.parse(localStorage.getItem('rvFightSeen')) || {}; } catch (e) {}
+function seePic(key) { if (!key || SEEN[key]) return; SEEN[key] = 1; try { localStorage.setItem('rvFightSeen', JSON.stringify(SEEN)); } catch (e) {} }
+function gThumb(key) {
+  // a still of a picture (its image, or a snapshot of a drawn one)
+  if (key === 'fire') fire.step(performance.now() + 1e9);   // light it first
+  const t = pics[key]; if (!t || !t.image) return null;
+  const im = t.image, c = document.createElement('canvas'), w = im.naturalWidth || im.width, h = im.naturalHeight || im.height;
+  c.width = 360; c.height = 280;
+  const g = c.getContext('2d'), k = Math.max(c.width / w, c.height / h), f = (MONO && MONO.pictures[key] && MONO.pictures[key].focus) || [0.5, 0.5];
+  const dw = w * k, dh = h * k; g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
+  try { g.drawImage(im, (c.width - dw) * f[0], (c.height - dh) * f[1], dw, dh); } catch (e) { return null; }
+  return c;
+}
+function gOpen(key) {
+  const v = document.getElementById('g-view'), big = document.getElementById('g-big'), t = gThumb(key); if (!t) return;
+  big.textContent = ''; big.appendChild(t);
+  document.getElementById('g-cap').textContent = (MONO.pictures[key] && MONO.pictures[key].credit) || key;
+  v.hidden = false;
+}
+document.getElementById('g-view').addEventListener('click', (e) => { e.currentTarget.hidden = true; });
+addEventListener('keydown', (e) => { if (e.key === 'Escape') document.getElementById('g-view').hidden = true; });
+function gBuild() {
+  const P2 = (MONO && MONO.pictures) || {}, keys = Object.keys(P2), grid = document.getElementById('g-pics');
+  grid.textContent = '';
+  let n = 0;
+  for (const k of keys) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g-tile';
+    if (!SEEN[k]) { b.classList.add('locked'); b.textContent = '?'; b.title = 'Not seen yet'; b.disabled = true; }
+    else {
+      n++;
+      const t = gThumb(k);
+      if (t) b.appendChild(t); else b.classList.add('locked'), b.append('\u2026');
+      const cap = document.createElement('span'); cap.textContent = (P2[k].credit || k).split(',')[0]; b.appendChild(cap);
+      b.title = P2[k].credit || k; b.addEventListener('click', () => gOpen(k));
+    }
+    grid.appendChild(b);
+  }
+  document.getElementById('g-count').textContent = n + ' of ' + keys.length + ' found' + (n < keys.length ? '. The rest turn up in fights.' : '. All of them!');
+  const fc = document.getElementById('g-faces'); fc.textContent = '';
+  FACES.forEach((name, i) => {
+    const d = faceData[i]; if (!d) return;
+    const box = document.createElement('div'), c = document.createElement('canvas'); c.width = FACE.w; c.height = FACE.h;
+    const im = c.getContext('2d').createImageData(FACE.w, FACE.h); im.data.set(d); c.getContext('2d').putImageData(im, 0, 0);
+    box.append(c, name); fc.appendChild(box);
+  });
+}
+
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
   sfx('gameover', 0.7);
@@ -1561,13 +1695,18 @@ function showDeathCard() {
   const q = D.quotes && D.quotes.length ? D.quotes[(Math.random() * D.quotes.length) | 0] : '';
   document.getElementById('d-head').textContent = D.heading || 'YOU DIED';
   document.getElementById('d-quote').textContent = q; document.getElementById('d-quote').hidden = !q;
-  document.getElementById('d-edit').hidden = !CFG;
+  document.getElementById('d-edit').hidden = !CFG || !!ENDLESS;
   const tip = document.getElementById('d-tip'); if (tip) { tip.textContent = canParry() ? '' : ((MONO && MONO.no_parry_tip) || ''); tip.hidden = canParry(); }
   const far = Math.max(0, Math.min(1, (TODD_HP - boss.hp) / TODD_HP));
   // his phases, marked where they start
   const marks = el.querySelectorAll('.d-mark'); marks[0].style.left = ((1 - 18 / 26) * 100) + '%'; marks[1].style.left = ((1 - 9 / 26) * 100) + '%';
   const you = document.getElementById('d-you'); you.style.left = '0%';
   document.getElementById('d-far').textContent = Math.round(far * 100) + '% OF THE WAY THROUGH HIM';
+  document.getElementById('d-bar').hidden = !!ENDLESS;
+  if (ENDLESS) {
+    const r = ENDLESS.round - 1, best = endlessBest();
+    document.getElementById('d-far').textContent = (r === 1 ? '1 ROUND' : r + ' ROUNDS') + ' CLEARED' + (ENDLESS.record && r > 0 ? '  \u2605 NEW BEST' : '  \u00b7  BEST: ' + best);
+  }
   // his face, angry, at the end of the bar
   const c = document.getElementById('d-todd').getContext('2d'), fd = faceData[faceAt('angry')];
   if (fd) { const im = c.createImageData(FACE.w, FACE.h); im.data.set(fd); for (let i = 0; i < im.data.length; i += 4) if (im.data[i + 1] > 120 && im.data[i + 2] > 120 && im.data[i] < im.data[i + 1] - 60) { im.data[i] = 255; im.data[i + 1] = 34; im.data[i + 2] = 46; } c.putImageData(im, 0, 0); }
@@ -1582,6 +1721,7 @@ function restart() {
   hideDeathCard();
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // give the keys back to the game
   if (picPanel) { picPanel.visible = false; picPanel.material.opacity = 0; } screen.until = 0; screen.next = 0;
+  if (ENDLESS) endlessRound(1);
   fight.retry = false; boss.hp = TODD_HP; boss.down = false; boss.flinch = 0;
   threats.length = 0; fx.length = 0; atk = null; nextAtk = 0; stomp.next = 0;
   revive(); startIntro(OPT.skip || !!CFG);   // the monologue again (jump or parry skips it), unless it's off in Settings (or it's a custom fight)
@@ -2020,7 +2160,7 @@ const screen = { key: null, until: 0, next: 0 };
 function egg(chance) { const e = ((MONO && MONO.eggs) || []).filter((k) => pics[k]); return e.length && Math.random() < chance ? e[(Math.random() * e.length) | 0] : null; }
 function showPic(key, ms) {
   const e = egg(0.04); if (e) { key = e; ms = Math.max(ms, 1100); }
-  if (!pics[key]) return; screen.key = key; screen.until = performance.now() + ms; glitchFace();
+  if (!pics[key]) return; seePic(key); screen.key = key; screen.until = performance.now() + ms; glitchFace();
 }
 function stepScreen(now) {
   if (!picPanel || mono.on || boss.down) return;      // the monologue and the skull look after themselves
@@ -2094,7 +2234,7 @@ const HP_START = 3, STREAK = 3;
 const hpMax = () => (HARD ? Infinity : CFG ? (CFG.cap ? Math.max(4, CFG.php + 1) : Infinity) : 4);   // hard mode: no cap
 function paintHud() {
   if (P.dead) { hud.textContent = 'DEAD'; hud.className = 'hud low'; return; }
-  hud.innerHTML = (HARD ? '<b class="hd">HARD</b> ' : CFG ? '<b class="cu">CUSTOM</b> ' : '') + 'HP. ' + P.hp + ' <span class="pips">' + Array.from({ length: STREAK }, (_, i) => `<i class="${i < P.streak ? 'on' : ''}"></i>`).join('') + '</span>';
+  hud.innerHTML = (HARD ? '<b class="hd">HARD</b> ' : ENDLESS ? '<b class="en">ROUND ' + ENDLESS.round + '</b> ' : CFG ? '<b class="cu">CUSTOM</b> ' : '') + 'HP. ' + P.hp + ' <span class="pips">' + Array.from({ length: STREAK }, (_, i) => `<i class="${i < P.streak ? 'on' : ''}"></i>`).join('') + '</span>';
   hud.className = 'hud' + (P.hp <= 1 ? ' low' : '') + (P.hp > (CFG ? CFG.php : HP_START) ? ' over' : '');
 }
 function heal() {
@@ -2166,7 +2306,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: CFG ? CFG.php : HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { get CFG() { return CFG; }, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { hitTodd, get CFG() { return CFG; }, get ENDLESS() { return ENDLESS; }, playEndless, SEEN: () => SEEN, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();

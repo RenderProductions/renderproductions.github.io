@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>C:\TODD\FIGHT</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="fight.css?v=14">
+<link rel="stylesheet" href="fight.css?v=15">
 </head>
 <body>
 <div class="arena" id="arena">
@@ -50,9 +50,12 @@
     <h2>EXTRAS</h2>
     <nav class="menu">
       <button type="button" data-go="hard">HARD MODE</button>
+      <button type="button" data-go="endless">ENDLESS</button>
       <button type="button" data-go="editor">ATTACK EDITOR</button>
+      <button type="button" data-go="sounds">SOUND TEST</button>
+      <button type="button" data-go="gallery">GALLERY</button>
     </nav>
-    <p class="note" id="x-note">Hard mode: double health, faster, cursors from every edge, the TV robot from the start, no heal cap.<br>Attack editor: build your own TODD.</p>
+    <p class="note" id="x-note">Hard mode: double health, faster, cursors from every edge, the TV robot from the start, no heal cap.<br>Endless: a new TODD every round, a little worse each time. How far can you get?<br>Attack editor: build your own TODD.</p>
     <button type="button" class="back" data-go="menu">BACK</button>
   </div>
   <div class="card panel-card editor-card" id="editor" hidden>
@@ -75,6 +78,21 @@
       <button type="button" class="back play" id="ed-play">PLAY</button>
     </div>
   </div>
+  <div class="card panel-card" id="sounds" hidden>
+    <h2>SOUND TEST</h2>
+    <div class="st-list" id="st-list"></div>
+    <button type="button" class="back" data-go="extras">BACK</button>
+  </div>
+  <div class="card panel-card gallery-card" id="gallery" hidden>
+    <h2>GALLERY</h2>
+    <p class="note" id="g-count"></p>
+    <h3>HIS SCREEN</h3>
+    <div class="g-grid" id="g-pics"></div>
+    <h3>HIS FACES</h3>
+    <div class="g-faces" id="g-faces"></div>
+    <button type="button" class="back" data-go="extras">BACK</button>
+  </div>
+  <div class="g-view" id="g-view" hidden><div class="g-big" id="g-big"></div><div class="g-cap" id="g-cap"></div></div>
   <div class="card panel-card" id="credits" hidden>
     <h2>CREDITS</h2>
     <p><b>TODD</b>, the player, the story and the art: <b>Render Productions</b>.</p>
@@ -107,6 +125,6 @@
   <button type="button" data-k="jump" class="jump">&#9650;</button>
 </div>
 <script src="/inventory.js?v=3"></script>
-<script type="module" src="fight.js?v=37"></script>
+<script type="module" src="fight.js?v=38"></script>
 </body>
 </html>
