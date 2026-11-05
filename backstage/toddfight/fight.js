@@ -1187,10 +1187,11 @@ function animateTodd(t, dt) {
     speed = 5; red = 1;
     if (ph === 2 && Math.sin(t * 0.9) + Math.sin(t * 2.3) > 1.6) { yaw = youYaw + (P.x < W / 2 ? 0.5 : -0.5); }   // rattled: a glance away now and then
     if (ph === 3) {
-      // terrified: leaning back, hands up and out in front of him (stay away), trembling
-      const tr = Math.sin(t * 38) * 0.035, sh = Math.sin(t * 2.1);
-      chest = [-0.14 + sh * 0.02, 0, tr]; armR = [-1.25 + tr, 0.35, 0.12]; armL = [-1.25 - tr, -0.35, -0.12]; foreR = foreL = -1.15 + tr;
-      pitch = youPitch - 0.08 + tr; speed = 7; red = 0.35;
+      // terrified: holding himself, arms wrapped across his chest, each hand on the other arm, trembling
+      const tr = Math.sin(t * 38) * 0.03, sh = Math.sin(t * 2.1), hg = hug();
+      chest = [0.1 + sh * 0.02, 0, tr];
+      if (hg) { armR = hg.R.c.slice(0, 3); foreR = hg.R.c[3] + tr; armL = hg.L.c.slice(0, 3); foreL = hg.L.c[3] - tr; armR[0] += tr; armL[0] -= tr; }
+      pitch = youPitch + 0.12 + tr; speed = 6; red = 0.35;
     }
     if (atk && (atk.kind === 'slam' || atk.kind === 'sweep')) {
       const S = atk.side, T2 = (performance.now() - atk.t0) / 1000;
@@ -1896,6 +1897,17 @@ function restart() {
 // --- picking and running his attacks ---
 // He gets worse as he takes damage: three phases, each faster, each adding attacks.
 function phase() { const f = boss.hp / TODD_HP; return f > 18 / 26 ? 1 : f > 9 / 26 ? 2 : 3; }
+// the self-hug: each hand on the other arm, just below the shoulder (the right one higher, so they cross).
+// Worked out once, and again if he's moved since.
+let hugSol = null;
+function hug() {
+  if (hugSol && Math.abs(hugSol.x - shift.x) < 0.02) return hugSol;
+  const H = toddH, R = bonePos('Right_Arm'), L = bonePos('Left_Arm'), sR = Math.sign(R.x - L.x) || 1;
+  const onL = L.clone().add(new THREE.Vector3(sR * 0.03 * H, -0.02 * H, 0.1 * H));    // right hand: on his left arm
+  const onR = R.clone().add(new THREE.Vector3(-sR * 0.03 * H, -0.075 * H, 0.13 * H));  // left hand: on his right arm, lower and in front
+  try { hugSol = { R: solveArm('R', onL, 0.1), L: solveArm('L', onR, 0.1), x: shift.x }; } catch (e) { hugSol = null; }
+  return hugSol;
+}
 // ---- fear: he's never lost before ----
 // Phase 1 he's the bully. Phase 2 he's rattled (now and then a scared face slips through, he flinches harder,
 // glances away). Phase 3 he's terrified: scared and panicking faces, hands up keeping you away, backing off,
