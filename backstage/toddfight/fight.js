@@ -163,14 +163,16 @@ function hint(text) {
 }
 
 // ---------------- sound ----------------
-// Music: "Tribal Sci-Fi" (Mark_Murray), looping through the fight. SFX: "Louder pewing sound" (AceOfSpadesProduc100)
+// Music: Render Productions (sfx/music/, see MUSIC). SFX: "Louder pewing sound" (AceOfSpadesProduc100)
 // when he summons things out of his screen; "Robot hurt" (GreenFireSound), cut into three, at random when he's hit.
 // (Credits screen.) Web Audio, started on the first click (browsers won't play sound before one).
 const AUDIO = { ctx: null, bufs: {}, music: null, musicGain: null, sfxGain: null, lastPew: 0 };
-const SOUNDS = { music: 'sfx/music.mp3', pew: 'sfx/pew.mp3', hurt1: 'sfx/hurt1.mp3', hurt2: 'sfx/hurt2.mp3', hurt3: 'sfx/hurt3.mp3',
-  parry: 'sfx/parry.mp3', ow: 'sfx/ow.mp3', impact: 'sfx/impact.mp3', jump: 'sfx/jump.mp3', run: 'sfx/run.mp3', crash: 'sfx/crash.mp3', gameover: 'sfx/gameover.mp3' };
+const SOUNDS = { m_intro: 'sfx/music/intro.mp3', m_p1: 'sfx/music/phase1.mp3', m_p2: 'sfx/music/phase2.mp3', m_p3: 'sfx/music/phase3.mp3',
+  m_death: 'sfx/music/death.mp3', m_papa: 'sfx/music/papa.mp3', pew: 'sfx/pew.mp3', hurt1: 'sfx/hurt1.mp3', hurt2: 'sfx/hurt2.mp3', hurt3: 'sfx/hurt3.mp3',
+  parry: 'sfx/parry.mp3', ow: 'sfx/ow.mp3', impact: 'sfx/impact.mp3', jump: 'sfx/jump.mp3', run: 'sfx/run.mp3', crash: 'sfx/crash.mp3' };
 // (more credits: Retro Collection 3 = the parry; Man getting hit = you hurt; Impact 2 = his fists and things landing;
-//  jump.wav; FastRunning = the TV robot charging; metal crash with glass debris = his knockout; Game Over 3.)
+//  jump.wav; FastRunning = the TV robot charging; metal crash with glass debris = his knockout.)
+// The music is Render Productions' own, in sections (sfx/music/): see MUSIC below.
 function audioOn() {
   if (AUDIO.ctx) { if (AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume(); return; }
   try {
@@ -184,10 +186,10 @@ function audioOn() {
     for (let i = 0; i < curve.length; i++) { const x = i / (curve.length - 1) * 2 - 1; curve[i] = Math.tanh(x * 1.2) / Math.tanh(1.2) * 0.97; }
     soft.curve = curve; soft.oversample = '2x';
     AUDIO.master = C.createGain(); AUDIO.master.gain.value = 0.85; AUDIO.master.connect(lim); lim.connect(soft); soft.connect(C.destination); AUDIO.lim = soft;
-    AUDIO.musicGain = C.createGain(); AUDIO.musicGain.gain.value = 0; AUDIO.musicGain.connect(AUDIO.master);
+    AUDIO.musicGain = C.createGain(); AUDIO.musicGain.gain.value = OPT.music ? MUSIC_VOL : 0; AUDIO.musicGain.connect(AUDIO.master);
     AUDIO.sfxGain = C.createGain(); AUDIO.sfxGain.gain.value = 0.7; AUDIO.sfxGain.connect(AUDIO.master);
     makeNoise(C);
-    for (const k in SOUNDS) fetch(SOUNDS[k] + '?v=1').then((r) => r.arrayBuffer()).then((a) => new Promise((ok, no) => C.decodeAudioData(a, ok, no))).then((b) => { AUDIO.bufs[k] = b; if (k === 'music' && AUDIO.wantMusic) musicStart(); }).catch(() => {});
+    for (const k in SOUNDS) fetch(SOUNDS[k] + '?v=1').then((r) => r.arrayBuffer()).then((a) => new Promise((ok, no) => C.decodeAudioData(a, ok, no))).then((b) => { AUDIO.bufs[k] = b; if (k.startsWith('m_')) musicLoaded(k, b); }).catch(() => {});
   } catch (e) {}
 }
 // garbled noise, made here rather than recorded (like the Dubbed Tape in the drawer): 'static' is his TV static
@@ -250,21 +252,110 @@ function sfx(name, vol = 1, rate = 1) {
 // the pew: not more than one every so often (a volley would otherwise be a wall of it), a little pitch change each time
 function pew() { const now = performance.now(); if (now - AUDIO.lastPew < 120) return; AUDIO.lastPew = now; sfx('pew', 0.55, 0.92 + Math.random() * 0.2); }
 function ouch() { sfx('hurt' + (1 + ((Math.random() * 3) | 0)), 0.9, 0.95 + Math.random() * 0.1); }
-function musicStart() {
-  AUDIO.wantMusic = true;
-  const C = AUDIO.ctx, b = AUDIO.bufs.music; if (!C || !b) return;
-  musicStop(0);
-  const s = C.createBufferSource(); s.buffer = b; s.loop = true; s.connect(AUDIO.musicGain); s.start();
-  AUDIO.music = s;
-  const g = AUDIO.musicGain.gain; g.cancelScheduledValues(C.currentTime); g.setValueAtTime(0.0001, C.currentTime);
-  g.linearRampToValueAtTime(OPT.music ? 0.55 : 0, C.currentTime + 0.6);
+// ---- the music: Render Productions' score, in sections ----
+// Each section's bar lengths (in beats) and tempo, as composed, so loops land on the exact sample and phase
+// changes wait for the next bar line. 'at' is where the music actually starts in each file (measured on load).
+const MUSIC_VOL = 0.6;
+const bars = (n, beats = 4) => Array(n).fill(beats);
+const MUSIC = {
+  m_intro: { bpm: [[0, 72], [10, 120]], bars: [...bars(10), 4], rage: 10 },        // bar 11: TAKEN. STOLEN. CANCELLED.
+  m_p1: { bpm: [[0, 120]], bars: bars(24), loop: true },
+  m_p2: { bpm: [[0, 126]], bars: [4, 4, 4, 3.5, 4, 4, 4, 3.5, ...bars(8), 4, 4, 4, 3.5, 4, 4, 4, 3.5], loop: true },
+  m_p3: { bpm: [[0, 134]], bars: bars(24), loop: true },
+  m_death: { bpm: [[0, 58]], bars: bars(10) },
+  m_papa: { bpm: [[0, 84], [1, 66]], bars: [4, 4] },
+};
+for (const k in MUSIC) {
+  // bar start times in seconds, and the whole length
+  const m = MUSIC[k], tempo = (i) => { let b = m.bpm[0][1]; for (const [at, v] of m.bpm) if (i >= at) b = v; return b; };
+  m.start = []; let t = 0;
+  m.bars.forEach((beats, i) => { m.start.push(t); t += beats * 60 / tempo(i); });
+  m.len = t; m.at = 0;
 }
-function musicStop(fade = 1.2) {
-  AUDIO.wantMusic = false;
-  const C = AUDIO.ctx, s = AUDIO.music; if (!C || !s) return;
-  AUDIO.music = null;
-  const g = AUDIO.musicGain.gain; g.cancelScheduledValues(C.currentTime); g.setValueAtTime(g.value, C.currentTime); g.linearRampToValueAtTime(0, C.currentTime + fade);
-  try { s.stop(C.currentTime + fade + 0.05); } catch (e) {}
+function musicLoaded(k, b) {
+  // where the sound starts (the encoder adds a few ms of silence at the front)
+  const d = b.getChannelData(0); let i = 0; while (i < d.length && Math.abs(d[i]) < 0.002) i++;
+  MUSIC[k].at = Math.max(0, i / b.sampleRate - 0.004);
+  if (k === 'm_intro' && mono.on && !MUS.cur) musicMono();   // it arrived after he started talking: catch up
+}
+const MUS = { cur: null, voices: [] };
+function musicPlay(key, when, from = 0, bus) {
+  // start a section at ctx time 'when', 'from' seconds into it; it becomes the current one
+  const C = AUDIO.ctx, b = AUDIO.bufs[key], m = MUSIC[key]; if (!C || !b) return null;
+  const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = 1;
+  s.connect(g); g.connect(bus || AUDIO.musicGain);
+  when = Math.max(C.currentTime + 0.01, when); s.start(when, m.at + from);
+  const v = { s, g, end: when + b.duration - m.at - from }; MUS.voices.push(v); s.onended = () => { const i = MUS.voices.indexOf(v); if (i >= 0) MUS.voices.splice(i, 1); };
+  MUS.cur = { key, T: when - from, queued: when - from, pending: 0 };
+  return MUS.cur;
+}
+function musicStop(fade = 1.2, keep) {
+  const C = AUDIO.ctx; if (!C) return;
+  const now = C.currentTime;
+  for (const v of MUS.voices.slice()) {
+    if (keep && v === keep) continue;
+    v.g.gain.cancelScheduledValues(now); v.g.gain.setValueAtTime(v.g.gain.value, now); v.g.gain.linearRampToValueAtTime(0, now + Math.max(0.02, fade));
+    try { v.s.stop(now + fade + 0.05); } catch (e) {}
+  }
+  if (!keep) MUS.cur = null;
+}
+function nextBar(cur, after) {
+  // the next bar line of the current section after ctx time 'after'
+  const m = MUSIC[cur.key]; let k = Math.floor((after - cur.T) / m.len); if (!m.loop) k = 0;
+  for (let j = Math.max(0, k); j < k + 2; j++) for (const off of m.start) { const t = cur.T + j * m.len + off; if (t > after + 0.03) return t; }
+  return cur.T + (k + 1) * m.len;
+}
+function musicSwitch(key) {
+  // to another section, on the next bar line (the old one is cut there, with a quick fade)
+  const C = AUDIO.ctx, cur = MUS.cur; if (!C || !AUDIO.bufs[key]) return;
+  const at = cur && C.currentTime >= cur.T ? nextBar(cur, C.currentTime) : C.currentTime + 0.02;
+  const old = MUS.voices.slice();
+  for (const v of old) { v.g.gain.setValueAtTime(1, at); v.g.gain.linearRampToValueAtTime(0, at + 0.12); try { v.s.stop(at + 0.2); } catch (e) {} }
+  musicPlay(key, at);
+}
+function musicMono() {
+  // under his monologue: time the intro so its rage bar lands on the moment he gets angry
+  const C = AUDIO.ctx, m = MUSIC.m_intro; if (!C || !AUDIO.bufs.m_intro) return;
+  musicStop(0.3);
+  const said = mono.on ? (performance.now() - mono.t0) / 1000 : 0;   // (if the music loaded late, part of it's been said)
+  const toRage = (MONO.lines || []).reduce((a, l) => a + l.secs, 0) + (INTRO.rage - INTRO.windup) - said;
+  const lead = toRage - m.start[m.rage];
+  if (lead >= 0) musicPlay('m_intro', C.currentTime + lead, 0); else musicPlay('m_intro', C.currentTime, -lead);
+}
+function musicRage() {
+  // he's angry: TAKEN. STOLEN. CANCELLED. then phase 1 right after (jumping there if the monologue was skipped)
+  const C = AUDIO.ctx, m = MUSIC.m_intro; if (!C) return;
+  const now = C.currentTime, cur = MUS.cur;
+  let rageAt;
+  if (cur && cur.key === 'm_intro' && Math.abs(now - (cur.T + m.start[m.rage])) < 0.2) rageAt = cur.T + m.start[m.rage];
+  else if (AUDIO.bufs.m_intro) { musicStop(0.15); rageAt = now + 0.02; musicPlay('m_intro', rageAt, m.start[m.rage]); }
+  else rageAt = now - m.bars[m.rage] * 60 / 120;
+  musicPlay(phaseTrack(), rageAt + m.bars[m.rage] * 60 / 120);
+}
+const phaseTrack = () => 'm_p' + phase();
+function musicTick() {
+  // loops (a new copy starts on the loop point; the old one rings out underneath) and phase changes
+  const C = AUDIO.ctx, cur = MUS.cur; if (!C || !cur) return;
+  const m = MUSIC[cur.key], now = C.currentTime;
+  if (m.loop && now > cur.queued + m.len - 0.6) {
+    const t = cur.queued + m.len, s = C.createBufferSource(), g = C.createGain(), b = AUDIO.bufs[cur.key];
+    s.buffer = b; s.connect(g); g.connect(AUDIO.musicGain); s.start(t, m.at);
+    const v = { s, g }; MUS.voices.push(v); s.onended = () => { const i = MUS.voices.indexOf(v); if (i >= 0) MUS.voices.splice(i, 1); };
+    cur.queued = t;
+  }
+  if (m.loop && fight.phase === 'fight' && !boss.down && !P.dead && now > cur.T && cur.key !== phaseTrack() && now > cur.pending) {
+    musicSwitch(phaseTrack()); if (MUS.cur) MUS.cur.pending = MUS.cur.T + 0.5;
+  }
+}
+function musicDeath(delay) {
+  // he's beaten: the fight music goes, and the music box comes in with his last words
+  const C = AUDIO.ctx; if (!C) return;
+  musicStop(0.8); musicPlay('m_death', C.currentTime + delay);
+}
+function musicPapa() {
+  // you're beaten: Papa (it plays even with the music off, like a sound effect)
+  const C = AUDIO.ctx; if (!C) return;
+  musicStop(0.6); musicPlay('m_papa', C.currentTime + 0.25, 0, OPT.music ? AUDIO.musicGain : AUDIO.sfxGain);
 }
 addEventListener('pointerdown', audioOn); addEventListener('keydown', audioOn);
 
@@ -916,6 +1007,7 @@ const sayEl = document.getElementById('say');
 function seenIntro() { try { return localStorage.getItem('rvFightIntroSeen') === '1'; } catch (e) { return false; } }
 function startMonologue() {
   Object.assign(mono, { on: true, t0: performance.now(), line: -1, pic: null, cut: 0 });
+  musicMono();
   fight.phase = 'monologue'; red = 0; face('neutral', 200);
   // the hand he holds the world in: in front of him, at chest height, on the side away from you
   const chest = bonePos('chest'), side = P.x < W / 2 ? (rightArmOnLeft ? 'L' : 'R') : (rightArmOnLeft ? 'R' : 'L');
@@ -1051,8 +1143,8 @@ function animateTodd(t, dt) {
   } else if (fight.phase === 'intro') {
     if (introStep === 0 && T > INTRO.shock) { introStep = 1; face('surprised', 220); fight.shake = 0.25; }
     if (introStep === 1 && T > INTRO.windup) { introStep = 2; }
-    if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; }
-    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner(HARD ? 'HARD MODE' : ENDLESS ? 'ROUND ' + ENDLESS.round : CFG ? 'CUSTOM' : 'FIGHT!'); musicStart(); }
+    if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; musicRage(); }
+    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner(HARD ? 'HARD MODE' : ENDLESS ? 'ROUND ' + ENDLESS.round : CFG ? 'CUSTOM' : 'FIGHT!'); }
     if (introStep === 0) {
       // not looking at you yet: idly glancing off to the side
       yaw = 0.35 + Math.sin(t * 0.6) * 0.08; pitch = 0.2;
@@ -1380,13 +1472,14 @@ function setFlag(name) { try { const f = JSON.parse(localStorage.getItem('rp_fla
 function flagSet(name) { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[name]; } catch (e) { return false; } }
 function knockout() {
   if (ENDLESS) return endlessClear();
-  musicStop(2.5); sfx('crash', 0.9); seePic('death');
+  sfx('crash', 0.9); seePic('death');
   boss.down = true; atk = null; threats.length = 0;
   setFlag('todd_dead');   // for good: he stays dead here, and Cedar and Wonder know
   if (HARD) setFlag('todd_hard_beaten');
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
   // his last words (intro.json 'dying'), his screen going through the fire to the skull; then WIN!
   const last = (MONO && MONO.dying) || [], talk = last.reduce((a, l) => a + (l.secs || 2), 0) * 1000, start = 900;
+  musicDeath(start / 1000);   // the music box starts with his first word
   if (last.length) setTimeout(() => { if (boss.down) Object.assign(dying, { on: true, t0: performance.now(), line: -1, pic: null, cut: 0 }); }, start);
   else setTimeout(() => showDying('death'), 700);
   setTimeout(() => banner((MONO && MONO.win) || 'WIN!'), last.length ? start + talk + 300 : 600);
@@ -1395,7 +1488,7 @@ function knockout() {
 // When he kills you: a moment of disbelief, then he laughs (hands on his belly, shaking, head back) while
 // his screen cools from red back to cyan; then he fixes his tie, very pleased, and leans over to look at you.
 function youDied() {
-  musicStop(1.5);
+  musicStop(1.5);   // (Papa comes in with the death card)
   atk = null; tauntSoon = false;
   setTimeout(() => { for (const o of threats) if (o.state === 'fly') fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ff2a3a' }); threats.length = 0; }, 400);
   const H = toddH, at = (v, dx, dy, dz) => v.clone().add(new THREE.Vector3(dx * H, dy * H, dz * H));
@@ -1455,7 +1548,7 @@ optShake.checked = OPT.shake; optSkip.checked = OPT.skip;
 optShake.addEventListener('change', () => { OPT.shake = optShake.checked; saveOpts(); });
 const optMusic = document.getElementById('opt-music'), optSfx = document.getElementById('opt-sfx');
 optMusic.checked = OPT.music; optSfx.checked = OPT.sfx;
-optMusic.addEventListener('change', () => { OPT.music = optMusic.checked; saveOpts(); if (AUDIO.ctx) AUDIO.musicGain.gain.setTargetAtTime(OPT.music && AUDIO.music ? 0.55 : 0, AUDIO.ctx.currentTime, 0.1); });
+optMusic.addEventListener('change', () => { OPT.music = optMusic.checked; saveOpts(); if (AUDIO.ctx) AUDIO.musicGain.gain.setTargetAtTime(OPT.music ? MUSIC_VOL : 0, AUDIO.ctx.currentTime, 0.1); });
 optSfx.addEventListener('change', () => { OPT.sfx = optSfx.checked; saveOpts(); });
 optSkip.addEventListener('change', () => { OPT.skip = optSkip.checked; saveOpts(); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && fight.phase === 'title') showScreen('title'); });
@@ -1469,7 +1562,8 @@ function showGone() {
   const rp = document.querySelector('[data-go=replay]'); if (rp) rp.hidden = false;   // ...but you can fight him again, just for fun
   const hd = document.querySelector('[data-go=hard]'); if (hd) hd.textContent = flagSet('todd_hard_beaten') ? 'HARD MODE \u2605' : 'HARD MODE';
   const ex = document.querySelector('#menu [data-go=extras]'); if (ex) { ex.hidden = false; ex.textContent = flagSet('todd_hard_beaten') ? 'EXTRAS \u2605' : 'EXTRAS'; }
-  document.getElementById('arena').classList.remove('hard', 'custom', 'endless'); HARD = false; CFG = null; ENDLESS = null; musicStop(1.5);
+  document.getElementById('arena').classList.remove('hard', 'custom', 'endless'); HARD = false; CFG = null; ENDLESS = null;
+  if (!(MUS.cur && MUS.cur.key === 'm_death')) musicStop(1.5);   // his music box plays on
   const en = document.querySelector('[data-go=endless]'); if (en) en.textContent = endlessBest() ? 'ENDLESS (best: ' + endlessBest() + ')' : 'ENDLESS';
   hideDeathCard(); fight.retry = false;
   boss.hp = 0; boss.down = true; fight.phase = 'down'; red = 0; face('error', 300);
@@ -1631,24 +1725,32 @@ function endlessClear() {
 
 // ---- EXTRAS: sound test ----
 const ST = [
-  ['music', 'Tribal Sci-Fi', 'the fight music \u00b7 Mark_Murray'], ['pew', 'Pew', 'him summoning things \u00b7 AceOfSpadesProduc100'],
+  ['m_intro', 'TODD: Intro', 'his monologue \u00b7 Render Productions'], ['m_p1', 'TODD: Phase 1', 'Render Productions'],
+  ['m_p2', 'TODD: Phase 2', 'Render Productions'], ['m_p3', 'TODD: Phase 3', 'Render Productions'],
+  ['m_death', 'TODD: Last Words', 'when you beat him \u00b7 Render Productions'], ['m_papa', 'Papa', 'when he beats you \u00b7 Render Productions'], ['pew', 'Pew', 'him summoning things \u00b7 AceOfSpadesProduc100'],
   ['hurt1', 'Hurt 1', 'him, hit \u00b7 GreenFireSound'], ['hurt2', 'Hurt 2', 'him, hit \u00b7 GreenFireSound'], ['hurt3', 'Hurt 3', 'him, hit \u00b7 GreenFireSound'],
   ['parry', 'Parry', 'Retro Collection 3 \u00b7 Xiko__'], ['ow', 'Ow', 'you, hit \u00b7 Under7dude'], ['impact', 'Impact', 'his fists landing \u00b7 Daftrio'],
   ['jump', 'Jump', 'cartchaos'], ['run', 'Running', 'the TV robot charging \u00b7 Topschool'], ['crash', 'Crash', 'his knockout \u00b7 Artninja'],
-  ['gameover', 'Game Over', 'melokacool'], ['static', 'Static', 'his agony (made in the page)'], ['rumble', 'Rumble', 'shockwaves (made in the page)']
+  ['static', 'Static', 'his agony (made in the page)'], ['rumble', 'Rumble', 'shockwaves (made in the page)']
 ];
 let stMusic = null;
 function stStop() { if (stMusic) { try { stMusic.s.stop(); } catch (e) {} stMusic = null; } document.querySelectorAll('.st-list button.on').forEach((b) => b.classList.remove('on')); }
 function stPlay(key, btn) {
   audioOn();
   const C = AUDIO.ctx; if (!C) return;
-  if (key === 'music' && stMusic) { stStop(); return; }
+  const music = key.startsWith('m_');
+  if (music && stMusic) { const same = stMusic.key === key; stStop(); if (same) return; }   // click again to stop
   const go = () => {
     const b = AUDIO.bufs[key]; if (!b) return setTimeout(go, 200);   // still loading
-    const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = key === 'music' ? 0.55 : 0.9; s.connect(g); g.connect(AUDIO.master || C.destination);
-    if (key === 'music') { s.loop = true; stMusic = { s }; }
-    s.start(); btn.classList.add('on');
-    if (key !== 'music') setTimeout(() => btn.classList.remove('on'), Math.min(4000, b.duration * 1000));
+    const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = music ? MUSIC_VOL : 0.9; s.connect(g); g.connect(AUDIO.master || C.destination);
+    if (music) {
+      const m = MUSIC[key];
+      if (m.loop) { s.loop = true; s.loopStart = m.at; s.loopEnd = m.at + m.len; }   // the phases loop, on the beat
+      stMusic = { s, key }; s.start(0, m.at);
+      s.onended = () => { if (stMusic && stMusic.s === s) stStop(); };
+    } else s.start();
+    btn.classList.add('on');
+    if (!music) setTimeout(() => btn.classList.remove('on'), Math.min(4000, b.duration * 1000));
   };
   go();
 }
@@ -1656,7 +1758,7 @@ function stBuild() {
   const L = document.getElementById('st-list'); if (L.childElementCount) return;
   for (const [k, name, what] of ST) {
     const b = document.createElement('button'); b.type = 'button';
-    b.innerHTML = '<span class="ic">' + (k === 'music' ? '\u266b' : '\u25b6') + '</span><span><b></b><small></small></span>';
+    b.innerHTML = '<span class="ic">' + (k.startsWith('m_') ? '\u266b' : '\u25b6') + '</span><span><b></b><small></small></span>';
     b.querySelector('b').textContent = name; b.querySelector('small').textContent = what;
     b.addEventListener('click', () => stPlay(k, b)); L.appendChild(b);
   }
@@ -1730,7 +1832,7 @@ function gBuild() {
 
 // When you die: Cuphead style, how far you got (a bar with his phases marked), a line from him, retry or exit.
 function showDeathCard() {
-  sfx('gameover', 0.7);
+  musicPapa();
   const D = (MONO && MONO.death) || {}, el = document.getElementById('death');
   const q = D.quotes && D.quotes.length ? D.quotes[(Math.random() * D.quotes.length) | 0] : '';
   document.getElementById('d-head').textContent = D.heading || 'YOU DIED';
@@ -2347,7 +2449,7 @@ function frame(now) {
   stepSmoke(dt);
   loopSound('run', stomp.on && stomp.state === 'charge', 0.55);
   loopSound('static', !!(atk && atk.kind === 'agony'), 0.32);
-  stepScreen(now);
+  stepScreen(now); musicTick();
   stepAgony();
   stepFx(dt);
   stepBot(dt, now);
@@ -2375,7 +2477,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: CFG ? CFG.php : HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { hitTodd, get CFG() { return CFG; }, get ENDLESS() { return ENDLESS; }, playEndless, SEEN: () => SEEN, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { hitTodd, MUS, MUSIC, musicPlay, get CFG() { return CFG; }, get ENDLESS() { return ENDLESS; }, playEndless, SEEN: () => SEEN, ED: () => ED, playCustom, shift, get quality() { return quality; }, get HARD() { return HARD; }, AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
