@@ -162,6 +162,48 @@ function hint(text) {
   clearTimeout(hint.t); hint.t = setTimeout(() => { if (!mono.on) { el.hidden = true; el.classList.remove('hint'); } }, 2600);
 }
 
+// ---------------- sound ----------------
+// Music: "Tribal Sci-Fi" (Mark_Murray), looping through the fight. SFX: "Louder pewing sound" (AceOfSpadesProduc100)
+// when he summons things out of his screen; "Robot hurt" (GreenFireSound), cut into three, at random when he's hit.
+// (Credits screen.) Web Audio, started on the first click (browsers won't play sound before one).
+const AUDIO = { ctx: null, bufs: {}, music: null, musicGain: null, sfxGain: null, lastPew: 0 };
+const SOUNDS = { music: 'sfx/music.mp3', pew: 'sfx/pew.mp3', hurt1: 'sfx/hurt1.mp3', hurt2: 'sfx/hurt2.mp3', hurt3: 'sfx/hurt3.mp3' };
+function audioOn() {
+  if (AUDIO.ctx) { if (AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume(); return; }
+  try {
+    const C = new (window.AudioContext || window.webkitAudioContext)();
+    AUDIO.ctx = C;
+    AUDIO.musicGain = C.createGain(); AUDIO.musicGain.gain.value = 0; AUDIO.musicGain.connect(C.destination);
+    AUDIO.sfxGain = C.createGain(); AUDIO.sfxGain.gain.value = 0.8; AUDIO.sfxGain.connect(C.destination);
+    for (const k in SOUNDS) fetch(SOUNDS[k] + '?v=1').then((r) => r.arrayBuffer()).then((a) => new Promise((ok, no) => C.decodeAudioData(a, ok, no))).then((b) => { AUDIO.bufs[k] = b; if (k === 'music' && AUDIO.wantMusic) musicStart(); }).catch(() => {});
+  } catch (e) {}
+}
+function sfx(name, vol = 1, rate = 1) {
+  const C = AUDIO.ctx, b = AUDIO.bufs[name]; if (!C || !b || !OPT.sfx) return;
+  const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol;
+  s.connect(g); g.connect(AUDIO.sfxGain); s.start();
+}
+// the pew: not more than one every so often (a volley would otherwise be a wall of it), a little pitch change each time
+function pew() { const now = performance.now(); if (now - AUDIO.lastPew < 120) return; AUDIO.lastPew = now; sfx('pew', 0.55, 0.92 + Math.random() * 0.2); }
+function ouch() { sfx('hurt' + (1 + ((Math.random() * 3) | 0)), 0.9, 0.95 + Math.random() * 0.1); }
+function musicStart() {
+  AUDIO.wantMusic = true;
+  const C = AUDIO.ctx, b = AUDIO.bufs.music; if (!C || !b) return;
+  musicStop(0);
+  const s = C.createBufferSource(); s.buffer = b; s.loop = true; s.connect(AUDIO.musicGain); s.start();
+  AUDIO.music = s;
+  const g = AUDIO.musicGain.gain; g.cancelScheduledValues(C.currentTime); g.setValueAtTime(0.0001, C.currentTime);
+  g.linearRampToValueAtTime(OPT.music ? 0.55 : 0, C.currentTime + 0.6);
+}
+function musicStop(fade = 1.2) {
+  AUDIO.wantMusic = false;
+  const C = AUDIO.ctx, s = AUDIO.music; if (!C || !s) return;
+  AUDIO.music = null;
+  const g = AUDIO.musicGain.gain; g.cancelScheduledValues(C.currentTime); g.setValueAtTime(g.value, C.currentTime); g.linearRampToValueAtTime(0, C.currentTime + fade);
+  try { s.stop(C.currentTime + fade + 0.05); } catch (e) {}
+}
+addEventListener('pointerdown', audioOn); addEventListener('keydown', audioOn);
+
 // ---------------- the stage (2D) ----------------
 const stage = document.getElementById('stage'), ctx = stage.getContext('2d');
 let scale = 1, dpr = 1;
@@ -878,7 +920,7 @@ function animateTodd(t, dt) {
     if (introStep === 0 && T > INTRO.shock) { introStep = 1; face('surprised', 220); fight.shake = 0.25; }
     if (introStep === 1 && T > INTRO.windup) { introStep = 2; }
     if (introStep === 2 && T > INTRO.rage) { introStep = 3; face('angry', 380); fight.shake = 1; }
-    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner('FIGHT!'); }
+    if (introStep === 3 && T > INTRO.ready) { introStep = 4; fight.phase = 'fight'; banner('FIGHT!'); musicStart(); }
     if (introStep === 0) {
       // not looking at you yet: idly glancing off to the side
       yaw = 0.35 + Math.sin(t * 0.6) * 0.08; pitch = 0.2;
@@ -1108,6 +1150,7 @@ function shotImage(name) {
   return (shotArt[name] = c);
 }
 function fireFace(name, speed) {
+  pew();
   const s = screenAt();
   const lead = 0.25, tx = P.x + P.vx * lead, ty = P.y - 40;
   const dx = tx - s.x, dy = ty - s.y, d = Math.hypot(dx, dy) || 1;
@@ -1121,6 +1164,7 @@ fetch('../toddguts/terminal.json?v=' + Date.now()).then((r) => r.json()).then((d
 const BAR_H = 30;
 function barWidth(text) { ctx.save(); ctx.font = 'bold 17px "Courier New", monospace'; const w = ctx.measureText('> ' + text).width + 26; ctx.restore(); return Math.min(320, Math.max(110, w)); }
 function rainWave(speed, lastGap, gapW = 150) {
+  pew();
   // a row of falling lines across the stage, with one gap to slip through
   let gap;
   do { gap = 60 + Math.random() * (W - 120 - gapW); } while (lastGap != null && Math.abs(gap - lastGap) < 180);
@@ -1142,18 +1186,21 @@ function staticWave(dir, speed) { threats.push({ kind: 'wave', x: W / 2, y: FLOO
 function shock(x, dir, speed) { threats.push({ kind: 'shock', x, y: FLOOR - 20, w: 30, h: 40, vx: dir * speed, state: 'fly', t: 0, rot: 0 }); }
 // --- cursors: little pointers from his screen that chase you for a moment, then dive ---
 function fireCursor(i) {
+  pew();
   const s = screenAt(), a = -Math.PI / 2 + (i - 1) * 0.9;
   threats.push({ kind: 'cursor', x: s.x, y: s.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 20, home: 1.6 + i * 0.25, state: 'fly', t: 0, rot: 0 });
 }
 // --- error popups: a window locks on above you, then slams down ---
 const POPUP_TEXT = ['ERROR', 'GET OUT', 'NO', 'DENIED', 'FATAL', '404'];
 function popup(x) {
+  pew();
   x = Math.max(60, Math.min(W - 60, x));
   threats.push({ kind: 'drop', x, y: -60, w: 116, h: 84, vy: 0, text: POPUP_TEXT[(Math.random() * POPUP_TEXT.length) | 0], state: 'warn', warn: 0.55, t: 0, rot: 0 });
 }
 
 // --- hitting him ---
 function hitTodd(x, y) {
+  if (!boss.down) ouch();
   if (boss.down) return;
   const before = phase();
   boss.hp--; boss.flinch = 1;
@@ -1174,6 +1221,7 @@ function hitTodd(x, y) {
 function setFlag(name) { try { const f = JSON.parse(localStorage.getItem('rp_flags')) || {}; if (!f[name]) { f[name] = Date.now(); localStorage.setItem('rp_flags', JSON.stringify(f)); } } catch (e) {} }
 function flagSet(name) { try { return !!(JSON.parse(localStorage.getItem('rp_flags')) || {})[name]; } catch (e) { return false; } }
 function knockout() {
+  musicStop(2.5);
   boss.down = true; atk = null; threats.length = 0;
   setFlag('todd_dead');   // for good: he stays dead here, and Cedar and Wonder know
   fight.phase = 'down'; face('error', 500); fight.shake = 1.2;
@@ -1185,6 +1233,7 @@ function knockout() {
 // When he kills you: a moment of disbelief, then he laughs (hands on his belly, shaking, head back) while
 // his screen cools from red back to cyan; then he fixes his tie, very pleased, and leans over to look at you.
 function youDied() {
+  musicStop(1.5);
   atk = null; tauntSoon = false;
   setTimeout(() => { for (const o of threats) if (o.state === 'fly') fx.push({ kind: 'ring', x: o.x, y: o.y, t: 0, life: 0.3, color: '#ff2a3a' }); threats.length = 0; }, 400);
   const H = toddH, at = (v, dx, dy, dz) => v.clone().add(new THREE.Vector3(dx * H, dy * H, dz * H));
@@ -1205,7 +1254,7 @@ function youDied() {
 }
 // ---- the cards ----
 // Before the fight: his title and a menu (START / SETTINGS / CREDITS). START begins the cutscene.
-const OPT = { shake: true, skip: false };
+const OPT = { shake: true, skip: false, music: true, sfx: true };
 try { Object.assign(OPT, JSON.parse(localStorage.getItem('rvFightOpts')) || {}); } catch (e) {}
 function saveOpts() { try { localStorage.setItem('rvFightOpts', JSON.stringify(OPT)); } catch (e) {} }
 function showScreen(id) {
@@ -1235,6 +1284,10 @@ document.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click'
 const optShake = document.getElementById('opt-shake'), optSkip = document.getElementById('opt-skip');
 optShake.checked = OPT.shake; optSkip.checked = OPT.skip;
 optShake.addEventListener('change', () => { OPT.shake = optShake.checked; saveOpts(); });
+const optMusic = document.getElementById('opt-music'), optSfx = document.getElementById('opt-sfx');
+optMusic.checked = OPT.music; optSfx.checked = OPT.sfx;
+optMusic.addEventListener('change', () => { OPT.music = optMusic.checked; saveOpts(); if (AUDIO.ctx) AUDIO.musicGain.gain.setTargetAtTime(OPT.music && AUDIO.music ? 0.55 : 0, AUDIO.ctx.currentTime, 0.1); });
+optSfx.addEventListener('change', () => { OPT.sfx = optSfx.checked; saveOpts(); });
 optSkip.addEventListener('change', () => { OPT.skip = optSkip.checked; saveOpts(); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && fight.phase === 'title') showScreen('title'); });
 // He's been beaten (rp_flags.todd_dead): no fight any more. He's slumped over the stage, smoking, the skull on
@@ -1793,7 +1846,7 @@ function hurt(n = 1) {
   paintHud();
 }
 function revive() { Object.assign(P, { hp: HP_START, dead: false, deadT: 0, hurtT: 0, goldT: 0, streak: 0, x: 200, y: FLOOR, vx: 0, vy: 0, parryT: 0, spin: 0 }); paintHud(); }
-window.FIGHT = { hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
+window.FIGHT = { AUDIO, sfx, hint: (t) => hint(t), noParry: () => { noParryAt = -1e9; noParry(); }, showPic: (k, ms) => { screen.key = k; screen.until = performance.now() + ms; }, mono, pics, startMonologue, stomp, startStomp: () => startStomp(performance.now()), wear, attack: (k) => startAttack(performance.now(), k), phase, taunt: () => startTaunt(performance.now()), boss, threats, get atk() { return atk; }, startAttack: () => startAttack(performance.now()), fireFace, solveArm, fromStage, toStage, fistOnStage, restart, bot, LEDGE, P, TUNE, hurt, revive, look, bones, camera, fight, intro: startIntro, face, get todd() { return todd; } };
 
 addEventListener('resize', fit);
 fit(); paintHud();
