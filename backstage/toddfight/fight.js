@@ -176,8 +176,16 @@ function audioOn() {
   try {
     const C = new (window.AudioContext || window.webkitAudioContext)();
     AUDIO.ctx = C;
-    AUDIO.musicGain = C.createGain(); AUDIO.musicGain.gain.value = 0; AUDIO.musicGain.connect(C.destination);
-    AUDIO.sfxGain = C.createGain(); AUDIO.sfxGain.gain.value = 0.8; AUDIO.sfxGain.connect(C.destination);
+    // everything goes through one limiter, so a pile of sounds gets quieter instead of crunching (clipping)
+    const lim = C.createDynamicsCompressor();
+    lim.threshold.value = -6; lim.knee.value = 6; lim.ratio.value = 14; lim.attack.value = 0.002; lim.release.value = 0.2;
+    // and after it a soft clip: whatever gets past the limiter's first few milliseconds is rounded off, never chopped
+    const soft = C.createWaveShaper(), curve = new Float32Array(2048);
+    for (let i = 0; i < curve.length; i++) { const x = i / (curve.length - 1) * 2 - 1; curve[i] = Math.tanh(x * 1.2) / Math.tanh(1.2) * 0.97; }
+    soft.curve = curve; soft.oversample = '2x';
+    AUDIO.master = C.createGain(); AUDIO.master.gain.value = 0.85; AUDIO.master.connect(lim); lim.connect(soft); soft.connect(C.destination); AUDIO.lim = soft;
+    AUDIO.musicGain = C.createGain(); AUDIO.musicGain.gain.value = 0; AUDIO.musicGain.connect(AUDIO.master);
+    AUDIO.sfxGain = C.createGain(); AUDIO.sfxGain.gain.value = 0.7; AUDIO.sfxGain.connect(AUDIO.master);
     makeNoise(C);
     for (const k in SOUNDS) fetch(SOUNDS[k] + '?v=1').then((r) => r.arrayBuffer()).then((a) => new Promise((ok, no) => C.decodeAudioData(a, ok, no))).then((b) => { AUDIO.bufs[k] = b; if (k === 'music' && AUDIO.wantMusic) musicStart(); }).catch(() => {});
   } catch (e) {}
@@ -220,10 +228,24 @@ function loopSound(name, on, vol = 0.6) {
   }
 }
 function thud(vol = 0.9, rate = 1) { sfx('impact', vol, rate * (0.94 + Math.random() * 0.12)); }
+// Voices: no more than a few of one sound at once (the same sound twice within 40 ms is one sound, a bit louder),
+// no more than VOICES in all (the oldest fades out to make room), and the more that are going, the quieter each.
+const VOICES = 12, PER = { impact: 3, ow: 2, parry: 3, pew: 2, rumble: 2, crash: 1, gameover: 1 }, live = [];
 function sfx(name, vol = 1, rate = 1) {
   const C = AUDIO.ctx, b = AUDIO.bufs[name]; if (!C || !b || !OPT.sfx) return;
-  const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol;
+  const now = C.currentTime;
+  for (let i = live.length - 1; i >= 0; i--) if (live[i].end <= now) live.splice(i, 1);
+  const same = live.filter((v) => v.name === name);
+  const twin = same.find((v) => now - v.t < 0.04);
+  if (twin) { twin.g.gain.setTargetAtTime(Math.min(1.2, twin.vol * 1.25), now, 0.01); twin.vol = Math.min(1.2, twin.vol * 1.25); return; }
+  const cap = PER[name] || 3;
+  const steal = (v) => { v.g.gain.cancelScheduledValues(now); v.g.gain.setTargetAtTime(0, now, 0.015); try { v.s.stop(now + 0.08); } catch (e) {} live.splice(live.indexOf(v), 1); };
+  if (same.length >= cap) steal(same[0]);
+  if (live.length >= VOICES) steal(live[0]);
+  const crowd = 1 / Math.sqrt(1 + live.length * 0.35);
+  const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = rate; g.gain.value = vol * crowd;
   s.connect(g); g.connect(AUDIO.sfxGain); s.start();
+  live.push({ name, s, g, t: now, vol: vol * crowd, end: now + b.duration / rate });
 }
 // the pew: not more than one every so often (a volley would otherwise be a wall of it), a little pitch change each time
 function pew() { const now = performance.now(); if (now - AUDIO.lastPew < 120) return; AUDIO.lastPew = now; sfx('pew', 0.55, 0.92 + Math.random() * 0.2); }
@@ -1623,7 +1645,7 @@ function stPlay(key, btn) {
   if (key === 'music' && stMusic) { stStop(); return; }
   const go = () => {
     const b = AUDIO.bufs[key]; if (!b) return setTimeout(go, 200);   // still loading
-    const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = key === 'music' ? 0.55 : 0.9; s.connect(g); g.connect(C.destination);
+    const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = key === 'music' ? 0.55 : 0.9; s.connect(g); g.connect(AUDIO.master || C.destination);
     if (key === 'music') { s.loop = true; stMusic = { s }; }
     s.start(); btn.classList.add('on');
     if (key !== 'music') setTimeout(() => btn.classList.remove('on'), Math.min(4000, b.duration * 1000));
