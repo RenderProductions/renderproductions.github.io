@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 <title>C:\TODD\FIGHT</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="fight.css?v=12">
+<link rel="stylesheet" href="fight.css?v=13">
 </head>
 <body>
 <div class="arena" id="arena">
@@ -23,7 +23,7 @@
     <nav class="menu" id="menu" aria-label="Menu">
       <button type="button" data-go="start">START</button>
       <button type="button" data-go="replay" hidden>REPLAY</button>
-      <button type="button" data-go="hard" hidden>HARD MODE</button>
+      <button type="button" data-go="extras" hidden>EXTRAS</button>
       <button type="button" data-go="settings">SETTINGS</button>
       <button type="button" data-go="credits">CREDITS</button>
     </nav>
@@ -46,6 +46,35 @@
     <p class="note">Everything he throws hurts unless you parry it. Parried attacks fly back and hit him: that&rsquo;s the only way to hurt him. Three parries in a row without getting hit gives you one health back (up to 4; no limit in hard mode).</p>
     <button type="button" class="back" data-go="menu">BACK</button>
   </div>
+  <div class="card panel-card" id="extras" hidden>
+    <h2>EXTRAS</h2>
+    <nav class="menu">
+      <button type="button" data-go="hard">HARD MODE</button>
+      <button type="button" data-go="editor">ATTACK EDITOR</button>
+    </nav>
+    <p class="note" id="x-note">Hard mode: double health, faster, cursors from every edge, the TV robot from the start, no heal cap.<br>Attack editor: build your own TODD.</p>
+    <button type="button" class="back" data-go="menu">BACK</button>
+  </div>
+  <div class="card panel-card editor-card" id="editor" hidden>
+    <h2>ATTACK EDITOR</h2>
+    <h3>HIS ATTACKS</h3>
+    <div class="ed-moves" id="ed-moves"></div>
+    <h3>DIALS</h3>
+    <div class="ed-dials" id="ed-dials"></div>
+    <h3>SWITCHES</h3>
+    <div class="ed-toggles opts" id="ed-toggles"></div>
+    <h3>SHARE</h3>
+    <div class="ed-share">
+      <input type="text" id="ed-code" spellcheck="false" aria-label="Share code">
+      <button type="button" id="ed-copy">COPY</button><button type="button" id="ed-load">LOAD</button>
+    </div>
+    <p class="note" id="ed-msg"></p>
+    <div class="ed-go">
+      <button type="button" class="back" data-go="extras">BACK</button>
+      <button type="button" class="back" id="ed-reset">RESET</button>
+      <button type="button" class="back play" id="ed-play">PLAY</button>
+    </div>
+  </div>
   <div class="card panel-card" id="credits" hidden>
     <h2>CREDITS</h2>
     <p><b>TODD</b>, the player, the story and the art: <b>Render Productions</b>.</p>
@@ -67,7 +96,7 @@
     </div>
     <div class="d-far" id="d-far"></div>
     <div class="d-tip" id="d-tip" hidden></div>
-    <div class="d-opts"><button type="button" id="d-retry">RETRY</button><a href="/backstage/" id="d-exit">EXIT</a></div>
+    <div class="d-opts"><button type="button" id="d-retry">RETRY</button><button type="button" id="d-edit" hidden>EDIT</button><a href="/backstage/" id="d-exit">EXIT</a></div>
   </div>
   <div class="boot" id="boot">LOADING TODD.EXE_</div>
 </div>
@@ -78,6 +107,6 @@
   <button type="button" data-k="jump" class="jump">&#9650;</button>
 </div>
 <script src="/inventory.js?v=3"></script>
-<script type="module" src="fight.js?v=35"></script>
+<script type="module" src="fight.js?v=36"></script>
 </body>
 </html>

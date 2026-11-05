@@ -100,3 +100,27 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
   box-shadow: inset 0 0 140px rgba(255,20,40,.45); background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(80,0,8,.35)); }
 .hud .hd { color: #ff3b4e; letter-spacing: .1em; }
 [data-go=hard] { color: #ff5260 !important; border-color: rgba(255,60,80,.7) !important; }
+/* the attack editor */
+.editor-card > * { max-width: 760px; }
+.ed-moves { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; text-align: left; }
+.ed-move { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid rgba(0,255,250,.25); }
+.ed-move.on { border-color: #00fffa; background: rgba(0,255,250,.08); }
+.ed-move label { display: flex; gap: 8px; align-items: center; cursor: pointer; font: bold 13px 'Courier New', monospace; letter-spacing: .06em; }
+.ed-moves input, .ed-toggles input { accent-color: #00fffa; width: 18px; height: 18px; }
+.ed-dials { display: grid; grid-template-columns: max-content 1fr 4.5em; gap: 6px 14px; align-items: center; text-align: left; font-family: 'Courier New', monospace; }
+.ed-dials span:first-child { color: #00fffa; font-weight: bold; }
+.ed-dials input[type=range] { width: 100%; accent-color: #ff3b4e; }
+.ed-dials output { text-align: right; color: #fff; }
+.ed-share { display: flex; gap: 8px; }
+.ed-share input { flex: 1; min-width: 0; font: 12px 'Courier New', monospace; color: #cfe3e8; background: #031015; border: 1px solid rgba(0,255,250,.4); padding: 6px 8px; }
+.ed-share button { font: bold 13px 'Courier New', monospace; letter-spacing: .15em; color: #00fffa; background: none; border: 2px solid rgba(0,255,250,.55); padding: 4px 12px; cursor: pointer; }
+.ed-go { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.ed-go .back { margin-top: 1em; }
+.ed-go .play { color: #fff !important; border-color: #ff3b4e !important; background: rgba(255,40,60,.2) !important; }
+#ed-msg:empty { display: none; }
+.arena.custom::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; box-shadow: inset 0 0 120px rgba(160,60,255,.35); }
+.hud .cu { color: #c18bff; letter-spacing: .1em; }
+.d-opts #d-edit { font: bold 18px 'Courier New', monospace; letter-spacing: .2em; color: #c18bff; background: none; border: 2px solid #c18bff; padding: 6px 18px; cursor: pointer; }
+.ed-moves .ed-n { margin-left: auto; width: 7.5em; flex-shrink: 0; font: 12px 'Courier New', monospace; color: #fff; background: #031015; border: 1px solid rgba(0,255,250,.35); padding: 2px 4px; }
+.ed-moves input[type=checkbox] { flex-shrink: 0; }
+.editor-card { padding-bottom: 6vh; }
