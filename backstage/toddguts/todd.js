@@ -351,9 +351,14 @@ function frame() {
   const fitH = (height * 1.4) / 2 / Math.tan(fov / 2);
   const fitW = (height * 0.9) / 2 / Math.tan(fov / 2) / camera.aspect;
   camera.userData.dist = Math.max(fitH, fitW);
+  // on a tall phone screen the chat covers the bottom, so he's framed higher up (the taller the screen, the higher)
+  const lift = THREE.MathUtils.clamp((h / w - 1.15) / 0.8, 0, 1) * 0.12;
+  if (lift > 0) camera.setViewOffset(w, h, 0, Math.round(h * lift), w, h); else camera.clearViewOffset();
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', frame);
+window.addEventListener('orientationchange', () => setTimeout(frame, 250));
+if (window.ResizeObserver) new ResizeObserver(() => frame()).observe(canvas);
 
 // ---- where he looks ----
 // yaw: + turns toward the right of the screen. pitch: + looks down. roll: a curious head tilt.

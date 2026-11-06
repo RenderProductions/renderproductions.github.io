@@ -73,6 +73,30 @@ body { background: #030506; color: #00fffa; overflow: hidden; font-family: 'IBM 
 @keyframes jitter { 50% { transform: translate(1px, -1px) } }
 @media (prefers-reduced-motion: reduce) { .void.broadcast::after, .tline.wonder { animation: none; } }
 .void.broadcast .term { z-index: 3; }
-/* as an app (from the home screen): no "back" to the site, and keep clear of notches and the home bar */
+/* as an app (from the home screen): no "back" to the site */
 .app .leave { display: none; }
-.app .chat { left: max(16px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); width: min(520px, calc(100% - 32px - env(safe-area-inset-left) - env(safe-area-inset-right))); }
+
+/* ---- phones ---- */
+/* the void stays put: no page scroll, rubber-banding, pull-to-refresh, double-tap zoom or tap flashes */
+html, body { overscroll-behavior: none; }
+body { position: fixed; inset: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+.void { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.log, .ask input { -webkit-user-select: text; user-select: text; }
+.log { overscroll-behavior: contain; touch-action: pan-y; }
+/* clear of notches and the home bar, and above the keyboard while it's open (chat.js sets --kb and --vvh) */
+.chat { left: max(16px, env(safe-area-inset-left)); bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--kb, 0px));
+  width: min(520px, calc(100% - 32px - env(safe-area-inset-left) - env(safe-area-inset-right))); }
+.log { max-height: min(300px, calc(var(--vvh, 100dvh) * .42)); }
+.leave { top: max(6px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); padding: 8px; }
+/* on touch screens: bigger text and a bigger target to tap (16px also stops iPhone zooming in on the box) */
+@media (pointer: coarse) {
+  .chat { font-size: 13px; }
+  .ask { padding: 10px 0 6px; }
+  .ask input { font-size: 16px; padding: 6px 0; }
+  .leave { font-size: 12px; }
+}
+/* phone on its side: not much height, so a shorter log, tucked into the corner */
+@media (max-height: 500px) and (orientation: landscape) {
+  .chat { width: min(420px, 48vw); bottom: calc(max(10px, env(safe-area-inset-bottom)) + var(--kb, 0px)); }
+  .log { max-height: calc(var(--vvh, 100dvh) * .38); }
+}

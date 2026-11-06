@@ -25,6 +25,7 @@
   fetch('brain.json?v=' + Date.now()).then((r) => r.json()).then((b) => {
     BRAIN = b;
     Object.keys(b.synonyms || {}).forEach((main) => b.synonyms[main].forEach((w) => { SYN[w] = main; }));
+    greetDead();
   }).catch((e) => { console.warn('[todd] brain.json did not load', e); });
 
   // ---- reading what you typed ----
@@ -257,6 +258,38 @@
         }
       });
     });
+  }
+
+  // he was beaten in the fight (rp_flags.todd_dead), but here he still is: he says so as his page opens
+  function greetDead(tries) {
+    if (!items('rp_flags').todd_dead) return;
+    tries = tries || 0;
+    const ready = document.getElementById('boot').classList.contains('gone') && window.TODD;
+    if (!ready || busy || TODD.busy) { if (tries < 40) setTimeout(() => greetDead(tries + 1), 400); return; }
+    if (TODD.asleep) return;   // asleep at night: he'll ask some other time
+    const r = choose(BRAIN.greet_dead, 'greet_dead');
+    if (!r) return;
+    busy = true; form.classList.add('busy');
+    TODD.faceYou(); TODD.face(r.face || 'surprised');
+    const el = line('todd');
+    setTimeout(() => stream(el, '> ' + fill(r.text || r), false, () => { busy = false; form.classList.remove('busy'); TODD.attend(); }), 900);
+  }
+
+  // ---- phones ----
+  const touch = matchMedia('(pointer: coarse)').matches;
+  if (touch) input.placeholder = 'tap to talk';
+  // tap the void to put the keyboard away
+  document.getElementById('stage').addEventListener('pointerdown', () => { if (touch && document.activeElement === input) input.blur(); });
+  // the on-screen keyboard covers the bottom of the screen (on iPhone it doesn't shrink the page): lift the chat above it
+  const vv = window.visualViewport;
+  if (vv) {
+    const lift = () => {
+      const kb = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+      document.documentElement.style.setProperty('--kb', kb + 'px');
+      document.documentElement.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+      log.scrollTop = log.scrollHeight;
+    };
+    vv.addEventListener('resize', lift); vv.addEventListener('scroll', lift); lift();
   }
 
   form.addEventListener('submit', (e) => {
