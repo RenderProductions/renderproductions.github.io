@@ -102,7 +102,8 @@
     </div>
     <div class="panel prose">
       <p>Trading happens in The Render Room server through the <a href="/bot/">Rend-Conomy bot</a>. Join the server to get started, or see the <a href="/bot/">full command list</a>. Click any company above for its chart, goal and news.</p>
-      <p>Companies announce goals in the news above. Hit the goal and the stock jumps; miss it and the stock drops. Buy in before the deadline if you think they'll pull it off.</p>
+      <p>Companies announce goals in the news above. Hit the goal and the stock jumps; miss it and the stock drops. Nobody knows the result ahead of time, and a stock that climbs before the deadline isn't always right.</p>
+      <p>Watch for breaking news, rumors that may or may not be true, and the odd story that shakes the whole market at once. Every company has good stretches and bad ones, and no stretch lasts forever.</p>
       <!-- Add your bot commands here once they're final, e.g. a short list of what each command does. -->
     </div>
   </section>
@@ -131,6 +132,11 @@
     var feedEl = document.getElementById('news-feed');
     var countEl = document.getElementById('news-count');
     var rows = [];
+    var KIND = {
+      goal: 'NEW GOAL', success: 'GOAL HIT', fail: 'GOAL MISSED', mixed: 'MIXED RESULT',
+      good: 'BREAKING', bad: 'BREAKING', rumor: 'RUMOR', confirmed: 'CONFIRMED', denied: 'DENIED',
+      market: 'MARKET-WIDE', crossover: 'CROSSOVER'
+    };
 
     var FALLBACK = [
       { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00 },
@@ -225,9 +231,11 @@
       feedEl.innerHTML = '';
       list.slice(0, NEWS_SHOWN).forEach(function (n) {
         var item = document.createElement('div');
-        var kind = n.type === 'success' ? 'SUCCESS' : n.type === 'fail' ? 'FAILED' : 'NEW GOAL';
+        var kind = KIND[n.type] || 'NEWS';
+        var bad = n.type === 'fail' || n.type === 'bad' || (typeof n.move === 'number' && n.move < 0 && n.type !== 'rumor');
+        var quiet = n.type === 'goal' || n.type === 'rumor' || n.type === 'mixed';
         item.className = 'log' +
-          (n.type === 'fail' ? ' is-rare' : n.type === 'goal' ? ' is-decoy' : '') +
+          (bad ? ' is-rare' : quiet ? ' is-decoy' : '') +
           (Date.now() - Date.parse(n.time) < FRESH_MS ? ' fresh' : '');
 
         var label = document.createElement('div');
@@ -246,10 +254,15 @@
 
         var stamp = document.createElement('div');
         stamp.className = 'stamp';
-        if (typeof n.move === 'number') {
+        if (n.moves) {
+          stamp.textContent = Object.keys(n.moves).map(function (k) {
+            var m = n.moves[k];
+            return k + ' ' + (m >= 0 ? '▲ +' : '▼ ') + m.toFixed(2) + '%';
+          }).join(' · ');
+        } else if (typeof n.move === 'number') {
           var mv = document.createElement('span');
           mv.className = 'move';
-          mv.textContent = (n.move >= 0 ? '▲ +' : '▼ ') + n.move.toFixed(2) + '% on the news';
+          mv.textContent = (n.move >= 0 ? '▲ +' : '▼ ') + n.move.toFixed(2) + '%' + (n.type === 'rumor' ? ' on the whispers' : ' on the news');
           stamp.appendChild(mv);
         } else if (n.deadline) {
           stamp.textContent = 'Deadline: ' + fmtTime(n.deadline) + ' (' + timeLeft(n.deadline) + ')';

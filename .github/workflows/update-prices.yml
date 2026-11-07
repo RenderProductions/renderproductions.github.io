@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Advance prices
+        env:
+          MARKET_SECRET: ${{ secrets.MARKET_SECRET }}   # encrypts the hidden market state (optional but recommended)
         run: node .github/scripts/tick.js ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
 
       # Commits pushed with the built-in token do not trigger a Pages build,
@@ -28,8 +30,8 @@ jobs:
         run: |
           git config user.name "rend-conomy-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add prices.json
-          if git diff --cached --quiet; then
+          git add prices.json .github/market-state.json
+          if git diff --cached --quiet -- prices.json; then
             echo "Nothing to commit."
             exit 0
           fi

@@ -30,8 +30,9 @@
 </head>
 <!-- ==========================================================
      COMPANY PAGE
-     Price, chart, stats, goal and news fill in automatically
-     (anything with data-live="..."). Leave those alone.
+     The header, chart, stats, goal, news, other companies and
+     trading box are drawn by company.js into #co-top and #co-bottom.
+     Leave those two empty divs alone.
 
      Your writing goes in the three sections marked WRITE HERE.
      Replace each <div class="placeholder">...</div> with your own
@@ -55,95 +56,39 @@
 
   <p class="crumb"><a href="/rend-conomy/">&larr; Market</a> / BNW</p>
 
-  <header class="hero co-head">
-    <h1 class="page-title" data-live="name">Business Numbers Working</h1>
-    <div class="co-tags">
-      <span class="tag">BNW</span>
-      <span class="tag" data-live="status">LOADING</span>
-    </div>
-    <p class="co-desc" data-live="desc">Numbers. Business. Working, mostly.</p>
-    <div class="co-quote">
-      <span class="co-price"><span data-live="price">--</span><small>Polygons</small></span>
-      <span class="co-change" data-live="change"></span>
-    </div>
-  </header>
+  <!-- Live: header, chart, stats, goal -->
+  <div id="co-top">
+    <header class="hero"><h1 class="page-title">Business Numbers Working</h1><p class="tagline">Numbers. Business. Working, mostly.</p></header>
+  </div>
 
-  <section aria-labelledby="chart-title">
-    <div class="section-head">
-      <h2 id="chart-title">Price</h2>
-      <span>Hover or tap the chart</span>
-    </div>
-    <div class="chart" data-live="chart">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <line class="grid" x1="0" y1="25" x2="100" y2="25"/>
-        <line class="grid" x1="0" y1="50" x2="100" y2="50"/>
-        <line class="grid" x1="0" y1="75" x2="100" y2="75"/>
-        <polygon class="area" points=""/>
-        <polyline class="line" points=""/>
-      </svg>
-      <span class="axis hi"></span>
-      <span class="axis lo"></span>
-      <span class="axis span"></span>
-      <div class="marker" hidden></div>
-      <div class="readout" hidden></div>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="k">HIGH</div><div class="v" data-live="high">--</div></div>
-      <div class="stat"><div class="k">LOW</div><div class="v" data-live="low">--</div></div>
-      <div class="stat"><div class="k">START OF CHART</div><div class="v" data-live="open">--</div></div>
-      <div class="stat"><div class="k">MARKET</div><div class="v" data-live="market">--</div></div>
-    </div>
-    <p class="empty" data-live="note">Loading prices...</p>
-  </section>
+  <div class="co-lore">
+    <!-- ========== WRITE HERE: Overview ========== -->
+    <section aria-labelledby="overview-title">
+      <div class="section-head"><h2 id="overview-title">Overview</h2></div>
+      <div class="prose">
+        <div class="placeholder">[ OVERVIEW NOT WRITTEN YET ]</div>
+      </div>
+    </section>
 
-  <section class="co-section" aria-labelledby="goal-title">
-    <div class="section-head"><h2 id="goal-title">Current goal</h2></div>
-    <div class="panel goal-panel" data-live="goal">
-      <div class="goal-text">Loading...</div>
-      <div class="goal-when"></div>
-    </div>
-  </section>
+    <!-- ========== WRITE HERE: History ========== -->
+    <section aria-labelledby="history-title">
+      <div class="section-head"><h2 id="history-title">History</h2></div>
+      <div class="prose">
+        <div class="placeholder">[ HISTORY NOT WRITTEN YET ]</div>
+      </div>
+    </section>
 
-  <!-- ========== WRITE HERE: Overview ========== -->
-  <section class="co-section" aria-labelledby="overview-title">
-    <div class="section-head"><h2 id="overview-title">Overview</h2></div>
-    <div class="prose">
-      <div class="placeholder">BUSINESS NUMBERS WORKING is a logistics company that of which documents numbers, business, and working employees. Allegedly.</div>
-    </div>
-  </section>
+    <!-- ========== WRITE HERE: Key people ========== -->
+    <section aria-labelledby="people-title">
+      <div class="section-head"><h2 id="people-title">Key people</h2></div>
+      <div class="prose">
+        <div class="placeholder">[ KEY PEOPLE NOT WRITTEN YET ]</div>
+      </div>
+    </section>
+  </div>
 
-  <!-- ========== WRITE HERE: History ========== -->
-  <section class="co-section" aria-labelledby="history-title">
-    <div class="section-head"><h2 id="history-title">History</h2></div>
-    <div class="prose">
-      <div class="placeholder">Nyeh, what's it to ya?</div>
-    </div>
-  </section>
-
-  <!-- ========== WRITE HERE: Key people ========== -->
-  <section class="co-section" aria-labelledby="people-title">
-    <div class="section-head"><h2 id="people-title">Key people</h2></div>
-    <div class="prose">
-      <div class="placeholder">FREQUENCY - 89.3<br>JOHN GLAZLOW - CEO & FOUNDER</div>
-    </div>
-  </section>
-
-  <section class="co-section" aria-labelledby="news-title">
-    <div class="section-head"><h2 id="news-title">Company news</h2></div>
-    <div class="co-news" data-live="news"><p class="empty">Loading...</p></div>
-  </section>
-
-  <section class="co-section" aria-labelledby="others-title">
-    <div class="section-head"><h2 id="others-title">Other companies</h2></div>
-    <div class="btns" data-live="others"></div>
-  </section>
-
-  <section class="co-section" aria-labelledby="trade-title">
-    <div class="section-head"><h2 id="trade-title">Trade BNW</h2></div>
-    <div class="panel prose">
-      <p>Buy and sell in The Render Room with the Rend-Conomy bot, for example <code>r!buy BNW 5</code> or <code>r!chart BNW</code>. Trading is open 3 AM to 9 PM Eastern, every day.</p>
-    </div>
-  </section>
+  <!-- Live: news, other companies, trading -->
+  <div id="co-bottom"></div>
 
   <footer class="footer">
     <span>Render Productions</span>

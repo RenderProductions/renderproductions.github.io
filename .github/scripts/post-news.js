@@ -19,7 +19,15 @@ const BOARD = 'https://renderproductions.github.io/rend-conomy/';
 const COLORS = {
   success: 0x57f287,
   fail: 0xff6b6b,
+  mixed: 0xf0b232,
   goal: 0xffe600,
+  good: 0x57f287,
+  bad: 0xff6b6b,
+  rumor: 0x8a93ab,
+  confirmed: 0x57f287,
+  denied: 0x8a93ab,
+  market: 0x5865f2,
+  crossover: 0xeb459e,
   open: 0xffe600,
   closed: 0x8a93ab,
   up: 0xffe600,
@@ -58,8 +66,10 @@ function embed(p) {
         Math.abs(p.move).toFixed(2) + '% in the last hour. Now ' + money(p.price) + '.'
     };
   }
-  // News: reuse the ready-made line from tick.js, plus the price after the news.
-  return { color: COLORS[p.type] || COLORS.goal, description: p.discord + '\n`' + p.id + '` now ' + money(p.price) };
+  // News: reuse the ready-made line from the engine, plus the price after the news.
+  // Market-wide and crossover stories already list every company's move, so no single price is added.
+  const tail = p.price != null ? '\n`' + p.id + '` now ' + money(p.price) : '';
+  return { color: COLORS[p.type] || COLORS.goal, description: p.discord + tail };
 }
 
 // Discord takes up to 10 embeds per message.

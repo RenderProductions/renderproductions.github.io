@@ -1,497 +1,69 @@
 #!/usr/bin/env node
-// Advances every company's price by one step and rewrites prices.json
-// in the repo root. Run by .github/workflows/update-prices.yml, or by hand:
-//   node .github/scripts/tick.js
+// Moves the market forward one 5-minute step and rewrites prices.json.
+// Run by .github/workflows/update-prices.yml, or by hand:  node .github/scripts/tick.js
 //
-// Companies also set goals. A goal is announced in the news, and when its
-// deadline passes the company either hits it (price jumps up) or misses it
-// (price drops). Odds lean on how the stock did while the goal was running.
+// The engine itself is in market/engine.js, and every headline is in market/stories.js.
+// Test the tuning without touching anything:              node .github/scripts/market/sim.js 7
+//
+// Hidden market state (fair values, moods, health, upcoming results) is saved in
+// .github/market-state.json. If the repository secret MARKET_SECRET exists, that file is
+// encrypted, so nobody can read the repo and see what the market is about to do.
+// Without the secret it is saved as plain text (it still works, it's just peekable).
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const { tick } = require('./market/engine');
 
-const FILE = path.join(__dirname, '..', '..', 'prices.json');
-const POINTS = 288; // history length kept per company (24 hours at 5 min per tick)
+const ROOT = path.join(__dirname, '..', '..');
+const FILE = path.join(ROOT, 'prices.json');
+const STATE_FILE = path.join(ROOT, '.github', 'market-state.json');
+const SECRET = process.env.MARKET_SECRET || '';
 
-// ---------- Market hours ----------
-// Open 3 AM to 9 PM Detroit time, every day.
-// Nights are "after hours": prices drift slowly, trading is closed, goals wait.
-// Any day listed in CLOSED_DAYS is fully closed: prices freeze and nothing is written.
-const TZ = 'America/Detroit';
-const OPEN_HOUR = 3;
-const CLOSE_HOUR = 21;
-const CLOSED_DAYS = [];         // e.g. [0] closes Sundays (0 = Sunday ... 6 = Saturday)
-const AFTER_HOURS_SCALE = 0.25; // after-hours moves are a quarter of normal
+function key() { return crypto.createHash('sha256').update(SECRET).digest(); }
 
-// ---------- Goal tuning ----------
-const GOAL_HOURS = [6, 18];     // how long a company has to reach a goal
-const COOLDOWN_HOURS = [2, 8];  // quiet time before the next goal is announced
-const JUMP = [0.15, 0.35];      // success/failure moves the price 15% to 35%
-const MAX_NEWS = 12;            // how many news items prices.json keeps
-const COMPANY_NEWS = 10;        // how many stories each company page keeps
-
-// ---------- Dividends ----------
-// Each company pays a daily percentage of its share price. Smaller companies pay more.
-// Every company has a dividend "meter" (divIndex): how much one share has earned in
-// total, ever. It grows while the market is open. The bot pays (meter now - meter at
-// your last claim) x shares, so unclaimed days pile up on their own.
-const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025, BSTG: 0.03 }; // per day (BSTG: the riskiest stock pays the most)
-const DIV_SUSPEND_HOURS = 24;   // a failed goal freezes that company's meter this long
-const DIV_BONUS_DAYS = 1;       // a successful goal drops this many days' worth on the meter
-const MAX_ACCRUE_MIN = 15;      // a late or missed tick adds at most this many minutes
-
-// ---------- Discord feed ----------
-// Big moves without news get announced in the Discord market channel.
-const SWING_PCT = 8;            // a move this big (in %) over the last hour counts as a swing
-const SWING_TICKS = 12;         // "the last hour" = 12 ticks of 5 minutes
-const SWING_COOLDOWN_HOURS = 3; // a company gets at most one swing alert per this long
-
-// To add, remove, or rename a company, edit this list.
-// volatility = how far a price can move in one tick (0.04 = up to 4%)
-const COMPANIES = [
-  { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00, volatility: 0.016 },
-  { id: 'NACH', name: 'De Nacho',                 description: 'Nachos, at scale.',                     start: 45.50,  volatility: 0.020 },
-  { id: 'BLU',  name: "Builder's League United",  description: 'Building things together, allegedly.',  start: 78.25,  volatility: 0.014 },
-  { id: 'BNW',  name: 'Business Numbers Working', description: 'Numbers. Business. Working, mostly.',   start: 12.80,  volatility: 0.025 },
-  // Bastardly Glory runs on moods, not on the gentle random walk above (see wildStep below).
-  // It can sit at 400 one day and 2 the next. jump/swingPct override the market-wide settings.
-  { id: 'BSTG', name: 'Bastardly Glory',          description: 'Games. Glorious ones, occasionally.',    start: 50.00,  volatility: 0.025,
-    wild: { min: 2, max: 400, moodHours: [18, 42], chase: 0.05, flip: 0.75 }, jump: [0.35, 0.75], swingPct: 35 }
-];
-
-// Goals per company. goal = the announcement, win/lose = the outcome headlines.
-// Add as many as you like; a company never picks the same goal twice in a row.
-const GOALS = {
-  RRM: [
-    { goal: 'Render Room aims to hit a new member record.', win: 'Render Room smashes its member record!', lose: 'Render Room falls short of its member record.' },
-    { goal: 'Render Room promises a server-wide event with zero outages.', win: 'Render Room event goes off without a hitch!', lose: 'Render Room event crashes halfway through.' },
-    { goal: 'Render Room plans to launch a new season on schedule.', win: 'New season launches right on time!', lose: 'New season delayed. Again.' }
-  ],
-  NACH: [
-    { goal: 'De Nacho is opening three new nacho stands.', win: 'De Nacho opens three stands, lines around the block!', lose: 'De Nacho stands fail their health inspection.' },
-    { goal: "De Nacho attempts the world's largest nacho.", win: "De Nacho builds the world's largest nacho!", lose: "World's largest nacho collapses under its own cheese." },
-    { goal: 'De Nacho vows to survive the cheese shortage.', win: 'De Nacho secures a secret cheese supply!', lose: 'Cheese shortage hits De Nacho hard.' }
-  ],
-  BLU: [
-    { goal: "Builder's League United starts work on a community megabuild.", win: 'BLU finishes the megabuild, and it is magnificent!', lose: 'BLU megabuild abandoned after a dispute over the roof.' },
-    { goal: "Builder's League United tries to agree on a single blueprint.", win: 'BLU agrees on a blueprint. Historians stunned.', lose: 'BLU blueprint talks end in shouting.' },
-    { goal: "Builder's League United pledges to fix the old bridge.", win: 'BLU fixes the bridge. It holds!', lose: 'BLU bridge repair somehow makes the bridge worse.' }
-  ],
-  BSTG: [
-    { goal: 'Bastardly Glory announces its next game will launch on time.', win: 'Bastardly Glory ships on time! Reviews call it "glorious, somehow."', lose: 'Bastardly Glory delays the game indefinitely. Fans riot in the forums.' },
-    { goal: 'Bastardly Glory promises a launch day with zero server crashes.', win: 'Launch day servers hold! Bastardly Glory players are actually playing!', lose: 'Bastardly Glory servers melt on launch day. Queue times reach eleven hours.' },
-    { goal: 'Bastardly Glory teases a sequel nobody asked for.', win: 'The sequel nobody asked for is a smash hit!', lose: 'The sequel nobody asked for is exactly what everybody feared.' },
-    { goal: 'Bastardly Glory enters crunch to finish the big update.', win: 'Bastardly Glory big update lands, and it fixes everything!', lose: 'Bastardly Glory update deletes everyone\'s save files.' },
-    { goal: 'Bastardly Glory is chasing a perfect review score.', win: 'Bastardly Glory scores a perfect 10. Critics weeping.', lose: 'Bastardly Glory review score leaks: 2 out of 10.' }
-  ],
-  BNW: [
-    { goal: 'Business Numbers Working sets out to make the numbers work.', win: 'BNW confirms: the numbers are working!', lose: 'BNW admits the numbers are not working.' },
-    { goal: 'Business Numbers Working promises a quarterly report on time.', win: 'BNW publishes its report, and it adds up!', lose: 'BNW report missing several pages and most of the numbers.' },
-    { goal: 'Business Numbers Working is hiring a real accountant.', win: 'BNW hires an accountant, investors relieved!', lose: 'BNW accountant quits on day one.' }
-  ]
-};
-
-const HOUR = 60 * 60 * 1000;
-const round2 = (n) => Math.round(n * 100) / 100;
-const between = (lo, hi) => lo + Math.random() * (hi - lo);
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-// Random move, with a gentle pull back toward the starting price
-// so nothing drifts to zero or runs away forever.
-function step(price, c, scale = 1) {
-  const shock = (Math.random() - 0.5) * 2 * c.volatility * scale;
-  const pull = ((c.start - price) / c.start) * 0.0035;
-  return Math.max(1, round2(price * (1 + shock + pull)));
-}
-
-// Wild companies (BSTG): a hidden mood picks a target price anywhere between min and max
-// (leaning toward the extremes) and holds it for moodHours; the price charges toward it with
-// noise (chase = how hard). When the mood changes it usually (flip) swings to the opposite
-// side, so a glorious day tends to be followed by a disastrous one, and vice versa.
-// Works in log space, so 2 -> 4 is as big a move as 200 -> 400.
-function pickMood(c, prev) {
-  const w = c.wild;
-  const lmin = Math.log(w.min), lmax = Math.log(w.max);
-  let u = Math.random() * 2 - 1;                                        // -1 .. 1
-  if (prev && Math.random() < (w.flip || 0)) {
-    const wasHigh = Math.log(prev.target) > (lmin + lmax) / 2;
-    u = (wasHigh ? -1 : 1) * Math.abs(u);
+function loadState() {
+  let raw;
+  try { raw = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch (e) { return null; }
+  if (!raw.encrypted) return raw.state || null;
+  if (!SECRET) {
+    console.log('market-state.json is encrypted but MARKET_SECRET is not set; starting the hidden state fresh.');
+    return null;
   }
-  const t = 0.5 + 0.5 * Math.sign(u) * Math.pow(Math.abs(u), 0.55);   // pushed toward 0 and 1
-  return { target: round2(Math.exp(lmin + t * (lmax - lmin))),
-           until: new Date(Date.now() + between(w.moodHours[0], w.moodHours[1]) * HOUR).toISOString() };
+  try {
+    const d = crypto.createDecipheriv('aes-256-gcm', key(), Buffer.from(raw.iv, 'base64'));
+    d.setAuthTag(Buffer.from(raw.tag, 'base64'));
+    const text = Buffer.concat([d.update(Buffer.from(raw.data, 'base64')), d.final()]).toString('utf8');
+    return JSON.parse(text);
+  } catch (e) {
+    console.log('Could not decrypt market-state.json (did MARKET_SECRET change?); starting the hidden state fresh.');
+    return null;
+  }
 }
-function wildStep(price, c, mood, scale = 1) {
-  const w = c.wild;
-  const lp = Math.log(price), lt = Math.log(mood.target);
-  const shock = (Math.random() - 0.5) * 2 * c.volatility;
-  const next = Math.exp(lp + (lt - lp) * w.chase * scale + shock * scale);
-  return round2(clamp(next, w.min * 0.75, w.max * 1.1));
+
+function saveState(state) {
+  let out;
+  if (SECRET) {
+    const iv = crypto.randomBytes(12);
+    const c = crypto.createCipheriv('aes-256-gcm', key(), iv);
+    const data = Buffer.concat([c.update(JSON.stringify(state), 'utf8'), c.final()]);
+    out = { note: 'Hidden Rend-Conomy market state. Encrypted on purpose: no peeking.', encrypted: true,
+      iv: iv.toString('base64'), tag: c.getAuthTag().toString('base64'), data: data.toString('base64') };
+  } else {
+    out = { note: 'Hidden Rend-Conomy market state. Add a MARKET_SECRET repository secret to encrypt this.', encrypted: false, state };
+  }
+  fs.writeFileSync(STATE_FILE, JSON.stringify(out) + '\n');
 }
 
 let old = {};
-try {
-  old = JSON.parse(fs.readFileSync(FILE, 'utf8')) || {};
-} catch (e) {
-  // No file yet (or unreadable): every company starts fresh below.
+try { old = JSON.parse(fs.readFileSync(FILE, 'utf8')) || {}; } catch (e) { /* first run */ }
+
+const result = tick({ old, state: loadState(), now: Date.now() });
+if (result.skip) {
+  console.log('Market closed; nothing to update.');
+  process.exit(0);
 }
-const existing = {};
-(old.companies || []).forEach((c) => { existing[c.id] = c; });
-
-const now = Date.now();
-const nowIso = new Date(now).toISOString();
-
-// ---------- Market status ----------
-const WEEKDAYS = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-const tzParts = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', hour: 'numeric', hourCycle: 'h23' });
-
-function statusAt(ms) {
-  const p = {};
-  tzParts.formatToParts(new Date(ms)).forEach((x) => { p[x.type] = x.value; });
-  const day = WEEKDAYS[p.weekday];
-  const hour = Number(p.hour);
-  if (CLOSED_DAYS.includes(day)) return 'closed';
-  return hour >= OPEN_HOUR && hour < CLOSE_HOUR ? 'open' : 'after-hours';
-}
-
-// Walks forward in 5-minute steps (handles daylight saving on its own).
-function nextTime(test) {
-  for (let t = now + 5 * 60 * 1000; t < now + 8 * 24 * HOUR; t += 5 * 60 * 1000) {
-    if (test(statusAt(t))) return t - (t % (5 * 60 * 1000));
-  }
-  return null;
-}
-
-const status = statusAt(now);
-const OPEN_MS_PER_DAY = (CLOSE_HOUR - OPEN_HOUR) * HOUR;
-const sinceLastTick = old.updated ? now - Date.parse(old.updated) : 0;
-const nextChange = nextTime((st) => st !== status);
-const nextOpen = status === 'open' ? null : nextTime((st) => st === 'open');
-const ts = (ms) => '<t:' + Math.floor(ms / 1000) + ':R>';
-const market = {
-  status,
-  open: status === 'open',
-  nextChange: nextChange ? new Date(nextChange).toISOString() : null,
-  nextOpen: nextOpen ? new Date(nextOpen).toISOString() : null,
-  // Ready-made Discord line, e.g. for r!market or a "market closed" reply in r!buy
-  text: status === 'open'
-    ? '🟢 **Market open** · closes ' + ts(nextChange)
-    : status === 'after-hours'
-      ? '🌙 **After hours** · prices drift, trading opens ' + ts(nextOpen)
-      : '⛔ **Market closed today** · opens ' + ts(nextOpen)
-};
-let news = Array.isArray(old.news) ? old.news.slice() : [];
-
-// Things to announce in Discord this tick. Written to a queue file that the
-// workflow posts only after prices.json is pushed (see post-news.js).
-const posts = [];
-const oldStatus = old.market && old.market.status;
-if (oldStatus && oldStatus !== status) {
-  posts.push({ kind: 'market', status, nextChange: market.nextChange, nextOpen: market.nextOpen });
-}
-
-const unix = (ms) => Math.floor(ms / 1000);
-const TICK_SEC = 5 * 60; // one tick = 5 minutes
-
-// Each news item also carries a ready-made Discord line, so the bot
-// (which can't loop or format easily) just prints it.
-// <t:UNIX:R> shows as a live "in 5 hours" / "2 hours ago" in Discord.
-function discordLine(item) {
-  const tag = item.type === 'success' ? '🟢 **SUCCESS**' : item.type === 'fail' ? '🔴 **FAILED**' : '📢 **NEW GOAL**';
-  let extra;
-  if (typeof item.move === 'number') {
-    extra = (item.move >= 0 ? '▲ +' : '▼ ') + item.move.toFixed(2) + '% on the news';
-  } else if (item.deadline) {
-    extra = 'Deadline <t:' + unix(Date.parse(item.deadline)) + ':R>';
-  }
-  const div = item.dividend === 'suspended' ? '\n💸 Dividend suspended for ' + DIV_SUSPEND_HOURS + ' hours'
-    : item.dividend === 'bonus' ? '\n🎉 Bonus dividend paid to shareholders' : '';
-  return tag + ' · `' + item.id + '` · <t:' + unix(Date.parse(item.time)) + ':R>\n' +
-    item.headline + (extra ? '\n*' + extra + '*' : '') + div;
-}
-
-function addNews(item) {
-  const full = Object.assign({ time: nowIso }, item);
-  full.discord = discordLine(full);
-  news.unshift(full);
-  // Copy without the Discord line, for the company's own news log
-  const { discord, ...plain } = full;
-  return plain;
-}
-
-const companies = COMPANIES.map((c) => {
-  const prev = existing[c.id] || {};
-  let history = Array.isArray(prev.history) ? prev.history.slice() : null;
-  // First run: start the company's log from whatever is already in the main news feed.
-  const newsLog = Array.isArray(prev.newsLog)
-    ? prev.newsLog.slice()
-    : (Array.isArray(old.news) ? old.news : []).filter((n) => n.id === c.id).map(({ discord, ...n }) => n);
-
-  // times[i] = when history[i] was recorded (unix seconds), for the chart's time labels.
-  let times = Array.isArray(prev.times) ? prev.times.slice() : [];
-
-  // Wild companies keep a hidden mood (target price and when it changes).
-  let mood = c.wild ? (prev.mood && prev.mood.target ? prev.mood : pickMood(c)) : null;
-  const move = (p, scale) => (c.wild ? wildStep(p, c, mood, scale) : step(p, c, scale));
-
-  if (!history || history.length === 0) {
-    // New company: build a believable past so the chart isn't empty.
-    history = [c.start];
-    while (history.length < POINTS) {
-      if (c.wild && Math.random() < 1 / 300) mood = pickMood(c, mood);   // a mood swing or two in its made-up past
-      history.push(move(history[history.length - 1], 1));
-    }
-    times = [];
-  }
-  if (c.wild && now >= Date.parse(mood.until)) mood = pickMood(c, mood);
-
-  // Older prices.json files have no times: fill them in by counting back
-  // 5 minutes per point from the last update. Ticks from here on are exact.
-  if (times.length < history.length) {
-    const anchor = times.length ? times[0] : unix(Date.parse(old.updated) || now);
-    const missing = history.length - times.length;
-    const offset = times.length ? 1 : 0; // don't duplicate the anchor point
-    const before = [];
-    for (let i = missing; i >= 1; i--) before.push(anchor - (i - 1 + offset) * TICK_SEC);
-    times = before.concat(times);
-  }
-  times = times.slice(-history.length);
-
-  if (status === 'open') {
-    history.push(move(history[history.length - 1], 1));
-    times.push(unix(now));
-  } else if (status === 'after-hours') {
-    history.push(move(history[history.length - 1], AFTER_HOURS_SCALE));
-    times.push(unix(now));
-  }
-  // Closed: no new point, the price stays frozen.
-
-  // ---------- Dividend meter ----------
-  const yieldPerDay = YIELDS[c.id] || 0;
-  let divIndex = typeof prev.divIndex === 'number' ? prev.divIndex : 0;
-  let divSuspendedUntil = prev.divSuspendedUntil || null;
-  if (divSuspendedUntil && now >= Date.parse(divSuspendedUntil)) divSuspendedUntil = null;
-
-  // ---------- Goals ----------
-  const pool = GOALS[c.id] || [];
-  let goal = prev.goal || null;
-  let lastGoal = Number.isInteger(prev.lastGoal) ? prev.lastGoal : -1;
-  // First run: companies announce within the next 2 hours, staggered.
-  let nextGoalAt = prev.nextGoalAt || new Date(now + between(0, 2) * HOUR).toISOString();
-
-  // Drop a goal whose template was removed from the list above.
-  if (goal && !pool[goal.index]) goal = null;
-
-  // Goals only resolve or start while the market is open. A deadline that
-  // passes overnight resolves on the first tick after the opening bell.
-  if (status !== 'open') {
-    // nothing
-  } else if (goal && now >= Date.parse(goal.deadline)) {
-    const tpl = pool[goal.index];
-    const price = history[history.length - 1];
-    // 50/50 by default; a stock that rose during the goal is more likely to succeed.
-    const odds = clamp(0.5 + (price / goal.startPrice - 1) * 3, 0.25, 0.75);
-    const won = Math.random() < odds;
-    const jump = between((c.jump || JUMP)[0], (c.jump || JUMP)[1]);
-    const newPrice = Math.max(1, round2(price * (won ? 1 + jump : 1 - jump)));
-    history[history.length - 1] = newPrice;
-
-    // Dividends react to the news: a bonus on success, a 24h freeze on failure.
-    if (won) divIndex += newPrice * yieldPerDay * DIV_BONUS_DAYS;
-    else divSuspendedUntil = new Date(now + DIV_SUSPEND_HOURS * HOUR).toISOString();
-
-    newsLog.unshift(addNews({
-      id: c.id,
-      name: c.name,
-      type: won ? 'success' : 'fail',
-      headline: won ? tpl.win : tpl.lose,
-      move: round2((newPrice / price - 1) * 100),
-      dividend: won ? 'bonus' : 'suspended'
-    }));
-
-    lastGoal = goal.index;
-    goal = null;
-    nextGoalAt = new Date(now + between(COOLDOWN_HOURS[0], COOLDOWN_HOURS[1]) * HOUR).toISOString();
-  } else if (!goal && pool.length && now >= Date.parse(nextGoalAt)) {
-    let index = Math.floor(Math.random() * pool.length);
-    if (pool.length > 1 && index === lastGoal) index = (index + 1) % pool.length;
-    const deadline = new Date(now + between(GOAL_HOURS[0], GOAL_HOURS[1]) * HOUR).toISOString();
-
-    goal = { index, text: pool[index].goal, startPrice: history[history.length - 1], deadline };
-    newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'goal', headline: pool[index].goal, deadline }));
-  }
-
-  // The meter grows while the market is open and the dividend isn't suspended.
-  if (status === 'open' && !divSuspendedUntil && sinceLastTick > 0) {
-    const ms = Math.min(sinceLastTick, MAX_ACCRUE_MIN * 60 * 1000);
-    divIndex += history[history.length - 1] * yieldPerDay * (ms / OPEN_MS_PER_DAY);
-  }
-  divIndex = Math.round(divIndex * 10000) / 10000;
-
-  // ---------- Swing alerts (for the Discord feed) ----------
-  let swingAt = prev.swingAt || null;
-  if (status === 'open' && history.length > SWING_TICKS) {
-    const nowPrice = history[history.length - 1];
-    const hourAgo = history[history.length - 1 - SWING_TICKS];
-    const swing = round2((nowPrice / hourAgo - 1) * 100);
-    // Skip if a success/failure in the last hour caused it; that already made the news.
-    const recentNews = newsLog.some((n) => (n.type === 'success' || n.type === 'fail') &&
-      now - Date.parse(n.time) < SWING_TICKS * TICK_SEC * 1000);
-    const cooled = !swingAt || now - Date.parse(swingAt) >= SWING_COOLDOWN_HOURS * HOUR;
-    if (Math.abs(swing) >= (c.swingPct || SWING_PCT) && !recentNews && cooled) {
-      swingAt = nowIso;
-      posts.push({ kind: 'swing', id: c.id, name: c.name, move: swing, price: nowPrice });
-    }
-  }
-
-  history = history.slice(-POINTS);
-  times = times.slice(-POINTS);
-  const price = history[history.length - 1];
-  return {
-    id: c.id,
-    name: c.name,
-    description: c.description,
-    price,
-    change: round2((price / history[0] - 1) * 100), // percent vs. start of history
-    history,
-    times,
-    goal,
-    lastGoal,
-    nextGoalAt,
-    swingAt,
-    mood: mood || undefined,
-    yield: yieldPerDay,
-    divIndex,
-    divSuspendedUntil,
-    newsLog: newsLog.slice(0, COMPANY_NEWS)
-  };
-});
-
-news = news.slice(0, MAX_NEWS);
-
-// Lookup tables so the Discord bot can read a value by ticker, e.g. prices.RRM
-const prices = {};
-const changes = {};
-companies.forEach((c) => { prices[c.id] = c.price; changes[c.id] = c.change; });
-
-// Dividend tables for r!dividends:
-//   dividends.RRM = the meter (lifetime earnings per share)
-//   divDaily.RRM  = what one share earns per day right now
-//   divText.RRM   = a ready-made status line
-const dividends = {};
-const divDaily = {};
-const divText = {};
-companies.forEach((c) => {
-  dividends[c.id] = c.divIndex;
-  divDaily[c.id] = Math.round(c.price * c.yield * 10000) / 10000;
-  divText[c.id] = !c.yield
-    ? '🚫 No dividend'
-    : c.divSuspendedUntil
-    ? '💸 Suspended, resumes <t:' + unix(Date.parse(c.divSuspendedUntil)) + ':R>'
-    : (c.yield * 100).toFixed(1).replace(/\.0$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
-});
-
-// ---------- Charts for r!chart ----------
-// The bot can't loop over history, so each company gets a ready-made
-// QuickChart image link (charts.RRM), a text sparkline (sparks.RRM)
-// and its full name (names.RRM).
-const CHART_POINTS = 48; // history is thinned to this many points so the link stays short
-const SPARK = '▁▂▃▄▅▆▇█';
-
-function thin(h, n) {
-  if (h.length <= n) return h.slice();
-  const out = [];
-  for (let i = 0; i < n; i++) out.push(h[Math.round(i * (h.length - 1) / (n - 1))]);
-  return out;
-}
-
-// Time labels along the bottom of the chart, in market time (Detroit).
-// "3 PM" on the hour, "3:05 PM" otherwise, with the weekday added
-// for points from an earlier day than the latest one ("Sat 3 PM").
-const labelFmt = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short', hour: 'numeric', minute: '2-digit' });
-const tzName = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'short' });
-
-function timeLabel(sec, lastDay) {
-  const p = {};
-  labelFmt.formatToParts(new Date(sec * 1000)).forEach((x) => { p[x.type] = x.value; });
-  const clock = p.hour + (p.minute === '00' ? '' : ':' + p.minute) + ' ' + p.dayPeriod;
-  return p.weekday === lastDay ? clock : p.weekday + ' ' + clock;
-}
-
-function zoneLabel(sec) {
-  const z = tzName.formatToParts(new Date(sec * 1000)).find((x) => x.type === 'timeZoneName');
-  return z ? z.value : 'ET'; // EST or EDT
-}
-
-function sparkline(h) {
-  const pts = thin(h, 24);
-  const min = Math.min(...pts), max = Math.max(...pts), range = max - min || 1;
-  return pts.map((v) => SPARK[Math.round(((v - min) / range) * (SPARK.length - 1))]).join('');
-}
-
-// Discord drops a whole embed if its image link is longer than 2048 characters,
-// so the link is kept under MAX_URL: only the labels that are actually shown are sent
-// (the rest are blank), and if it's still too long, fewer points are used.
-const MAX_URL = 2000;
-const LABELS_SHOWN = 6;
-
-function chartUrl(c) {
-  for (let n = CHART_POINTS; n >= 12; n -= 6) {
-    const url = buildChartUrl(c, n);
-    if (url.length <= MAX_URL) return url;
-  }
-  return buildChartUrl(c, 12);
-}
-
-function buildChartUrl(c, n) {
-  const pts = thin(c.history, n);
-  const tms = thin(c.times, n);
-  const every = Math.ceil((tms.length - 1) / LABELS_SHOWN);
-  const up = c.change >= 0;
-  const line = up ? '#ffe600' : '#ff6b6b';
-  const fill = up ? 'rgba(255,230,0,0.12)' : 'rgba(255,107,107,0.12)';
-  const last = tms[tms.length - 1];
-  const hours = Math.max(1, Math.round((last - tms[0]) / 3600));
-  const lastDay = labelFmt.formatToParts(new Date(last * 1000)).find((x) => x.type === 'weekday').value;
-  const config = {
-    type: 'line',
-    data: {
-      labels: tms.map((t, i) => (i % every === 0 || i === tms.length - 1 ? timeLabel(t, lastDay) : '')),
-      datasets: [{ data: pts, borderColor: line, backgroundColor: fill, fill: true, pointRadius: 0, borderWidth: 2, lineTension: 0 }]
-    },
-    options: {
-      legend: { display: false },
-      title: { display: true, text: c.id + ' · last ' + hours + 'h · times in ' + zoneLabel(last), fontColor: '#ffe600', fontSize: 16 },
-      scales: {
-        xAxes: [{
-          ticks: { fontColor: '#8a93ab', autoSkip: false, maxRotation: 0 },
-          gridLines: { display: false }
-        }],
-        yAxes: [{ ticks: { fontColor: '#8a93ab' }, gridLines: { color: 'rgba(255,230,0,0.12)' } }]
-      }
-    }
-  };
-  return 'https://quickchart.io/chart?w=600&h=300&bkg=%23050810&c=' + encodeURIComponent(JSON.stringify(config));
-}
-
-const charts = {};
-const sparks = {};
-const names = {};
-companies.forEach((c) => { charts[c.id] = chartUrl(c); sparks[c.id] = sparkline(c.history); names[c.id] = c.name; });
-
-// headline = newest news item as plain text, handy for a bot command like r!news
-const headline = news[0] ? news[0].headline : '';
-
-// newsText = the 5 latest stories, already formatted for a Discord embed (r!news)
-// headlineText = just the newest one, formatted (for a field in r!market)
-const NEWS_IN_DISCORD = 5;
-const withLines = news.map((n) => (n.discord ? n : Object.assign({}, n, { discord: discordLine(n) })));
-const newsText = withLines.length
-  ? withLines.slice(0, NEWS_IN_DISCORD).map((n) => n.discord).join('\n\n')
-  : 'No market news yet. Check back soon.';
-const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
-
-const data = { updated: nowIso, market, prices, changes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
+const { data, state, posts } = result;
 
 // Keep each history array on one line so commits stay readable.
 const text = JSON.stringify(data, null, 2).replace(
@@ -499,24 +71,14 @@ const text = JSON.stringify(data, null, 2).replace(
   (m, inner) => '[' + inner.replace(/\s+/g, ' ') + ']'
 );
 
-// On a closed day, write once (to flip the status to closed), then leave the file alone.
-if (status === 'closed' && old.market && old.market.status === 'closed') {
-  console.log('Market closed; nothing to update.');
-  process.exit(0);
-}
-
-// News made this tick goes to Discord too (oldest first, so it reads in order).
-news.filter((n) => n.time === nowIso).reverse().forEach((n) => {
-  posts.push({ kind: 'news', id: n.id, type: n.type, discord: n.discord, price: prices[n.id] });
-});
-
-// The queue lives in the runner's temp folder, never in the repo.
+// The Discord queue lives in the runner's temp folder, never in the repo.
 if (process.env.RUNNER_TEMP) {
-  const queue = path.join(process.env.RUNNER_TEMP, 'market-posts.json');
-  fs.writeFileSync(queue, JSON.stringify(posts));
+  fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'market-posts.json'), JSON.stringify(posts));
   if (posts.length) console.log('Queued ' + posts.length + ' Discord post(s).');
 }
 
 fs.writeFileSync(FILE, text + '\n');
-console.log('Updated ' + companies.length + ' companies at ' + data.updated +
-  (news[0] && news[0].time === nowIso ? ' | NEWS: ' + news[0].headline : ''));
+saveState(state);
+const fresh = data.news.filter((n) => n.time === data.updated);
+console.log('Updated ' + data.companies.length + ' companies at ' + data.updated +
+  (fresh.length ? ' | NEWS: ' + fresh.map((n) => n.headline).join(' / ') : ''));
