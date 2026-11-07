@@ -37,6 +37,10 @@
   var options = [], sel = 0;
   var asking = false;               // waiting for the visitor to type something
   var paneled = false;              // a page panel (e.g. Cedar's workbench) has the floor
+  // Free-typing mode: /backstage/brain/mind.js plugs in here (TALKER.useChat). With it, menus never
+  // show: whenever he'd offer choices or wait, a "say something" box opens instead, and what you type
+  // goes to his brain.json.
+  var CHAT = null;
 
   // ---- memory: what this visitor has already heard (their browser only) ----
   var SEEN_KEY = CFG.seenKey || 'rvMarquezSeen', MUTE_KEY = CFG.muteKey || 'rvMarquezMute';
@@ -190,6 +194,14 @@
     typing = false;
     room.classList.remove('talking');
     show(face);
+    if (CHAT && !queue.length && node) {
+      if (node.panel) openPanel();
+      // more to say: Z goes on (a "next" that's just a menu, like back to the advice list, opens the box instead)
+      else if (node.next && !CHAT.silent(node.next) && !(DATA.nodes[node.next] && DATA.nodes[node.next].choices)) box.classList.add('done');
+      else if (CHAT.ends(node)) box.classList.add('done');                         // a goodbye: Z ends the talk
+      else CHAT.open(node.ask ? 'code' : 'chat', node);
+      return;
+    }
     if (!queue.length && node && node.panel) openPanel();
     else if (!queue.length && node && node.ask) openAnswer();
     else if (!queue.length && node && node.choices) showChoices();
@@ -225,6 +237,9 @@
     if (n.repeat && seen[id] && DATA.nodes[n.repeat] && n.repeat !== id) return go(n.repeat);
     // Lines can have "needs" too (same rules as choices): they're skipped unless it holds,
     // checked before this node counts as heard. A line's "mark": "word" remembers that word once it's said.
+    // In free-typing mode, plain menu nodes ("How can I help you?", "Anything else?") are skipped:
+    // the say-something box opens instead.
+    if (CHAT && CHAT.silent(id)) { node = n; options = []; remember(id); setFlag(n.flag); queue = []; return CHAT.open(n.ask ? 'code' : 'chat', n); }
     var lines = [].concat(n.say || []).filter(function (l) { return typeof l === 'string' || (has(l.needs) && hasItem(l.has)); });
     // "pick": 1 says just one of the node's lines, chosen at random (for reactions that shouldn't get old).
     if (n.pick && lines.length) lines = [lines[Math.floor(Math.random() * lines.length)]];
@@ -241,6 +256,7 @@
     if (queue.length) { say(queue.shift()); return; }
     if (node.choices && options.length) return;   // waiting on a pick
     if (node.next) go(node.next); else end();
+
   }
 
   function showChoices() {
@@ -282,8 +298,10 @@
     Object.keys(DATA.finds || {}).forEach(function (k) { FINDS[norm(k)] = DATA.finds[k]; });
     return FINDS;
   }
+  var openedAt = 0;
   function openAnswer() {
     asking = true;
+    openedAt = Date.now();
     box.classList.add('choosing');
     answerIn.value = '';
     answerEl.hidden = false;
@@ -296,6 +314,7 @@
   }
   function submitAnswer() {
     if (!asking) return;
+    if (CHAT) { var said = answerIn.value; answerIn.value = ''; return CHAT.submit(said); }
     var v = norm(answerIn.value);
     var back = node.ask === true ? 'ask' : node.ask;
     closeAnswer();
@@ -307,7 +326,9 @@
   answerEl.addEventListener('click', function (e) { e.stopPropagation(); });
   answerIn.addEventListener('keydown', function (e) {
     e.stopPropagation();   // typing Z, M or space here is just typing
-    if (e.key === 'Escape') { e.preventDefault(); answerIn.value = ''; submitAnswer(); }
+    // ...except a Z or Enter pressed a moment after the box opened: that was meant for the last line.
+    if (!answerIn.value && Date.now() - openedAt < 600 && /^(z|x|enter| )$/i.test(e.key)) { e.preventDefault(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); answerIn.value = ''; if (CHAT) { closeAnswer(); return CHAT.escape(); } submitAnswer(); }
   });
 
   // ---- panels: a node with "panel": "name" hands over to the page after its lines ----
@@ -320,7 +341,38 @@
   window.TALKER = {
     go: function (id) { if (!DATA) return; paneled = false; if (!talking) { talking = true; prompt.hidden = true; box.hidden = false; } go(id); },
     end: function () { paneled = false; end(); },
-    seen: function (id) { return !!seen[id]; }
+    seen: function (id) { return !!seen[id]; },
+    // ---- for /backstage/brain/mind.js (free typing) ----
+    useChat: function (c) { CHAT = c; },
+    data: function () { return DATA; },
+    known: function () { return known(); },
+    remember: function (id) { remember(id); },
+    flag: function (name) { setFlag(name); },
+    // Say a list of lines (same format as a node's "say") as if it were a node, then open the box again.
+    speak: function (lines, extra) {
+      if (!DATA) return;
+      paneled = false;
+      if (!talking) { talking = true; prompt.hidden = true; box.hidden = false; }
+      var n = Object.assign({ say: lines }, extra || {});
+      var list = [].concat(lines || []).filter(function (l) { return typeof l === 'string' || (has(l.needs) && hasItem(l.has)); });
+      node = n; options = [];
+      if (n.mark) [].concat(n.mark).forEach(remember);
+      if (n.give && window.RPInventory) [].concat(n.give).forEach(function (it) { RPInventory.give(it); });
+      queue = list.length ? list : [''];
+      say(queue.shift());
+    },
+    // The say-something box (the same one used for "what did you find?")
+    ask: function (placeholder, button) {
+      if (placeholder != null) answerIn.placeholder = placeholder;
+      var b = answerEl.querySelector('button'); if (b && button) b.textContent = button;
+      box.classList.remove('done'); choicesEl.hidden = true;
+      openAnswer();
+    },
+    closeAsk: function () { closeAnswer(); },
+    busy: function () { return typing || paneled; },
+    talking: function () { return talking; },
+    startTalk: function () { start(); },
+    endTalk: function () { end(); }
   };
 
   function start() {

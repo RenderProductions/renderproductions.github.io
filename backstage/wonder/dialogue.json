@@ -1140,8 +1140,8 @@
     "co_bstg": {
       "say": [
         "BASTARDLY GLORY!!",
-        "FOUR HUNDRED one day! TWO the next!",
-        "Now THAT'S a company with a PERSONALITY! Two of them, even!!"
+        "UP one day! DOWN the next! They got a NEW BOARD to calm it down!",
+        "BORING!! I liked it WILD!! Two personalities, at LEAST!!"
       ],
       "next": "found_more",
       "repeat": "stale_again"

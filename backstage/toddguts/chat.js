@@ -157,6 +157,7 @@
       const repeat = lastTopic === tp.id && !tp.again && Math.random() < 0.35;
       lastTopic = tp.id;
       if (tp.id === 'insult') { mem.mean = (mem.mean || 0) + 1; save(); }
+      if (tp.live === 'news') return { live: 'news', lead: fill(r.text || r), face: tp.face };
       if (tp.live === 'market' || (tp.ticker && /\b(price|prices|worth|doing|stock|stocks|cost|costs|value|up|down|trading|at|chart|buy|sell|invest)\b/.test(t))) {
         return { live: tp.live === 'market' ? 'market' : 'price', ticker: tp.ticker, lead: fill(r.text || r), face: tp.face };
       }
@@ -212,6 +213,10 @@
     return market().then((d) => {
       const list = d && d.companies;
       if (!list) return Object.assign(reply, { text: reply.lead + ' ...the MARKET feed is down. i can\'t SEE the numbers.' });
+      if (reply.live === 'news') {
+        const n = (d.news || [])[0];
+        return Object.assign(reply, { text: n ? reply.lead + '\n  "' + n.headline + '"' + (typeof n.move === 'number' ? ' (' + (n.move >= 0 ? '+' : '') + n.move.toFixed(2) + '%)' : '') : reply.lead + ' ...NOTHING. no news. SUSPICIOUS.', keepLines: true });
+      }
       if (reply.live === 'market') return Object.assign(reply, { text: reply.lead + '\n' + list.map((c) => '  ' + quote(c)).join('\n'), keepLines: true });
       const c = list.find((x) => x.id === reply.ticker);
       return Object.assign(reply, { text: c ? quote(c) + ' ' + reply.lead : reply.lead });

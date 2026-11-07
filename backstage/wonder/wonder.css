@@ -85,3 +85,22 @@ body { background: #000; color: #f2f2f2; font-family: var(--type); overflow: hid
   100% { opacity: 0; transform: scale(.2) rotate(var(--spin)); }
 }
 @media (prefers-reduced-motion: reduce) { @keyframes shine { 0% { opacity: 0; } 20%, 70% { opacity: .9; } 100% { opacity: 0; } } }
+
+/* ---- show-and-tell (/backstage/brain/mind.js): "I want to show you something" lays out your drawer ---- */
+.picker { position: absolute; left: 50%; bottom: calc(22px + var(--boxh, 172px) + 12px); z-index: 4; width: min(560px, calc(100% - 32px));
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 12px; cursor: default;
+  background: #000; border: 2px solid #f2f2f2; box-shadow: 6px 6px 0 #f2f2f2;
+  opacity: 0; transform: translate(-50%, 8px); transition: opacity .18s, transform .18s; }
+.picker[hidden] { display: none; }
+.picker.on { opacity: 1; transform: translate(-50%, 0); }
+.picker-head { font: 500 11px var(--mono, 'Courier New', monospace); letter-spacing: 4px; text-transform: uppercase; color: #fff; }
+.picker-tray { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; padding: 2px 2px 6px; scrollbar-width: thin; scrollbar-color: #666 transparent; }
+.picker-thing { flex: 0 0 86px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px 6px; cursor: pointer;
+  background: #0b0b0b; border: 1px solid #444; color: #bbb; font: 11px var(--mono, 'Courier New', monospace); letter-spacing: .5px; transition: border-color .12s, background .12s; }
+.picker-thing:hover, .picker-thing:focus-visible { border-color: #fff; background: #161616; color: #fff; outline: none; }
+.picker-thing .pic { width: 48px; height: 48px; display: grid; place-items: center; }
+.picker-thing .pic img { max-width: 100%; max-height: 100%; }
+.picker-thing .label { text-align: center; line-height: 1.25; }
+.picker-no { align-self: flex-end; font: 500 11px var(--mono, 'Courier New', monospace); letter-spacing: 3px; color: #888; background: none; border: 1px solid #444; padding: 6px 10px; cursor: pointer; }
+.picker-no:hover, .picker-no:focus-visible { color: #fff; border-color: #fff; outline: none; }
+@media (prefers-reduced-motion: reduce) { .picker { transition: none; } }

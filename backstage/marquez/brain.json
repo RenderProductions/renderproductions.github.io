@@ -1,0 +1,458 @@
+{
+  "_how": "Cedar's brain (Mr. Marquez), read by /backstage/brain/mind.js. You type anything and he answers in the dialogue box. TOPICS: 'match' is a list of phrases; a phrase matches if all of its words are somewhere in what was typed, and the longest matching phrase wins. 'replies' are said one at random; 'again' is used most of the time once that topic has come up before. A reply is one line, a list of lines (several text boxes), or {\"say\": [lines], ...conditions}. Lines use dialogue.json's format: plain text or {\"text\": \"..\", \"face\": \"smile|angry|point\", \"speed\": 50}, with [red] [yellow] [blue] [gray] [gold] [shake] [wave] markup, ^1-^9 pauses, and (parentheses) for narration. {\"go\": \"nodeId\"} jumps into dialogue.json instead (his hand-written conversations). CONDITIONS on a reply or a whole topic: has / had / lost / never (items), flag (\"!flag\" = not set; marquez_cedar, wonder_unlocked, todd_dead...), seen / unseen (a dialogue node or mark he's said), known (true once you know his name is Cedar), named (true once he knows your name), after (only right after that node or topic, for answering his questions). 'short': true = only counts for 3 words or fewer. 'do': 'show' opens the drawer, 'craft' opens the workbench, 'tell' asks for a code. 'end': true says the lines and then he's done talking. PLACEHOLDERS: {name} your name, {kills} little ones deleted, {item} the thing you named, {1} the part of what you said a reflect pattern caught. CODES: anything in dialogue.json 'finds' typed on its own works as it always did; codes in 'loose' also work inside a sentence; 'chatWords' are codes that are also everyday words, so his brain answers them first. ITEMS: the names that count as each thing in your drawer. SILENT: menu nodes he skips in free typing. ENDS: nodes that finish the conversation. SAY: his lines for show-and-tell and the workbench.",
+  "_note": "Drafted by Claude from Cedar's own dialogue.json and the lore so far; rewrite freely. Things the story hasn't answered yet (who Big Papa is, who cancelled Varandia, what Wonder was god of, what glows in his pocket) he dodges on purpose.",
+  "noName": "friend",
+  "giveNode": "give",
+  "tellNode": "found_tell",
+  "silent": ["ask", "found", "found_more", "give"],
+  "ends": ["bye"],
+  "loose": ["CEDAR", "CEDAR MARQUEZ", "TODD.OS", "R!404"],
+  "chatWords": ["HELLO", "HELP", "LEAVE", "WHAT HAPPENED", "WHAT HAPPENED?", "TODD"],
+  "craft": { "light": "bright_bulb", "unlock": "can_craft", "node": "craft" },
+  "ui": {
+    "placeholder": "say something to him",
+    "namedPlaceholder": "say something, {name}",
+    "button": "SAY IT",
+    "codePlaceholder": "what did you find?",
+    "codeButton": "TELL HIM",
+    "pickerTitle": "Show him..."
+  },
+  "items": {
+    "pail": ["pail", "bucket"],
+    "rusted_key": ["rusted key", "rusty key", "key", "old key"],
+    "tiny_tombstone": ["tombstone", "tiny tombstone", "gravestone", "little grave"],
+    "popup_shard": ["shard", "popup shard", "piece of glass"],
+    "dead_bulb": ["dead bulb", "dark bulb", "burnt bulb", "bulb", "light bulb", "lightbulb"],
+    "bright_bulb": ["bright bulb", "glowing bulb", "lit bulb", "bulb", "light bulb", "lightbulb"],
+    "polaroid": ["polaroid", "photo", "photograph", "picture"],
+    "todd_floppy": ["floppy", "floppy disk", "disk", "todds disk", "todd disk", "diskette"],
+    "static_cassette": ["cassette", "static cassette", "tape"],
+    "clear_polaroid": ["clear polaroid", "clear photo"],
+    "dubbed_tape": ["dubbed tape", "tape"],
+    "hill_marker": ["hill marker", "marker", "jack and jill stone"]
+  },
+  "say": {
+    "show_none": [
+      ["Show me what?^2 Your hands are empty, friend.", { "text": "Go and find something. The site is full of things nobody's looking at.", "face": "point" }],
+      ["(He looks at your empty hands, then back at you.)", "Come back when your pockets are heavier."]
+    ],
+    "show_cancel": [
+      "Another time, then.",
+      [{ "text": "Keep it close, whatever it is.", "face": "smile" }]
+    ],
+    "item_missing": [
+      ["A {item}?^2 You don't have one of those.", { "text": "[gray]Not yet, anyway.[/]", "face": "smile" }],
+      ["You're talking about a {item} like it's in your pocket.^2 It isn't.", { "text": "Look harder. It's out there.", "face": "point" }]
+    ],
+    "item_gone": [
+      ["The {item}?^2 You don't have that anymore.", { "text": "[gray]Some things only get used once.[/]" }],
+      ["That's gone, friend.^2 It became something else.", { "text": "That's what things do down here.", "face": "smile" }]
+    ],
+    "craft_dark": [
+      ["(He gestures at the dark around the desk.)", "Make something?^2 In this light?", { "text": "I can't see my own hands. Bring me something that glows.", "face": "point" }],
+      ["Not in the dark, friend.", { "text": "[gray]Find me a light, and we'll talk.[/]", "face": "smile" }]
+    ],
+    "craft_unshown": [
+      ["You're carrying a light. I can see it from here.", { "text": "Show it to me first.", "face": "point" }]
+    ]
+  },
+  "synonyms": {
+    "hello": ["hi", "hey", "heya", "hiya", "yo", "howdy", "greetings", "sup", "hullo", "hola", "evening", "morning"],
+    "bye": ["goodbye", "cya", "later", "farewell", "goodnight", "adios", "seeya"],
+    "thanks": ["thank", "thx", "ty", "cheers", "appreciate"],
+    "sorry": ["apologize", "apologise", "apologies", "sry"],
+    "todd": ["toddos", "noisybox", "computer", "tv"],
+    "wonder": ["harlequin", "jester", "clown"],
+    "varandia": ["varandian", "retold"],
+    "papa": ["dad", "daddy", "father", "creator", "maker"],
+    "polygons": ["money", "cash", "poly", "polys", "coins", "currency"],
+    "market": ["stocks", "stock", "shares", "trading", "invest", "investing"],
+    "loan": ["bailout", "borrow", "debt", "lend", "owe"],
+    "scanner": ["frequency", "frequencies", "radio", "signal", "signals"],
+    "board": ["corkboard", "notes", "yarn", "string"],
+    "stupid": ["dumb", "idiot", "moron", "useless", "ugly", "loser", "lame", "cringe", "creepy"],
+    "shop": ["store", "shopkeep", "shopkeeper", "salesman", "merchant", "selling"],
+    "craft": ["crafting", "combine", "workbench", "bench"],
+    "show": ["showing"],
+    "robot": ["ai", "bot", "chatbot", "program", "machine", "npc"],
+    "kids": ["children", "jack", "jill"],
+    "popups": ["popup", "peekers", "eyes"]
+  },
+  "topics": [
+    { "id": "hello", "match": ["hello", "good morning", "good evening", "good afternoon"],
+      "replies": [
+        [{ "text": "Hello to you too.^2 Mind the dark. It bites.", "face": "smile" }],
+        ["Hello, hello.^2 You don't have to shout. Sound carries down here."],
+        { "say": [{ "text": "{name}.^2 Good to see you're still in one piece.", "face": "smile" }], "named": true },
+        ["(He tips an invisible hat.)", "Evening.^2 It's always evening here."]
+      ],
+      "again": [["We've done the hellos, friend.^2 Get to it."], ["Yes, yes. Hello.", { "text": "Was there something else?", "face": "point" }]] },
+
+    { "id": "how", "match": ["how are you", "how you doing", "you ok", "you okay", "you alright", "how have you been"],
+      "replies": [
+        ["Still here.^3 That's about the best anyone can say, down here."],
+        [{ "text": "Old.^2 Tired.^2 Uncomfortable.", "face": "smile" }, "The chair came with the room. I didn't get a say."],
+        ["Better, now someone's come to talk.", { "text": "[gray]Don't let that go to your head.[/]", "face": "smile" }]
+      ] },
+
+    { "id": "who", "match": ["who are you", "what are you", "your name", "introduce yourself", "who is marquez", "mr marquez"],
+      "replies": [{ "go": "who", "known": false }, { "go": "who_known", "known": true }] },
+
+    { "id": "real_name", "match": ["real name", "your real name", "true name", "first name", "other name", "what is your real name"],
+      "replies": [
+        { "go": "name", "known": false, "unseen": "name" },
+        { "say": [{ "text": "Still on that?^3 You'll earn it.", "face": "smile" }, "[yellow]Listen to the frequency. People talk too much on it.[/]"], "known": false, "seen": "name" },
+        { "go": "who_known", "known": true }
+      ] },
+
+    { "id": "place", "match": ["where am i", "what is this place", "where are we", "this room", "back backstage", "where is this"],
+      "replies": [{ "go": "place" }],
+      "again": [
+        ["The back of the back of the stage.^2 Where things go when nobody wants to look at them.", { "text": "[gray]Like me.[/]" }],
+        [{ "text": "You know where you are. You walked in.", "face": "point" }]
+      ] },
+
+    { "id": "advice", "match": ["advice", "help", "help me", "what should i do", "where do i start", "what now", "hint", "any tips", "i am stuck", "stuck"],
+      "replies": [{ "go": "advice" }],
+      "again": [
+        ["Ask me about the [gold]frequency[/], the [gold]board[/], or [red]TODD[/].^2 Those are the threads worth pulling."],
+        [{ "text": "Find things. Show me things. Listen to the radio.", "face": "point" }, "[gray]That's all any of us have done down here.[/]"]
+      ] },
+
+    { "id": "scanner", "match": ["scanner", "the frequency", "frequency scanner", "radio", "codes", "signal"],
+      "replies": [{ "go": "adv_freq" }],
+      "again": [
+        ["Type numbers into it. Type words into it.^2 Something always answers.", { "text": "[gray]Not always something friendly.[/]" }],
+        [{ "text": "If you hear a word on that thing that makes you sit up, come tell me.", "face": "point" }, "[gray]Say 'I want to tell you something.'[/]"]
+      ] },
+
+    { "id": "board", "match": ["board", "the board", "corkboard", "the notes", "red string", "yarn"],
+      "replies": [{ "go": "adv_board" }],
+      "again": [
+        ["The board's older than I'd like to admit.^2 Notes pinned over notes.", { "text": "If you find one you can't read, it's probably locked for a reason.", "face": "point" }],
+        ["[gray]Red string connects everything, if you pull hard enough.[/]"]
+      ] },
+
+    { "id": "todd", "match": ["todd", "about todd", "who is todd", "what is todd"],
+      "replies": [{ "go": "adv_todd" }],
+      "again": [
+        [{ "text": "TODD lies, friend.^2 Even when he isn't talking, he's lying.", "face": "angry" }],
+        ["He'll tell you he's lonely. He'll tell you he's sad.", { "text": "[gray]Maybe he even is.[/]^3 Doesn't change what he did.", "face": "angry" }],
+        { "say": ["...^3 It's quieter since you fought him.", { "text": "[gray]Quiet isn't gone.[/]", "face": "point" }], "flag": "todd_dead" }
+      ] },
+
+    { "id": "todd_kind", "match": ["todd is nice", "todd is sad", "todd is lonely", "todd is not evil", "is todd evil", "todd is not bad", "todd is good", "feel bad for todd", "todd is my friend", "i like todd"],
+      "replies": [
+        [{ "text": "(He's quiet for a long moment.)" }, "...^3 Lonely things do terrible things to stay company.", { "text": "Don't mistake that for kindness.", "face": "point" }],
+        [{ "text": "Your friend?^3 Hm.", "face": "angry" }, "He had a whole world, once. Ask him what he did with it."],
+        ["Maybe he isn't evil.^2 Maybe he's just a tantrum with a power cord.", { "text": "[gray]The damage looks the same either way.[/]" }]
+      ] },
+
+    { "id": "todd_dead", "match": ["i beat todd", "i killed todd", "todd is dead", "i won the fight", "i defeated todd", "i destroyed todd", "beat todd", "killed todd"],
+      "replies": [
+        { "go": "find_todd_dead", "flag": "todd_dead" },
+        { "say": [{ "text": "No, you didn't.", "face": "angry" }, "I'd have heard it. The whole backstage would have heard it.", { "text": "[gray]Ones and zeros don't die quietly.[/]" }], "flag": "!todd_dead" }
+      ] },
+
+    { "id": "beat_todd", "match": ["how do i beat todd", "how to fight todd", "how do i fight todd", "boss fight", "fight todd", "how to beat todd", "defeat todd", "where is todd fight"],
+      "replies": [
+        { "say": [{ "text": "You're not ready.^2 You'd just be another thing he threw at the screen.", "face": "angry" }, "Bring me what he's afraid of. [gray]His eyes. His guts.[/]"], "never": "dubbed_tape" },
+        { "say": ["You have the tape.^2 Good.", { "text": "It's your way in. Somewhere on this site, something will play it.", "face": "point" }, "[gray]When it does, don't hesitate.[/]"], "has": "dubbed_tape", "flag": "!todd_dead" },
+        { "say": [{ "text": "That eye of his you're carrying...^2 It sees what he's about to do.", "face": "point" }, "Turn his tricks back on him."], "has": "clear_polaroid", "flag": "!todd_dead" },
+        { "go": "adv_todd_dead", "flag": "todd_dead" }
+      ] },
+
+    { "id": "wonder", "match": ["wonder", "the loud one", "harlequin", "the star", "star is born"],
+      "replies": [
+        { "say": ["...^3 You've been to the void, then.", { "text": "Loud, isn't he?^2 He was always loud.", "face": "smile" }, "[gray]Don't let him spin you around too long. He forgets people need to stand still.[/]"], "flag": "wonder_unlocked" },
+        { "say": ["Wonder.^3 Where did you hear that name?", { "text": "Never mind. Some doors open from the other side.", "face": "point" }, "[gray]Try the key on something locked.[/]"], "flag": "!wonder_unlocked" }
+      ],
+      "again": [
+        { "say": [{ "text": "Did he call me OLD BOY again?", "face": "angry" }, "...^3 Of course he did."], "flag": "wonder_unlocked" },
+        { "say": ["He got out of Varandia. Don't ask me how.^2 He won't tell you either.", { "text": "[gray]Some things you're better off not remembering.[/]" }], "flag": "wonder_unlocked" }
+      ] },
+
+    { "id": "wonder_hello", "match": ["wonder says hello", "wonder said hello", "wonder says hi", "wonder sent me", "wonder told me", "wonder misses you", "wonder is worried", "wonder asked about you"],
+      "flag": "wonder_unlocked",
+      "replies": [
+        [{ "text": "Does he.", "face": "angry" }, "^3...", { "text": "Tell him I said nothing at all.^2 He'll hate that more.", "face": "smile" }],
+        ["(Something almost like a smile crosses his face.)", "[gray]He always did worry, under all that noise.[/]", { "text": "Don't tell him I said so.", "face": "point" }]
+      ] },
+
+    { "id": "wolf", "match": ["wolf", "the wolf"],
+      "replies": [
+        [{ "text": "(His pen stops moving.)" }, { "text": "Who told you about the wolf?", "face": "angry", "speed": 50 }, "...^3 No. Leave it alone, friend.^2 [gray]Some things have teeth even in a story.[/]"],
+        [{ "text": "We don't speak of that here.", "face": "angry" }, "[gray]Not even down here.[/]"]
+      ] },
+
+    { "id": "varandia", "match": ["varandia", "varandia retold", "varandian"],
+      "replies": [
+        ["Varandia.^4", { "text": "I had a shop there.^2 A good one. People came from three towns over.", "face": "smile" }, "[gray]I miss the Varandian days.[/]"],
+        ["I was one of the main faces of that place.^2 Everybody's favorite salesman.", { "text": "Now look at me. Selling nothing, to nobody, in the dark.", "face": "smile" }],
+        ["When Varandia went, everyone in it went somewhere.", { "text": "[gray]I came here. Others weren't so lucky.[/]" }]
+      ] },
+
+    { "id": "varandia_end", "match": ["what happened to varandia", "who cancelled varandia", "why was varandia cancelled", "varandia cancelled", "how did varandia end", "what happened", "everything went to hell"],
+      "replies": [
+        [{ "text": "(He sets his pen down.)" }, "...^4 Things end, friend.^3 Some things get ended.", { "text": "[gray]That's all you'll get from me tonight.[/]" }],
+        [{ "text": "Ask TODD.^2 Watch how fast he changes the subject.", "face": "point" }],
+        ["I don't talk about the end.^3 I was there for it.^2 Once was plenty."]
+      ] },
+
+    { "id": "shop", "match": ["your shop", "shop", "what did you sell", "shopkeeper", "salesman", "the shop"],
+      "replies": [
+        [{ "text": "Ah, the shop!", "face": "smile" }, "Potions, rope, maps that were mostly right.", "Tapes, too.^2 [gray]Lots of tapes.[/]"],
+        ["Best prices in Varandia, and I'll argue with anyone who says otherwise.", { "text": "[gray]There's nobody left to argue with.[/]" }],
+        ["The scanner came from the shop.^2 So did the board, if you can believe it.", { "text": "I brought what I could carry.", "face": "point" }]
+      ] },
+
+    { "id": "papa", "match": ["papa", "big papa"],
+      "replies": [
+        [{ "text": "Big Papa.^3 That's TODD's word, not mine.", "face": "angry" }, "[gray]I'd be careful who you worship down here.[/]"],
+        ["(He looks at you for a long time, and says nothing.)"],
+        ["Everyone has someone they could never live up to, friend.", { "text": "Some of us just don't scream about it through the walls.", "face": "smile" }]
+      ] },
+
+    { "id": "kids", "match": ["jack and jill", "the kids", "who fell", "jack", "jill", "the hill"],
+      "replies": [
+        ["Two kids went up a hill for water.^3 You know the rest.", { "text": "[gray]Everybody knows the rest. Nobody remembers their faces.[/]" }],
+        [{ "text": "They never deserved that.", "face": "angry" }, "Some stories end badly because somebody wrote them that way."],
+        { "say": ["You made them a marker.^2 Good.", { "text": "Someone should remember them too.", "face": "smile" }], "had": "hill_marker" }
+      ] },
+
+    { "id": "show", "do": "show",
+      "match": ["show you something", "show you", "i want to show you", "i have something", "look at this", "check this out", "got something", "give you something", "i found something", "i found a thing", "what do you think of this", "i brought something", "show and tell"] },
+
+    { "id": "tell", "do": "tell",
+      "match": ["tell you something", "i heard something", "i have a code", "i found a code", "i heard a word", "the scanner said", "i heard it on the radio", "i have a word", "listen to this", "i heard a name"] },
+
+    { "id": "craft", "do": "craft",
+      "match": ["make something", "craft", "combine", "workbench", "put them together", "build something", "make me something", "can you make", "fix something", "craft something"] },
+
+    { "id": "recipes", "match": ["recipes", "what can you make", "what goes together", "what can i craft", "what should i combine", "crafting hint", "recipe"],
+      "replies": [
+        ["I don't keep a list. Things tell you what they want to become.", { "text": "[gray]Old things want to remember. Broken things want to be whole. Dangerous things want to be destroyed.[/]", "face": "point" }],
+        { "say": [{ "text": "That photo and that shard of his...^2 One sees, the other's a window.", "face": "point" }, "[gray]Think about it.[/]"], "has": "polaroid" },
+        { "say": [{ "text": "Tape will eat anything if you let it.^2 Even a disk.", "face": "point" }], "has": "todd_floppy" },
+        { "say": ["A pail and a little grave.^3 [gray]Somebody went up a hill.[/]"], "has": "pail" }
+      ] },
+
+    { "id": "destroy_disk", "match": ["destroy the disk", "how do i destroy", "destroy it", "how to destroy", "get rid of the disk", "break the disk"],
+      "replies": [
+        { "say": ["Don't burn it. Don't snap it.^2 He'd just come back angrier.", { "text": "[gray]Unwind him. Onto something that only plays what it's told.[/]", "face": "point" }], "has": "todd_floppy" },
+        { "say": [{ "text": "You already did. That tape is all that's left of it.", "face": "smile" }], "had": "dubbed_tape" },
+        { "say": ["Destroy what, friend?^2 You're not carrying anything of his."], "never": "todd_floppy" }
+      ] },
+
+    { "id": "face", "match": ["the face", "render vision", "big face", "the big head", "yellow face", "the robot head"],
+      "replies": [
+        ["The big yellow face upstairs.^2 Always watching, always smiling.", { "text": "[gray]Ask yourself who taught it to smile like that.[/]", "face": "point" }],
+        [{ "text": "Every page up there has eyes on it.", "face": "angry" }, "Some of them are his. [gray]Some of them are worse.[/]"]
+      ] },
+
+    { "id": "popups", "match": ["little ones", "little guys", "popups", "the peekers", "his eyes", "kill count", "how many have i killed"],
+      "replies": [
+        [{ "text": "{kills} of them so far, by my count.", "face": "smile" }, "Good. Keep killing them. The less eyes he has, the better."],
+        ["They peek in from the edges and run when you look.", { "text": "That's not shyness, friend. That's reporting.", "face": "point" }],
+        ["(He taps the desk, once for every one you've deleted. It takes a while.)"]
+      ] },
+
+    { "id": "door", "match": ["the door", "how did i get here", "m door", "your door", "door moves"],
+      "replies": [
+        [{ "text": "That door moves a lot!", "face": "smile" }, "It doesn't like being found.^2 [gray]Neither do I.[/]"],
+        ["You knocked.^2 Most don't.", "That's the only reason it let you in."]
+      ] },
+
+    { "id": "drawer", "match": ["drawer", "inventory", "my stuff", "my items", "my things"],
+      "replies": [
+        ["That desk drawer upstairs is yours now.^2 Everything you find goes in it.", { "text": "Bring it here. Show me what's inside.", "face": "point" }],
+        ["A drawer full of things nobody else noticed.", { "text": "[gray]That's how it starts.[/]", "face": "smile" }]
+      ] },
+
+    { "id": "desk", "match": ["your desk", "the desk", "what are you writing", "your pen", "what is that book", "ledger", "what are you doing"],
+      "replies": [
+        ["Writing things down before I forget them.", { "text": "[gray]I forget a lot of them anyway.[/]" }],
+        ["(He closes the book before you can read it.)", { "text": "Accounts, friend.^2 Old habits.", "face": "smile" }],
+        ["Somebody has to keep track of what's been lost.", "I volunteered.^3 Nobody else showed up."]
+      ] },
+
+    { "id": "pocket", "match": ["your pocket", "pocket", "what is glowing", "glowing pocket", "what is in your pocket", "the glow"],
+      "replies": [
+        [{ "text": "(His hand drifts to his pocket, then away.)" }, { "text": "Mind your own pockets, friend.", "face": "angry" }],
+        [{ "text": "Nothing.^2 A coin. A memory.^2 [gray]Something that isn't yours to ask about yet.[/]", "face": "smile" }]
+      ] },
+
+    { "id": "drink", "match": ["drink", "coffee", "tea", "what are you drinking", "thirsty", "cup"],
+      "replies": [
+        ["(He takes a slow sip of something you can't see.)", "Don't ask what it is.^2 I stopped asking years ago."],
+        [{ "text": "Coffee.^2 Cold.^2 Always cold.", "face": "smile" }, "It was warm, once. Like everything else."]
+      ] },
+
+    { "id": "dark", "match": ["why is it dark", "so dark", "turn on the light", "the lights", "can not see", "dark in here"],
+      "replies": [
+        { "say": ["The dark keeps things from finding me.", { "text": "And keeps me from finding much of anything, unfortunately.", "face": "smile" }], "never": "bright_bulb" },
+        { "say": [{ "text": "Not so dark anymore, is it?", "face": "smile" }, "Thanks to that bulb of yours."], "had": "bright_bulb" }
+      ] },
+
+    { "id": "age", "match": ["how old are you", "your age", "old man", "are you old"],
+      "replies": [
+        [{ "text": "Old enough to remember when things were warm.", "face": "smile" }],
+        ["Old man?^2 I prefer [gold]seasoned[/].", { "text": "[gray]Like a good piece of wood.[/]", "face": "smile" }]
+      ] },
+
+    { "id": "lonely", "match": ["are you lonely", "alone", "by yourself", "do you have friends", "your friends", "any friends"],
+      "replies": [
+        ["Lonely?^3 I have the dark, a desk, and a cold drink.", { "text": "[gray]And now and then, a visitor who knocks.[/]", "face": "smile" }],
+        ["I had friends. A whole town of them.", "[gray]Varandia was full of people. Then it wasn't.[/]"],
+        { "say": ["There's a loud fool in the void who'd say we were friends.", { "text": "He'd be right. Don't tell him.", "face": "point" }], "flag": "wonder_unlocked" }
+      ] },
+
+    { "id": "market", "match": ["market", "stocks", "rend conomy", "stock market", "invest", "which stock", "what should i buy", "shares"],
+      "replies": [
+        ["A market!^2 Now you're speaking my language.", { "text": "Buy what people need, sell what they want. That's the whole trade.", "face": "point" }, "[gray]Not financial advice. I sell rope.[/]"],
+        ["Prices go up, prices go down.^2 Rumors move them faster than the truth does.", { "text": "Believe half of what you hear. Less, from TODD.", "face": "point" }],
+        ["Never bet the whole shop on one good day.^3 I learned that the hard way."]
+      ] },
+
+    { "id": "bstg", "match": ["bstg", "bastardly glory", "bastardly"],
+      "replies": [
+        ["Bastardly Glory.^2 A game company with a gambler's heart.", { "text": "They make one good day feel like a promise. It never is.", "face": "point" }],
+        [{ "text": "They've calmed down, I hear.^2 New board. Fewer surprises.", "face": "smile" }, "[gray]I'll believe it when I see it.[/]"]
+      ] },
+
+    { "id": "loan", "match": ["loan", "bailout", "borrow", "lend me", "i owe", "todd loan", "debt"],
+      "replies": [
+        [{ "text": "Borrowing from TODD?", "face": "angry" }, "He charges twenty percent and keeps you away from the slots until you pay.", { "text": "[red]Never borrow from TODD.[/] He collects in ways you won't like.", "face": "angry" }],
+        ["I don't lend, friend.^2 A shopkeep who lends stops being a shopkeep.", { "text": "[gray]Ask me how I know.[/]" }]
+      ] },
+
+    { "id": "polygons", "match": ["polygons", "money", "how much money", "currency"],
+      "replies": [
+        ["Polygons.^2 Odd currency. Every coin has corners.", { "text": "Back in Varandia we used gold. It rolled away less.", "face": "smile" }],
+        [{ "text": "You won't need money down here. There's nothing to buy.", "face": "point" }, "[gray]Unless you count advice. That's free. Mostly.[/]"]
+      ] },
+
+    { "id": "site", "match": ["render productions", "the site", "this site", "upstairs", "website", "the people upstairs"],
+      "replies": [
+        ["Upstairs, everything's lit and labelled and polished.", { "text": "Down here is where they keep what didn't make the cut.", "face": "point" }],
+        ["They built a nice house up there.^2 Never checked the basement.", { "text": "[gray]We're the basement.[/]", "face": "smile" }]
+      ] },
+
+    { "id": "rft", "match": ["file tycoon", "rft", "renders file tycoon", "selling files"],
+      "replies": [
+        ["Selling files for Polygons.^2 Hah!", { "text": "A shopkeep after my own heart.", "face": "smile" }, "[gray]Watch the ones that come in corrupt.[/]"]
+      ] },
+
+    { "id": "dear_god", "match": ["is there more", "dear god", "dear god is there more"],
+      "replies": [
+        [{ "text": "[shake]Dear God...[/]", "face": "angry" }, { "text": "...^4 You've been listening to me too closely.", "face": "smile" }],
+        ["There's always more, friend.^2 That's what frightens me."]
+      ] },
+
+    { "id": "robot", "match": ["are you real", "are you alive", "are you a robot", "are you human", "are you an ai", "are you a bot", "are you an npc"],
+      "replies": [
+        ["Real?^3 I was written, if that's what you're asking.", { "text": "So were you, in a way. Everybody's somebody's character.", "face": "smile" }],
+        [{ "text": "An NPC?", "face": "angry" }, "I was a [gold]main[/] character NPC, thank you very much."],
+        ["I think, I remember, I miss things.", { "text": "[gray]Call it whatever you like.[/]" }]
+      ] },
+
+    { "id": "joke", "match": ["joke", "tell me a joke", "make me laugh", "something funny"],
+      "replies": [
+        ["A man walks into a shop and asks for a map of nowhere.", "I handed him a blank page.^3", { "text": "He said it was the most accurate map he'd ever bought.", "face": "smile" }],
+        ["Why did the shopkeep cross the void?", { "text": "To get away from his customers.", "face": "smile" }, "[gray]...It works better in Varandian.[/]"],
+        [{ "text": "TODD.", "face": "smile" }, "^3That's the joke.^2 That's all of it."]
+      ] },
+
+    { "id": "thanks", "match": ["thanks", "thank you", "you are helpful", "that helps"],
+      "replies": [
+        [{ "text": "Don't thank me yet.", "face": "smile" }],
+        ["You're welcome, {name}.^2 Now go do something with it."]
+      ] },
+
+    { "id": "sorry", "match": ["sorry", "my bad", "forgive me", "i apologize"],
+      "replies": [
+        ["Forgiven.^2 Down here, grudges take up too much room."],
+        [{ "text": "Apology accepted. Don't make a habit of it.", "face": "point" }]
+      ] },
+
+    { "id": "love", "match": ["love you", "like you", "you are cool", "you are awesome", "you are nice", "you are my favorite", "you are great"],
+      "replies": [
+        [{ "text": "Flattery.^2 In MY shop?", "face": "smile" }, "[gray]...It still works, a little.[/]"],
+        ["(He clears his throat and looks away.)", "Yes, well.^2 You're tolerable too."]
+      ] },
+
+    { "id": "insult", "match": ["stupid", "hate you", "shut up", "you suck", "you are boring", "nobody likes you", "screw you", "go away"],
+      "replies": [
+        [{ "text": "I've been yelled at by a god, friend.", "face": "smile" }, "You'll have to do better than that."],
+        ["(He goes back to his writing as if you'd said nothing at all.)"],
+        [{ "text": "Rude.^2 But honest. I can respect honest.", "face": "point" }]
+      ] },
+
+    { "id": "name_ask", "match": ["what is my name", "who am i", "do you know me", "remember me", "do you remember me"],
+      "replies": [
+        { "say": ["{name}.^2 I don't forget a name.", { "text": "[gray]I can't afford to. Names carry.[/]", "face": "smile" }], "named": true },
+        { "say": ["You never told me.", { "text": "Smart. Names carry, down here.", "face": "point" }], "named": false }
+      ] },
+
+    { "id": "names_carry", "match": ["names carry", "why do names carry", "why hide your name", "why marquez"],
+      "replies": [
+        ["Say a name enough and it gets heard by things that collect names.", { "text": "[gray]TODD collects everything.[/]", "face": "angry" }],
+        ["A name is a thread.^2 Pull it, and you find the person on the other end.", "I'd rather nobody pulled mine."]
+      ] },
+
+    { "id": "favorite", "match": ["favorite", "what do you like", "your hobbies", "what do you do for fun"],
+      "replies": [
+        ["A good haggle.^2 A warm shop on a cold night. A customer who knows what they want.", { "text": "[gray]None of which I have.[/]", "face": "smile" }],
+        ["Writing.^2 Remembering.^2 Waiting for someone to knock."]
+      ] },
+
+    { "id": "music", "match": ["music", "sing", "song", "oldies", "do you like music"],
+      "replies": [
+        ["I sold records, once. Tapes, mostly.", { "text": "There's a station on that scanner that still plays the oldies. Find it.", "face": "point" }],
+        ["(He hums three notes of something, then stops.)", "[gray]I don't remember the rest.[/]"]
+      ] },
+
+    { "id": "games", "match": ["games", "video games", "do you play games", "game"],
+      "replies": [
+        ["I [gold]live[/] in what's left of a game, friend.", { "text": "I don't play them. I remember them.", "face": "smile" }]
+      ] },
+
+    { "id": "bye", "match": ["bye", "see you", "gotta go", "i am leaving", "leave", "good night", "i have to go"],
+      "replies": [{ "go": "bye" }] },
+
+    { "id": "yes", "short": true, "match": ["yes", "yeah", "yep", "yup", "sure", "ok", "okay"],
+      "replies": [["Good.^2 Then we understand each other."], [{ "text": "Decisive. I like that.", "face": "smile" }]] },
+
+    { "id": "no", "short": true, "match": ["no", "nope", "nah", "never"],
+      "replies": [["No?^2 Suit yourself."], [{ "text": "Hm.^3 We'll see.", "face": "point" }]] },
+
+    { "id": "what", "short": true, "match": ["what", "huh", "eh", "pardon"],
+      "replies": [["I said what I said, friend."], ["(He doesn't repeat himself.)"]] }
+  ],
+  "reflect": [
+    { "pattern": "my name is *", "name": true, "replies": [["{name}.^2 I'll remember it.", { "text": "[gray]Careful who else you tell.[/] Names carry.", "face": "point" }], ["{name}, then.^3 A good name.", { "text": "Don't go shouting it on the frequency.", "face": "smile" }]] },
+    { "pattern": "call me *", "name": true, "replies": [["{name} it is."]] },
+    { "pattern": "i am called *", "name": true, "replies": [["{name}.^2 Noted.^2 In ink."]] },
+    { "pattern": "i feel *", "replies": [["You feel {1}?^3 That's allowed down here.", "[gray]Most of us feel worse.[/]"], ["{1}, hm.^2 Sit a while, then."]] },
+    { "pattern": "i am *", "replies": [["{1}?^2 Well. Nobody's perfect."], ["You're {1}, and I'm a shopkeep with no shop.", "We all have our burdens."]] },
+    { "pattern": "i want *", "replies": [["{1}?^2 Everybody wants something, friend.", { "text": "Make sure it doesn't want you back.", "face": "point" }]] },
+    { "pattern": "i like *", "replies": [["You like {1}?^2 I had a customer who liked {1}.", "[gray]Nobody remembers what happened to him.[/]"]] },
+    { "pattern": "do you *", "replies": [["Do I {1}?^3 Some days."], [{ "text": "That's a personal question, friend.", "face": "smile" }]] },
+    { "pattern": "can you *", "replies": [["Can I {1}?^2 Not from this chair."], ["{1}?^2 I'm old, not useless.^3 But no."]] },
+    { "pattern": "are you *", "replies": [["Am I {1}?^3 I've been called worse."], [{ "text": "Depends who's asking. And why.", "face": "point" }]] },
+    { "pattern": "you are *", "replies": [["{1}?^2 Hm.^2 I've been called worse by better."], [{ "text": "And you're very observant.", "face": "smile" }]] },
+    { "pattern": "why *", "replies": [["Why {1}?^3 If I knew the why of anything down here, I'd be somewhere else."]] },
+    { "pattern": "what is *", "replies": [["{1}?^2 Not something I sold.", "[gray]Try the scanner. Or the board.[/]"]] },
+    { "pattern": "where is *", "replies": [["{1}?^2 Not here.^2 Nothing is here. That's rather the point."]] },
+    { "pattern": "who is *", "replies": [["{1}?^3 Never heard of them.", { "text": "And I've heard of nearly everyone.", "face": "smile" }]] }
+  ],
+  "fallback": [
+    ["(He waits, pen hovering, for you to make sense.)"],
+    ["Hm.^2 Say that another way, friend."],
+    [{ "text": "I'm old, not a dictionary.", "face": "smile" }],
+    ["...^3 I'll pretend I understood that."],
+    ["You've lost me.^2 Ask about the [gold]frequency[/], the [gold]board[/], or [red]TODD[/]."],
+    [{ "text": "If you found something, say so. If you heard something, say so.", "face": "point" }],
+    ["(He writes something down. You suspect it's about you.)"]
+  ]
+}

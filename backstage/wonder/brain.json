@@ -1,0 +1,298 @@
+{
+  "_how": "Wonder's brain, read by /backstage/brain/mind.js. Same format as /backstage/marquez/brain.json (see its _how): topics with match phrases and replies, replies as lines or lists of lines or {\"go\": \"nodeId\"} into dialogue.json, conditions (has, had, lost, never, flag, seen, unseen, named, after), 'do': 'show' / 'tell', and placeholders {name} {kills} {item} {1}. Line extras for Wonder: \"fx\": \"stars\" lights up the void. 'loose': '*' means every code in dialogue.json 'finds' (4 letters or more) also works inside a sentence, except the 'chatWords' (everyday words) and the item names (naming a thing shows it only if you have it). So 'do you like minecraft' gets his Minecraft reaction, 'what about todd' gets his TODD one, and so on.",
+  "_note": "Drafted by Claude from Wonder's dialogue.json and the lore so far; rewrite freely. About 80% caps. He dodges the wolf, how he got out of Varandia, and what he was god of.",
+  "noName": "friend",
+  "giveNode": "give",
+  "tellNode": "found_tell",
+  "silent": ["ask", "found", "found_more", "give"],
+  "ends": ["bye"],
+  "loose": "*",
+  "chatWords": ["HELLO", "HELLO?", "HELP", "HELP ME", "LEAVE", "GO AWAY", "FREE", "RARE", "REMEMBER", "PROBLEM", "PROBLEM?", "STOCKS", "WHAT HAPPENED", "WHAT HAPPENED?", "WONDER", "WONDERFUL", "FACE", "THE FACE", "RENDER", "MARKET", "THE MARKET", "BOARD", "THE BOARD", "RADIO", "STATIC", "POPUP", "POPUPS", "NACHO", "SUS", "GG", "L"],
+  "ui": {
+    "placeholder": "say something to him",
+    "namedPlaceholder": "say something, {name}",
+    "button": "SAY IT",
+    "codePlaceholder": "go on, say a word",
+    "codeButton": "SAY IT",
+    "pickerTitle": "Show him..."
+  },
+  "items": {
+    "pail": ["pail", "bucket"],
+    "rusted_key": ["rusted key", "rusty key", "key", "old key"],
+    "tiny_tombstone": ["tombstone", "tiny tombstone", "gravestone", "little grave", "grave"],
+    "popup_shard": ["shard", "popup shard", "piece of glass"],
+    "dead_bulb": ["dead bulb", "dark bulb", "burnt bulb", "bulb", "light bulb", "lightbulb"],
+    "bright_bulb": ["bright bulb", "glowing bulb", "lit bulb", "bulb", "light bulb", "lightbulb"],
+    "polaroid": ["polaroid", "photo", "photograph", "picture"],
+    "todd_floppy": ["floppy", "floppy disk", "disk", "todds disk", "todd disk", "todds guts", "guts"],
+    "static_cassette": ["cassette", "static cassette", "tape"],
+    "clear_polaroid": ["clear polaroid", "clear photo"],
+    "dubbed_tape": ["dubbed tape", "tape"],
+    "hill_marker": ["hill marker", "marker"]
+  },
+  "say": {
+    "show_none": [
+      ["A PRESENT?!^2 Where?! WHERE?!", "(He checks behind you. Then behind himself.)", "Your hands are EMPTY!! CRUEL!!"],
+      ["NOTHING?!^2 You brought me NOTHING?!", "...^3 That's FINE. I LIVE in nothing. I'm USED to it!!"]
+    ],
+    "show_cancel": [
+      ["AWW!!^2 TEASE!!"],
+      ["FINE! Keep it! [gray]...I wanted to see it.[/]"]
+    ],
+    "item_missing": [
+      ["A {item}?!^2 You don't HAVE a {item}!", "Go FIND one!! Then COME BACK and SHOW ME!!"],
+      ["(He pats your pockets from across the void.)", "NO {item} in THERE! LIAR!! [gray]...Lovable liar.[/]"]
+    ],
+    "item_gone": [
+      ["The {item}?!^2 It's GONE! It turned into SOMETHING ELSE!", "That's what things DO! Like ME! Sort of!"]
+    ]
+  },
+  "synonyms": {
+    "hello": ["hi", "hey", "heya", "hiya", "yo", "howdy", "greetings", "sup", "hullo", "hola", "wassup"],
+    "bye": ["goodbye", "cya", "later", "farewell", "goodnight", "adios", "seeya"],
+    "thanks": ["thank", "thx", "ty", "cheers"],
+    "sorry": ["apologize", "apologise", "apologies", "sry"],
+    "marquez": ["oldboy", "cedar", "desk"],
+    "todd": ["noisybox"],
+    "stupid": ["dumb", "idiot", "moron", "useless", "ugly", "loser", "lame", "cringe", "annoying", "creepy", "loud"],
+    "still": ["stop", "freeze", "pause"],
+    "show": ["showing"],
+    "void": ["nothing", "nowhere", "darkness", "emptiness"],
+    "home": ["house"],
+    "god": ["gods", "deity", "divine"],
+    "fight": ["battle", "duel", "attack", "boss", "kill"],
+    "dance": ["boogie", "groove", "spin"],
+    "sing": ["song", "singing", "music"]
+  },
+  "topics": [
+    { "id": "sent_yes", "after": "hello", "match": ["yes", "yeah", "yep", "he sent me", "marquez sent me", "old boy sent me", "he did", "i did", "the old man"],
+      "replies": [{ "go": "hello_marquez" }] },
+    { "id": "sent_no", "after": "hello", "match": ["no", "nope", "who is marquez", "who", "nobody", "i found you myself", "on my own", "never heard of him"],
+      "replies": [{ "go": "hello_who" }] },
+
+    { "id": "hello", "match": ["hello", "good morning", "good evening"],
+      "replies": [
+        ["HELLO!!^2 HELLO HELLO HELLO!!", "(The void echoes it back, a little quieter each time.)"],
+        { "say": ["{NAME}!!^2 MY favorite!! My ONLY!! But STILL my favorite!!"], "named": true },
+        ["HI!!^2 Did you know you're the most INTERESTING thing in here?!", "[gray]It's a very short list.[/]"]
+      ],
+      "again": [["You SAID that already!!^2 I LOVED it both times!!"], ["HELLO AGAIN AGAIN!!"]] },
+
+    { "id": "how", "match": ["how are you", "how you doing", "you ok", "you okay", "you alright", "are you happy"],
+      "replies": [
+        ["WONDERFUL!!^2 I'm ALWAYS wonderful! It's in the NAME!"],
+        ["MARVELOUS! FANTASTIC! SPINNING!!", { "text": "[gray]...Mostly marvelous.[/]", "speed": 44 }],
+        ["HAPPY!! VERY happy!!^2 The HAPPIEST!!", { "text": "[gray]Half of me, anyway.[/]", "speed": 44 }]
+      ] },
+
+    { "id": "who", "match": ["who are you", "what are you", "your name", "introduce yourself"],
+      "replies": [{ "go": "who" }],
+      "again": [["STILL WONDER!!^2 I CHECKED!!"], [{ "text": "WONDER! The STAR! Born to SHINE!!", "fx": "stars" }]] },
+
+    { "id": "where", "match": ["where am i", "where are we", "what is this place", "the void", "this place", "void"],
+      "replies": [{ "go": "where" }],
+      "again": [["The VOID!! MY void!!^2 Wipe your FEET!!", "...^3 You don't HAVE to. There's no FLOOR."], ["NOWHERE!!^2 Still NOWHERE!! I LOVE it here!!"]] },
+
+    { "id": "shine", "match": ["star", "shine", "the star is born", "stars", "star is born to shine", "make stars"],
+      "replies": [
+        [{ "text": "THE STAR IS BORN TO SHINE!!!", "fx": "stars" }],
+        ["You want STARS?!^2 I'll GIVE you stars!!", { "text": "TA-DAAA!!", "fx": "stars" }],
+        [{ "text": "SHINE!! SHINE!! SHIIIINE!!", "fx": "stars" }, "...^3 They never STAY, though.^2 [gray]Nothing stays.[/]"]
+      ] },
+
+    { "id": "still", "match": ["stand still", "stop moving", "hold still", "be still", "sit down", "calm down", "why do you move", "stay still", "stop spinning"],
+      "replies": [
+        ["STILL?!^2 STILL?!^3 [shake]NEVER![/]", "Standing still is how they CATCH you!!"],
+        ["(He tries. He really, honestly tries.)", "...^2 ...^2 [shake]AAAAAH![/]", "NO. Can't. WON'T."],
+        ["If I stop moving, the dark gets CLOSER.", { "text": "[gray]...That's not true. I just don't want to find out.[/]", "speed": 44 }]
+      ] },
+
+    { "id": "face", "match": ["your face", "two faces", "black and white", "your mask", "half and half", "two halves"],
+      "replies": [
+        ["BLACK on one side, WHITE on the other!!^2 STYLISH, isn't it?!", "I can NEVER pick a side. So I picked BOTH!"],
+        ["It's NOT a mask!!^2 This is my REAL face!!", "(He turns, so you only see the dark half.)", { "text": "[gray]...Mostly real.[/]", "speed": 44 }]
+      ] },
+
+    { "id": "hat", "match": ["your hat", "hat", "nice hat", "cool hat"],
+      "replies": [
+        ["THE HAT!!^2 Thank you!! It's VERY rare!", "There's only ONE in the whole void!", "(He tips it. It immediately tips back on its own.)"],
+        ["Don't TOUCH the hat.^2 NOBODY touches the hat."]
+      ] },
+
+    { "id": "home", "match": ["home", "your home", "your house", "where do you live", "the house", "where did you live"],
+      "replies": [
+        { "say": ["HOME?!^2 This is home now! The VOID!", { "text": "[gray]...There was a house, once. Warm. Somebody waiting up.[/]", "speed": 44 }, "...^3 ANYWAY!!"], "never": "rusted_key" },
+        { "say": ["That KEY of yours opened my old front door, you know!!", { "text": "[gray]I want to go home.^3 I can't.[/]", "speed": 44 }, "...^2 NEXT QUESTION!!"], "had": "rusted_key" }
+      ] },
+
+    { "id": "escape", "match": ["how did you get out", "how did you escape", "get out of varandia", "how did you leave", "escape"],
+      "replies": [
+        ["OUT!! I got OUT!!^2 OUT, OUT, OUT!!", "HOW?!^3 [shake]Don't remember![/]", { "text": "[gray]Don't WANT to.[/]", "speed": 44 }],
+        [{ "text": "(He spins away from the question, very fast.)" }, "ASK ME SOMETHING ELSE!! ANYTHING ELSE!!"]
+      ] },
+
+    { "id": "god", "match": ["are you a god", "god", "were you a god", "what were you god of", "your powers", "god of"],
+      "replies": [
+        ["A GOD?!^2 Who's been TALKING?!", "Was it the NOISY BOX?! It was the NOISY BOX!!", { "text": "[gray]...I don't do that anymore.[/]", "speed": 44 }],
+        ["GOD OF WHAT, you ask?!", "^3...", "GOD OF ASKING TOO MANY QUESTIONS!! THAT'S YOU!! HA!!"],
+        ["(For a second, the void gets very bright.)", "...^3 OOPS.^2 Habit."]
+      ] },
+
+    { "id": "fight", "match": ["fight", "fight me", "boss fight", "battle me", "fight you", "i will beat you"],
+      "replies": [
+        ["FIGHT?!^2 ME?!", { "text": "Oh, it would be MAGNIFICENT.^3 The GRAND FINALE!! The OMEGA!!", "fx": "stars" }, "...^3 NOT YET, though.^2 You're not READY."],
+        [{ "text": "[shake]HA![/]^2 You fought the NOISY BOX and now you want ME?!", "speed": 40 }, "Save it for the LAST act, friend."]
+      ] },
+
+    { "id": "old_boy", "match": ["marquez", "old boy", "the old man", "man behind the desk", "mr marquez"],
+      "replies": [{ "go": "tell_marquez" }] },
+
+    { "id": "todd", "match": ["todd", "noisy box", "the noisy box", "the computer"],
+      "replies": [{ "go": "tell_todd" }] },
+
+    { "id": "todd_dead", "match": ["i beat todd", "i killed todd", "todd is dead", "i won the fight", "i defeated todd"],
+      "replies": [
+        { "go": "tell_todd_dead", "flag": "todd_dead" },
+        { "say": ["YOU DID NOT!!^2 I'd have HEARD it!!", "The NOISY BOX is STILL screaming through the walls! LISTEN!!"], "flag": "!todd_dead" }
+      ] },
+
+    { "id": "lonely", "match": ["are you lonely", "alone", "by yourself", "do you have friends", "friends", "any friends"],
+      "replies": [
+        ["LONELY?!^2 ME?!^3 I have the DARK! And the STARS! Sometimes!", { "text": "[gray]...And you. Now and then.[/]", "speed": 44 }],
+        ["The OLD BOY is my friend!! He'd NEVER say it!!", "That's how you KNOW it's real!"]
+      ] },
+
+    { "id": "show", "do": "show",
+      "match": ["show you something", "show you", "i want to show you", "i have something", "look at this", "check this out", "got something", "give you something", "i found something", "present", "i brought something", "a gift", "for you"] },
+
+    { "id": "tell", "do": "tell",
+      "match": ["tell you something", "i heard something", "i have a word", "say a word", "i have a code", "i heard a word", "the scanner said", "listen to this"] },
+
+    { "id": "craft", "match": ["make something", "craft", "combine", "workbench", "put together", "build something"],
+      "replies": [
+        ["MAKE something?!^2 I can't make ANYTHING! I can barely make SENSE!", "The OLD BOY makes things. Down at his DESK. Under a LIGHT!"],
+        ["(He mashes his hands together. Nothing happens.)", "SEE?! NOTHING!! Ask the OLD BOY!!"]
+      ] },
+
+    { "id": "dance", "match": ["dance", "do a dance", "spin around", "do a flip", "do a trick", "flip"],
+      "replies": [
+        ["A DANCE?!^2 I NEVER stop dancing!", "(He tumbles heels over head, twice, and lands on nothing.)", "TA-DA!!"],
+        ["WATCH THIS!!", "(He spins so fast both halves of his face blur into grey.)", { "text": "[gray]...I'm going to be sick.[/]", "speed": 44 }]
+      ] },
+
+    { "id": "sing", "match": ["sing", "sing a song", "sing me a song", "music"],
+      "replies": [
+        ["LA LA LAAA!!^2 THE STAR IS BORN TO SHIIINE!!", "(The void does NOT applaud.)", "TOUGH CROWD!!"],
+        ["I only know ONE song and it's about ME!!", { "text": "SHINE, SHINE, SHIIINE!!", "fx": "stars" }]
+      ] },
+
+    { "id": "joke", "match": ["joke", "tell me a joke", "make me laugh", "something funny"],
+      "replies": [
+        ["Why did the harlequin float in the VOID?!", "^3BECAUSE THERE WAS NOTHING TO STAND ON!!", "(He laughs so hard he flips over.)"],
+        ["KNOCK KNOCK!!", "^3...", "NOBODY'S THERE!! IT'S A VOID!! HA!!"],
+        ["What's black and white and floating ALL OVER?!", "^3ME!! IT'S ALWAYS ME!!"]
+      ] },
+
+    { "id": "riddle", "match": ["riddle", "tell me a riddle", "puzzle"],
+      "replies": [
+        ["RIDDLE ME THIS!!", "What has TWO faces, NO floor, and is VERY handsome?!", "^4...", "I'll give you a hint. It's ME."],
+        ["The more of it there is, the less you SEE!!^2 What is it?!", "...^3 THE DARK!! It's the DARK! I live in the ANSWER!!"]
+      ] },
+
+    { "id": "food", "match": ["are you hungry", "food", "eat", "what do you eat", "hungry"],
+      "replies": [
+        ["EAT?!^2 I don't EAT!^2 I just like the IDEA of eating!", "NACHOS, especially! AT SCALE!!"],
+        { "say": ["TODD'S GUTS, if anyone ever lets me!!", { "text": "[gray]The OLD BOY says no. Boring.[/]", "speed": 44 }], "had": "todd_floppy" }
+      ] },
+
+    { "id": "sleep", "match": ["do you sleep", "sleep", "tired", "are you tired", "nap"],
+      "replies": [
+        ["SLEEP?!^2 And STOP MOVING?! For HOURS?!", "[shake]ABSOLUTELY NOT![/]"],
+        ["I tried sleeping once.^3 I dreamed about a WOLF.", { "text": "[shake]NEVER AGAIN.[/]", "speed": 50 }]
+      ] },
+
+    { "id": "age", "match": ["how old are you", "your age", "birthday", "are you old"],
+      "replies": [
+        ["OLD?!^2 I'm TIMELESS!!", "Well. I don't know. Nobody kept COUNT."],
+        ["MY BIRTHDAY is TODAY!!", "^3...", "It's ALWAYS today in here. Every day is my BIRTHDAY!!"]
+      ] },
+
+    { "id": "games", "match": ["games", "video games", "do you play games", "favorite game", "game"],
+      "replies": [
+        ["GAMES?!^2 I USED to be IN one!", { "text": "[gray]Not anymore. Thank goodness.[/]", "speed": 44 }, "NOW I just SPIN!!"]
+      ] },
+
+    { "id": "market", "match": ["polygons", "money", "market", "stocks", "stock market", "rend conomy"],
+      "replies": [{ "go": "co_market" }] },
+
+    { "id": "love", "match": ["love you", "like you", "you are cool", "you are awesome", "you are funny", "you are my favorite", "you are great", "you are nice"],
+      "replies": [
+        ["I KNOW!!^2 Everyone LOVES me!!", { "text": "[gray]...Thank you. Really.[/]", "speed": 44 }],
+        ["(He goes very, very pink. Both halves.)", "STOP IT!! ...DON'T stop it!!"]
+      ] },
+
+    { "id": "insult", "match": ["stupid", "hate you", "shut up", "you suck", "nobody likes you", "screw you", "you are annoying", "be quiet"],
+      "replies": [
+        ["RUDE!!^2 RUDE RUDE RUDE!!", "(He sticks his tongue out. Both halves of it.)"],
+        ["Shut UP?!^2 In MY void?!", "I'll be LOUDER!! [shake]LOUDER!![/]"],
+        [{ "text": "[gray]...Ouch.[/]", "speed": 50 }, "^3HA!! Didn't HURT!! Not even a LITTLE!!"]
+      ] },
+
+    { "id": "thanks", "match": ["thanks", "thank you"],
+      "replies": [["YOU'RE WELCOME!!^2 What did I DO?!"], ["THANK YOU for thanking me!!"]] },
+
+    { "id": "sorry", "match": ["sorry", "my bad", "forgive me", "i apologize"],
+      "replies": [["FORGIVEN!!^2 Instantly! I can't hold grudges, they're too HEAVY to carry while spinning!"]] },
+
+    { "id": "name_ask", "match": ["what is my name", "who am i", "do you know me", "remember me", "do you remember me"],
+      "replies": [
+        { "say": ["{NAME}!!^2 Of COURSE I remember!! I never FORGET a friend!"], "named": true },
+        { "say": ["You never TOLD me!!", "I've been calling you [wave]MYSTERY GUEST[/] in my head!!"], "named": false }
+      ] },
+
+    { "id": "what_happened", "match": ["what happened", "what happened to you", "what happened to varandia"],
+      "replies": [{ "go": "sig_what_happened" }] },
+
+    { "id": "help", "match": ["help", "help me", "i am stuck", "hint", "what should i do", "advice"],
+      "replies": [
+        ["HELP?!^2 From ME?!", "Okay, OKAY! ...Find THINGS! Show them to people! Listen to the SCANNER!!", { "text": "[gray]And talk to the OLD BOY. He knows more than he says.[/]", "speed": 44 }],
+        ["My ADVICE?!^2 NEVER stand still!", "...^3 That's it. That's all my advice."]
+      ] },
+
+    { "id": "bye", "match": ["bye", "see you", "gotta go", "i am leaving", "leave", "good night", "i have to go"],
+      "replies": [{ "go": "bye" }] },
+
+    { "id": "yes", "short": true, "match": ["yes", "yeah", "yep", "yup", "sure", "ok", "okay"],
+      "replies": [["YES!!^2 I LOVE yes!! Yes is my FAVORITE word!!"], ["EXACTLY!! I KNEW you'd agree!!"]] },
+
+    { "id": "no", "short": true, "match": ["no", "nope", "nah", "never"],
+      "replies": [["NO?!^2 BOO!! ...Fine. FINE!!"], ["NO is my SECOND favorite word!!"]] },
+
+    { "id": "what", "short": true, "match": ["what", "huh", "eh"],
+      "replies": [["WHAT WHAT?!^2 WHAT WHAT WHAT?!"], ["(He shrugs so hard he does a full rotation.)"]] }
+  ],
+  "reflect": [
+    { "pattern": "my name is *", "name": true, "replies": [["{NAME}!!^2 WHAT A NAME!!", "I'm going to SHOUT it into the void!! {NAME}!!", "(The void shouts it back.)"], ["{name}?!^2 WONDERFUL!! I'll NEVER forget it!!"]] },
+    { "pattern": "call me *", "name": true, "replies": [["{NAME} it is!!^2 I LOVE IT!!"]] },
+    { "pattern": "i am called *", "name": true, "replies": [["{NAME}!!^2 Noted!! Remembered!! CHERISHED!!"]] },
+    { "pattern": "i feel *", "replies": [["You feel {1}?!^2 SPIN with me!! It HELPS!!", { "text": "[gray]...It doesn't. But it's FUN.[/]", "speed": 44 }], ["{1}?! In MY void?!^2 We can't have THAT!!", { "text": "Here, have some STARS!!", "fx": "stars" }]] },
+    { "pattern": "i am *", "replies": [["You're {1}?!^2 I'm WONDER!! We're BOTH something!!"], ["{1}!!^2 I KNEW it! I could TELL!!"]] },
+    { "pattern": "i want *", "replies": [["You want {1}?!^2 SO DO I!! ...What IS {1}?!"]] },
+    { "pattern": "i like *", "replies": [["You like {1}?!^2 Then I LOVE {1}!! Probably!!"]] },
+    { "pattern": "do you *", "replies": [["Do I {1}?!^2 I do EVERYTHING!! Except stand still!!"], ["{1}?!^2 Maybe!! MAYBE NOT!! Keep GUESSING!!"]] },
+    { "pattern": "can you *", "replies": [["Can I {1}?!^2 I can SPIN! I can FLOAT! I can SHINE! That's the LIST!!"]] },
+    { "pattern": "are you *", "replies": [["Am I {1}?!^2 Half of me is!! The OTHER half is DENYING it!!"]] },
+    { "pattern": "you are *", "replies": [["I'm {1}?!^2 NOBODY ever told me that!! I'm going to THINK about it!! ...Done!!"]] },
+    { "pattern": "why *", "replies": [["WHY {1}?!^2 Because it's MORE FUN that way!!"]] },
+    { "pattern": "what is *", "replies": [["{1}?!^2 NEVER heard of it!! Sounds MARVELOUS!!"]] },
+    { "pattern": "where is *", "replies": [["{1}?!^2 NOT in here!! NOTHING is in here!! Except ME!!"]] }
+  ],
+  "fallback": [
+    ["HUH?!^2 Say it LOUDER!!"],
+    ["(He tilts his head so far he goes upside down.)", "...WHAT?!"],
+    ["I didn't understand a WORD of that and I LOVED it!!"],
+    ["MORE WORDS!!^2 BETTER WORDS!! LOUDER WORDS!!"],
+    ["You're talking to a harlequin in a VOID, friend!^2 Use SMALLER words!!"],
+    [{ "text": "[gray]...I don't know that one.[/]", "speed": 44 }, "BUT I'LL PRETEND I DO!!"]
+  ]
+}
