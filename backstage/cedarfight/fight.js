@@ -646,16 +646,54 @@ function poseCedar(dt) {
   cedar.yaw += Math.sign(d) * Math.min(Math.abs(d), rate * dt);
   if (cedar.whirl) { cedar.whirl = Math.max(0, cedar.whirl - dt * 3); }
   him.rotation.y = cedar.yaw;
-  ['flinch', 'laugh', 'swat', 'cock', 'kneel', 'empty'].forEach((k) => { if (cedar[k] > 0 && k !== 'kneel' && k !== 'empty') cedar[k] = Math.max(0, cedar[k] - dt * 2.5); });
-  const t = clock, breathe = Math.sin(t * 1.6);
-  const fl = cedar.flinch, la = cedar.laugh, st = cedar.stagger > 0 ? 1 : 0, kn = cedar.kneel;
-  pose('upper_body', -0.12 * fl + 0.05 * la * Math.sin(t * 30) + 0.25 * st + 0.2 * kn, 0, 0);
-  pose('chest', breathe * 0.012 - 0.08 * fl - 0.1 * la, 0, 0.1 * st * Math.sin(t * 6));
-  pose('fat_fucking_dome', -0.1 * fl - 0.2 * la + 0.2 * st, 0, 0.12 * la * Math.sin(t * 22));
-  pose('Right_Leg', -0.35 * kn, 0, 0); pose('lowerleg_R', 0.5 * kn, 0, 0);
-  pose('Left_Arm', -0.9 * (cedar.swat || 0), 0, -0.4 * (cedar.swat || 0));
+  ['flinch', 'laugh', 'swat', 'cock'].forEach((k) => { if (cedar[k] > 0) cedar[k] = Math.max(0, cedar[k] - dt * (k === 'laugh' ? 0.9 : 2.5)); });
+  const t = clock, breathe = Math.sin(t * 1.6), sway = Math.sin(t * 0.85);
+  const fl = cedar.flinch, la = cedar.laugh, st = cedar.stagger > 0 ? 1 : 0;
+  const k0 = step && step[0];
+  // footwork: his feet step as he turns to follow you; in Ten Paces, one step per count
+  const turning = Math.abs(d) > 0.06 ? 1 : 0;
+  cedar.walk = (cedar.walk || 0) + (turning - (cedar.walk || 0)) * Math.min(1, dt * 6);
+  cedar.stepPh = (cedar.stepPh || 0) + dt * 7 * cedar.walk;
+  let wk = cedar.walk, sp = cedar.stepPh;
+  if (k0 === 'paces' && cedar.back && stepT > 0.8) { wk = 1; sp = (stepT - 0.8) / 0.42 * Math.PI; }
+  const stepL = Math.sin(sp) * wk, liftL = Math.max(0, Math.sin(sp)) * wk, liftR = Math.max(0, -Math.sin(sp)) * wk;
+  // the kick: knee up high, then down hard
+  const kk = k0 === 'kick' ? (stepT < 0.3 ? stepT / 0.3 : Math.max(0, 1 - (stepT - 0.3) / 0.1)) : 0;
+  // the stagger: a knee buckles and he sways
+  const sg = st ? 0.5 + 0.5 * Math.sin(t * 5) : 0;
+  cedar.kn = (cedar.kn || 0) + ((cedar.kneel ? 1 : 0) - (cedar.kn || 0)) * Math.min(1, dt * 8);
+  const kn = cedar.kn;
+  // his whole body: rocks back when you hit him, bobs with each step, sinks when he kneels or stomps
+  const fwd = new THREE.Vector3(Math.sin(cedar.yaw), 0, Math.cos(cedar.yaw));
+  const rock = -0.55 * fl * fl + 0.12 * la * Math.sin(t * 9);
+  him.position.set(fwd.x * rock, 0.05 * Math.abs(Math.sin(sp)) * wk - 0.35 * kn - 0.12 * sg + 0.08 * kk, fwd.z * rock);
+  pose('pelvis', 0, 0.05 * sway, 0.03 * sway);
+  pose('hips', 0, 0, -0.02 * sway);
+  pose('Right_Leg', -0.35 * stepL - 1.35 * kk + 0.5 * kn + 0.03 * sway, 0, 0.02 * sway);
+  pose('lowerleg_R', 0.6 * liftR + 1.7 * kk + 0.05 * (1 + sway), 0, 0);
+  pose('Left_Leg', 0.35 * stepL - 0.45 * sg - 0.9 * kn - 0.03 * sway, 0, -0.02 * sway);
+  pose('lowerleg_L', 0.6 * liftL + 0.75 * sg + 1.6 * kn + 0.05 * (1 - sway), 0, 0);
+  pose('upper_body', -0.2 * fl + 0.3 * sg + 0.2 * kn + 0.14 * kk - 0.16 * la, 0, 0.03 * sway);
+  pose('chest', breathe * 0.02 - 0.12 * fl - 0.1 * la + 0.07 * Math.abs(Math.sin(t * 18)) * la, 0, 0.12 * st * Math.sin(t * 6) - 0.02 * sway);
+  // his head turns to you ahead of his body and looks down at you; snaps back when hit; shakes when he laughs
+  let hd = ang() - cedar.yaw; hd = Math.atan2(Math.sin(hd), Math.cos(hd));
+  if (cedar.back) hd = 0;
+  const hy = THREE.MathUtils.clamp(hd, -0.7, 0.7);
+  pose('neck', 0.1 - 0.15 * fl, hy * 0.4, 0);
+  pose('fat_fucking_dome', 0.08 - 0.28 * fl - 0.32 * la + 0.15 * st - 0.25 * kk, hy * 0.5, 0.1 * la * Math.sin(t * 20) + 0.04 * sway);
+  runEye(dt, THREE.MathUtils.clamp((hd - 0.9 * hy) * 2.5, -0.7, 0.7));
+  pose('hat', 0, 0, 0);
+  // the metal arm: his hand on his hip when he's at ease; it swats, and swings for balance
+  const atEase = cedar.forceHip != null ? cedar.forceHip : k0 === 'rest' || (k0 === 'paces' && cedar.back) ? 1 : 0.25;
+  cedar.hip = (cedar.hip || 0) + (atEase - (cedar.hip || 0)) * Math.min(1, dt * 4);
+  const sw = cedar.swat || 0;
+  pose('Left_Arm', -0.9 * sw + 0.25 * stepL * (1 - cedar.hip) - 0.5 * kk, 0.35 * cedar.hip, -0.85 * cedar.hip - 0.4 * sw - 0.3 * la);
+  pose('forearm_L', 0, 0, 1.75 * cedar.hip);
+  // between attacks, a little showmanship: tip the hat, beckon you closer, shrug
+  if (k0 === 'rest' && once('taunt') && step[1] >= 0.7 && Math.random() < 0.7) cedar.taunt = { kind: pick(['hat', 'beckon', 'shrug']), t0: clock, len: Math.min(1.6, step[1]) };
+  if (cedar.taunt && clock - cedar.taunt.t0 > cedar.taunt.len) cedar.taunt = null;
   // the gun arm: aimed at you while a shot is coming, otherwise at his side
-  const kind = step && step[0];
+  const kind = k0;
   const aiming = (kind === 'shot' || kind === 'fake') && stepT > PH[fight.phase].draw * 0.5 || (fight.rpg && fight.rpg.state === 'his') || (kind === 'paces' && !cedar.back && step.done.whirl);
   cedar.aimK = (cedar.aimK || 0) + ((aiming ? 1 : 0) - (cedar.aimK || 0)) * Math.min(1, dt * 12);
   him.updateMatrixWorld(true);
@@ -680,10 +718,19 @@ function poseCedar(dt) {
     dir = tt < 0.18 ? toYou.clone().lerp(back, tt / 0.18).normalize() : back.clone().lerp(toYou.clone().add(new THREE.Vector3(0, -0.4, 0)), (tt - 0.18) / 0.27).normalize();
     amt = 1;
   }
-  aimArm(dir, new THREE.Vector3(0, -1, 0), amt);
+  let palm = new THREE.Vector3(0, -1, 0), beckon = 0;
+  const T = cedar.taunt;
+  if (T && amt < 0.3 && tt >= 0.45) {
+    const k = (clock - T.t0) / T.len, env = Math.sin(Math.PI * Math.min(1, Math.max(0, k)));
+    if (T.kind === 'hat') { dir = new THREE.Vector3(-0.15, 1, 0.2).normalize().applyQuaternion(yawQ); palm = new THREE.Vector3(0, 0, -1).applyQuaternion(yawQ); pose('fat_fucking_dome', 0.3 * env, hy * 0.5, 0); pose('hat', -0.7 * env, 0, 0.2 * env); }
+    if (T.kind === 'beckon') { dir = new THREE.Vector3(0.2, -0.05, 1).normalize().applyQuaternion(yawQ); palm = new THREE.Vector3(0, 1, 0); beckon = env; }
+    if (T.kind === 'shrug') { dir = new THREE.Vector3(0.9, -0.35, 0.4).normalize().applyQuaternion(yawQ); palm = new THREE.Vector3(0, 1, 0); pose('chest', -0.06 * env, 0, 0); pose('fat_fucking_dome', 0.05, hy * 0.5, 0.18 * env); }
+    amt = Math.max(amt, env);
+  }
+  aimArm(dir, palm, amt);
   // fingers: wrapped round the grip, or a finger gun for a fake
   const fake = kind === 'fake';
-  const curl = gun && gun.visible ? 1 : 0.25;
+  const curl = gun && gun.visible ? 1 : beckon ? (0.15 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 12))) * beckon + 0.25 * (1 - beckon) : 0.25;
   ['middle', 'ring'].forEach((n) => { pose(n + '_R', 0, 0, -1.2 * curl); pose(n + '_mid_R', 0, 0, -1.4 * curl); pose(n + '_tip_R', 0, 0, -0.8 * curl); });
   const ic = fake ? 0 : curl;
   pose('index_R', 0, 0, -1.0 * ic); pose('index_mid_R', 0, 0, -0.9 * ic); pose('index_tip_R', 0, 0, -0.5 * ic);
@@ -696,10 +743,130 @@ function poseCedar(dt) {
   if (gun && gun.visible) muzzleLight.position.copy(muzzlePos());
 }
 
+// his eye: the same live eye as at his desk (a little panel over the lens patch of his texture, drawn live)
+const EYE = { x: 769, y: 116, w: 12, h: 9, tex: 1024 };
+const EYE_SCALE = 4;
+const LENS = '#2b6f31', LID = '#3e9943', LID_DARK = '#1f5a26';
+// ---------------- the eye ----------------
+function makeEye(root) {
+  // find the spot on his head whose texture coordinates hold the lens patch
+  const uc = (EYE.x + EYE.w / 2) / EYE.tex, vc = (EYE.y + EYE.h / 2) / EYE.tex;
+  let found = null;
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (found || !o.isMesh) return;
+    const g = o.geometry, P = g.attributes.position, U = g.attributes.uv;
+    if (!U) return;
+    const idx = g.index ? g.index.array : null;
+    const n = idx ? idx.length : P.count;
+    for (let t = 0; t < n; t += 3) {
+      const a = idx ? idx[t] : t, b = idx ? idx[t + 1] : t + 1, c = idx ? idx[t + 2] : t + 2;
+      const A = new THREE.Vector2(U.getX(a), U.getY(a)), B = new THREE.Vector2(U.getX(b), U.getY(b)), C = new THREE.Vector2(U.getX(c), U.getY(c));
+      // barycentric coordinates of the patch center in this triangle's texture space
+      const v0 = B.clone().sub(A), v1 = C.clone().sub(A), v2 = new THREE.Vector2(uc, vc).sub(A);
+      const den = v0.x * v1.y - v1.x * v0.y;
+      if (Math.abs(den) < 1e-12) continue;
+      const s = (v2.x * v1.y - v1.x * v2.y) / den, r = (v0.x * v2.y - v2.x * v0.y) / den;
+      if (s < -1e-6 || r < -1e-6 || s + r > 1 + 1e-6) continue;
+      const pa = new THREE.Vector3().fromBufferAttribute(P, a), pb = new THREE.Vector3().fromBufferAttribute(P, b), pc = new THREE.Vector3().fromBufferAttribute(P, c);
+      // how position changes with u and with v across this triangle
+      const e1 = pb.clone().sub(pa), e2 = pc.clone().sub(pa);
+      const dPdu = e1.clone().multiplyScalar(v1.y).sub(e2.clone().multiplyScalar(v0.y)).divideScalar(den);
+      const dPdv = e2.clone().multiplyScalar(v0.x).sub(e1.clone().multiplyScalar(v1.x)).divideScalar(den);
+      const center = pa.clone().add(e1.multiplyScalar(s)).add(e2.multiplyScalar(r));
+      const nrm = new THREE.Vector3().fromBufferAttribute(g.attributes.normal, a).normalize();
+      found = { mesh: o, center, dPdu, dPdv, nrm };
+      return;
+    }
+  });
+  if (!found) return null;
+  const { mesh, center, dPdu, dPdv, nrm } = found;
+  const hu = dPdu.clone().multiplyScalar(EYE.w / EYE.tex / 2), hv = dPdv.clone().multiplyScalar(EYE.h / EYE.tex / 2);
+  const lift = nrm.clone().multiplyScalar(0.0025);     // just in front of his face
+  const corner = (su, sv) => center.clone().add(hu.clone().multiplyScalar(su)).add(hv.clone().multiplyScalar(sv)).add(lift);
+  // corners: top-left, top-right, bottom-left, bottom-right (texture v grows downward)
+  const pts = [corner(-1, -1), corner(1, -1), corner(-1, 1), corner(1, 1)];
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pts.flatMap((p) => [p.x, p.y, p.z]), 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0], 2));
+  geo.setIndex([0, 2, 1, 1, 2, 3]);
+  geo.computeVertexNormals();
+  const cv = document.createElement('canvas');
+  cv.width = EYE.w * EYE_SCALE; cv.height = EYE.h * EYE_SCALE;
+  const tex = new THREE.CanvasTexture(cv);
+  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter; tex.encoding = THREE.sRGBEncoding;
+  const base = [].concat(mesh.material)[0];
+  const mat = base.clone(); mat.map = tex; mat.side = THREE.DoubleSide;
+  mat.polygonOffset = true; mat.polygonOffsetFactor = -2;
+  const panel = new THREE.Mesh(geo, mat);
+  mesh.add(panel);
+  return { cv, ctx: cv.getContext('2d'), tex, last: '' };
+}
+
+// the eye, drawn in 48 x 36 pixels (12 x 9 texture pixels, 4 each)
+function drawEye(eye, s) {
+  const W = eye.cv.width, H = eye.cv.height, g = eye.ctx;
+  const key = [s.face, Math.round(s.lx * 6), Math.round(s.ly * 3), Math.round(s.blink * 8)].join();
+  if (key === eye.last) return;
+  eye.last = key;
+  g.fillStyle = LENS; g.fillRect(0, 0, W, H);
+  const cx = Math.round(W / 2 + s.lx * 12), cy = Math.round(H / 2 + s.ly * 3);
+  const px = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  let blink = s.blink;
+  if (s.face === 'smile') {
+    // a happy squint: the eye is a black arch
+    px(0, 0, W, H, LENS);
+    const w = 18, top = cy - 6;
+    for (let i = 0; i < w; i += 2) {
+      const d = Math.abs(i + 1 - w / 2) / (w / 2);
+      const y = Math.round(top + d * d * 8);
+      px(cx - w / 2 + i, y, 2, 5, '#000');
+    }
+    return (eye.tex.needsUpdate = true);
+  }
+  // the pupil: a tall black oval with a glint
+  const pw = 16, ph = 28;
+  for (let y = 0; y < ph; y += 2) {
+    const t = (y + 1 - ph / 2) / (ph / 2);
+    const half = Math.round((pw / 2) * Math.sqrt(Math.max(0, 1 - t * t)) / 2) * 2;
+    if (half > 0) px(cx - half, cy - ph / 2 + y, half * 2, 2, '#000');
+  }
+  px(cx - 6, cy - 10, 4, 4, '#fff');
+  if (s.face === 'angry') {
+    // a heavy lid sloping down toward his nose (the left of the panel)
+    g.fillStyle = LID;
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(W, 0); g.lineTo(W, 6); g.lineTo(0, 18); g.closePath(); g.fill();
+    g.fillStyle = LID_DARK;
+    g.beginPath(); g.moveTo(0, 16); g.lineTo(W, 4); g.lineTo(W, 7); g.lineTo(0, 19); g.closePath(); g.fill();
+    blink = Math.max(blink * 0.7, 0);
+  }
+  if (blink > 0.02) {
+    const topH = Math.round((H * 0.58 * blink) / 2) * 2, botH = Math.round((H * 0.42 * blink) / 2) * 2;
+    px(0, 0, W, topH, LID); px(0, H - botH, W, botH, LID);
+    if (blink > 0.85) px(0, topH - 2, W, 3, LID_DARK);
+  }
+  eye.tex.needsUpdate = true;
+}
+
+
+const eyeState = { face: '', lx: 0, ly: 0.5, blink: 0, next: 2, t: -1 };
+let eye = null;
+function runEye(dt, hy) {
+  if (!eye) return;
+  const e = eyeState;
+  e.face = cedar.laugh > 0.05 ? 'smile' : (cedar.flinch > 0.05 || cedar.stagger > 0 || (step && (step[0] === 'paces' || step[0] === 'kick'))) ? 'angry' : '';
+  e.lx += (THREE.MathUtils.clamp(hy / 0.7, -1, 1) - e.lx) * Math.min(1, dt * 14);
+  e.ly += (0.55 - e.ly) * Math.min(1, dt * 6);
+  if (e.t < 0 && clock > e.next) e.t = 0;
+  if (e.t >= 0) { e.t += dt; e.blink = Math.sin(Math.min(1, e.t / 0.16) * Math.PI); if (e.t > 0.16) { e.t = -1; e.blink = 0; e.next = clock + (Math.random() < 0.2 ? 0.09 : 2 + Math.random() * 4); } }
+  drawEye(eye, e);
+}
+
 // ---------------- loading, and the opening ----------------
 Promise.all([loadGLTF('../marquez/model/cedar.gltf?v=2'), loadGLTF('../marquez/model/cedars_gun.gltf?v=1'), ...FRAMES.map(loadFrame)]).then(([gl, gg]) => {
   him = gl.scene; him.scale.setScalar(HIM_SIZE); scene.add(him);
   him.traverse((o) => { if (o.isMesh) [].concat(o.material).forEach((m) => { if (m.emissive && hisMats.indexOf(m) < 0) hisMats.push(m); }); });
+  try { eye = makeEye(him); } catch (e) { eye = null; }
   bones = findBones(gl);
   Object.keys(bones).forEach((n) => { rest[n] = bones[n].rotation.clone(); });
   ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
@@ -737,4 +904,4 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight };
+window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; } };
