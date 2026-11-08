@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>VS CEDAR</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="fight.css?v=1">
+</head>
+<body>
+<!-- VS CEDAR. You get here by insulting him in /backstage/marquez/ until he snaps. The plan for the whole fight
+     is the design doc ("VS CEDAR: Fight Design"); fight.js says what's built so far. -->
+<div class="arena" id="arena">
+  <canvas id="view" aria-label="The fight"></canvas>
+  <div class="boss" id="boss" hidden><span class="b-name">CEDAR</span><span class="b-bar"><i id="b-fill"></i></span><span class="b-phase" id="b-phase"></span></div>
+  <div class="hud" id="hud" aria-live="polite"></div>
+  <div class="banner" id="banner" aria-live="polite"></div>
+  <div class="say" id="say" hidden aria-live="polite"></div>
+  <div class="rpg" id="rpg" hidden aria-live="polite"><div class="rpg-text" id="rpg-text"></div><div class="rpg-opt" id="rpg-opt"></div></div>
+  <div class="fade" id="fade"></div>
+  <div class="card" id="dead" hidden>
+    <div class="c-quote" id="d-quote"></div>
+    <div class="c-sub" id="d-sub"></div>
+    <nav class="menu"><button type="button" data-go="retry">TRY AGAIN</button><a href="/backstage/marquez/">LEAVE</a></nav>
+  </div>
+  <div class="card" id="won" hidden>
+    <div class="c-title">YOU SURVIVED HIM</div>
+    <div class="c-sub">You don't beat the main character. You live through him.</div>
+    <div class="c-item" id="w-item"></div>
+    <nav class="menu"><a href="/backstage/marquez/">BACK TO HIS DESK</a></nav>
+  </div>
+</div>
+<div class="pad" id="pad" aria-hidden="true">
+  <button type="button" data-k="left">&#9664;</button>
+  <button type="button" data-k="right">&#9654;</button>
+  <button type="button" data-k="parry" class="parry">&#10227;</button>
+  <button type="button" data-k="jump" class="jump">&#9650;</button>
+</div>
+<script src="/inventory.js?v=3"></script>
+<script type="module" src="fight.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+/* VS CEDAR. Warm and dark like his room: amber on black, his green, the runes' blue. */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #050302; color: #f0e3c8; overflow: hidden; }
+body { display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: Georgia, 'Times New Roman', serif; }
+.arena { position: relative; width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; max-height: 100vh; overflow: hidden; background: #050302; }
+.arena canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.hud { position: absolute; left: 2%; bottom: 3%; padding: 3px 10px; border: 2px solid #e6b867; background: rgba(12,8,4,.85);
+  font: bold clamp(12px, 1.6vw, 18px) 'Courier New', monospace; color: #e6b867; letter-spacing: .08em; }
+.hud.low { color: #ff5a4a; border-color: #ff5a4a; animation: blink .5s steps(1) infinite; }
+@keyframes blink { 50% { opacity: .35 } }
+
+.boss { position: absolute; left: 50%; top: 3%; transform: translateX(-50%); width: min(560px, 70%); display: flex; align-items: center; gap: 10px;
+  font: bold clamp(11px, 1.4vw, 15px) 'Courier New', monospace; letter-spacing: .2em; color: #e6b867; }
+.boss[hidden] { display: none; }
+.b-bar { flex: 1; height: 10px; border: 2px solid #e6b867; background: #140c05; position: relative; }
+.b-bar i { position: absolute; inset: 0; right: auto; width: 100%; background: linear-gradient(90deg, #3c9441, #56ad5b); transition: width .2s; }
+.b-bar.inf i { background: repeating-linear-gradient(90deg, #4fc6ff 0 8px, #1d6f9e 8px 16px); animation: inf 1s linear infinite; }
+@keyframes inf { to { background-position: 32px 0 } }
+.b-phase { color: #a5987f; letter-spacing: .1em; font-weight: normal; }
+
+.banner { position: absolute; left: 0; right: 0; top: 38%; text-align: center; pointer-events: none; opacity: 0;
+  font: bold clamp(26px, 5vw, 64px) Georgia, serif; letter-spacing: .25em; color: #f0e3c8; text-shadow: 0 0 24px rgba(230,184,103,.6), 0 3px 0 #000; }
+.banner small { display: block; font-size: .38em; letter-spacing: .4em; color: #e6b867; margin-top: .4em; }
+.banner.show { animation: banner 2.2s ease-out forwards; }
+@keyframes banner { 0% { opacity: 0; transform: scale(1.15) } 12% { opacity: 1; transform: none } 75% { opacity: 1 } 100% { opacity: 0 } }
+
+.say { position: absolute; left: 10%; right: 10%; top: 10%; text-align: center; pointer-events: none;
+  font: italic clamp(15px, 2.3vw, 26px) Georgia, serif; color: #f0e3c8; text-shadow: 0 2px 0 #000, 0 0 12px #000; }
+.say b { font-style: normal; font-family: 'Courier New', monospace; color: #56ad5b; letter-spacing: .1em; }
+.say.hint { color: #a5987f; font-size: clamp(12px, 1.7vw, 17px); }
+
+/* phase 6: his rules. A Varandia battle box. */
+.rpg { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); width: min(720px, 86%); padding: 14px 20px; border: 3px double #e6b867;
+  background: rgba(10,6,3,.92); font: bold clamp(14px, 2vw, 22px) 'Courier New', monospace; letter-spacing: .06em; color: #f0e3c8; }
+.rpg[hidden] { display: none; }
+.rpg-opt { margin-top: 8px; color: #e6b867; }
+.rpg-opt:not(:empty)::before { content: '\25B6  '; animation: blink .8s steps(1) infinite; }
+
+.fade { position: absolute; inset: 0; background: #000; pointer-events: none; opacity: 1; transition: opacity 1.4s ease; }
+.fade.out { opacity: 0; }
+
+.card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center;
+  background: rgba(5,3,2,.88); padding: 6%; }
+.card[hidden] { display: none; }
+.c-quote { font: italic clamp(18px, 3vw, 32px) Georgia, serif; max-width: 30em; }
+.c-quote::before { content: 'CEDAR: '; font-style: normal; font-family: 'Courier New', monospace; color: #56ad5b; font-weight: bold; }
+.c-title { font: bold clamp(24px, 4.4vw, 54px) Georgia, serif; letter-spacing: .2em; color: #e6b867; }
+.c-sub, .c-item { font: clamp(13px, 1.8vw, 18px) 'Courier New', monospace; color: #a5987f; letter-spacing: .05em; }
+.c-item { color: #4fc6ff; }
+.menu { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+.menu button, .menu a { font: bold clamp(13px, 1.8vw, 18px) 'Courier New', monospace; letter-spacing: .15em; color: #050302; background: #e6b867;
+  border: 0; padding: 10px 18px; cursor: pointer; text-decoration: none; }
+.menu button:hover, .menu a:hover, .menu button:focus-visible, .menu a:focus-visible { background: #f0e3c8; outline: none; }
+
+.pad { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .pad { display: flex; gap: 12px; justify-content: space-between; width: 100%; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .pad button { width: 64px; height: 64px; border-radius: 50%; border: 2px solid #e6b867; background: rgba(230,184,103,.12); color: #e6b867; font-size: 24px; touch-action: none; }
+  .pad button.on { background: rgba(230,184,103,.4); }
+  .pad .parry { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .banner.show { animation-duration: 2.6s; } .b-bar.inf i { animation: none; } }
