@@ -36,7 +36,7 @@ const AFTER_HOURS_SCALE = 0.25;  // overnight moves are a quarter of the daytime
 // 3 = to about a twentieth). Each company secretly rolls a share of it (spread), so nobody
 // knows ahead of time who survives and who goes bankrupt.
 const CRASH = {
-  start: '2026-11-08T21:45:00Z',
+  start: '2026-11-08T20:30:00Z',
   tremorHours: 2, crashHours: 48, recoveryHours: 72,
   depth: { RRM: 3.7, NACH: 3.5, BLU: 3.7, BNW: 2.9, BSTG: 5.5 },
   spread: [0.7, 1.35]
