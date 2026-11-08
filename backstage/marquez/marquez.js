@@ -104,8 +104,13 @@
   [''].concat(FACES).forEach(preload);
   him.addEventListener('error', function () { if (him.getAttribute('src') !== artSrc('')) him.src = artSrc(''); });
   function show(f) { var src = artSrc(f); if (him.getAttribute('src') !== src) him.src = src; }
-  function useArt(f) { face = f || ''; preload(face); show(face); }
+  function useArt(f) {
+    face = f || ''; preload(face); show(face);
+    window.__marquezFace = face;                       // the 3D Cedar (cedar3d.js) wears the same face
+    if (window.CEDAR3D) window.CEDAR3D.face(face);
+  }
   function flap() {
+    if (window.CEDAR3D) window.CEDAR3D.flap();          // the 3D Cedar nods along instead
     if (!hasTalk[face]) return;
     var now = Date.now();
     if (now - flapAt < 90) return;
