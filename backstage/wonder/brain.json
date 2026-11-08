@@ -28,7 +28,8 @@
     "static_cassette": ["cassette", "static cassette", "tape"],
     "clear_polaroid": ["clear polaroid", "clear photo"],
     "dubbed_tape": ["dubbed tape", "tape"],
-    "hill_marker": ["hill marker", "marker"]
+    "hill_marker": ["hill marker", "marker"],
+    "cedars_gun": ["cedar's gun", "cedars gun", "cedar gun", "gun", "flintlock", "pistol", "his gun"]
   },
   "say": {
     "show_none": [

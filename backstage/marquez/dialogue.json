@@ -491,6 +491,11 @@
           "has": "hill_marker"
         },
         {
+          "text": "Show him Cedar's Gun",
+          "to": "show_cedars_gun",
+          "has": "cedars_gun"
+        },
+        {
           "text": "Never mind",
           "to": "found"
         }
@@ -1035,6 +1040,13 @@
       ],
       "pick": 1,
       "next": "@resume"
+    },
+    "show_cedars_gun": {
+      "say": [
+        "(He looks at the gun for a long time.)^9",
+        "(He says nothing.)"
+      ],
+      "next": "found_more"
     }
   },
   "knownName": "CEDAR",

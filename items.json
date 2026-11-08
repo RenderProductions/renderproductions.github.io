@@ -91,6 +91,12 @@
       "size": 0.95,
       "found": "made with Cedar",
       "art": "/backstage/drawer/art/hill_marker.svg"
+    },
+    "cedars_gun": {
+      "name": "Cedar's Gun",
+      "desc": "A sleek flintlock of dark mahogany. Bright blue runes are etched down the barrel.\nIt never seems to need loading.",
+      "size": 1.1,
+      "found": "survived Cedar"
     }
   },
   "recipes": [

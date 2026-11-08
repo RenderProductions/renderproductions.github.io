@@ -461,6 +461,11 @@
           "has": "hill_marker"
         },
         {
+          "text": "Show him Cedar's Gun",
+          "to": "show_cedars_gun",
+          "has": "cedars_gun"
+        },
+        {
           "text": "Never mind",
           "to": "found"
         }
@@ -1564,6 +1569,127 @@
       "say": [
         "It's so QUIET now. I almost MISS the screaming.",
         "...ALMOST!!"
+      ],
+      "next": "found_more"
+    },
+    "show_cedars_gun": {
+      "say": [
+        "(He stops drifting. For once, he holds perfectly still.)",
+        {
+          "text": "...^4 Is that...^3 [shake]HIS?![/]",
+          "speed": 48
+        },
+        "LOOK at it! Dark MAHOGANY, polished till it SHINES!",
+        "Not a SCRATCH on it!^2 Do you know how many times he's DROPPED one of these?!",
+        {
+          "text": "...None.^3 He THROWS them.^2 It's different.",
+          "speed": 40
+        }
+      ],
+      "repeat": "show_cedars_gun_2",
+      "next": "found_more"
+    },
+    "show_cedars_gun_2": {
+      "say": [
+        "You BROUGHT it BACK?!",
+        "(He circles it slowly, nose almost touching the wood.)",
+        "Look at the GRAIN! It runs the whole length like the tree never knew it was cut!",
+        "The hammer, the little pan for the powder, the lock... ALL of it SNUG. Not a single WOBBLE!",
+        {
+          "text": "He made these by HAND, you know.^2 One at a time.^3 [gray]He had a LOT of time.[/]",
+          "speed": 40
+        }
+      ],
+      "repeat": "show_cedars_gun_3",
+      "next": "found_more"
+    },
+    "show_cedars_gun_3": {
+      "say": [
+        "(The runes on the barrel catch the light and burn a little brighter.)",
+        "DON'T look at the blue bits too long!",
+        "They SHIMMER when you're not watching them.^2 I SAW them!^2 They MOVED!",
+        "Every line is cut so DEEP. Whoever etched these wasn't DECORATING.",
+        {
+          "text": "They were [blue]WRITING.[/]",
+          "speed": 44
+        }
+      ],
+      "repeat": "show_cedars_gun_4",
+      "next": "found_more"
+    },
+    "show_cedars_gun_4": {
+      "say": [
+        "I can READ them, you know.^2 Some of them.",
+        "(His voice drops out of capitals.)",
+        {
+          "text": "[blue]Endure.^4 Return.^4 Do not end.[/]",
+          "speed": 56
+        },
+        "Runes of IMMORTALITY. Etched into a GUN!",
+        "That's why the coat never runs out.^2 That's why HE never runs out.",
+        {
+          "text": "[gray]...That's why you didn't beat him.^3 Nobody does.[/]",
+          "speed": 44
+        }
+      ],
+      "repeat": "show_cedars_gun_5",
+      "next": "found_more"
+    },
+    "show_cedars_gun_5": {
+      "say": [
+        "Could you...^2 point that SOMEWHERE ELSE?",
+        "(He drifts behind you and peers at it over your shoulder.)",
+        "I don't LIKE it.^2 I don't like the CLICK it makes before it does anything.",
+        {
+          "text": "Click.^3 Flash.^3 [shake]BANG.[/]^3 EVERY time! Like a CLOCK!",
+          "speed": 40
+        },
+        "Things that keep perfect time are things that never STOP."
+      ],
+      "repeat": "show_cedars_gun_6",
+      "next": "found_more"
+    },
+    "show_cedars_gun_6": {
+      "say": [
+        "Can I tell you a SECRET?",
+        {
+          "text": "[gray]OLD BOY MARQUEZ scares me.[/]",
+          "speed": 48
+        },
+        "Not the shouting.^2 He doesn't SHOUT. That's the scary part!",
+        "He's POLITE.^2 He calls you 'friend.'^2 And then the whole room is PISTOLS.",
+        "He was there FIRST, you know. Before ANY of us.^2 Before ME.",
+        {
+          "text": "The first one made is the last one standing.^3 That's how it WORKS.",
+          "speed": 40
+        }
+      ],
+      "repeat": "show_cedars_gun_7",
+      "next": "found_more"
+    },
+    "show_cedars_gun_7": {
+      "say": [
+        "You SURVIVED him.^2 You actually SURVIVED him!",
+        "In VARANDIA, people who did that got...^3 Well. They didn't GET anything. Nobody DID that.",
+        "And he LET you walk off with one of his GUNS?!",
+        "(He spins three times in the air, then stops, suddenly serious.)",
+        {
+          "text": "Then he WANTED you to have it.^3 Cedar doesn't LOSE things.^3 He PLACES them.",
+          "speed": 40
+        }
+      ],
+      "repeat": "show_cedars_gun_8",
+      "next": "found_more"
+    },
+    "show_cedars_gun_8": {
+      "say": [
+        "STILL carrying that thing around?",
+        "Keep it CLOSE.^2 Keep it POINTED AWAY FROM ME.^2 And keep it SECRET from [red]you-know-who[/].",
+        "If TODD ever saw runes like those...^3 he'd WANT them.",
+        {
+          "text": "[wave]And THE STAR does NOT want to see what an immortal TODD looks like![/]",
+          "speed": 36
+        }
       ],
       "next": "found_more"
     }
