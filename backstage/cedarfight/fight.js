@@ -262,8 +262,12 @@ function pose(name, x, y, z) { const b = bones[name], r = rest[name]; if (b) b.r
 
 // aiming his arm: point the upper arm, forearm and hand along a direction, palm down (the grip hangs below)
 const ARM = [['Right_Arm', 'forearm_R'], ['forearm_R', 'hand_R'], ['hand_R', 'middle_R']];
+let armL = [1, 1], hat0 = null;
 const restQ = {};
+// aimArm(dir or {u, f, h}, palm, amount): point the upper arm, forearm and hand (each its own direction, or all one)
 function aimArm(dirWorld, palmWorld, amount) {
+  const D = dirWorld.isVector3 ? { u: dirWorld, f: dirWorld, h: dirWorld } : dirWorld;
+  const segDir = { Right_Arm: D.u, forearm_R: D.f, hand_R: D.h };
   if (!ARM.every(([b, c]) => bones[b] && bones[c])) return;
   const target = {};
   ARM.forEach(([b]) => bones[b].quaternion.copy(restQ[b]));
@@ -273,13 +277,13 @@ function aimArm(dirWorld, palmWorld, amount) {
   const palmLocal = new THREE.Vector3(-1, 0, 0).applyQuaternion(him.quaternion).applyQuaternion(handRestW.clone().invert());
   ARM.forEach(([b, c]) => {
     const bone = bones[b], inv = bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
-    const seg = at(c).sub(at(b)).normalize().applyQuaternion(inv), want = dirWorld.clone().applyQuaternion(inv);
+    const seg = at(c).sub(at(b)).normalize().applyQuaternion(inv), want = segDir[b].clone().applyQuaternion(inv);
     bone.quaternion.premultiply(new THREE.Quaternion().setFromUnitVectors(seg, want));
     bone.updateMatrixWorld(true);
     if (b === 'hand_R') {
       const palmW = palmLocal.clone().applyQuaternion(bone.getWorldQuaternion(new THREE.Quaternion()));
-      const a = palmW.projectOnPlane(dirWorld).normalize(), g2 = palmWorld.clone().projectOnPlane(dirWorld).normalize();
-      bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(want.clone().normalize(), Math.atan2(new THREE.Vector3().crossVectors(a, g2).dot(dirWorld), a.dot(g2))));
+      const hd = D.h, a = palmW.projectOnPlane(hd).normalize(), g2 = palmWorld.clone().projectOnPlane(hd).normalize();
+      bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(want.clone().normalize(), Math.atan2(new THREE.Vector3().crossVectors(a, g2).dot(hd), a.dot(g2))));
       bone.updateMatrixWorld(true);
     }
     target[b] = bone.quaternion.clone();
@@ -364,13 +368,17 @@ function panFlash() {
   const f = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true }));
   f.position.copy(p); scene.add(f); fx.push({ m: f, t: 0, len: 0.25, grow: 4 }); hiss();
 }
+const THROW_AT = 0.27;   // into his throw: wound back by his ear, whipped forward, let go out in front
 function throwGun() {
   if (!gun || !gun.visible) return;
   const g = gunProto.clone(true); g.position.copy(muzzlePos()); scene.add(g);
   gun.visible = false;
   const to = pPos().setY(0.1); const from = g.position.clone();
   const T = 0.75 + Math.random() * 0.2;
-  thrown.push({ m: g, from, to: to.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0, 0)), T, t: 0, spinAxis: new THREE.Vector3(Math.random(), 1, Math.random()).normalize() });
+    g.quaternion.copy(gun.getWorldQuaternion(new THREE.Quaternion()));
+  const land = to.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0, 0));
+  const spinAxis = new THREE.Vector3().crossVectors(land.clone().sub(from), new THREE.Vector3(0, 1, 0)).normalize();   // end over end
+  thrown.push({ m: g, from, to: land, T, t: 0, spinAxis, spin: 16 + Math.random() * 6 });
 }
 function landGun(tg) {
   const p = tg.m.position; scene.remove(tg.m);
@@ -407,6 +415,7 @@ function once(key) { if (step.done[key]) return false; step.done[key] = true; re
 
 function runCedar(dt) {
   if (!him || !fight.started || fight.over) return;
+  if (cedar.dbgHold) return;
   stepT += dt;
   const ph = PH[fight.phase];
   const kind = step ? step[0] : null;
@@ -415,7 +424,7 @@ function runCedar(dt) {
   if (kind === 'rest') { if (stepT > step[1]) nextStep(); return; }
   if (kind === 'shot') {
     const o = step[1] || {};
-    const tD = ph.draw, tA = tD + ph.aim, tF = tA + ph.flash, tT = tF + 0.35;
+    const tD = ph.draw, tA = tD + ph.aim, tF = tA + ph.flash, tT = tF + 0.5;
     if (once('draw')) { gun.visible = false; }
     if (stepT > tD * 0.6 && once('show')) { gun.visible = true; }
     if (stepT > tD) { aim.on = true; aim.k = Math.min(1, (stepT - tD) / ph.aim); }
@@ -430,8 +439,8 @@ function runCedar(dt) {
         fire(pPos(LIFT), { via: new THREE.Vector3(DISC * Math.sin(a), 1.1, DISC * Math.cos(a)) });
       } else fire(target || pPos(LIFT));
     }
-    if (stepT > tF + 0.12 && once('wind')) cedar.throwAt = clock;
-    if (stepT > tF + 0.3 && once('throw')) throwGun();
+    if (stepT > tF + 0.1 && once('wind')) cedar.throwAt = clock;
+    if (stepT > tF + 0.1 + THROW_AT && once('throw')) throwGun();
     if (stepT > tT) nextStep();
     return;
   }
@@ -466,7 +475,7 @@ function runCedar(dt) {
     if (stepT > 0.8 + beat * 10 && once('whirl')) { cedar.back = false; cedar.whirl = 1; }
     if (stepT > 0.8 + beat * 10 + 0.28 && once('fire')) { fire(pPos(LIFT), { speed: 30, perfect: true }); }
     if (stepT > 0.8 + beat * 10 + 0.4 && once('wind')) cedar.throwAt = clock;
-    if (stepT > 0.8 + beat * 10 + 0.58 && once('throw')) throwGun();
+    if (stepT > 0.8 + beat * 10 + 0.4 + THROW_AT && once('throw')) throwGun();
     if (stepT > 0.8 + beat * 10 + 1) nextStep();
     return;
   }
@@ -536,7 +545,7 @@ function stepShots(dt) {
   for (let i = thrown.length - 1; i >= 0; i--) {
     const g = thrown[i]; g.t += dt; const k = Math.min(1, g.t / g.T);
     g.m.position.lerpVectors(g.from, g.to, k); g.m.position.y += Math.sin(k * Math.PI) * 2.2 - k * 0.0;
-    g.m.rotateOnAxis(g.spinAxis, dt * 14);
+    g.m.rotateOnWorldAxis(g.spinAxis, -dt * g.spin);
     if (g.m.position.distanceTo(pPos(LIFT)) < 0.6) hurtYou();
     if (k >= 1) { landGun(g); thrown.splice(i, 1); }
   }
@@ -645,6 +654,7 @@ function poseCedar(dt) {
   const rate = cedar.whirl ? 9 : cedar.turn * (cedar.stagger > 0 ? 0.2 : 1);
   cedar.yaw += Math.sign(d) * Math.min(Math.abs(d), rate * dt);
   if (cedar.whirl) { cedar.whirl = Math.max(0, cedar.whirl - dt * 3); }
+  if (cedar.dbgYaw != null) cedar.yaw = ang() + cedar.dbgYaw;
   him.rotation.y = cedar.yaw;
   ['flinch', 'laugh', 'swat', 'cock'].forEach((k) => { if (cedar[k] > 0) cedar[k] = Math.max(0, cedar[k] - dt * (k === 'laugh' ? 0.9 : 2.5)); });
   const t = clock, breathe = Math.sin(t * 1.6), sway = Math.sin(t * 0.85);
@@ -682,7 +692,6 @@ function poseCedar(dt) {
   pose('neck', 0.1 - 0.15 * fl, hy * 0.4, 0);
   pose('fat_fucking_dome', 0.08 - 0.28 * fl - 0.32 * la + 0.15 * st - 0.25 * kk, hy * 0.5, 0.1 * la * Math.sin(t * 20) + 0.04 * sway);
   runEye(dt, THREE.MathUtils.clamp((hd - 0.9 * hy) * 2.5, -0.7, 0.7));
-  pose('hat', 0, 0, 0);
   // the metal arm: his hand on his hip when he's at ease; it swats, and swings for balance
   const atEase = cedar.forceHip != null ? cedar.forceHip : k0 === 'rest' || (k0 === 'paces' && cedar.back) ? 1 : 0.25;
   cedar.hip = (cedar.hip || 0) + (atEase - (cedar.hip || 0)) * Math.min(1, dt * 4);
@@ -690,51 +699,135 @@ function poseCedar(dt) {
   pose('Left_Arm', -0.9 * sw + 0.25 * stepL * (1 - cedar.hip) - 0.5 * kk, 0.35 * cedar.hip, -0.85 * cedar.hip - 0.4 * sw - 0.3 * la);
   pose('forearm_L', 0, 0, 1.75 * cedar.hip);
   // between attacks, a little showmanship: tip the hat, beckon you closer, shrug
-  if (k0 === 'rest' && once('taunt') && step[1] >= 0.7 && Math.random() < 0.7) cedar.taunt = { kind: pick(['hat', 'beckon', 'shrug']), t0: clock, len: Math.min(1.6, step[1]) };
-  if (cedar.taunt && clock - cedar.taunt.t0 > cedar.taunt.len) cedar.taunt = null;
-  // the gun arm: aimed at you while a shot is coming, otherwise at his side
+  if (k0 === 'rest' && once('taunt') && step[1] >= 0.7 && Math.random() < 0.7) {
+    const kind = pick(['hat', 'tilt', 'tilt', 'beckon', 'shrug']);
+    if (kind === 'hat' || kind === 'tilt') step[1] = Math.max(step[1], kind === 'hat' ? 1.7 : 1.4);
+    cedar.taunt = { kind, t0: clock, len: Math.min(kind === 'hat' ? 1.7 : 1.6, step[1]) };
+  }
+  if (cedar.taunt && (clock - cedar.taunt.t0 > cedar.taunt.len || (k0 !== 'rest' && !cedar.dbgHold))) cedar.taunt = null;
+  // ---------------- the gun arm ----------------
+  // Every move of the gun arm is a set of poses he passes through: each pose says where his upper arm, forearm and
+  // hand point (a straight point at you, or a bent-elbow reach to a spot on his body), blended over time.
   const kind = k0;
   const aiming = (kind === 'shot' || kind === 'fake') && stepT > PH[fight.phase].draw * 0.5 || (fight.rpg && fight.rpg.state === 'his') || (kind === 'paces' && !cedar.back && step.done.whirl);
   cedar.aimK = (cedar.aimK || 0) + ((aiming ? 1 : 0) - (cedar.aimK || 0)) * Math.min(1, dt * 12);
+  const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+  const tt = cedar.dbgThrow != null ? cedar.dbgThrow : cedar.throwAt != null ? clock - cedar.throwAt : 9;
+  const drawK = cedar.dbgDraw != null ? cedar.dbgDraw : (kind === 'shot' || kind === 'fake') ? stepT / PH[fight.phase].draw : 9;
+  // the throw, as one number: +1 wound back (gun shoulder back, weight on the back foot), -1 thrown (shoulder through, lunging)
+  const tw = tt >= 0.6 ? 0 : tt < 0.2 ? ease(tt / 0.2) : tt < 0.3 ? 1 - 2 * ease((tt - 0.2) / 0.1) : -(1 - ease((tt - 0.36) / 0.24));
+  const twB = Math.max(0, tw), twF = Math.max(0, -tw);
+  // the draw: he turns into his coat to reach inside it, then opens back up
+  const dk = drawK < 0.6 ? ease(drawK / 0.35) : 1 - ease((drawK - 0.6) / 0.35);
+  // the duelist: side-on while he aims, gun shoulder leading, the metal hand tucked behind his back
+  const duel = cedar.aimK * (1 - Math.abs(tw)) * (drawK < 0.85 ? 0 : 1);
+  cedar.recoil = Math.max(0, (cedar.recoil || 0) - dt * 4);
+  const rc = cedar.recoil * cedar.recoil;
+  const add = (n, x, y, z) => { const b = bones[n]; if (b) { b.rotation.x += x; b.rotation.y += y; b.rotation.z += z; } };
+  add('chest', -0.2 * rc + 0.06 * dk, 0.32 * dk - 0.38 * duel + 0.42 * tw, 0);
+  add('upper_body', -0.08 * rc - 0.14 * twB + 0.26 * twF + 0.08 * dk, -0.1 * duel, 0);
+  add('neck', 0.12 * dk, 0.28 * duel - 0.3 * tw - 0.25 * dk, 0);
+  add('fat_fucking_dome', -0.2 * rc + 0.18 * dk + 0.05 * twF, 0.12 * duel - 0.1 * tw, 0.12 * duel);
+  add('Left_Arm', 0.55 * duel - 1.25 * twB - 0.4 * twF, 0, 0.2 * duel + 0.25 * twB);
+  add('forearm_L', 0, 0, 0.9 * duel);
+  add('Right_Leg', 0.22 * twB - 0.1 * duel, 0, 0); add('lowerleg_R', 0.3 * twB, 0, 0);
+  add('Left_Leg', -0.45 * twF + 0.08 * duel, 0, 0); add('lowerleg_L', 0.35 * twF, 0, 0);
+  {
+    const fwd = new THREE.Vector3(Math.sin(cedar.yaw), 0, Math.cos(cedar.yaw));
+    him.position.addScaledVector(fwd, 0.3 * twF - 0.12 * twB - 0.14 * rc);
+  }
+  // the hat: lifted off his head with a bow, or tugged down over his eye
+  const T = cedar.taunt, tk = T ? (clock - T.t0) / T.len : 0;
+  let hatLift = 0, hatTilt = 0;
+  if (T && T.kind === 'hat') { hatLift = ease((tk - 0.24) / 0.18) - ease((tk - 0.62) / 0.18); }
+  if (T && T.kind === 'tilt') { hatTilt = ease((tk - 0.22) / 0.12) * (1 - ease((tk - 0.78) / 0.2)); }
+  cedar.sly = T && T.kind === 'tilt' && tk > 0.25 && tk < 0.85;
+  if (bones.hat && hat0) {
+    bones.hat.position.copy(hat0).add(new THREE.Vector3(0, 0.2 * hatLift, 0.05 * hatLift - 0.02 * hatTilt));
+    pose('hat', 0.25 * hatLift + 0.32 * hatTilt, 0, -0.06 * hatTilt);
+  }
+  add('upper_body', 0.25 * hatLift, 0, 0); add('chest', 0.08 * hatLift, 0, 0);
+  add('fat_fucking_dome', 0.25 * hatLift + 0.16 * hatTilt, 0, 0.08 * hatTilt);
   him.updateMatrixWorld(true);
   const sh = bones.Right_Arm ? bones.Right_Arm.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 3.2, 0);
   const toYou = (aim.locked ? aim.locked.clone() : pPos(LIFT)).sub(sh).normalize();
   const yawQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cedar.yaw);
-  const coat = new THREE.Vector3(-0.75, -0.35, 0.55).normalize().applyQuaternion(yawQ);     // reaching into his coat
+  const W = (x, y, z) => new THREE.Vector3(x, y, z).normalize().applyQuaternion(yawQ);   // his left/right, up, toward you
   const up = new THREE.Vector3(0, 1, 0);
-  let dir = toYou.clone(), amt = cedar.aimK;
-  // the draw: his hand goes into the coat first, then comes up to aim
-  if (kind === 'shot' || kind === 'fake') {
-    const ph = PH[fight.phase], k = Math.min(1, stepT / ph.draw);
-    if (k < 1) { dir = coat.clone().lerp(toYou, Math.max(0, (k - 0.55) / 0.45)).normalize(); amt = Math.max(amt, Math.min(1, k * 2.5)); }
+  const same = (v) => ({ u: v.clone(), f: v.clone(), h: v.clone() });
+  const nl = (a, b, k) => a.clone().lerp(b, k).normalize();
+  const mixD = (A, B, k) => ({ u: nl(A.u, B.u, k), f: nl(A.f, B.f, k), h: nl(A.h, B.h, k) });
+  // a bent-elbow reach: his knuckles land on the spot, the elbow swings out toward 'pole'
+  const reach = (spot, pole, hand) => {
+    const v = spot.clone().sub(sh), d = Math.min(v.length(), (armL[0] + armL[1]) * 0.995); v.normalize();
+    const a = (d * d + armL[0] * armL[0] - armL[1] * armL[1]) / (2 * d), h = Math.sqrt(Math.max(0, armL[0] * armL[0] - a * a));
+    const e = sh.clone().addScaledVector(v, a).addScaledVector(pole.clone().projectOnPlane(v).normalize(), h);
+    const f = sh.clone().addScaledVector(v, d).sub(e).normalize();
+    return { u: e.sub(sh).normalize(), f, h: hand ? nl(f, hand, 0.7) : f };
+  };
+  const on = (bone, x, y, z) => (bones[bone] ? bones[bone].localToWorld(new THREE.Vector3(x, y, z)) : sh.clone());
+  let D = same(toYou), palm = new THREE.Vector3(0, -1, 0), amt = cedar.aimK, grip = gun && gun.visible ? 1 : 0.25, pinch = 0, beckon = 0, twirl = 0;
+  // while he takes aim the barrel breathes a little; once the pan flashes it's dead still
+  if (aim.on && !aim.locked) D = same(toYou.clone().add(W(1, 0, 0).multiplyScalar(0.03 * Math.sin(t * 3.1))).add(up.clone().multiplyScalar(0.025 * Math.sin(t * 4.3))).normalize());
+  // the draw: elbow out, hand in under the lapel, a grip, then out and up past his shoulder with a twirl, then down onto you
+  if (drawK < 1.3) {
+    const pocket = on('chest', -0.16, 0.3, 0.3);
+    const into = reach(pocket, W(1, -0.5, -0.2), W(-0.4, -1, 0.1));
+    const flair = reach(sh.clone().add(W(0.45, 1, 0.5).multiplyScalar((armL[0] + armL[1]) * 0.8)), W(1, -0.8, -0.3), W(0.1, 1, 0.25));
+    if (drawK < 0.35) { D = into; amt = ease(drawK / 0.35); grip = 0.05; }
+    else if (drawK < 0.6) { D = into; amt = 1; grip = ease((drawK - 0.35) / 0.12); }
+    else if (drawK < 0.9) { D = mixD(into, flair, ease((drawK - 0.6) / 0.3)); amt = 1; grip = 1; twirl = ease((drawK - 0.62) / 0.3); palm = W(-1, 0, 0); }
+    else { D = mixD(flair, D, ease((drawK - 0.9) / 0.4)); amt = 1; grip = 1; }
+    if (drawK < 0.6) palm = W(-1, 0, 0.3);
   }
-  // recoil: the barrel kicks up and settles
-  cedar.recoil = Math.max(0, (cedar.recoil || 0) - dt * 5);
-  if (cedar.recoil > 0) dir.add(up.clone().multiplyScalar(0.55 * cedar.recoil)).normalize();
-  // the throw: arm back and up, then whipped forward at you
-  const tt = cedar.throwAt != null ? clock - cedar.throwAt : 9;
-  if (tt < 0.45) {
-    const back = new THREE.Vector3(0.3, 0.9, -0.5).normalize().applyQuaternion(yawQ);
-    dir = tt < 0.18 ? toYou.clone().lerp(back, tt / 0.18).normalize() : back.clone().lerp(toYou.clone().add(new THREE.Vector3(0, -0.4, 0)), (tt - 0.18) / 0.27).normalize();
-    amt = 1;
+  // recoil: the barrel kicks up, the wrist flips, it all settles
+  if (rc > 0) { D.f = nl(D.f, up, 0.3 * rc); D.h = nl(D.h, up, 0.75 * rc); }
+  // the throw: gun back by his ear with the elbow high, whipped over the top, let go out in front, the arm carrying through across him
+  if (tt < 0.6) {
+    const L = armL[0] + armL[1];
+    const wind = reach(sh.clone().add(W(0.3, 1.2, -0.45).multiplyScalar(L * 0.6)), W(0.7, 0.2, 0.7), W(-0.1, 0.8, -1));
+    const rel = same(toYou.clone().add(new THREE.Vector3(0, -0.2, 0)).normalize());
+    const thru = reach(sh.clone().add(W(-0.8, -1, 0.6).multiplyScalar(L * 0.85)), W(1, 0, 0.2), W(-0.5, -1, 0.3));
+    const from = D;
+    if (tt < 0.2) D = mixD(from, wind, ease(tt / 0.2));
+    else if (tt < 0.3) D = mixD(wind, rel, ease((tt - 0.2) / 0.1));
+    else D = mixD(rel, thru, ease((tt - 0.3) / 0.14));
+    amt = tt < 0.44 ? 1 : 1 - ease((tt - 0.44) / 0.16);
+    palm = tt < 0.2 ? W(0, 0, 1) : new THREE.Vector3(0, -1, 0);
+    grip = 1;
   }
-  let palm = new THREE.Vector3(0, -1, 0), beckon = 0;
-  const T = cedar.taunt;
-  if (T && amt < 0.3 && tt >= 0.45) {
-    const k = (clock - T.t0) / T.len, env = Math.sin(Math.PI * Math.min(1, Math.max(0, k)));
-    if (T.kind === 'hat') { dir = new THREE.Vector3(-0.15, 1, 0.2).normalize().applyQuaternion(yawQ); palm = new THREE.Vector3(0, 0, -1).applyQuaternion(yawQ); pose('fat_fucking_dome', 0.3 * env, hy * 0.5, 0); pose('hat', -0.7 * env, 0, 0.2 * env); }
-    if (T.kind === 'beckon') { dir = new THREE.Vector3(0.2, -0.05, 1).normalize().applyQuaternion(yawQ); palm = new THREE.Vector3(0, 1, 0); beckon = env; }
-    if (T.kind === 'shrug') { dir = new THREE.Vector3(0.9, -0.35, 0.4).normalize().applyQuaternion(yawQ); palm = new THREE.Vector3(0, 1, 0); pose('chest', -0.06 * env, 0, 0); pose('fat_fucking_dome', 0.05, hy * 0.5, 0.18 * env); }
-    amt = Math.max(amt, env);
+  // between attacks: the hat, a beckon, a shrug
+  if (T && amt < 0.3 && tt >= 0.6) {
+    const env = Math.sin(Math.PI * Math.min(1, Math.max(0, tk)));
+    if (T.kind === 'hat' || T.kind === 'tilt') {
+      // fingers to the front of the brim; they pinch it, and the hand goes where the brim goes
+      him.updateMatrixWorld(true);
+      const brim = on('hat', 0.06, 0.02, 0.36);
+      const outK = T.kind === 'hat' ? ease((tk - 0.8) / 0.18) : ease((tk - 0.5) / 0.22);
+      D = reach(brim, W(1, -0.6, 0.1), W(0, 0.45, 1));
+      amt = ease(tk / 0.22) * (1 - outK);
+      palm = W(-0.2, -0.3, -1);
+      pinch = ease((tk - 0.16) / 0.08) * (1 - ease((outK - 0.2) / 0.3));
+    }
+    if (T.kind === 'beckon') { D = reach(sh.clone().add(W(0.25, -0.35, 1).multiplyScalar((armL[0] + armL[1]) * 0.8)), W(0.8, -1, 0), W(0.1, 0.25, 1)); palm = new THREE.Vector3(0, 1, 0); beckon = env; amt = env; }
+    if (T.kind === 'shrug') {
+      D = reach(sh.clone().add(W(0.75, -0.35, 0.35).multiplyScalar((armL[0] + armL[1]) * 0.75)), W(0.2, -1, -0.5), W(0.6, 0, 0.5)); palm = new THREE.Vector3(0, 1, 0); amt = env;
+      add('chest', -0.05 * env, 0, 0); add('fat_fucking_dome', 0, 0, 0.18 * env);
+      add('Left_Arm', 0, 0, -0.35 * env); add('forearm_L', 0, 0, 0.4 * env);
+    }
   }
-  aimArm(dir, palm, amt);
-  // fingers: wrapped round the grip, or a finger gun for a fake
-  const fake = kind === 'fake';
-  const curl = gun && gun.visible ? 1 : beckon ? (0.15 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 12))) * beckon + 0.25 * (1 - beckon) : 0.25;
+  aimArm(D, palm, amt);
+  // the twirl: the pistol spins once round his trigger finger on the way out of his coat
+  if (gun) gun.rotation.set(-twirl * Math.PI * 2, 0, -Math.PI / 2);
+  // fingers: open reaching into the coat, wrapped round the grip, a pinch on the brim, beckoning, or a finger gun for a fake
+  const fake = kind === 'fake' && drawK > 0.6;
+  let curl = beckon ? (0.15 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 12))) * beckon + 0.25 * (1 - beckon) : grip;
+  if (pinch > 0) curl = curl * (1 - pinch) + 0.55 * pinch;
   ['middle', 'ring'].forEach((n) => { pose(n + '_R', 0, 0, -1.2 * curl); pose(n + '_mid_R', 0, 0, -1.4 * curl); pose(n + '_tip_R', 0, 0, -0.8 * curl); });
-  const ic = fake ? 0 : curl;
+  const ic = fake ? 0 : curl * (1 - 0.4 * pinch);
   pose('index_R', 0, 0, -1.0 * ic); pose('index_mid_R', 0, 0, -0.9 * ic); pose('index_tip_R', 0, 0, -0.5 * ic);
-  pose('thumb_R', 0, fake ? -0.4 : 0.5 * curl, -0.3 * curl);
+  // the thumb pulls the hammer back when he cocks it
+  pose('thumb_R', 0, fake ? -0.4 : 0.5 * curl + 0.3 * pinch, -0.3 * curl - 0.7 * cedar.cock * (gun && gun.visible ? 1 : 0));
   if (gun) { const hm = gun.getObjectByName('hammer'); if (hm) hm.rotation.z = cedar.cock > 0.5 ? -0.75 : 0; }
   // a flash of light on him when your parry lands
   cedar.hitFlash = Math.max(0, (cedar.hitFlash || 0) - dt * 5);
@@ -854,7 +947,7 @@ let eye = null;
 function runEye(dt, hy) {
   if (!eye) return;
   const e = eyeState;
-  e.face = cedar.laugh > 0.05 ? 'smile' : (cedar.flinch > 0.05 || cedar.stagger > 0 || (step && (step[0] === 'paces' || step[0] === 'kick'))) ? 'angry' : '';
+  e.face = cedar.laugh > 0.05 ? 'smile' : cedar.sly ? 'angry' : (cedar.flinch > 0.05 || cedar.stagger > 0 || (step && (step[0] === 'paces' || step[0] === 'kick'))) ? 'angry' : '';
   e.lx += (THREE.MathUtils.clamp(hy / 0.7, -1, 1) - e.lx) * Math.min(1, dt * 14);
   e.ly += (0.55 - e.ly) * Math.min(1, dt * 6);
   if (e.t < 0 && clock > e.next) e.t = 0;
@@ -870,6 +963,12 @@ Promise.all([loadGLTF('../marquez/model/cedar.gltf?v=2'), loadGLTF('../marquez/m
   bones = findBones(gl);
   Object.keys(bones).forEach((n) => { rest[n] = bones[n].rotation.clone(); });
   ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
+  him.updateMatrixWorld(true);
+  if (bones.Right_Arm && bones.forearm_R && bones.middle_R) {
+    const w = (n) => bones[n].getWorldPosition(new THREE.Vector3());
+    armL = [w('Right_Arm').distanceTo(w('forearm_R')), w('forearm_R').distanceTo(w('middle_R'))];
+  }
+  if (bones.hat) hat0 = bones.hat.position.clone();
   gunProto = gg.scene;
   gunProto.traverse((o) => { if (o.isMesh) o.frustumCulled = false; });
   gun = gunProto.clone(true);
@@ -904,4 +1003,4 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; } };
+window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; } };
