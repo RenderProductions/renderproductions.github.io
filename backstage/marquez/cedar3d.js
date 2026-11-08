@@ -19,8 +19,12 @@ const MODEL = 'model/cedar.gltf?v=1';
 const EYE = { x: 769, y: 116, w: 12, h: 9, tex: 1024 };   // the lens patch on his texture
 const EYE_SCALE = 4;                                       // the eye panel draws 4 x 4 pixels per texture pixel
 const LENS = '#2b6f31', LID = '#3e9943', LID_DARK = '#1f5a26';
-// the pointing pose (radians, on top of his rest pose): upper arm, forearm, hand
-const POINT = { arm: [-0.4, 0.3, 1.3], fore: [0, 0, 2.0], hand: [0, -0.6, 0] };
+// The pointing pose, as the way each part of his arm points (in his own space: +x is his right,
+// +y up, +z toward you). The rotations are worked out from these, so the arm can't bend the wrong
+// way: the upper arm hangs by his side, a little out and forward; the forearm stands up in front
+// of his shoulder; the hand carries on up with its palm turned toward you.
+const POINT = { arm: [0.5, -0.6, 0.62], fore: [-0.04, 1, 0.22], hand: [-0.06, 1, 0.12], palm: [0.15, 0, 1] };
+const ARM = [['Right_Arm', 'forearm_R'], ['forearm_R', 'hand_R'], ['hand_R', 'middle_R']];
 const POCKET_AT = new THREE.Vector3(0.27, 2.62, 0.47);     // where the glowing thing in his pocket sits on the coat
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -186,14 +190,54 @@ function start() {
 
   // ---------------- motion ----------------
   function run(him, bones, rest, eye) {
+    // ---- work out the pointing pose from the directions in POINT ----
+    const restQ = {}, aimQ = {};
+    ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
+    function solvePoint() {
+      if (!ARM.every(([b, c]) => bones[b] && bones[c])) return;
+      ARM.forEach(([b]) => bones[b].quaternion.copy(restQ[b]));
+      him.updateMatrixWorld(true);
+      const at = (n) => bones[n].getWorldPosition(new THREE.Vector3());
+      const rootQ = him.getWorldQuaternion(new THREE.Quaternion());
+      const dirs = [POINT.arm, POINT.fore, POINT.hand].map((d) => new THREE.Vector3(...d).normalize().applyQuaternion(rootQ));
+      // which way his palm faces at rest (toward his leg), in the hand's own space
+      const handRestW = bones.hand_R.getWorldQuaternion(new THREE.Quaternion());
+      const palmLocal = new THREE.Vector3(-1, 0, 0).applyQuaternion(rootQ).applyQuaternion(handRestW.clone().invert());
+      ARM.forEach(([b, c], i) => {
+        const bone = bones[b];
+        const parentQ = bone.parent.getWorldQuaternion(new THREE.Quaternion()), inv = parentQ.clone().invert();
+        const seg = at(c).sub(at(b)).normalize().applyQuaternion(inv);
+        const want = dirs[i].clone().applyQuaternion(inv);
+        bone.quaternion.premultiply(new THREE.Quaternion().setFromUnitVectors(seg, want));
+        bone.updateMatrixWorld(true);
+        if (b === 'hand_R') {
+          // roll the hand around its own length until the palm faces the way POINT.palm says
+          const axis = dirs[i];
+          const palmW = palmLocal.clone().applyQuaternion(bone.getWorldQuaternion(new THREE.Quaternion()));
+          const goal = new THREE.Vector3(...POINT.palm).normalize().applyQuaternion(rootQ);
+          const a = palmW.projectOnPlane(axis).normalize(), g2 = goal.projectOnPlane(axis).normalize();
+          const ang = Math.atan2(new THREE.Vector3().crossVectors(a, g2).dot(axis), a.dot(g2));
+          bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(want.normalize(), ang));
+          bone.updateMatrixWorld(true);
+        }
+        aimQ[b] = bone.quaternion.clone();
+      });
+      ARM.forEach(([b]) => bones[b].quaternion.copy(restQ[b]));
+      him.updateMatrixWorld(true);
+    }
+    solvePoint();
+
     const state = { face: window.__marquezFace || '', lx: 0, ly: 0, blink: 0 };
     let nod = 0, nodV = 0, nextBlink = performance.now() + 1500, blinkT = -1;
     let glance = { x: 0, y: 0, until: 0 }, cursor = null, cursorAt = 0;
     const springs = {};
     // a little spring per value so every pose change eases in and settles
-    function S(key, target, k = 60, d = 12, dt = 1 / 60) {
+    let DT = 1 / 60;   // the real time since the last frame, so he moves at the same speed on slow machines
+    function S(key, target, k = 60, d = 12) {
       const s = springs[key] || (springs[key] = { v: 0, x: target });
-      s.v += ((target - s.x) * k - s.v * d) * dt; s.x += s.v * dt;
+      // small steps, so a long frame can't make the spring overshoot
+      const n = Math.max(1, Math.ceil(DT / (1 / 120))), h = DT / n;
+      for (let i = 0; i < n; i++) { s.v += ((target - s.x) * k - s.v * d) * h; s.x += s.v * h; }
       return s.x;
     }
     function pose(name, x, y, z) {
@@ -209,7 +253,7 @@ function start() {
 
     window.CEDAR3D = {
       face(f) { state.face = f || ''; },
-      bones, POINT,
+      bones, POINT, solve: () => solvePoint(),
       flap() { if (!reduce) nodV += 2.2; }
     };
 
@@ -243,7 +287,7 @@ function start() {
     function frame(now) {
       requestAnimationFrame(frame);
       if (document.hidden) { last = now; return; }
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      const dt = Math.min(0.25, (now - last) / 1000); last = now; DT = dt;
       const t = now / 1000;
       const amp = reduce ? 0.25 : 1;
 
@@ -287,10 +331,9 @@ function start() {
       pose('fat_fucking_dome', S('hdx', gy * 0.12 * amp + lean * 0.07) + nod * 0.06, S('hdy', gx * 0.22 * amp), S('hdz', tilt * 0.12 - point * 0.05) + Math.sin(t * 0.7) * 0.01 * amp);
 
       // pointing: the hand comes up beside his head, index up, the other fingers curled
-      const P = POINT;
-      pose('Right_Arm', S('rax', point * P.arm[0], 70, 14), S('ray', point * P.arm[1], 70, 14), S('raz', point * P.arm[2], 70, 14));
-      pose('forearm_R', S('frx', point * P.fore[0], 70, 14), S('fry', point * P.fore[1], 70, 14), S('frz', point * P.fore[2], 70, 14));
-      pose('hand_R', S('hrx', point * P.hand[0], 70, 14), S('hry', point * P.hand[1], 70, 14), S('hrz', point * P.hand[2], 70, 14));
+      // one smooth turn per joint from resting to pointing (no odd paths in between)
+      const pt = THREE.MathUtils.clamp(S('pt', point, 45, 13), 0, 1.05);
+      ARM.forEach(([b]) => { if (bones[b] && aimQ[b]) bones[b].quaternion.copy(restQ[b]).slerp(aimQ[b], Math.min(1, pt)); });
       const c = (k) => S('curl' + k, point, 50, 11);
       const fold = (n, a, b, cc, k) => { pose(n + '_R', 0, 0, -a * c(k)); pose(n + '_mid_R', 0, 0, -b * c(k)); pose(n + '_tip_R', 0, 0, -cc * c(k)); };
       fold('middle', 1.35, 1.6, 1.0, 'm'); fold('ring', 1.4, 1.6, 1.0, 'r'); fold('index', -0.05, -0.05, 0, 'i');
