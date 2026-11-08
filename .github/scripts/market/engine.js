@@ -72,8 +72,34 @@ const COMPANIES = [
 
 // Dividends: daily percentage of the share price. Smaller companies pay more.
 const YIELDS = { RRM: 0.005, NACH: 0.015, BLU: 0.01, BNW: 0.025, BSTG: 0.03 };
-const DIV_SUSPEND_HOURS = 24;    // a failed goal freezes that company's dividend this long
+// Each company pays its yield times a RATE the board sets: 0% (suspended), 25%, 50%, 75%, 100%, 125%,
+// or 150% as a short boost. Every few hours the board reviews it and moves one step toward what the
+// company's hidden health says it can afford. Failed goals cut it on the spot; wins bring it back.
+const DIV_STEPS = [0, 0.25, 0.5, 0.75, 1, 1.25];
+const DIV_BOOST = 1.5;
+const DIV_BOOST_HOURS = [4, 8];   // a big success boosts the rate this long
+const DIV_REVIEW_HOURS = [8, 16]; // time between board reviews
 const DIV_BONUS_DAYS = 1;        // a successful goal drops this many days' worth on the meter
+const SPECIAL_DIV_CHANCE = 0.3;  // good news also pays a special dividend this often (twice as often for major news)
+const SPECIAL_DIV_DAYS = [1, 3];
+// What the board thinks the company can afford, from its hidden health (-1 to 1).
+function divTarget(health) {
+  if (health >= 0.45) return 1.25;
+  if (health >= -0.15) return 1;
+  if (health >= -0.45) return 0.75;
+  if (health >= -0.7) return 0.5;
+  if (health >= -0.85) return 0.25;
+  return 0;
+}
+function divStep(rate, n) {           // n steps up (+) or down (-) the normal ladder
+  let i = DIV_STEPS.indexOf(rate);
+  if (i < 0) i = DIV_STEPS.length - 1;  // a boosted rate counts as the top step
+  return DIV_STEPS[Math.max(0, Math.min(DIV_STEPS.length - 1, i + n))];
+}
+function divStatus(rate) {
+  return rate === 0 ? 'suspended' : rate < 1 ? 'cut' : rate > 1.25 ? 'boosted' : rate > 1 ? 'raised' : 'full';
+}
+const ratePct = (r) => Math.round(r * 100) + '%';
 const MAX_ACCRUE_MIN = 15;       // a late or missed tick adds at most this many minutes
 
 // ---------- Moods (regimes) ----------
@@ -306,12 +332,29 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       lastGoal: Number.isInteger(prev.lastGoal) ? prev.lastGoal : -1,
       nextGoalAt: prev.nextGoalAt || new Date(now + between(0, 2) * HOUR).toISOString(),
       divIndex: typeof prev.divIndex === 'number' ? prev.divIndex : 0,
-      divSuspendedUntil: prev.divSuspendedUntil && now < Date.parse(prev.divSuspendedUntil) ? prev.divSuspendedUntil : null,
+      // first run of the new dividend rules: start each company where its board would put it
+      divRate: typeof prev.divRate === 'number' ? prev.divRate : divTarget(s.health),
+      divBoostUntil: prev.divBoostUntil || null,
+      divReviewAt: prev.divReviewAt || new Date(now + between(1, 6) * HOUR).toISOString(),
       swingAt: prev.swingAt || null
     };
   });
   const byId = {};
   live.forEach((x) => { byId[x.c.id] = x; });
+
+  // ----- Dividend rate changes -----
+  function setRate(x, rate, boostHours) {
+    x.divRate = rate;
+    x.divBoostUntil = boostHours ? new Date(now + boostHours * HOUR).toISOString() : null;
+    x.divReviewAt = new Date(now + between(DIV_REVIEW_HOURS[0], DIV_REVIEW_HOURS[1]) * HOUR).toISOString();
+  }
+  const BOARD = {
+    up: ['{n} raises its dividend to {r}.', '{n}\'s board feels generous: dividend up to {r}.', '{n} bumps its payout to {r}.'],
+    down: ['{n} cuts its dividend to {r}.', '{n}\'s board trims the payout to {r}.', '{n} tightens its belt: dividend down to {r}.'],
+    off: ['{n} suspends its dividend.', '{n}\'s board freezes all payouts.', 'No dividends from {n} until further notice.'],
+    back: ['{n} brings its dividend back at {r}.', '{n} turns the payouts back on ({r}).', '{n} resumes its dividend at {r}.']
+  };
+  function boardLine(kind, x, rate) { return pick(BOARD[kind]).replace('{n}', x.c.name).replace('{r}', ratePct(rate)); }
 
   // Moves the latest price by pct (0.1 = +10%) and lets the news reach the hidden state.
   // fair = how much of the move is "real" (shifts fair value), vol = volatility kick, health = health change.
@@ -369,21 +412,24 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
             headline = tpl.win;
             x.divIndex += h[h.length - 1] * (YIELDS[c.id] || 0) * DIV_BONUS_DAYS;
             dividend = 'bonus';
+            if (big) { setRate(x, DIV_BOOST, between(DIV_BOOST_HOURS[0], DIV_BOOST_HOURS[1])); dividend = 'boosted'; }
+            else if (x.divRate < 1) { setRate(x, 1); dividend = 'restored'; }
             if (chance(c.sellNews)) setMood(x, 'slide');            // "buy the rumor, sell the news"
             else if (chance(0.5)) setMood(x, 'rally');
           } else if (outcome === 'fail') {
             const drop = between(c.goalJump[0], c.goalJump[1]) * mult;
             move = shove(x, -drop / (1 + drop), { fair: 0.6, vol: 0.6, health: -0.25 });
             headline = tpl.lose;
-            x.divSuspendedUntil = new Date(now + DIV_SUSPEND_HOURS * HOUR).toISOString();
-            dividend = 'suspended';
+            const was = x.divRate > 1.25 ? 1 : x.divRate;     // a failure ends any boost
+            setRate(x, divStep(was, big ? -2 : -1));
+            dividend = x.divRate === 0 ? 'suspended' : 'cut';
             setMood(x, big ? 'slide' : chance(0.5) ? 'choppy' : 'normal');
           } else {
             move = shove(x, between(-0.04, 0.04), { fair: 0.4, vol: 0.3 });
             headline = tpl.mixed || (c.name + ' sort of delivers. Investors shrug.');
             setMood(x, 'choppy');
           }
-          x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: outcome, headline, move, dividend, big: big && outcome !== 'mixed' || undefined }));
+          x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: outcome, headline, move, dividend, divRate: dividend ? x.divRate : undefined, big: big && outcome !== 'mixed' || undefined }));
           x.lastGoal = x.goal.index;
           x.goal = null;
           s.secret = null;
@@ -401,6 +447,18 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'goal', headline: pool[index].goal, deadline }));
       }
 
+      // ----- Board review of the dividend -----
+      if (YIELDS[c.id] && x.divRate <= 1.25 && now >= Date.parse(x.divReviewAt)) {
+        const target = divTarget(s.health);
+        const from = x.divRate;
+        setRate(x, from === target ? from : divStep(from, target > from ? 1 : -1));
+        if (x.divRate !== from) {
+          const kind = x.divRate === 0 ? 'off' : from === 0 ? 'back' : x.divRate > from ? 'up' : 'down';
+          x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'dividend', headline: boardLine(kind, x, x.divRate),
+            dividend: kind === 'off' ? 'suspended' : kind === 'back' ? 'resumed' : kind === 'up' ? 'raised' : 'cut', divRate: x.divRate, from }));
+        }
+      }
+
       // ----- Surprise news -----
       if (chance(c.surpriseRate || SURPRISE_RATE)) {
         const good = chance(clamp(0.5 + 0.2 * s.health, 0.2, 0.8));
@@ -409,7 +467,13 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         const move = shove(x, good ? size : -size / (1 + size), { fair: 0.7, vol: 0.4, health: good ? 0.15 : -0.15 });
         if (major) setMood(x, good ? 'rally' : 'slide');
         const headline = pick((good ? STORIES.GOOD : STORIES.BAD)[c.id] || [c.name + (good ? ' has a great day.' : ' has a rough day.')]);
-        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: good ? 'good' : 'bad', headline, move, big: major || undefined }));
+        let special;
+        if (good && x.divRate > 0 && YIELDS[c.id] && chance(SPECIAL_DIV_CHANCE * (major ? 2 : 1))) {
+          special = Math.round(between(SPECIAL_DIV_DAYS[0], SPECIAL_DIV_DAYS[1]));
+          x.divIndex += h[h.length - 1] * YIELDS[c.id] * special;
+        }
+        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: good ? 'good' : 'bad', headline, move, big: major || undefined,
+          dividend: special ? 'special' : undefined, divDays: special }));
       }
 
       // ----- Rumors -----
@@ -424,7 +488,10 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
           move = shove(x, -r.dir * between(0.02, 0.06), { fair: 0.2, vol: 0.2 });
           type = 'denied';
         }
-        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type, headline: r.isTrue ? r.confirm : r.deny, move }));
+        let restored;
+        if (r.isTrue && r.dir > 0 && x.divRate < 1) { setRate(x, 1); restored = 'restored'; }
+        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type, headline: r.isTrue ? r.confirm : r.deny, move,
+          dividend: restored, divRate: restored ? 1 : undefined }));
         s.rumor = null;
       } else if (!s.rumor && rumors && chance(RUMOR_RATE)) {
         const dir = chance(clamp(0.5 + 0.15 * s.health, 0.25, 0.75)) ? 1 : -1;
@@ -472,9 +539,13 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     const yieldPerDay = YIELDS[c.id] || 0;
     const price = x.history[x.history.length - 1];
 
-    if (open && !x.divSuspendedUntil && sinceLastTick > 0) {
+    if (x.divBoostUntil && now >= Date.parse(x.divBoostUntil)) {
+      x.divRate = divTarget(x.s.health) >= 1.25 ? 1.25 : 1;      // the boost wears off quietly
+      x.divBoostUntil = null;
+    }
+    if (open && x.divRate > 0 && sinceLastTick > 0) {
       const ms = Math.min(sinceLastTick, MAX_ACCRUE_MIN * 60 * 1000);
-      x.divIndex += price * yieldPerDay * (ms / OPEN_MS_PER_DAY);
+      x.divIndex += price * yieldPerDay * x.divRate * (ms / OPEN_MS_PER_DAY);
     }
     x.divIndex = Math.round(x.divIndex * 10000) / 10000;
 
@@ -505,7 +576,11 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       swingAt: x.swingAt,
       yield: yieldPerDay,
       divIndex: x.divIndex,
-      divSuspendedUntil: x.divSuspendedUntil,
+      divRate: x.divRate,
+      divStatus: yieldPerDay ? divStatus(x.divRate) : 'none',
+      divBoostUntil: x.divBoostUntil,
+      divReviewAt: x.divReviewAt,
+      divSuspendedUntil: yieldPerDay && x.divRate === 0 ? x.divReviewAt : null,   // kept for older readers: earliest it could come back
       newsLog: x.newsLog.slice(0, COMPANY_NEWS)
     };
   });
@@ -535,8 +610,21 @@ const KINDS = {
   confirmed: '✅ **CONFIRMED**',
   denied:    '❌ **DENIED**',
   market:    '🌐 **MARKET-WIDE**',
-  crossover: '🤝 **CROSSOVER**'
+  crossover: '🤝 **CROSSOVER**',
+  dividend:  '💸 **DIVIDEND**'
 };
+
+function divNote(item) {
+  switch (item.dividend) {
+    case 'bonus': return '\n🎉 Bonus dividend paid to shareholders';
+    case 'boosted': return '\n🎉 Bonus dividend paid, and the dividend is boosted to ' + ratePct(DIV_BOOST) + ' for a while';
+    case 'restored': return (item.type === 'success' ? '\n🎉 Bonus dividend paid, and the' : '\n💸 The') + ' dividend is back to 100%';
+    case 'cut': return '\n✂️ Dividend cut to ' + ratePct(item.divRate);
+    case 'suspended': return '\n💸 Dividend suspended';
+    case 'special': return '\n💰 Special dividend: ' + item.divDays + " day" + (item.divDays > 1 ? 's' : '') + "' worth paid to shareholders";
+    default: return '';
+  }
+}
 
 function pctText(m) { return (m >= 0 ? '▲ +' : '▼ ') + m.toFixed(2) + '%'; }
 
@@ -550,8 +638,7 @@ function discordLine(item) {
   } else if (item.deadline) {
     extra = 'Deadline <t:' + unix(Date.parse(item.deadline)) + ':R>';
   }
-  const div = item.dividend === 'suspended' ? '\n💸 Dividend suspended for ' + DIV_SUSPEND_HOURS + ' hours'
-    : item.dividend === 'bonus' ? '\n🎉 Bonus dividend paid to shareholders' : '';
+  const div = item.type === 'dividend' ? '' : divNote(item);
   return tag + (item.big ? ' 🔥' : '') + ' · `' + item.id + '` · <t:' + unix(Date.parse(item.time)) + ':R>\n' +
     item.headline + (extra ? '\n*' + extra + '*' : '') + div;
 }
@@ -623,12 +710,14 @@ function buildOutput({ nowIso, market, news, companies }) {
     prices[c.id] = c.price;
     changes[c.id] = c.change;
     dividends[c.id] = c.divIndex;
-    divDaily[c.id] = Math.round(c.price * c.yield * 10000) / 10000;
-    divText[c.id] = !c.yield
-      ? '🚫 No dividend'
-      : c.divSuspendedUntil
-        ? '💸 Suspended, resumes <t:' + unix(Date.parse(c.divSuspendedUntil)) + ':R>'
-        : (c.yield * 100).toFixed(1).replace(/\.0$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
+    divDaily[c.id] = Math.round(c.price * c.yield * c.divRate * 10000) / 10000;
+    const eff = (c.yield * c.divRate * 100).toFixed(2).replace(/\.?0+$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
+    divText[c.id] = !c.yield ? '🚫 No dividend'
+      : c.divRate === 0 ? '💸 Suspended · next board review <t:' + unix(Date.parse(c.divReviewAt)) + ':R>'
+      : c.divRate > 1.25 ? '🚀 Boosted to ' + ratePct(c.divRate) + ' · ' + eff + ' · until <t:' + unix(Date.parse(c.divBoostUntil)) + ':R>'
+      : c.divRate < 1 ? '✂️ Cut to ' + ratePct(c.divRate) + ' · ' + eff
+      : c.divRate > 1 ? '📈 Raised to ' + ratePct(c.divRate) + ' · ' + eff
+      : eff;
     names[c.id] = c.name;
     sparks[c.id] = sparkline(c.history);
     charts[c.id] = chartUrl(c);

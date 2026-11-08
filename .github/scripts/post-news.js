@@ -28,6 +28,7 @@ const COLORS = {
   denied: 0x8a93ab,
   market: 0x5865f2,
   crossover: 0xeb459e,
+  dividend: 0x2ecc71,
   open: 0xffe600,
   closed: 0x8a93ab,
   up: 0xffe600,

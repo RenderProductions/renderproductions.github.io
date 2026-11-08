@@ -135,7 +135,7 @@
     var KIND = {
       goal: 'NEW GOAL', success: 'GOAL HIT', fail: 'GOAL MISSED', mixed: 'MIXED RESULT',
       good: 'BREAKING', bad: 'BREAKING', rumor: 'RUMOR', confirmed: 'CONFIRMED', denied: 'DENIED',
-      market: 'MARKET-WIDE', crossover: 'CROSSOVER'
+      market: 'MARKET-WIDE', crossover: 'CROSSOVER', dividend: 'DIVIDEND'
     };
 
     var FALLBACK = [
@@ -232,7 +232,8 @@
       list.slice(0, NEWS_SHOWN).forEach(function (n) {
         var item = document.createElement('div');
         var kind = KIND[n.type] || 'NEWS';
-        var bad = n.type === 'fail' || n.type === 'bad' || (typeof n.move === 'number' && n.move < 0 && n.type !== 'rumor');
+        var bad = n.type === 'fail' || n.type === 'bad' || (typeof n.move === 'number' && n.move < 0 && n.type !== 'rumor') ||
+          (n.type === 'dividend' && (n.dividend === 'cut' || n.dividend === 'suspended'));
         var quiet = n.type === 'goal' || n.type === 'rumor' || n.type === 'mixed';
         item.className = 'log' +
           (bad ? ' is-rare' : quiet ? ' is-decoy' : '') +

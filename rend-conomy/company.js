@@ -28,11 +28,13 @@
     confirmed: ['CONFIRMED', null],
     denied:    ['DENIED', null],
     market:    ['MARKET-WIDE', null],
-    crossover: ['CROSSOVER', null]
+    crossover: ['CROSSOVER', null],
+    dividend:  ['DIVIDEND', null]
   };
   function kindOf(n) {
     var k = KIND[n.type] || ['NEWS', null];
-    var tone = k[1] || (typeof n.move === 'number' ? (n.move >= 0 ? 'up' : 'down') : 'muted');
+    var tone = k[1] || (typeof n.move === 'number' ? (n.move >= 0 ? 'up' : 'down')
+      : n.type === 'dividend' ? (n.dividend === 'cut' || n.dividend === 'suspended' ? 'down' : 'up') : 'muted');
     return { label: k[0] + (n.big ? ' 🔥' : ''), tone: tone };
   }
 
@@ -323,10 +325,14 @@
     box.appendChild(stat('24H LOW', money(Math.min.apply(null, h))));
     box.appendChild(stat('VOLATILITY', vl[0], '≈' + v.toFixed(1) + '% a day', meter));
     var y = c.yield || 0;
+    var rate = typeof c.divRate === 'number' ? c.divRate : (c.divSuspendedUntil ? 0 : 1);
+    var eff = y * rate;
     var divLine = !y ? 'No dividend'
-      : c.divSuspendedUntil ? 'Suspended until ' + clockFmt.format(new Date(c.divSuspendedUntil))
-      : money(c.price * y) + ' per share per day';
-    box.appendChild(stat('DIVIDEND', y ? (y * 100).toFixed(1).replace(/\.0$/, '') + '%' : '--', divLine));
+      : rate === 0 ? 'Suspended · board review ' + (c.divReviewAt ? clockFmt.format(new Date(c.divReviewAt)) : 'soon')
+      : money(c.price * eff) + ' per share per day' +
+        (rate > 1.25 ? ' · boosted to ' + Math.round(rate * 100) + '%' + (c.divBoostUntil ? ' until ' + clockFmt.format(new Date(c.divBoostUntil)) : '')
+          : rate !== 1 ? ' · ' + (rate < 1 ? 'cut' : 'raised') + ' to ' + Math.round(rate * 100) + '%' : '');
+    box.appendChild(stat('DIVIDEND', y ? (eff * 100).toFixed(2).replace(/\.?0+$/, '') + '%' : '--', divLine));
   }
 
   // ---------- Goal ----------
@@ -389,8 +395,19 @@
       } else if (n.deadline) {
         item.appendChild(el('div', 'tl-move muted', 'Deadline ' + fullFmt.format(new Date(n.deadline))));
       }
-      if (n.dividend === 'bonus') item.appendChild(el('div', 'tl-move up', '🎉 Bonus dividend paid'));
-      if (n.dividend === 'suspended') item.appendChild(el('div', 'tl-move down', '💸 Dividend suspended for 24 hours'));
+      var r = typeof n.divRate === 'number' ? Math.round(n.divRate * 100) + '%' : '';
+      var DIV = {
+        bonus: ['up', '🎉 Bonus dividend paid'],
+        boosted: ['up', '🎉 Bonus dividend paid, dividend boosted to ' + r],
+        restored: ['up', n.type === 'success' ? '🎉 Bonus dividend paid, dividend back to 100%' : '💸 Dividend back to 100%'],
+        special: ['up', '💰 Special dividend: ' + n.divDays + ' day' + (n.divDays > 1 ? 's' : '') + "' worth"],
+        cut: ['down', '✂️ Dividend cut to ' + r],
+        suspended: ['down', n.divRate === undefined ? '💸 Dividend suspended for 24 hours' : '💸 Dividend suspended']
+      };
+      if (n.type !== 'dividend' && DIV[n.dividend]) item.appendChild(el('div', 'tl-move ' + DIV[n.dividend][0], DIV[n.dividend][1]));
+      if (n.type === 'dividend' && typeof n.from === 'number') {
+        item.appendChild(el('div', 'tl-move ' + (n.divRate > n.from ? 'up' : 'down'), Math.round(n.from * 100) + '% → ' + r));
+      }
       tl.appendChild(item);
     });
   }
@@ -449,7 +466,10 @@
       m.status === 'after-hours' ? 'AFTER HOURS' : m.status === 'closed' ? 'CLOSED' : 'MARKET OPEN');
     chips.appendChild(st);
     if (c.goal && c.goal.text) chips.appendChild(el('span', 'tag', 'GOAL ACTIVE'));
-    if (c.divSuspendedUntil) chips.appendChild(el('span', 'tag off', 'DIVIDEND FROZEN'));
+    var dr = typeof c.divRate === 'number' ? c.divRate : (c.divSuspendedUntil ? 0 : 1);
+    if (c.yield && dr === 0) chips.appendChild(el('span', 'tag off', 'DIVIDEND SUSPENDED'));
+    else if (c.yield && dr < 1) chips.appendChild(el('span', 'tag off', 'DIVIDEND CUT ' + Math.round(dr * 100) + '%'));
+    else if (c.yield && dr > 1.25) chips.appendChild(el('span', 'tag live', 'DIVIDEND BOOSTED'));
 
     $('.co-sub', top).textContent = data.updated ? 'Updated ' + ago(data.updated) + ' · prices are fictional' : '';
   }
