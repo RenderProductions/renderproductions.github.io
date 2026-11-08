@@ -1,0 +1,98 @@
+name: Crash the market
+
+# Actions tab > "Crash the market" > Run workflow.
+# Writes .github/market-crash.json (the market engine reads it every tick), then runs one tick
+# right away so the site and the Discord feed pick it up within a minute or two.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'What to do'
+        type: choice
+        options:
+          - start a crash
+          - end the selling (skip to recovery)
+          - cancel (stop everything now, no recovery)
+        default: start a crash
+      severity:
+        description: 'How bad (start only)'
+        type: choice
+        options: [mild, normal, brutal]
+        default: normal
+      warning_hours:
+        description: 'Hours of tremors before it hits (0 = crash right now)'
+        type: string
+        default: '2'
+      crash_hours:
+        description: 'Hours the selling lasts'
+        type: string
+        default: '48'
+      recovery_hours:
+        description: 'Hours of recovery afterward'
+        type: string
+        default: '72'
+
+permissions:
+  contents: write   # commit market-crash.json
+  actions: write    # start a price tick right away
+
+concurrency:
+  group: market-prices   # never runs at the same time as a price tick
+  cancel-in-progress: false
+
+jobs:
+  crash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write the crash settings
+        env:
+          ACTION: ${{ inputs.action }}
+          SEVERITY: ${{ inputs.severity }}
+          WARNING: ${{ inputs.warning_hours }}
+          CRASH: ${{ inputs.crash_hours }}
+          RECOVERY: ${{ inputs.recovery_hours }}
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const FILE = '.github/market-crash.json';
+          let cur = {};
+          try { cur = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) {}
+          const num = (v, d, min) => { const n = Number(v); return Number.isFinite(n) && n >= min ? n : d; };
+          const H = 3600 * 1000;
+          const now = Date.now();
+          const act = process.env.ACTION;
+          let out;
+          if (act.startsWith('start')) {
+            // A tremor of 0 hours needs one tick inside the window, so it is nudged to 5 minutes.
+            const warn = Math.max(num(process.env.WARNING, 2, 0), 5 / 60);
+            out = { start: new Date(now).toISOString(), tremorHours: warn,
+              crashHours: num(process.env.CRASH, 48, 1), recoveryHours: num(process.env.RECOVERY, 72, 0),
+              severity: process.env.SEVERITY || 'normal' };
+            if (num(process.env.WARNING, 2, 0) === 0) out.start = new Date(now - warn * H).toISOString();
+          } else if (act.startsWith('end')) {
+            if (!cur.start) { console.log('No crash is running; nothing to end.'); process.exit(0); }
+            const t = cur.tremorHours || 2, c = cur.crashHours || 48;
+            out = Object.assign({}, cur, { start: new Date(now - (t + c) * H - 60 * 1000).toISOString() });
+          } else {
+            out = Object.assign({}, cur, { start: null });
+          }
+          out = Object.assign({ note: "Written by the 'Crash the market' workflow (Actions tab). start null = no crash." }, out);
+          fs.writeFileSync(FILE, JSON.stringify(out, null, 2) + '\n');
+          console.log(act + ' ->', JSON.stringify(out));
+          EOF
+
+      - name: Commit and run a tick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "rend-conomy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/market-crash.json
+          if git diff --cached --quiet; then echo "Nothing changed."; exit 0; fi
+          git commit -m "Market crash: ${{ inputs.action }}"
+          git pull --rebase
+          git push
+          gh api -X POST repos/${{ github.repository }}/actions/workflows/update-prices.yml/dispatches -f ref=${{ github.ref_name }}

@@ -28,19 +28,30 @@ const CLOSED_DAYS = [];          // e.g. [0] closes Sundays (0 = Sunday ... 6 = 
 const AFTER_HOURS_SCALE = 0.25;  // overnight moves are a quarter of the daytime size; no news overnight
 
 // ---------- The Crash ----------
-// A scheduled market crash. Set start to null to switch it off (or to a new date to run another one).
+// Crashes are switched on and off from GitHub: Actions tab > "Crash the market" > Run workflow.
+// That workflow writes .github/market-crash.json, which is read here. You can also edit that file by hand.
 //   tremor    nervous build-up: jitters, everything starts slipping
 //   crash     everything falls, hard. Panic legs, fake bounces, circuit breakers, failed goals
 //   recovery  the selling stops; prices that survived slowly find a floor again
 // depth: how far each company gets dragged over the crash, in log terms (2.3 = to about a tenth,
-// 3 = to about a twentieth). Each company secretly rolls a share of it (spread), so nobody
-// knows ahead of time who survives and who goes bankrupt.
-const CRASH = {
-  start: '2026-11-08T20:30:00Z',
-  tremorHours: 2, crashHours: 48, recoveryHours: 72,
+// 3 = to about a twentieth), times the severity. Each company secretly rolls a share of it (spread),
+// so nobody knows ahead of time who survives and who goes bankrupt.
+const SEVERITY = { mild: 0.55, normal: 1, brutal: 1.4 };
+const CRASH_DEFAULTS = {
+  start: null,
+  tremorHours: 2, crashHours: 48, recoveryHours: 72, severity: 'normal',
   depth: { RRM: 3.7, NACH: 3.5, BLU: 3.7, BNW: 2.9, BSTG: 5.5 },
   spread: [0.7, 1.35]
 };
+const CRASH = (() => {
+  let file = {};
+  try { file = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'market-crash.json'), 'utf8')) || {}; } catch (e) { /* no crash file: no crash */ }
+  const c = Object.assign({}, CRASH_DEFAULTS, file);
+  const k = SEVERITY[c.severity] || 1;
+  c.depth = {};
+  Object.keys(CRASH_DEFAULTS.depth).forEach((id) => { c.depth[id] = CRASH_DEFAULTS.depth[id] * k; });
+  return c;
+})();
 const CRASH_MOODS = { calm: 0, normal: 0, rally: 0, slide: 4, choppy: 3, mania: 0, freefall: 10, bounce: 3 };
 const PANIC_RATE = 1 / 200;         // per company per open crash tick: a sudden panic leg down
 const CRASH_NEWS_HOURS = [2, 5];    // time between crash headlines
@@ -680,7 +691,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       state.market.crashNewsAt = now + between(CRASH_NEWS_HOURS[0], CRASH_NEWS_HOURS[1]) * HOUR;
     } else if (phase === 'recovery') {
       addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', headline: pick(STORIES.CRASH.end) });
-    } else if (oldPhase === 'recovery' && !phase) {
+    } else if (oldPhase && !phase) {
       addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', headline: pick(STORIES.CRASH.over) });
     }
     // company logs got the headline text after the fact
