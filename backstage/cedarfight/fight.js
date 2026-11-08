@@ -19,11 +19,12 @@ import * as THREE from '../toddguts/vendor/three-gltf.min.js';
 
 // ---------------- sizes ----------------
 const PX = 34;            // stage pixels (the VS TODD player's units) per world unit: he's ~2.5 tall, Cedar ~5
-const R = 7.5;            // the ring you run around
-const DISC = R + 1.4;     // the turntable's edge
+const R = 10.5;           // the ring you run around
+const DISC = R + 1.8;     // the turntable's edge
+const TURN_SCALE = 7.5 / R;   // his turning speeds were tuned for a 7.5 ring: scaled so he still lags behind you
 const HP_PHASE = 9, PHASES = 6;
 const YOU_SIZE = 0.72;    // your sprite, against the VS TODD scale (your moves and speed are unchanged)
-const HIM_SIZE = 1.3;     // Cedar, against his model's own size
+const HIM_SIZE = 1.4;     // Cedar, against his model's own size
 const LIFT = 1.24 * YOU_SIZE;  // where on you his shots aim: the middle of your sprite
 
 // ---------------- the player (same moves and feel as VS TODD) ----------------
@@ -150,10 +151,10 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.setClearColor(0x050302);
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x050302, 26, 48);
+scene.fog = new THREE.Fog(0x050302, 30, 56);
 const camera = new THREE.PerspectiveCamera(30, 16 / 9, 0.1, 120);
 scene.add(new THREE.HemisphereLight(0xffe2b0, 0x140b05, 0.75));
-const bulb = new THREE.PointLight(0xffd59a, 1.4, 30, 1.6); bulb.position.set(0, 10.5, 0); scene.add(bulb);
+const bulb = new THREE.PointLight(0xffd59a, 1.6, 40, 1.4); bulb.position.set(0, 10.5, 0); scene.add(bulb);
 const rim = new THREE.DirectionalLight(0xffe0a8, 0.6); rim.position.set(3, 6, 8); scene.add(rim);
 // the bulb itself, hanging from its cord
 const bulbMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffe7b0 }));
@@ -170,13 +171,13 @@ const table = new THREE.Group(); scene.add(table);
   for (let i = 0; i < 512; i += 32) { g.fillStyle = i % 64 ? '#33200f' : '#3f2716'; g.fillRect(i, 0, 30, 512); g.fillStyle = '#24150a'; g.fillRect(i + 30, 0, 2, 512); }
   for (let i = 0; i < 900; i++) { g.fillStyle = 'rgba(0,0,0,' + (Math.random() * 0.12) + ')'; g.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 3, 6 + Math.random() * 20); }
   const t = new THREE.CanvasTexture(tex); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
-  const top = new THREE.Mesh(new THREE.CircleGeometry(DISC, 72), new THREE.MeshStandardMaterial({ map: t, roughness: 1 }));
+  const top = new THREE.Mesh(new THREE.CircleGeometry(DISC, 96), new THREE.MeshStandardMaterial({ map: t, roughness: 1 }));
   top.rotation.x = -Math.PI / 2; table.add(top);
   const side = new THREE.Mesh(new THREE.CylinderGeometry(DISC, DISC + 0.2, 0.6, 72, 1, true), new THREE.MeshStandardMaterial({ color: 0x5e3b22, roughness: 1 }));
   side.position.y = -0.3; table.add(side);
   const groove = new THREE.Mesh(new THREE.RingGeometry(R - 0.06, R + 0.06, 96), new THREE.MeshBasicMaterial({ color: 0x8a6a40, transparent: true, opacity: 0.35 }));
   groove.rotation.x = -Math.PI / 2; groove.position.y = 0.005; table.add(groove);
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.5, 0.25, 32), new THREE.MeshStandardMaterial({ color: 0x24150a, roughness: 1 }));
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.85, 0.25, 32), new THREE.MeshStandardMaterial({ color: 0x24150a, roughness: 1 }));
   hub.position.y = 0.12; table.add(hub);
 }
 const spin = { v: 0 };     // turntable spin (rad/s), from his kick
@@ -231,7 +232,7 @@ function drawYou() {
 
 // ---------------- Cedar ----------------
 let him = null, bones = {}, rest = {}, gun = null, gunProto = null;
-const cedar = { yaw: 0, turn: 1.05, state: 'wait', t: 0, plan: [], shotN: 0, hold: false, flinch: 0, laugh: 0, stagger: 0, back: false, kneel: 0 };
+const cedar = { yaw: 0, turn: 0.85 * TURN_SCALE, state: 'wait', t: 0, plan: [], shotN: 0, hold: false, flinch: 0, laugh: 0, stagger: 0, back: false, kneel: 0 };
 const loader = new THREE.GLTFLoader();
 const loadGLTF = (url) => new Promise((ok, no) => loader.load(url, ok, undefined, no));
 
@@ -451,7 +452,7 @@ function hitHim(dmg) {
 }
 function setPhase(n) {
   fight.phase = n; cedar.plan = []; step = ['rest', 1.4]; stepT = 0; step.done = {};
-  cedar.turn = PH[n].turn;
+  cedar.turn = PH[n].turn * TURN_SCALE;
   if (n >= 6) { fight.hp = HP_PHASE * 5; startRPG(); }
   showBanner('PHASE ' + n, ['', 'INTRODUCTIONS', 'QUICK DRAW', 'RICOCHET', 'THE KICK', 'TEN PACES', 'MAIN CHARACTER'][n]);
   if (LINES.phase[n]) setTimeout(() => say(LINES.phase[n], 2.2), 900);
