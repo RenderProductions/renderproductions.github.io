@@ -385,11 +385,14 @@ const muzzlePos = () => (gun && gun.visible ? gun.localToWorld(new THREE.Vector3
 // ---------------- the fight ----------------
 const fight = { phase: 1, hp: HP_PHASE * 5, started: false, over: false, t: 0, turnN: 0, rpg: null };
 const PH = {   // how each phase plays: cycle speeds, chains, chances
-  1: { draw: 0.55, aim: 0.5, flash: 0.32, rest: 1.1, chain: [1, 1], misfire: 0, fake: 0, speed: 15, turn: 0.85 },
-  2: { draw: 0.35, aim: 0.3, flash: 0.26, rest: 0.8, chain: [3, 5], misfire: 0.18, fake: 0.08, speed: 18, turn: 1.0 },
-  3: { draw: 0.35, aim: 0.3, flash: 0.26, rest: 0.9, chain: [2, 3], misfire: 0.15, fake: 0.1, speed: 19, turn: 1.0, ricochet: 0.6 },
-  4: { draw: 0.32, aim: 0.28, flash: 0.24, rest: 0.8, chain: [2, 4], misfire: 0.15, fake: 0.1, speed: 19, turn: 1.1, kick: true },
-  5: { draw: 0.3, aim: 0.26, flash: 0.22, rest: 0.8, chain: [2, 3], misfire: 0.15, fake: 0.12, speed: 21, turn: 1.15, paces: true, swat: 0.25, litterShots: true },
+  // fuse: the chance a gun he throws stays loaded and goes off by itself after it lands. juggle: the chance of a
+  // juggling act instead of a plain chain. bounces: how many times a round can come back off the rim.
+  // tumble: he kicks the litter at you and it fires as it tumbles.
+  1: { draw: 0.55, aim: 0.5, flash: 0.32, rest: 1.0, chain: [1, 2], misfire: 0, fake: 0, speed: 15, turn: 0.85, fuse: 0.6 },
+  2: { draw: 0.35, aim: 0.3, flash: 0.26, rest: 0.8, chain: [2, 3], misfire: 0.15, fake: 0.08, speed: 18, turn: 1.0, fuse: 0.5, juggle: 0.5, jug: [2, 3], gap: 0.62 },
+  3: { draw: 0.35, aim: 0.3, flash: 0.26, rest: 0.9, chain: [2, 3], misfire: 0.12, fake: 0.1, speed: 18, turn: 1.0, fuse: 0.5, juggle: 0.3, jug: [2, 3], gap: 0.6, bounces: [1, 3], ricochet: 0.3 },
+  4: { draw: 0.32, aim: 0.28, flash: 0.24, rest: 0.8, chain: [2, 3], misfire: 0.12, fake: 0.1, speed: 19, turn: 1.1, fuse: 0.5, juggle: 0.35, jug: [3, 3], gap: 0.56, bounces: [0, 2], kick: true, tumble: 0.4 },
+  5: { draw: 0.3, aim: 0.26, flash: 0.22, rest: 0.8, chain: [2, 3], misfire: 0.15, fake: 0.12, speed: 21, turn: 1.15, fuse: 0.6, bounces: [0, 1], paces: true, swat: 0.25, litterShots: true },
   6: { draw: 0.1, aim: 0.12, flash: 0.18, rest: 0.4, chain: [1, 1], misfire: 0, fake: 0, speed: 20, turn: 1.6 }
 };
 const LINES = {
@@ -416,14 +419,17 @@ function round(color) {
 }
 function aimRound(s) { s.m.lookAt(s.m.position.clone().add(s.v)); }
 function recolor(s) { s.m.userData.core.material = backMat; s.m.userData.tail.material = backTail; }
+const between = (r) => (r ? r[0] + Math.floor(Math.random() * (r[1] - r[0] + 1)) : 0);
 function fire(target, opts = {}) {
-  const from = muzzlePos();
+  const own = !opts.from, from = opts.from || muzzlePos();
   const m = round(); m.position.copy(from); scene.add(m);
   const via = opts.via || null;
   const dir = (via || target).clone().sub(from).normalize();
-  const s = { m, v: dir.multiplyScalar(opts.speed || PH[fight.phase].speed), via, target, back: false, perfect: !!opts.perfect, life: 4 };
+  const s = { m, v: dir.multiplyScalar(opts.speed || PH[fight.phase].speed), via, target, back: false, perfect: !!opts.perfect, life: 4,
+    bounces: opts.bounces != null ? opts.bounces : (own ? between(PH[fight.phase].bounces) : 0) };
   aimRound(s); shots.push(s);
-  flashAt(from, 1.3); bang(); shake(0.16); muzzleLight.intensity = 6; cedar.recoil = 1;
+  flashAt(from, own ? 1.3 : 0.8); bang(); shake(own ? 0.16 : 0.08);
+  if (own) { muzzleLight.intensity = 6; cedar.recoil = 1; }
 }
 function flashAt(p, size) {
   const f = new THREE.Mesh(new THREE.SphereGeometry(0.3 * size, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95 }));
@@ -456,6 +462,81 @@ function panFlash() {
   const f = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true }));
   f.position.copy(p); scene.add(f); fx.push({ m: f, t: 0, len: 0.25, grow: 4 }); hiss();
 }
+// ---------------- the chaos: guns in the air, guns tumbling round the ring, the coat's pistols ----------------
+const airGuns = [], tumblers = [], floaters = [];
+function tossGun(air) {
+  // up from the metal hand, over his head, down into the good one
+  const g = gunProto.clone(true); scene.add(g);
+  const from = bones.hand_L ? bones.hand_L.getWorldPosition(new THREE.Vector3()) : chestPos();
+  airGuns.push({ m: g, from, t: 0, T: air }); cedar.toss = 1; sfx('jump', 0.25, 1.6);
+}
+function kickLitter(n) {
+  // the nearest few to you leap up and come round the ring at you, firing as they tumble
+  const near = litter.map((l) => ({ l, d: l.m.getWorldPosition(new THREE.Vector3()).distanceTo(pPos()) })).sort((a, b) => b.d - a.d).slice(0, n);
+  near.forEach(({ l }, i) => {
+    const p = l.m.getWorldPosition(new THREE.Vector3()); table.remove(l.m); litter.splice(litter.indexOf(l), 1);
+    const g = gunProto.clone(true); g.position.copy(p); scene.add(g);
+    tumblers.push({ m: g, a: Math.atan2(p.x, p.z), r: Math.hypot(p.x, p.z), t: -i * 0.25, life: 2.6 + i * 0.3, next: 0.55 + i * 0.2, dir: 0 });
+  });
+}
+function openCoat() {
+  // phase 6: the coat opens and pistols rise out of it to hang in the air around him
+  const N = 12;
+  for (let i = 0; i < N; i++) {
+    const g = gunProto.clone(true); g.position.copy(chestPos()); g.scale.setScalar(1.5); scene.add(g);
+    floaters.push({ m: g, i, a: (i / N) * Math.PI * 2, t: -i * 0.08, fall: 0 });
+  }
+  sfx('impact', 0.5, 0.5); shake(0.3);
+}
+function dropCoat() { floaters.forEach((f) => { f.fall = 0.001; }); }
+function floaterMuzzle(f) { return f.m.localToWorld(new THREE.Vector3(21.5 / 16, 5.75 / 16, 0)); }
+function stepChaos(dt, you3) {
+  for (let i = airGuns.length - 1; i >= 0; i--) {
+    const a = airGuns[i]; a.t += dt; const k = Math.min(1, a.t / a.T), to = handPos();
+    a.m.position.lerpVectors(a.from, to, k); a.m.position.y += Math.sin(k * Math.PI) * 2.6;
+    a.m.rotation.set(0, cedar.yaw, -k * Math.PI * 4);
+    if (k >= 1) { scene.remove(a.m); airGuns.splice(i, 1); }
+  }
+  for (let i = tumblers.length - 1; i >= 0; i--) {
+    const u = tumblers[i]; u.t += dt; u.life -= dt;
+    if (u.t < 0) continue;
+    // round the ring toward you, hopping and spinning
+    let d = ang() - u.a; d = Math.atan2(Math.sin(d), Math.cos(d));
+    if (!u.dir) u.dir = Math.sign(d) || 1;
+    u.a += u.dir * Math.min(Math.abs(d) + 0.3, (7.5 / R) * dt * (Math.abs(d) > 0.05 ? 1 : 0.4));
+    u.r += (R - u.r) * Math.min(1, dt * 3);
+    const hop = Math.abs(Math.sin(u.t * 5.5)) * 1.3 + 0.2;
+    u.m.position.set(u.r * Math.sin(u.a), hop, u.r * Math.cos(u.a));
+    u.m.rotation.set(u.t * 9, u.a, u.t * 7);
+    if (u.m.position.distanceTo(you3) < 0.7 && P.goldT <= 0) hurtYou();
+    u.next -= dt;
+    if (u.next <= 0 && u.life > 0.3 && !fight.over) { u.next = 0.7; fire(you3.clone(), { from: u.m.position.clone().setY(hop + 0.1), speed: 13, bounces: 0 }); }
+    if (u.life <= 0) {
+      scene.remove(u.m); tumblers.splice(i, 1);
+      const g = gunProto.clone(true); g.rotation.set(Math.PI / 2, 0, Math.random() * 6.28);
+      g.position.copy(table.worldToLocal(new THREE.Vector3(u.m.position.x, 0.08, u.m.position.z))); table.add(g); litter.push({ m: g, armed: 0 });
+      sfx('impact', 0.3, 1.5);
+    }
+  }
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i]; f.t += dt;
+    if (f.fall) {
+      // the coat's empty: they drop
+      f.fall += dt; f.m.position.y = Math.max(HUB_TOP + 0.1, f.m.position.y - f.fall * 9 * dt * 4); f.m.rotation.z += dt * 6;
+      if (f.fall > 1.4) { scene.remove(f.m); floaters.splice(i, 1); }
+      continue;
+    }
+    if (f.t < 0) continue;
+    const rise = Math.min(1, f.t / 1.2), a = f.a + clock * 0.25;
+    const c = chestPos();
+    const home = new THREE.Vector3(3.4 * Math.sin(a), c.y + 0.4 + 1.8 * Math.sin(f.i * 2.39) + 0.15 * Math.sin(clock * 2 + f.i), 3.4 * Math.cos(a));
+    f.m.position.lerpVectors(chestPos(), home, rise * rise * (3 - 2 * rise));
+    // each one points at you (the barrel runs along its local x)
+    const look = you3.clone().sub(f.m.position).normalize();
+    f.m.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), look);
+  }
+}
+
 const THROW_AT = 0.27;   // into his throw: wound back by his ear, whipped forward, let go out in front
 function throwGun() {
   if (!gun || !gun.visible) return;
@@ -472,7 +553,9 @@ function landGun(tg) {
   const p = tg.m.position; scene.remove(tg.m);
   const g = gunProto.clone(true); g.rotation.set(Math.PI / 2, 0, Math.random() * Math.PI * 2);
   const local = table.worldToLocal(new THREE.Vector3(p.x, 0.08, p.z));
-  g.position.copy(local); table.add(g); litter.push({ m: g, armed: 0 });
+  g.position.copy(local); table.add(g);
+  const ph = PH[fight.phase] || {};
+  litter.push({ m: g, armed: !fight.over && ph.fuse && Math.random() < ph.fuse ? 1.8 + Math.random() * 1.6 : 0 });   // still loaded
   if (litter.length > 30) { const old = litter.shift(); table.remove(old.m); }
   sfx('impact', 0.25, 1.6);
 }
@@ -482,7 +565,9 @@ function landGun(tg) {
 function newPlan() {
   const ph = PH[fight.phase];
   if (fight.phase === 6) return [];
-  if (ph.kick && Math.random() < 0.35 && Math.abs(spin.v) < 0.2) return [['kick'], ['rest', 0.4], ...chain(ph)];
+  if (ph.kick && Math.random() < 0.35 && Math.abs(spin.v) < 0.2) return [['kick'], ['rest', 0.3], ...chain(ph)];
+  if (ph.tumble && litter.length >= 2 && Math.random() < ph.tumble) return [['tumble'], ['rest', 0.3], ...chain(ph).slice(0, 1), ['rest', ph.rest]];
+  if (ph.juggle && Math.random() < ph.juggle) return [['juggle', ph.jug[0] + Math.floor(Math.random() * (ph.jug[1] - ph.jug[0] + 1))], ['rest', ph.rest]];
   if (ph.paces && Math.random() < 0.4) return [['paces'], ['rest', 0.6]];
   if (ph.litterShots && litter.length > 3 && Math.random() < 0.35) return [['litter'], ['rest', 0.4]];
   return [...chain(ph), ['rest', ph.rest]];
@@ -537,6 +622,28 @@ function runCedar(dt) {
     if (once('draw')) { gun.visible = false; aim.on = false; }
     if (stepT > tF && once('bang')) { say('<i>bang.</i>', 1); fakeWindow = { from: clock - 0.15, to: clock + 0.25 }; }
     if (stepT > tF + 0.6) { fakeWindow = null; nextStep(); }
+    return;
+  }
+  if (kind === 'juggle') {
+    // the metal arm tosses pistols up; the hand catches, fires and throws each as the next comes down
+    const n = step[1], gap = ph.gap, air = 0.8;
+    if (once('start')) { gun.visible = false; say(pick(["Keep count, friend.", "Watch the hands.", "One, two..."]), 1.4); }
+    for (let k = 0; k < n; k++) {
+      const c = air + k * gap;                       // when gun k lands in his hand
+      if (stepT > c - air && once('toss' + k)) tossGun(air);
+      if (stepT > c && once('catch' + k)) { gun.visible = true; click(); cedar.cock = 1; aim.on = true; aim.k = 1; }
+      if (stepT > c + 0.16 && once('flash' + k)) { panFlash(); aim.locked = pPos(LIFT); }
+      if (stepT > c + 0.16 + ph.flash && once('bang' + k)) { const tg = aim.locked; aim.on = false; aim.locked = null; fire(tg || pPos(LIFT)); }
+      if (stepT > c + 0.22 + ph.flash && once('throw' + k)) { cedar.throwAt = clock - THROW_AT; throwGun(); }
+    }
+    if (stepT > air + (n - 1) * gap + 0.9) nextStep();
+    return;
+  }
+  if (kind === 'tumble') {
+    // a stomp, and the guns on the floor leap up and come tumbling round the ring at you, firing
+    if (once('k')) { say(pick(["Fetch.", "Catch.", "You dropped these."]), 1.3); }
+    if (stepT > 0.32 && once('stomp')) { shake(0.35); sfx('impact', 0.8, 0.7); kickLitter(3); }
+    if (stepT > 0.7) nextStep();
     return;
   }
   if (kind === 'kick') {
@@ -621,6 +728,18 @@ function stepShots(dt) {
       flashAt(s.via, 0.3); sfx('impact', 0.3, 2);
       s.v = pPos(LIFT).sub(s.via).normalize().multiplyScalar(s.v.length()); s.via = null; aimRound(s);
     }
+    // the rim and the floor send live rounds back in, bending toward you: the ring fills up
+    if (!s.back && !s.via && s.bounces > 0) {
+      const p = s.m.position, r = Math.hypot(p.x, p.z);
+      if (r > DISC - 0.1 || p.y < 0.12) {
+        if (r > DISC - 0.1) { const nrm = new THREE.Vector3(p.x / r, 0, p.z / r); s.v.addScaledVector(nrm, -2 * s.v.dot(nrm)); p.x = nrm.x * (DISC - 0.15); p.z = nrm.z * (DISC - 0.15); }
+        else { s.v.y = Math.abs(s.v.y) * 0.5; p.y = 0.12; }
+        const sp = s.v.length(), toYou = you3.clone().sub(p).normalize();
+        s.v.normalize().lerp(toYou, 0.4).normalize().multiplyScalar(sp * 0.92);
+        s.bounces--; s.life = Math.max(s.life, 2.5); aimRound(s);
+        flashAt(p.clone(), 0.35); sfx('impact', 0.25, 2.2);
+      }
+    }
     // where the round passed this frame, not just where it ended up (fast rounds cover half a unit a frame)
     const seg = new THREE.Line3(s.m.position.clone().addScaledVector(s.v, -dt), s.m.position);
     const near = seg.closestPointToPoint(you3, true, new THREE.Vector3()).distanceTo(you3);
@@ -655,16 +774,19 @@ function stepShots(dt) {
   }
   for (const l of litter) {
     if (l.armed > 0) {
+      // a loaded gun on the floor: it twitches, the pan flashes, and it fires at you
       l.armed -= dt;
-      l.m.visible = Math.floor(l.armed * 12) % 2 === 0;
+      l.m.visible = l.armed > 0.7 || Math.floor(l.armed * 14) % 2 === 0;
+      if (l.armed < 0.3 && !l.flashed) { l.flashed = 1; const q = l.m.localToWorld(new THREE.Vector3(3 / 16, 5.4 / 16, 2 / 16)); flashAt(q, 0.4); hiss(); }
       if (l.armed <= 0) {
-        l.m.visible = true;
-        const p = l.m.getWorldPosition(new THREE.Vector3());
-        flashAt(p.clone().setY(0.4), 1.4); bang();
-        if (p.distanceTo(pPos()) < 1.6 && P.h < 60) hurtYou();
+        l.m.visible = true; l.flashed = 0;
+        const p = l.m.getWorldPosition(new THREE.Vector3()).setY(0.35);
+        if (fight.over) continue;
+        fire(pPos(LIFT), { from: p, speed: 12 + fight.phase, bounces: 0 });
       }
     }
   }
+  stepChaos(dt, you3);
   for (let i = fx.length - 1; i >= 0; i--) {
     const f = fx[i]; f.t += dt; const k = f.t / f.len;
     f.m.scale.setScalar(1 + k * (f.grow - 1)); f.m.material.opacity = Math.max(0, (f.m.material.opacity || 1) * (1 - dt / f.len * 1.6));
@@ -677,7 +799,8 @@ function stepShots(dt) {
 const rpgEl = $('rpg'), rpgText = $('rpg-text'), rpgOpt = $('rpg-opt');
 const TURNS = [4, 8, 12];
 function startRPG() {
-  fight.rpg = { turn: 0, state: 'intro', t: 0, left: 0 };
+  fight.rpg = { turn: 0, state: 'intro', t: 0, left: 0, k: 0 };
+  gun.visible = false; openCoat();
   rpgEl.hidden = false; rpgText.textContent = 'A wild CEDAR stands his ground.'; rpgOpt.textContent = '';
 }
 function runRPG(dt) {
@@ -688,9 +811,16 @@ function runRPG(dt) {
     // a steady volley, one shot per beat: parry every one
     r.next -= dt;
     if (r.next <= 0 && r.left > 0) {
-      gun.visible = true; click(); panFlash();
-      setTimeout(() => { if (!fight.over) fire(pPos(LIFT), { speed: 20 }); }, 160);
-      r.left--; r.next = 0.62 - r.turn * 0.08;
+      // the pistols round him fire in turn (two at once on his last turn), a flash on each pan first
+      const pair = r.turn >= 2 ? 2 : 1;
+      for (let j = 0; j < pair && r.left > 0; j++) {
+        const f = floaters.length ? floaters[(r.k++ * 5) % floaters.length] : null;
+        click();
+        if (f) { flashAt(floaterMuzzle(f), 0.3); hiss(); }
+        setTimeout(() => { if (!fight.over) fire(pPos(LIFT), { speed: 20, from: f ? floaterMuzzle(f) : undefined, bounces: 0 }); }, 160);
+        r.left--;
+      }
+      r.next = 0.62 - r.turn * 0.08;
     }
     if (r.left <= 0 && r.next < -1.2) {
       r.turn++;
@@ -703,7 +833,7 @@ function runRPG(dt) {
   }
 }
 function finale() {
-  const r = fight.rpg; r.state = 'end';
+  const r = fight.rpg; r.state = 'end'; dropCoat();
   rpgText.textContent = 'CEDAR reaches into his coat...';
   musicGo('end');
   cedar.finale = clock; cedar.throwAt = null; cedar.taunt = null; aim.on = false; aim.locked = null;
@@ -778,7 +908,7 @@ function poseCedar(dt) {
   if (k0 === 'paces' && cedar.back && stepT > (step.c0 || 0.8)) { wk = 1; sp = (stepT - (step.c0 || 0.8)) / 0.42 * Math.PI; }
   const stepL = Math.sin(sp) * wk, liftL = Math.max(0, Math.sin(sp)) * wk, liftR = Math.max(0, -Math.sin(sp)) * wk;
   // the kick: knee up high, then down hard
-  const kk = k0 === 'kick' ? (stepT < 0.3 ? stepT / 0.3 : Math.max(0, 1 - (stepT - 0.3) / 0.1)) : 0;
+  const kk = k0 === 'kick' || k0 === 'tumble' ? (stepT < 0.3 ? stepT / 0.3 : Math.max(0, 1 - (stepT - 0.3) / 0.1)) : 0;
   // the stagger: a knee buckles and he sways
   const sg = st ? 0.5 + 0.5 * Math.sin(t * 5) : 0;
   cedar.kn = (cedar.kn || 0) + ((cedar.kneel ? 1 : 0) - (cedar.kn || 0)) * Math.min(1, dt * 8);
@@ -820,7 +950,7 @@ function poseCedar(dt) {
   // hand point (a straight point at you, or a bent-elbow reach to a spot on his body), blended over time.
   const kind = k0;
   const ending = cedar.victory != null || cedar.finale != null;
-  const aiming = !ending && ((kind === 'shot' || kind === 'fake') && stepT > PH[fight.phase].draw * 0.5 || (fight.rpg && fight.rpg.state === 'his') || (kind === 'paces' && !cedar.back && step.done.whirl));
+  const aiming = !ending && ((kind === 'shot' || kind === 'fake') && stepT > PH[fight.phase].draw * 0.5 || (kind === 'juggle' && gun && gun.visible) || (kind === 'paces' && !cedar.back && step.done.whirl));
   cedar.aimK = (cedar.aimK || 0) + ((aiming ? 1 : 0) - (cedar.aimK || 0)) * Math.min(1, dt * 12);
   const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
   const tt = cedar.dbgThrow != null ? cedar.dbgThrow : cedar.throwAt != null && !ending ? clock - cedar.throwAt : 9;
@@ -839,7 +969,10 @@ function poseCedar(dt) {
   add('upper_body', -0.08 * rc - 0.14 * twB + 0.26 * twF + 0.08 * dk, -0.1 * duel, 0);
   add('neck', 0.12 * dk, 0.28 * duel - 0.3 * tw - 0.25 * dk, 0);
   add('fat_fucking_dome', -0.2 * rc + 0.18 * dk + 0.05 * twF, 0.12 * duel - 0.1 * tw, 0.12 * duel);
-  add('Left_Arm', 0.55 * duel - 1.25 * twB - 0.4 * twF, 0, 0.2 * duel + 0.25 * twB);
+  cedar.toss = Math.max(0, (cedar.toss || 0) - dt * 3);
+  const ts = Math.sin(Math.min(1, cedar.toss) * Math.PI);    // the metal arm flicks up to toss
+  const cond = fight.rpg && !ending ? 1 : 0;                  // phase 6: the metal arm spread wide
+  add('Left_Arm', 0.55 * duel - 1.25 * twB - 0.4 * twF - 1.5 * ts - 0.8 * cond, 0, 0.2 * duel + 0.25 * twB + 0.3 * ts - 0.7 * cond);
   add('forearm_L', 0, 0, 0.9 * duel);
   add('Right_Leg', 0.22 * twB - 0.1 * duel, 0, 0); add('lowerleg_R', 0.3 * twB, 0, 0);
   add('Left_Leg', -0.45 * twF + 0.08 * duel, 0, 0); add('lowerleg_L', 0.35 * twF, 0, 0);
@@ -993,6 +1126,12 @@ function poseCedar(dt) {
       D = mixD(reach(lining, pole, hd), out, ease((ft - 6.4) / 0.6)); grip = 1; palm = new THREE.Vector3(0, 1, 0);
       twirl = 0.5 * ease((ft - 6.4) / 0.6);
     }
+  }
+  // phase 6: he conducts the pistols in the air, the good hand beating time
+  if (fight.rpg && !ending) {
+    const beat = Math.sin(clock * (fight.rpg.state === 'his' ? 9 : 3));
+    D = reach(sh.clone().add(W(0.45, 0.55 + 0.18 * beat, 0.6).multiplyScalar((armL[0] + armL[1]) * 0.85)), W(1, -0.6, 0), W(0.2, -0.3 + 0.3 * beat, 1));
+    palm = W(0, -1, 0.3); amt = 1; grip = 0.15;
   }
   aimArm(D, palm, amt);
   // the twirl: the pistol spins once round his trigger finger on the way out of his coat
@@ -1190,4 +1329,4 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, you, legParts, him: () => him, get mus() { return { key: MUS.cur && MUS.cur.key, want: MUS.want, voices: MUS.voices.length, t: actx && actx.currentTime, loaded: Object.keys(MUSIC).filter((k) => MUSIC[k].buf) }; }, die, finale };
+window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, you, legParts, him: () => him, get counts() { return { shots: shots.length, litter: litter.length, armed: litter.filter((l) => l.armed > 0).length, air: airGuns.length, tumblers: tumblers.length, floaters: floaters.length, step: step && step[0] }; }, get mus() { return { key: MUS.cur && MUS.cur.key, want: MUS.want, voices: MUS.voices.length, t: actx && actx.currentTime, loaded: Object.keys(MUSIC).filter((k) => MUSIC[k].buf) }; }, die, finale };
