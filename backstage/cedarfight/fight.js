@@ -104,10 +104,98 @@ function noParry() { if (clock - noParryAt > 6) { noParryAt = clock; say("(You n
 const SFX = { parry: '../toddfight/sfx/parry.mp3', ow: '../toddfight/sfx/ow.mp3', impact: '../toddfight/sfx/impact.mp3', jump: '../toddfight/sfx/jump.mp3' };
 let actx = null; const buffers = {};
 function audio() {
-  if (actx) return actx;
+  if (actx) { if (actx.state === 'suspended') actx.resume(); return actx; }
   try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+  musicBus = actx.createGain(); musicBus.gain.value = MUSIC_ON ? MUSIC_VOL : 0; musicBus.connect(actx.destination);
   Object.entries(SFX).forEach(([k, url]) => fetch(url).then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => { buffers[k] = d; }).catch(() => {}));
+  if (MUSIC_ON) Object.entries(MUSIC).forEach(([k, m]) => fetch('music/' + m.file + '.mp3?v=1').then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => musicLoaded(k, d)).catch(() => {}));
   return actx;
+}
+
+// ---- the music: a waltz in 3/4, one theme through the whole fight (music/, made by compose_cedar.py) ----
+// Each piece's bars and tempo as composed, so loops land on the exact sample and phase changes wait for the
+// next bar line, like VS TODD. The music setting is VS TODD's (its options menu).
+let MUSIC_ON = true;
+try { MUSIC_ON = (JSON.parse(localStorage.getItem('rvFightOpts')) || {}).music !== false; } catch (e) {}
+const MUSIC_VOL = 0.55;
+let musicBus = null;
+const MUSIC = {
+  intro: { file: 'cedar_1_intro', bpm: [[0, 150]], bars: 4 },
+  p1: { file: 'cedar_2_phase1', bpm: [[0, 150]], bars: 32, loop: true },
+  p2: { file: 'cedar_3_phase2', bpm: [[0, 162]], bars: 32, loop: true },
+  p3: { file: 'cedar_4_phase3', bpm: [[0, 168]], bars: 32, loop: true },
+  p4: { file: 'cedar_5_phase4', bpm: [[0, 176]], bars: 32, loop: true },
+  p5: { file: 'cedar_6_phase5', bpm: [[0, 60 / 0.42]], bars: 32, loop: true },   // one beat = one pace
+  p6: { file: 'cedar_7_phase6', bpm: [[0, 128]], bars: 32, loop: true },
+  over: { file: 'cedar_8_gameover', bpm: [[0, 120], [2, 100], [4, 84]], bars: 6 },
+  end: { file: 'cedar_9_ending', bpm: [[0, 108], [14, 96], [15, 84]], bars: 19 },
+};
+for (const k in MUSIC) {
+  const m = MUSIC[k], tempo = (i) => { let b = m.bpm[0][1]; for (const [at, v] of m.bpm) if (i >= at) b = v; return b; };
+  m.start = []; let t = 0;
+  for (let i = 0; i < m.bars; i++) { m.start.push(t); t += 3 * 60 / tempo(i); }
+  m.len = t; m.at = 0; m.buf = null;
+}
+const MUS = { cur: null, voices: [], want: null };
+function musicLoaded(k, b) {
+  // where the sound starts (the encoder puts a few ms of silence at the front)
+  const d = b.getChannelData(0); let i = 0; while (i < d.length && Math.abs(d[i]) < 0.002) i++;
+  MUSIC[k].at = Math.max(0, i / b.sampleRate - 0.004); MUSIC[k].buf = b;
+  if (MUS.want === k || (!MUS.cur && MUS.want && MUSIC[MUS.want].buf)) musicGo(MUS.want);
+}
+function voice(key, when, from) {
+  const m = MUSIC[key], s = actx.createBufferSource(), g = actx.createGain(); s.buffer = m.buf; s.connect(g); g.connect(musicBus);
+  s.start(when, m.at + from);
+  const v = { s, g }; MUS.voices.push(v); s.onended = () => { const i = MUS.voices.indexOf(v); if (i >= 0) MUS.voices.splice(i, 1); };
+  return v;
+}
+function musicPlay(key, when, from = 0) {
+  if (!actx || !MUSIC[key].buf) return;
+  when = Math.max(actx.currentTime + 0.01, when);
+  voice(key, when, from);
+  MUS.cur = { key, T: when - from, queued: when - from };
+}
+function musicStop(fade = 1) {
+  if (!actx) return; const now = actx.currentTime;
+  for (const v of MUS.voices.slice()) { v.g.gain.cancelScheduledValues(now); v.g.gain.setValueAtTime(v.g.gain.value, now); v.g.gain.linearRampToValueAtTime(0, now + fade); try { v.s.stop(now + fade + 0.05); } catch (e) {} }
+  MUS.cur = null;
+}
+function nextBar(cur, after) {
+  const m = MUSIC[cur.key]; let k = m.loop ? Math.floor((after - cur.T) / m.len) : 0;
+  for (let j = Math.max(0, k); j < k + 2; j++) for (const off of m.start) { const t = cur.T + j * m.len + off; if (t > after + 0.03) return t; }
+  return cur.T + (k + 1) * m.len;
+}
+// what should be playing: the intro then phase 1, a loop per phase, and the two endings
+function musicGo(key) {
+  MUS.want = key;
+  if (!actx || !MUSIC_ON || !MUSIC[key].buf) return;
+  const cur = MUS.cur, now = actx.currentTime;
+  if (cur && cur.key === key) return;
+  if (key === 'over' || key === 'end' || !cur) { if (cur) musicStop(key === 'end' ? 2.5 : 0.5); musicPlay(key, now + (key === 'over' ? 0.35 : 0.05)); return; }
+  // to another loop: on the next bar line, the old one cut there with a quick fade
+  const at = now >= cur.T ? nextBar(cur, now) : now + 0.02;
+  for (const v of MUS.voices.slice()) { v.g.gain.setValueAtTime(1, at); v.g.gain.linearRampToValueAtTime(0, at + 0.12); try { v.s.stop(at + 0.2); } catch (e) {} }
+  musicPlay(key, at);
+}
+function musicTick() {
+  if (!actx || !MUSIC_ON) return;
+  // which piece: the intro until the fight starts, then the phase (and the endings, set where they happen)
+  if (!MUS.want || (MUS.want !== 'over' && MUS.want !== 'end')) {
+    const want = !fight.started ? 'intro' : 'p' + fight.phase;
+    if (MUS.want !== want && !(want === 'intro' && MUS.cur)) musicGo(want);
+  }
+  const cur = MUS.cur; if (!cur) return;
+  const m = MUSIC[cur.key], now = actx.currentTime;
+  // loops: a fresh copy starts on the loop point while the old one rings out underneath
+  if (m.loop && now > cur.queued + m.len - 0.6) { voice(cur.key, cur.queued + m.len, 0); cur.queued += m.len; }
+  // the intro runs straight into phase 1, on its last bar line
+  if (cur.key === 'intro' && now > cur.T + m.len - 0.6 && MUSIC.p1.buf) musicPlay('p' + Math.max(1, fight.phase), cur.T + m.len);
+}
+// Ten Paces counts on the beat: seconds from now until the first beat at least 'after' seconds away
+function beatIn(after) {
+  const cur = MUS.cur; if (!actx || !cur || cur.key !== 'p5') return after;
+  const beat = 0.42, now = actx.currentTime, t = now + after;
+  return after + ((beat - ((t - cur.T) % beat)) % beat);
 }
 addEventListener('pointerdown', audio); addEventListener('keydown', audio);
 function sfx(name, vol = 1, rate = 1) {
@@ -472,14 +560,15 @@ function runCedar(dt) {
   }
   if (kind === 'paces') {
     // turn his back, count ten, whirl, one shot: only a perfect parry staggers him
-    if (once('p')) { cedar.back = true; say("Ten paces.", 1.4); gun.visible = true; }
-    const beat = 0.42, n = Math.floor((stepT - 0.8) / beat) + 1;
-    if (stepT > 0.8 && n >= 1 && n <= 10 && once('n' + n)) { showCount(n); click(); }
-    if (stepT > 0.8 + beat * 10 && once('whirl')) { cedar.back = false; cedar.whirl = 1; }
-    if (stepT > 0.8 + beat * 10 + 0.28 && once('fire')) { fire(pPos(LIFT), { speed: 30, perfect: true }); }
-    if (stepT > 0.8 + beat * 10 + 0.4 && once('wind')) cedar.throwAt = clock;
-    if (stepT > 0.8 + beat * 10 + 0.4 + THROW_AT && once('throw')) throwGun();
-    if (stepT > 0.8 + beat * 10 + 1) nextStep();
+    // the count starts on a beat of the music, so you can hear the paces coming
+    if (once('p')) { cedar.back = true; say("Ten paces.", 1.4); gun.visible = true; step.c0 = beatIn(0.8); }
+    const c0 = step.c0, beat = 0.42, n = Math.floor((stepT - c0) / beat) + 1;
+    if (stepT > c0 && n >= 1 && n <= 10 && once('n' + n)) { showCount(n); click(); }
+    if (stepT > c0 + beat * 10 && once('whirl')) { cedar.back = false; cedar.whirl = 1; }
+    if (stepT > c0 + beat * 10 + 0.28 && once('fire')) { fire(pPos(LIFT), { speed: 30, perfect: true }); }
+    if (stepT > c0 + beat * 10 + 0.4 && once('wind')) cedar.throwAt = clock;
+    if (stepT > c0 + beat * 10 + 0.4 + THROW_AT && once('throw')) throwGun();
+    if (stepT > c0 + beat * 10 + 1) nextStep();
     return;
   }
 }
@@ -619,6 +708,7 @@ function runRPG(dt) {
 function finale() {
   const r = fight.rpg; r.state = 'end';
   rpgText.textContent = 'CEDAR reaches into his coat...';
+  musicGo('end');
   cedar.finale = clock; cedar.throwAt = null; cedar.taunt = null; aim.on = false; aim.locked = null;
   setTimeout(() => { rpgText.textContent = '...and finds it empty.'; cedar.empty = 1; }, 1800);
   setTimeout(() => { rpgEl.hidden = true; say("...Well. That's never happened before.", 2.8); }, 3800);
@@ -635,6 +725,7 @@ function won() {
 function die() {
   P.dead = true; fight.over = true;
   // he wins: stand easy, blow the smoke off the barrel, a twirl, back in the coat, a tip of the hat
+  musicGo('over');
   Object.assign(cedar, { victory: clock, back: false, whirl: 0, stagger: 0, kneel: 0, throwAt: null, taunt: null });
   aim.on = false; aim.locked = null; fakeWindow = null;
   setTimeout(() => {
@@ -687,7 +778,7 @@ function poseCedar(dt) {
   cedar.walk = (cedar.walk || 0) + (turning - (cedar.walk || 0)) * Math.min(1, dt * 6);
   cedar.stepPh = (cedar.stepPh || 0) + dt * 7 * cedar.walk;
   let wk = cedar.walk, sp = cedar.stepPh;
-  if (k0 === 'paces' && cedar.back && stepT > 0.8) { wk = 1; sp = (stepT - 0.8) / 0.42 * Math.PI; }
+  if (k0 === 'paces' && cedar.back && stepT > (step.c0 || 0.8)) { wk = 1; sp = (stepT - (step.c0 || 0.8)) / 0.42 * Math.PI; }
   const stepL = Math.sin(sp) * wk, liftL = Math.max(0, Math.sin(sp)) * wk, liftR = Math.max(0, -Math.sin(sp)) * wk;
   // the kick: knee up high, then down hard
   const kk = k0 === 'kick' ? (stepT < 0.3 ? stepT / 0.3 : Math.max(0, 1 - (stepT - 0.3) / 0.1)) : 0;
@@ -1084,6 +1175,7 @@ function frame(now) {
   spin.v *= Math.pow(0.55, dt); if (Math.abs(spin.v) < 0.01) spin.v = 0;
   table.rotation.y += spin.v * dt;
   runCedar(dt); runRPG(dt);
+  musicTick();
   stepShots(dt);
   poseCedar(dt);
   drawYou(); drawAim();
@@ -1093,4 +1185,4 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, die, finale };
+window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, get mus() { return { key: MUS.cur && MUS.cur.key, want: MUS.want, voices: MUS.voices.length, t: actx && actx.currentTime, loaded: Object.keys(MUSIC).filter((k) => MUSIC[k].buf) }; }, die, finale };
