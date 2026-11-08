@@ -39,7 +39,19 @@
   .board .goal b { color: var(--dim); font-weight: 500; }
   .board .name a { color: inherit; }
   .board .name a:hover { text-decoration: underline; text-underline-offset: 3px; }
-  @media (prefers-reduced-motion: reduce) { .news-feed .fresh .kind::after { animation: none; } }
+  /* Crash + bankruptcy */
+  .crash-banner { border: 1px solid #ff6b6b; border-left: 4px solid #ff6b6b; background: repeating-linear-gradient(-45deg, rgba(255,107,107,0.08) 0 12px, transparent 12px 24px), #0d0709; padding: 1rem 1.25rem; margin-bottom: 2.5rem; }
+  .crash-banner .crash-title { font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: 3px; color: #ff6b6b; text-shadow: 0 0 12px rgba(255,107,107,0.45); animation: crashflash 1.2s steps(2) infinite; }
+  .crash-banner .crash-line { margin-top: 0.5rem; font-size: 14px; color: #ffb3b3; max-width: 68ch; }
+  .crash-banner.is-tremor { border-color: var(--bright); border-left-color: var(--bright); background: #0d0c05; }
+  .crash-banner.is-tremor .crash-title { color: var(--bright); text-shadow: none; animation: none; }
+  .crash-banner.is-tremor .crash-line { color: var(--lime); }
+  .crash-banner.is-recovery .crash-title { animation: none; }
+  @keyframes crashflash { 50% { opacity: 0.55; } }
+  .board .tag.bk { margin-left: 0.5rem; color: #fff; background: #ff6b6b; border-color: #ff6b6b; font-weight: 600; }
+  .board .tag.brink { margin-left: 0.5rem; color: #f0b232; border-color: rgba(240,178,50,0.6); }
+  .board tr.is-bankrupt .price { color: #ff6b6b; }
+  @media (prefers-reduced-motion: reduce) { .news-feed .fresh .kind::after, .crash-banner .crash-title { animation: none; } }
 </style>
 </head>
 <body>
@@ -66,6 +78,12 @@
       <a class="btn" href="#market">See the market</a>
     </div>
   </header>
+
+  <!-- Crash banner: hidden unless prices.json says a crash or a trading halt is on -->
+  <div class="crash-banner" id="crash" role="status" hidden>
+    <div class="crash-title"></div>
+    <p class="crash-line"></p>
+  </div>
 
   <!-- Hidden until prices.json has news -->
   <section id="news" aria-labelledby="news-title" style="margin-bottom: 2.5rem;" hidden>
@@ -135,8 +153,12 @@
     var KIND = {
       goal: 'NEW GOAL', success: 'GOAL HIT', fail: 'GOAL MISSED', mixed: 'MIXED RESULT',
       good: 'BREAKING', bad: 'BREAKING', rumor: 'RUMOR', confirmed: 'CONFIRMED', denied: 'DENIED',
-      market: 'MARKET-WIDE', crossover: 'CROSSOVER', dividend: 'DIVIDEND'
+      market: 'MARKET-WIDE', crossover: 'CROSSOVER', dividend: 'DIVIDEND',
+      crash: 'MARKET CRASH', halt: 'TRADING HALTED', brink: 'ON THE BRINK', bankrupt: 'BANKRUPT',
+      appeal: 'BAILOUT APPEAL', appealDenied: 'APPEAL DENIED', bailout: 'TODD BAILOUT', recovered: 'OUT OF BANKRUPTCY'
     };
+    // Percent change that still makes sense when a price touches or crosses zero.
+    function pctOf(now, then) { return then ? ((now - then) / Math.abs(then)) * 100 : 0; }
 
     var FALLBACK = [
       { id: 'RRM',  name: 'Render Room',              description: 'The server itself, publicly traded.',  start: 120.00 },
@@ -181,6 +203,13 @@
         tkr.textContent = c.id;
         nameEl.appendChild(tkr);
         tr.querySelector('.desc').textContent = c.description || '';
+        if (c.status === 'bankrupt' || c.status === 'distressed') {
+          var st = document.createElement('span');
+          st.className = 'tag ' + (c.status === 'bankrupt' ? 'bk' : 'brink');
+          st.textContent = c.status === 'bankrupt' ? 'BANKRUPT' : 'DISTRESSED';
+          nameEl.appendChild(st);
+          if (c.status === 'bankrupt') tr.className = 'is-bankrupt';
+        }
 
         // Active goal under the description
         if (c.goal && c.goal.text) {
@@ -208,7 +237,7 @@
     function render(r) {
       var h = r.c.history;
       var last = h[h.length - 1];
-      var pct = (last / h[0] - 1) * 100;
+      var pct = pctOf(last, h[0]);
       var up = pct >= 0;
 
       r.priceEl.textContent = last.toFixed(2);
@@ -232,9 +261,10 @@
       list.slice(0, NEWS_SHOWN).forEach(function (n) {
         var item = document.createElement('div');
         var kind = KIND[n.type] || 'NEWS';
-        var bad = n.type === 'fail' || n.type === 'bad' || (typeof n.move === 'number' && n.move < 0 && n.type !== 'rumor') ||
+        var bad = n.type === 'fail' || n.type === 'bad' || n.type === 'crash' || n.type === 'halt' || n.type === 'bankrupt' ||
+          n.type === 'brink' || n.type === 'appealDenied' || (typeof n.move === 'number' && n.move < 0 && n.type !== 'rumor') ||
           (n.type === 'dividend' && (n.dividend === 'cut' || n.dividend === 'suspended'));
-        var quiet = n.type === 'goal' || n.type === 'rumor' || n.type === 'mixed';
+        var quiet = n.type === 'goal' || n.type === 'rumor' || n.type === 'mixed' || n.type === 'appeal';
         item.className = 'log' +
           (bad ? ' is-rare' : quiet ? ' is-decoy' : '') +
           (Date.now() - Date.parse(n.time) < FRESH_MS ? ' fresh' : '');
@@ -267,7 +297,14 @@
           stamp.appendChild(mv);
         } else if (n.deadline) {
           stamp.textContent = 'Deadline: ' + fmtTime(n.deadline) + ' (' + timeLeft(n.deadline) + ')';
+        } else if (n.verdict) {
+          stamp.textContent = 'Appeal #' + n.appeals + ' · TODD rules ' + fmtTime(n.verdict);
+        } else if (typeof n.restart === 'number') {
+          stamp.textContent = 'Trading restarts at ' + n.restart.toFixed(2) + ' · TODD keeps the dividends for a day';
+        } else if (n.until) {
+          stamp.textContent = 'Prices frozen until ' + fmtTime(n.until);
         }
+        if (n.scrapped) stamp.appendChild(document.createTextNode((stamp.textContent ? ' · ' : '') + 'Goal scrapped: ' + n.scrapped));
 
         item.appendChild(label);
         item.appendChild(frag);
@@ -281,6 +318,7 @@
     function showLive(data) {
       build(data.companies);
       showNews(data.news);
+      showCrash(data);
       var m = data.market || { status: 'open' };
       var hours = ' Trading hours: 3 AM to 9 PM Eastern, every day.';
       var stamp = data.updated ? ' Last update: ' + fmtTime(data.updated) + '.' : '';
@@ -299,6 +337,23 @@
         tagEl.className = 'tag live';
         noteEl.textContent = 'Prices are fictional and update every few minutes.' + hours + stamp;
       }
+    }
+
+    // Crash banner: shown while a crash (or its recovery) is running, or a trading halt is on.
+    var crashEl = document.getElementById('crash');
+    function showCrash(data) {
+      var c = data.crash, m = data.market || {};
+      if (!c && !m.halted) { crashEl.hidden = true; return; }
+      crashEl.hidden = false;
+      crashEl.className = 'crash-banner ' + (c ? 'is-' + c.phase : '') + (m.halted ? ' is-halted' : '');
+      var title = m.halted ? 'TRADING HALTED' : c.phase === 'tremor' ? 'SOMETHING IS WRONG' : c.phase === 'crash' ? 'MARKET CRASH' : 'CRASH RECOVERY';
+      var line = m.halted ? 'A circuit breaker tripped. Prices are frozen until ' + fmtTime(m.haltUntil) + '.'
+        : c.phase === 'tremor' ? 'Sell orders are piling up everywhere. Brace for ' + fmtTime(c.crashFrom) + '.'
+        : c.phase === 'crash' ? 'Every company is falling. Prices can now sink below zero, and a company under zero is bankrupt. The selling is expected to end around ' + fmtTime(c.crashUntil) + '.'
+        : 'The selling has stopped. Prices are slowly finding a floor. Bankrupt companies still need a TODD bailout, or to climb back above 1.00 on their own.';
+      var dead = (data.companies || []).filter(function (x) { return x.status === 'bankrupt'; }).map(function (x) { return x.id; });
+      crashEl.querySelector('.crash-title').textContent = title;
+      crashEl.querySelector('.crash-line').textContent = line + (dead.length ? ' Bankrupt: ' + dead.join(', ') + '.' : '');
     }
 
     function showFallback() {

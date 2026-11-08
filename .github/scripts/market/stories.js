@@ -201,4 +201,105 @@ const CROSSOVER = [
   { a: 'BLU', b: 'BSTG', moveA: 1, moveB: -1, headline: 'BLU builders mod Bastardly Glory\'s game into something better than the original.' }
 ];
 
-module.exports = { GOALS, GOOD, BAD, RUMORS, MARKET, CROSSOVER };
+
+// THE CRASH  headlines for the scheduled crash (see CRASH in engine.js).
+//   tremor: the build-up · start: the moment it hits · during: every few hours while it lasts
+//   panic: one company gets dumped ({n} = company name) · halt: circuit breaker ({p} = average drop)
+//   end: the selling stops · over: recovery is finished
+const CRASH = {
+  tremor: [
+    'Something is wrong. Sell orders are piling up across the whole board and nobody can say why.',
+    'Traders report a "weird feeling" about the market. The tickers are flickering.',
+    'TODD posts a single line in the logs: "it is coming." Nobody knows what "it" is.'
+  ],
+  start: [
+    'THE MARKET IS CRASHING. Every stock on the board is in freefall.',
+    'BLACK MONDAY COMES EARLY. Panic selling rips through every company at once.',
+    'Polygon confidence collapses. The whole market is going down with it.'
+  ],
+  during: [
+    'Selling accelerates. Brokers are seen crying into their keyboards.',
+    'The floor gives way again. Analysts stop answering their phones.',
+    'Rend-Conomy loses another chunk of its value. "Buy the dip," says someone, still at the top of the dip.',
+    'TODD offers comment on the crash: "ha." Markets fall further.',
+    'Margin calls everywhere. Portfolios melt like cheap nacho cheese.',
+    'Experts insist this is the bottom. It is not the bottom.',
+    'A rumor of rescue lifts hopes for four minutes. Then it is gone.',
+    'The board flashes red from top to bottom. Investors are told to "stay calm" by a man who is not calm.'
+  ],
+  panic: [
+    'Panic selling hits {n}. Shareholders run for the exits.',
+    '{n} shares get dumped in a single brutal minute.',
+    'Someone sold a mountain of {n} stock all at once. Nobody knows who.',
+    '{n} plunges as investors give up on it.'
+  ],
+  halt: [
+    'CIRCUIT BREAKER TRIPPED. The board fell {p}% in an hour. Trading is frozen.',
+    'Trading halted after a {p}% plunge in one hour. Everyone take a breath.',
+    'The market slams the brakes: {p}% gone in an hour. Halted.'
+  ],
+  end: [
+    'The selling finally stops. Survivors climb out of the rubble.',
+    'The crash is over. Nobody is sure what is left standing.',
+    'Quiet returns to the market. It is the quiet after a bomb goes off.'
+  ],
+  over: [
+    'The market has found its feet again. Mostly. Some of it.',
+    'Crash recovery complete. The scars remain.'
+  ]
+};
+
+// BANKRUPTCY  {n} = company name.
+//   brink: falls under 1.50 · enter: drops under 0 · appeal / appealAgain: files for a TODD bailout
+//   approved / denied: TODD's verdict · hope / doom: news while bankrupt · swim: climbs out on its own
+const BANKRUPT = {
+  brink: [
+    '{n} is on the brink. One more bad day and it goes under.',
+    'Creditors circle {n}. The stock is worth almost nothing.',
+    '{n} insists everything is fine. The stock suggests otherwise.'
+  ],
+  enter: [
+    '{n} HAS GONE BANKRUPT. The stock is now worth less than nothing.',
+    '{n} files for bankruptcy. Shareholders are left holding the bag.',
+    'IT IS OVER FOR {n}. The company sinks below zero.'
+  ],
+  appeal: [
+    '{n} begs TODD for a bailout. TODD is "reviewing the request."',
+    '{n} files for a TODD bailout. The fate of the company is in a computer\'s hands.',
+    '{n} crawls to TODD, hat in hand, asking for a rescue.'
+  ],
+  appealAgain: [
+    '{n} appeals to TODD again. Desperation levels: rising.',
+    '{n} sends TODD another bailout request, this time with a sad face emoji.',
+    '{n} tries TODD one more time. TODD sighs audibly.'
+  ],
+  approved: [
+    'TODD APPROVES THE BAILOUT. {n} is back from the dead. TODD will want something in return.',
+    'TODD bails out {n}. "you owe me," says TODD.',
+    '{n} rescued by TODD at the last second. Trading resumes.'
+  ],
+  denied: [
+    'TODD DENIES {n}\'s bailout. "no," says TODD.',
+    'TODD rejects {n}. The company sinks deeper.',
+    'TODD reads the {n} appeal, laughs, and deletes it.'
+  ],
+  hope: [
+    '{n} holds a fundraiser. Members chip in a few Polygons.',
+    '{n} sells off the office chairs. Every Polygon counts.',
+    '{n} lands a tiny contract. It\'s something.',
+    '{n} staff work for free this week. The hole gets a little shallower.'
+  ],
+  doom: [
+    '{n} finds another unpaid bill under the couch.',
+    '{n} loses its last remaining client.',
+    'The lights go out at {n} headquarters. Literally.',
+    '{n} creditors seize the coffee machine.'
+  ],
+  swim: [
+    '{n} CLAWS ITS WAY OUT OF BANKRUPTCY. No bailout needed.',
+    'Against all odds, {n} is solvent again.',
+    '{n} swims back to the surface. Shareholders weep with joy.'
+  ]
+};
+
+module.exports = { GOALS, GOOD, BAD, RUMORS, MARKET, CROSSOVER, CRASH, BANKRUPT };

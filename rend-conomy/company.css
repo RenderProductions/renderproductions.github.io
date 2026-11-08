@@ -177,3 +177,13 @@
 @media (prefers-reduced-motion: reduce) {
   .co-tick { animation: none; }
 }
+
+/* ---------- Crash + bankruptcy ---------- */
+.co-chips .tag.bk { color: #fff; background: #ff6b6b; border-color: #ff6b6b; font-weight: 600; }
+.co-chips .tag.brink { color: #f0b232; border-color: rgba(240, 178, 50, 0.6); }
+.co-head.is-bankrupt { border-color: rgba(255, 107, 107, 0.55); background: repeating-linear-gradient(-45deg, rgba(255, 107, 107, 0.06) 0 12px, transparent 12px 24px), var(--panel); }
+.co-head.is-bankrupt .co-price { color: #ff6b6b; }
+.goal-card.bankrupt { border-left-color: #ff6b6b; background: #0d0709; }
+.goal-card.bankrupt .goal-text { color: #ffb3b3; }
+.goal-card.bankrupt .goal-clock { color: #ff6b6b; }
+.goal-card.bankrupt .goal-bar span { background: #57f287; }

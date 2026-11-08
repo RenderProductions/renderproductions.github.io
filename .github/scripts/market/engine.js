@@ -27,6 +27,46 @@ const CLOSE_HOUR = 21;
 const CLOSED_DAYS = [];          // e.g. [0] closes Sundays (0 = Sunday ... 6 = Saturday)
 const AFTER_HOURS_SCALE = 0.25;  // overnight moves are a quarter of the daytime size; no news overnight
 
+// ---------- The Crash ----------
+// A scheduled market crash. Set start to null to switch it off (or to a new date to run another one).
+//   tremor    nervous build-up: jitters, everything starts slipping
+//   crash     everything falls, hard. Panic legs, fake bounces, circuit breakers, failed goals
+//   recovery  the selling stops; prices that survived slowly find a floor again
+// depth: how far each company gets dragged over the crash, in log terms (2.3 = to about a tenth,
+// 3 = to about a twentieth). Each company secretly rolls a share of it (spread), so nobody
+// knows ahead of time who survives and who goes bankrupt.
+const CRASH = {
+  start: '2026-11-08T21:45:00Z',
+  tremorHours: 2, crashHours: 48, recoveryHours: 72,
+  depth: { RRM: 3.7, NACH: 3.5, BLU: 3.7, BNW: 2.9, BSTG: 5.5 },
+  spread: [0.7, 1.35]
+};
+const CRASH_MOODS = { calm: 0, normal: 0, rally: 0, slide: 4, choppy: 3, mania: 0, freefall: 10, bounce: 3 };
+const PANIC_RATE = 1 / 200;         // per company per open crash tick: a sudden panic leg down
+const CRASH_NEWS_HOURS = [2, 5];    // time between crash headlines
+const HALT_DROP = -12;              // the average stock falls this much (%) in an hour: circuit breaker
+const HALT_MIN = 15;                // trading halts this long; prices freeze
+const HALT_COOLDOWN_HOURS = 4;
+
+// ---------- Bankruptcy ----------
+// Below LINEAR_BELOW a price moves in Polygons instead of percent, so it can reach zero and keep going.
+// Under 0 the company is BANKRUPT: no goals, no dividends, no rumors. It gets out one of two ways:
+//   * a TODD bailout: it files an appeal, TODD rules on it a little later (odds rise with every appeal)
+//   * swimming: its price climbs back above SWIM_PRICE and stays there for SWIM_TICKS open ticks
+const LINEAR_BELOW = 3;
+const BRINK = 1.5;                  // an "on the brink" warning below this
+const SWIM_PRICE = 1;
+const SWIM_TICKS = 12;              // one hour
+const PIT = [-4, -0.5];             // where a bankrupt price tends to sit at first
+const PIT_CLIMB = 0.5;              // Polygons a day the pit rises on its own (the company earning money); not during the crash
+const APPEAL_FIRST_HOURS = [1, 3];
+const APPEAL_HOURS = [3, 6];        // time between appeals after a denial
+const VERDICT_HOURS = [1, 2];       // TODD takes this long to decide
+const BAILOUT_ODDS = { base: 0.2, perAppeal: 0.12, health: 0.15, crash: 0.45, max: 0.85 };
+const BAILOUT_PRICE = [0.06, 0.12]; // a bailout restarts the price at this share of the start price (at least 2.50)
+const BAILOUT_DIV_HOURS = 24;       // TODD keeps the dividend this long after a bailout
+const HOPE_RATE = 1 / 90;           // per bankrupt company per open tick: a fundraiser or another disaster
+
 const TICK_MIN = 5;
 const TICK_MS = TICK_MIN * 60 * 1000;
 const TICK_SEC = TICK_MIN * 60;
@@ -110,13 +150,17 @@ const MOODS = {
   rally:  { w: 15, vol: 1.0, trend: [0.02, 0.08],   hours: [3, 12] },
   slide:  { w: 15, vol: 1.1, trend: [-0.08, -0.02], hours: [3, 12] },
   choppy: { w: 14, vol: 1.7, trend: [0, 0],         hours: [2, 8] },
-  mania:  { w: 6,  vol: 2.0, trend: [0.10, 0.25],   hours: [1, 4], randomSign: true }
+  mania:  { w: 6,  vol: 2.0, trend: [0.10, 0.25],   hours: [1, 4], randomSign: true },
+  // crash-only moods (weight 0, so they never come up on a normal day)
+  freefall: { w: 0, vol: 1.6, trend: [-0.10, -0.03], hours: [2, 6] },
+  bounce:   { w: 0, vol: 1.3, trend: [0.6, 1.2],     hours: [1, 2] }   // a dead-cat bounce: false hope
 };
 const MARKET_MOODS = {
   flat:    { w: 40, vol: 1.0, trend: [0, 0],          hours: [8, 30] },
   bull:    { w: 20, vol: 0.9, trend: [0.01, 0.04],    hours: [8, 30] },
   bear:    { w: 20, vol: 1.2, trend: [-0.04, -0.01],  hours: [8, 30] },
-  jitters: { w: 20, vol: 1.8, trend: [0, 0],          hours: [4, 16] }
+  jitters: { w: 20, vol: 1.8, trend: [0, 0],          hours: [4, 16] },
+  crash:   { w: 0,  vol: 2.2, trend: [-0.06, -0.03],  hours: [2, 6] }
 };
 const MARKET_DAILY_VOL = 0.02;
 
@@ -189,6 +233,26 @@ function nextTime(now, test) {
   return null;
 }
 
+// Which part of the scheduled crash we're in: null, 'tremor', 'crash' or 'recovery'.
+function crashTimes() {
+  if (!CRASH || !CRASH.start) return null;
+  const t0 = Date.parse(CRASH.start);
+  if (isNaN(t0)) return null;
+  const t1 = t0 + CRASH.tremorHours * HOUR, t2 = t1 + CRASH.crashHours * HOUR, t3 = t2 + CRASH.recoveryHours * HOUR;
+  return { t0, t1, t2, t3 };
+}
+function crashPhase(ms) {
+  const t = crashTimes();
+  if (!t || ms < t.t0 || ms >= t.t3) return null;
+  return ms < t.t1 ? 'tremor' : ms < t.t2 ? 'crash' : 'recovery';
+}
+
+// Percent change that still makes sense when prices touch or cross zero.
+function pctChange(now, then) {
+  if (!then) return 0;
+  return round2(((now - then) / Math.abs(then)) * 100);
+}
+
 // =====================================================================
 
 function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
@@ -216,9 +280,29 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     return { name, vol: m.vol, trend, until: now + between(m.hours[0], m.hours[1]) * HOUR };
   };
   if (!state.market) state.market = { mood: rollMood(MARKET_MOODS) };
-  if (now >= state.market.mood.until) state.market.mood = rollMood(MARKET_MOODS);
+
+  // ----- The Crash -----
+  const phase = crashPhase(now);
+  const oldPhase = state.market.crashPhase || null;
+  const phaseChanged = phase !== oldPhase;
+  state.market.crashPhase = phase;
+  const ONLY = (name, table = MARKET_MOODS) => { const o = {}; Object.keys(table).forEach((k) => { o[k] = k === name ? 1 : 0; }); return o; };
+  if (phaseChanged && phase === 'crash') state.market.mood = rollMood(MARKET_MOODS, ONLY('crash'));
+  if (phaseChanged && phase === 'tremor') state.market.mood = rollMood(MARKET_MOODS, ONLY('jitters'));
+  if (phaseChanged && oldPhase === 'crash') state.market.mood = rollMood(MARKET_MOODS, ONLY('jitters'));
+  if (now >= state.market.mood.until) {
+    state.market.mood = phase === 'crash' ? rollMood(MARKET_MOODS, ONLY('crash'))
+      : phase === 'tremor' ? rollMood(MARKET_MOODS, ONLY('jitters'))
+      : phase === 'recovery' ? rollMood(MARKET_MOODS, { flat: 40, bull: 15, bear: 25, jitters: 20, crash: 0 })
+      : rollMood(MARKET_MOODS);
+  }
+
+  // ----- Circuit breaker: a halt freezes prices (and the bot should refuse trades) -----
+  const halted = status === 'open' && state.market.haltUntil && now < state.market.haltUntil;
+  const stepScale = halted ? 0 : scale;
+
   const mkt = state.market.mood;
-  const marketMove = scale * (mkt.trend / TICKS_PER_DAY + (MARKET_DAILY_VOL / Math.sqrt(TICKS_PER_DAY)) * mkt.vol * fat());
+  const marketMove = stepScale * (mkt.trend / TICKS_PER_DAY + (MARKET_DAILY_VOL / Math.sqrt(TICKS_PER_DAY)) * mkt.vol * fat());
 
   // ---------- Market status ----------
   const sinceLastTick = old.updated ? now - Date.parse(old.updated) : 0;
@@ -230,7 +314,11 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     open,
     nextChange: nextChange ? new Date(nextChange).toISOString() : null,
     nextOpen: nextOpen ? new Date(nextOpen).toISOString() : null,
-    text: open
+    halted: !!halted,
+    haltUntil: halted ? new Date(state.market.haltUntil).toISOString() : null,
+    text: halted
+      ? '🛑 **Trading halted** (circuit breaker) · resumes ' + ts(state.market.haltUntil)
+      : open
       ? '🟢 **Market open** · closes ' + ts(nextChange)
       : status === 'after-hours'
         ? '🌙 **After hours** · prices drift, trading opens ' + ts(nextOpen)
@@ -280,27 +368,53 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
 
     const v = c.dailyVol / Math.sqrt(TICKS_PER_DAY);
     const kappa = Math.LN2 / (c.halfLife * TICKS_PER_DAY);
+    const kappaPit = Math.LN2 / (0.5 * TICKS_PER_DAY);
+
+    // Bankruptcy record (public, it's in prices.json): null while the company is solvent.
+    let bk = prev.bankrupt && prev.bankrupt.since ? Object.assign({}, prev.bankrupt) : null;
+
+    // Each crash gives every company its own secret drag (so nobody knows who survives).
+    if (phase && (!s.crash || s.crash.id !== CRASH.start)) {
+      const depth = (CRASH.depth[c.id] || 3) * between(CRASH.spread[0], CRASH.spread[1]);
+      s.crash = { id: CRASH.start, rate: depth / (CRASH.crashHours * 60 / TICK_MIN) };
+    }
+    const drag = !s.crash ? 0 : phase === 'crash' ? s.crash.rate : phase === 'tremor' ? s.crash.rate * 0.3 : 0;
+    if (phaseChanged && phase === 'crash') s.mood = rollMood(MOODS, ONLY('freefall', MOODS));
+    if (phaseChanged && oldPhase === 'crash') s.mood = rollMood(MOODS, c.moods);
 
     function stepPrice(price, sc) {
-      if (now >= s.mood.until) s.mood = rollMood(MOODS, c.moods);
+      if (now >= s.mood.until) s.mood = rollMood(MOODS, phase === 'crash' ? CRASH_MOODS : c.moods);
       const z = fat();
-      const lp = Math.log(price);
+      const lp = Math.log(Math.max(price, 0.05));
       s.trend += (s.mood.trend * (c.trendScale || 1) - s.trend) * 0.05;
       let r = c.beta * marketMove;
       r += sc * (s.trend / TICKS_PER_DAY + v * s.mood.vol * s.g * z);
-      r += sc * kappa * (s.lnFair - lp);
-      if (price < 3) r += 0.02 * (Math.log(3) - lp);   // keep penny prices off the floor
-      r += sc * s.hype / TICKS_PER_DAY;
-      if (s.secret && s.secret.leakDir) r += sc * s.secret.leakDir * (c.leak / (DECIDE_MIN / TICK_MIN));
+      if (bk) {
+        // Bankrupt: the price is pulled toward its "pit" instead of a fair value.
+        if (typeof s.pit !== 'number') s.pit = between(PIT[0], PIT[1]);
+        r += sc * kappaPit * (s.pit - price) / LINEAR_BELOW;
+        if (!phase || phase === 'recovery') s.pit += sc * PIT_CLIMB / TICKS_PER_DAY;
+        r -= sc * drag * 0.5;
+      } else {
+        r += sc * kappa * (s.lnFair - lp);
+        // Outside a crash, cheap stocks get a gentle lift off the floor (going bankrupt is possible, just rare).
+        if (price < LINEAR_BELOW && !drag) r += 0.004 * (Math.log(LINEAR_BELOW) - lp);
+        r += sc * s.hype / TICKS_PER_DAY;
+        if (s.secret && s.secret.leakDir) r += sc * s.secret.leakDir * (c.leak / (DECIDE_MIN / TICK_MIN));
+        r -= sc * drag;
+      }
       // Volatility clustering: big surprises raise volatility, calm ticks let it settle back toward 1.
       s.g = clamp(1 + 0.98 * (s.g - 1) + 0.05 * (Math.abs(z) - 0.8), 0.5, 3.5);
-      // The fair value wanders, and is gently kept inside its bounds.
-      s.lnFair += sc * (c.fairVol / Math.sqrt(TICKS_PER_DAY)) * normal();
-      if (s.lnFair > bounds[1]) s.lnFair -= sc * 0.01 * (s.lnFair - bounds[1]);
-      if (s.lnFair < bounds[0]) s.lnFair += sc * 0.01 * (bounds[0] - s.lnFair);
-      // Health drifts slowly back toward neutral.
-      s.health = clamp(s.health * (1 - 0.003 * sc) + 0.035 * Math.sqrt(sc) * normal(), -1, 1);
-      return Math.max(1, round2(price * Math.exp(r)));
+      // The fair value wanders, and is gently kept inside its bounds (not during a crash: it sinks with everything else).
+      s.lnFair += sc * (c.fairVol / Math.sqrt(TICKS_PER_DAY)) * normal() - sc * drag;
+      const keep = drag ? 0 : phase === 'recovery' ? 0.08 : 1;
+      if (s.lnFair > bounds[1]) s.lnFair -= sc * 0.01 * keep * (s.lnFair - bounds[1]);
+      if (s.lnFair < bounds[0]) s.lnFair += sc * 0.01 * keep * (bounds[0] - s.lnFair);
+      // Health drifts slowly back toward neutral (and rots during a crash).
+      s.health = clamp(s.health * (1 - 0.003 * sc) + 0.035 * Math.sqrt(sc) * normal() - (drag ? 0.004 * sc : 0), -1, 1);
+      // Above LINEAR_BELOW moves are percentages; below it they're Polygons, so the price can cross zero.
+      const next = !bk && price >= LINEAR_BELOW ? price * Math.exp(r) : price + LINEAR_BELOW * r;
+      return round2(next);
     }
 
     if (!history) {
@@ -322,7 +436,8 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     times = times.slice(-history.length);
 
     if (scale > 0) {
-      history.push(stepPrice(history[history.length - 1], scale));
+      // During a trading halt the clock keeps going but the price is frozen.
+      history.push(stepScale > 0 ? stepPrice(history[history.length - 1], stepScale) : history[history.length - 1]);
       times.push(unix(now));
     }
 
@@ -336,7 +451,10 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       divRate: typeof prev.divRate === 'number' ? prev.divRate : divTarget(s.health),
       divBoostUntil: prev.divBoostUntil || null,
       divReviewAt: prev.divReviewAt || new Date(now + between(1, 6) * HOUR).toISOString(),
-      swingAt: prev.swingAt || null
+      swingAt: prev.swingAt || null,
+      bk,
+      bailouts: prev.bailouts || 0,
+      brinkAt: prev.brinkAt || null
     };
   });
   const byId = {};
@@ -361,12 +479,13 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
   function shove(x, pct, { fair = 0.6, vol = 0.4, health = 0 } = {}) {
     const h = x.history;
     const before = h[h.length - 1];
-    const after = Math.max(1, round2(before * (1 + pct)));
+    // Same as before * (1 + pct) above LINEAR_BELOW; below it the move is measured as if the price were LINEAR_BELOW.
+    const after = round2(before + pct * Math.max(before, LINEAR_BELOW));
     h[h.length - 1] = after;
-    x.s.lnFair += fair * Math.log(after / before);
+    if (before > 0 && after > 0 && !x.bk) x.s.lnFair += fair * Math.log(after / before);
     x.s.g = clamp(x.s.g + vol, 0.5, 3.5);
     x.s.health = clamp(x.s.health + health, -1, 1);
-    return round2((after / before - 1) * 100);
+    return pctChange(after, before);
   }
   function setMood(x, name) {
     const m = MOODS[name];
@@ -374,10 +493,17 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
   }
 
   // ---------- Events (only while the market is open) ----------
-  if (open) {
+  if (open && !halted) {
     live.forEach((x) => {
       const { c, s } = x;
       const h = x.history;
+      if (x.bk) return;   // bankrupt: no goals, no surprises, no rumors, no dividend reviews (see the bankruptcy block)
+
+      // Crash: sudden panic legs down
+      if (phase === 'crash' && chance(PANIC_RATE)) {
+        const move = shove(x, -between(0.06, 0.16), { fair: 0.5, vol: 0.8, health: -0.05 });
+        if (chance(0.5)) x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'bad', headline: pick(STORIES.CRASH.panic).replace(/\{n\}/g, c.name), move }));
+      }
 
       // Unexplained jump: the price gaps with no news. Shows up as a "big move" alert at most.
       if (chance(c.jumpRate)) {
@@ -507,6 +633,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       const ev = pick(STORIES.MARKET);
       const moves = {};
       live.forEach((x) => {
+        if (x.bk) return;
         const size = between(0.02, 0.07) * x.c.beta * between(0.6, 1.4);
         moves[x.c.id] = shove(x, ev.dir > 0 ? size : -size / (1 + size), { fair: 0.5, vol: 0.4 });
         x.newsLog.unshift({ time: nowIso, id: x.c.id, name: x.c.name, type: 'market', headline: ev.headline, move: moves[x.c.id] });
@@ -520,7 +647,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     if (chance(CROSSOVER_RATE)) {
       const ev = pick(STORIES.CROSSOVER);
       const a = byId[ev.a], b = byId[ev.b];
-      if (a && b) {
+      if (a && b && !a.bk && !b.bk) {
         const moves = {};
         [[a, ev.moveA], [b, ev.moveB]].forEach(([x, dir]) => {
           const size = between(0.03, 0.09);
@@ -529,6 +656,132 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         });
         addNews({ id: ev.a + '/' + ev.b, name: a.c.name + ' & ' + b.c.name, type: 'crossover', headline: ev.headline, moves });
       }
+    }
+  }
+
+  // ---------- The Crash: phase changes and headlines ----------
+  const fill = (t, x) => t.replace(/\{n\}/g, x ? x.c.name : '');
+  function marketHit(lo, hi, headline, type) {
+    const moves = {};
+    live.forEach((x) => {
+      if (x.bk) return;
+      const size = between(lo, hi) * x.c.beta * between(0.7, 1.3);
+      moves[x.c.id] = size ? shove(x, -size / (1 + size), { fair: 0.5, vol: 0.5, health: -0.05 }) : 0;
+      x.newsLog.unshift({ time: nowIso, id: x.c.id, name: x.c.name, type, headline, move: moves[x.c.id] });
+    });
+    return moves;
+  }
+  if (phaseChanged) {
+    if (phase === 'tremor') {
+      addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', headline: pick(STORIES.CRASH.tremor), moves: marketHit(0.01, 0.03, '', 'crash') });
+    } else if (phase === 'crash') {
+      addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', big: true, headline: pick(STORIES.CRASH.start), moves: marketHit(0.06, 0.12, '', 'crash') });
+      state.market.crashNewsAt = now + between(CRASH_NEWS_HOURS[0], CRASH_NEWS_HOURS[1]) * HOUR;
+    } else if (phase === 'recovery') {
+      addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', headline: pick(STORIES.CRASH.end) });
+    } else if (oldPhase === 'recovery' && !phase) {
+      addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', headline: pick(STORIES.CRASH.over) });
+    }
+    // company logs got the headline text after the fact
+    const top = news[0];
+    if (top && top.type === 'crash') live.forEach((x) => { if (x.newsLog[0] && x.newsLog[0].time === nowIso && x.newsLog[0].type === 'crash') x.newsLog[0].headline = top.headline; });
+  } else if (phase === 'crash' && open && !halted && now >= (state.market.crashNewsAt || 0)) {
+    const headline = pick(STORIES.CRASH.during);
+    const moves = marketHit(0.02, 0.06, headline, 'crash');
+    addNews({ id: 'MARKET', name: 'Whole market', type: 'crash', headline, moves });
+    state.market.crashNewsAt = now + between(CRASH_NEWS_HOURS[0], CRASH_NEWS_HOURS[1]) * HOUR;
+  }
+
+  // ---------- Bankruptcy ----------
+  const B = STORIES.BANKRUPT;
+  live.forEach((x) => {
+    const { c, s } = x;
+    const h = x.history;
+    const price = h[h.length - 1];
+
+    if (!x.bk) {
+      if (price < 0) {
+        // Under zero: BANKRUPT.
+        const scrapped = x.goal ? x.goal.text : null;
+        x.bk = { since: nowIso, appeals: 0, nextAppealAt: new Date(now + between(APPEAL_FIRST_HOURS[0], APPEAL_FIRST_HOURS[1]) * HOUR).toISOString(), verdictAt: null, swim: 0 };
+        s.pit = Math.min(price, between(PIT[0], PIT[1]));
+        s.health = Math.min(s.health, -0.6);
+        s.secret = null; s.hype = 0; s.rumor = null;
+        x.goal = null;
+        x.divRate = 0; x.divBoostUntil = null;
+        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'bankrupt', big: true, headline: fill(pick(B.enter), x),
+          scrapped: scrapped || undefined, dividend: 'suspended', divRate: 0 }));
+      } else if (price < BRINK && (!x.brinkAt || now - Date.parse(x.brinkAt) > 12 * HOUR)) {
+        x.brinkAt = nowIso;
+        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'brink', headline: fill(pick(B.brink), x) }));
+      }
+      return;
+    }
+
+    // Swimming back up: above SWIM_PRICE for SWIM_TICKS open ticks in a row.
+    if (open && !halted) x.bk.swim = price >= SWIM_PRICE ? (x.bk.swim || 0) + 1 : 0;
+    if (x.bk.swim >= SWIM_TICKS) {
+      x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'recovered', headline: fill(pick(B.swim), x) }));
+      x.bk = null;
+      s.lnFair = Math.log(Math.max(price, 1.5));
+      s.health = -0.2; s.pit = null;
+      return;
+    }
+    if (!open || halted) return;
+
+    if (x.bk.verdictAt && now >= Date.parse(x.bk.verdictAt)) {
+      // TODD rules on the appeal.
+      let odds = BAILOUT_ODDS.base + BAILOUT_ODDS.perAppeal * (x.bk.appeals - 1) + BAILOUT_ODDS.health * s.health;
+      if (phase === 'crash') odds *= BAILOUT_ODDS.crash;
+      odds = clamp(odds, 0.05, BAILOUT_ODDS.max);
+      if (chance(odds)) {
+        const restart = round2(Math.max(2.5, c.start * between(BAILOUT_PRICE[0], BAILOUT_PRICE[1])));
+        h[h.length - 1] = restart;
+        s.lnFair = Math.log(restart); s.g = 1.5; s.health = -0.3; s.pit = null;
+        if (s.crash) s.crash.rate *= 0.5;      // TODD's money buys some shelter from the rest of the crash
+        x.bailouts += 1;
+        x.divRate = 0; x.divBoostUntil = null;
+        x.divReviewAt = new Date(now + BAILOUT_DIV_HOURS * HOUR).toISOString();
+        setMood(x, chance(0.5) ? 'normal' : 'rally');
+        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'bailout', big: true, headline: fill(pick(B.approved), x), restart, owed: true }));
+        x.bk = null;
+      } else {
+        const move = shove(x, -between(0.1, 0.4), { fair: 0, vol: 0.4 });
+        s.pit -= between(0.2, 0.6);
+        x.bk.verdictAt = null;
+        x.bk.nextAppealAt = new Date(now + between(APPEAL_HOURS[0], APPEAL_HOURS[1]) * HOUR).toISOString();
+        x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'appealDenied', headline: fill(pick(B.denied), x), move, nextAppeal: x.bk.nextAppealAt }));
+      }
+      return;
+    }
+    if (!x.bk.verdictAt && now >= Date.parse(x.bk.nextAppealAt)) {
+      x.bk.appeals += 1;
+      x.bk.verdictAt = new Date(now + between(VERDICT_HOURS[0], VERDICT_HOURS[1]) * HOUR).toISOString();
+      x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'appeal', headline: fill(pick(x.bk.appeals > 1 ? B.appealAgain : B.appeal), x), verdict: x.bk.verdictAt, appeals: x.bk.appeals }));
+      return;
+    }
+    // A fundraiser (climb toward the surface) or another disaster (sink deeper).
+    if (chance(HOPE_RATE)) {
+      const good = chance(clamp(0.55 + 0.2 * s.health, 0.3, 0.7));
+      const move = good ? shove(x, between(0.25, 0.8), { fair: 0, vol: 0.3 }) : shove(x, -between(0.15, 0.5), { fair: 0, vol: 0.3 });
+      s.pit += good ? between(0.5, 1.2) : -between(0.2, 0.6);
+      x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: good ? 'good' : 'bad', headline: fill(pick(good ? B.hope : B.doom), x), move }));
+    }
+  });
+
+  // ---------- Circuit breaker: the average stock fell too far in an hour ----------
+  if (open && !halted) {
+    const drops = live.filter((x) => !x.bk && x.history.length > SWING_TICKS)
+      .map((x) => pctChange(x.history[x.history.length - 1], x.history[x.history.length - 1 - SWING_TICKS]));
+    const avg = drops.length ? drops.reduce((a, b) => a + b, 0) / drops.length : 0;
+    const cooled = !state.market.haltAt || now - state.market.haltAt >= HALT_COOLDOWN_HOURS * HOUR;
+    if (avg <= HALT_DROP && cooled) {
+      state.market.haltAt = now;
+      state.market.haltUntil = now + HALT_MIN * 60 * 1000;
+      market.halted = true;
+      market.haltUntil = new Date(state.market.haltUntil).toISOString();
+      market.text = '🛑 **Trading halted** (circuit breaker) · resumes ' + ts(state.market.haltUntil);
+      addNews({ id: 'MARKET', name: 'Whole market', type: 'halt', headline: pick(STORIES.CRASH.halt).replace('{p}', Math.abs(avg).toFixed(1)), until: market.haltUntil });
     }
   }
 
@@ -549,9 +802,10 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     }
     x.divIndex = Math.round(x.divIndex * 10000) / 10000;
 
-    if (open && x.history.length > SWING_TICKS) {
+    if (x.bk) { x.divRate = 0; x.divBoostUntil = null; }
+    if (open && !x.bk && price >= LINEAR_BELOW && x.history.length > SWING_TICKS) {
       const hourAgo = x.history[x.history.length - 1 - SWING_TICKS];
-      const swing = round2((price / hourAgo - 1) * 100);
+      const swing = pctChange(price, hourAgo);
       const recentNews = x.newsLog.some((n) => typeof n.move === 'number' && now - Date.parse(n.time) < SWING_TICKS * TICK_MS);
       const cooled = !x.swingAt || now - Date.parse(x.swingAt) >= SWING_COOLDOWN_HOURS * HOUR;
       if (Math.abs(swing) >= (c.swingPct || SWING_PCT) && !recentNews && cooled) {
@@ -567,7 +821,11 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       name: c.name,
       description: c.description,
       price,
-      change: round2((price / history[0] - 1) * 100),
+      change: pctChange(price, history[0]),
+      status: x.bk ? 'bankrupt' : price < LINEAR_BELOW ? 'distressed' : 'ok',
+      bankrupt: x.bk,
+      bailouts: x.bailouts,
+      brinkAt: x.brinkAt,
       history,
       times,
       goal: x.goal,
@@ -586,7 +844,18 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
   });
 
   news = news.slice(0, MAX_NEWS);
-  const data = buildOutput({ nowIso, market, news, companies });
+  const t = crashTimes();
+  const crash = phase ? {
+    phase,
+    started: new Date(t.t0).toISOString(),
+    crashFrom: new Date(t.t1).toISOString(),
+    crashUntil: new Date(t.t2).toISOString(),
+    recoveryUntil: new Date(t.t3).toISOString(),
+    text: phase === 'tremor' ? '🫨 **Something is wrong with the market.** The crash hits <t:' + unix(t.t1) + ':R>'
+      : phase === 'crash' ? '🚨 **MARKET CRASH IN PROGRESS** · the selling ends <t:' + unix(t.t2) + ':R>... maybe'
+      : '🩹 **Crash recovery** · the market is finding its floor'
+  } : null;
+  const data = buildOutput({ nowIso, market, news, companies, crash });
 
   // News made this tick goes to Discord too (oldest first, so it reads in order).
   news.filter((n) => n.time === nowIso).reverse().forEach((n) => {
@@ -611,7 +880,15 @@ const KINDS = {
   denied:    '❌ **DENIED**',
   market:    '🌐 **MARKET-WIDE**',
   crossover: '🤝 **CROSSOVER**',
-  dividend:  '💸 **DIVIDEND**'
+  dividend:  '💸 **DIVIDEND**',
+  crash:     '🚨 **MARKET CRASH**',
+  halt:      '🛑 **TRADING HALTED**',
+  brink:     '⚠️ **ON THE BRINK**',
+  bankrupt:  '💀 **BANKRUPT**',
+  appeal:    '🙏 **BAILOUT APPEAL**',
+  appealDenied: '🚫 **APPEAL DENIED**',
+  bailout:   '🏦 **TODD BAILOUT**',
+  recovered: '🛟 **OUT OF BANKRUPTCY**'
 };
 
 function divNote(item) {
@@ -637,7 +914,15 @@ function discordLine(item) {
     extra = pctText(item.move) + (item.type === 'rumor' ? ' on the whispers' : ' on the news');
   } else if (item.deadline) {
     extra = 'Deadline <t:' + unix(Date.parse(item.deadline)) + ':R>';
+  } else if (item.verdict) {
+    extra = 'Appeal #' + item.appeals + ' · TODD rules <t:' + unix(Date.parse(item.verdict)) + ':R>';
+  } else if (typeof item.restart === 'number') {
+    extra = 'Trading restarts at $' + item.restart.toFixed(2) + ' · TODD keeps the dividends for ' + BAILOUT_DIV_HOURS + ' hours';
+  } else if (item.until) {
+    extra = 'Prices frozen · trading resumes <t:' + unix(Date.parse(item.until)) + ':R>';
   }
+  if (item.scrapped) extra = (extra ? extra + '\n' : '') + 'Goal scrapped: ' + item.scrapped;
+  if (item.nextAppeal) extra = (extra ? extra + ' · ' : '') + 'next appeal <t:' + unix(Date.parse(item.nextAppeal)) + ':R>';
   const div = item.type === 'dividend' ? '' : divNote(item);
   return tag + (item.big ? ' 🔥' : '') + ' · `' + item.id + '` · <t:' + unix(Date.parse(item.time)) + ':R>\n' +
     item.headline + (extra ? '\n*' + extra + '*' : '') + div;
@@ -704,15 +989,32 @@ function chartUrl(c) {
   return buildChartUrl(c, 12);
 }
 
-function buildOutput({ nowIso, market, news, companies }) {
+function statusLine(c) {
+  if (c.status === 'bankrupt') {
+    const b = c.bankrupt;
+    return '💀 **BANKRUPT** since <t:' + unix(Date.parse(b.since)) + ':R> · ' +
+      (b.verdictAt ? 'TODD rules on appeal #' + b.appeals + ' <t:' + unix(Date.parse(b.verdictAt)) + ':R>'
+        : 'next bailout appeal <t:' + unix(Date.parse(b.nextAppealAt)) + ':R>') +
+      (b.swim ? ' · back above $' + SWIM_PRICE.toFixed(2) + ' for ' + (b.swim * TICK_MIN) + '/' + (SWIM_TICKS * TICK_MIN) + ' min' : '');
+  }
+  if (c.status === 'distressed') return '⚠️ **Distressed** · under $' + LINEAR_BELOW.toFixed(2) + ', one bad day from bankruptcy';
+  return '✅ Solvent';
+}
+
+function buildOutput({ nowIso, market, news, companies, crash = null }) {
   const prices = {}, changes = {}, dividends = {}, divDaily = {}, divText = {}, names = {}, sparks = {}, charts = {};
+  const statuses = {}, statusText = {}, tradable = {};
   companies.forEach((c) => {
+    statuses[c.id] = c.status || 'ok';
+    statusText[c.id] = statusLine(c);
+    tradable[c.id] = c.status !== 'bankrupt' && !market.halted && market.status === 'open';
     prices[c.id] = c.price;
     changes[c.id] = c.change;
     dividends[c.id] = c.divIndex;
     divDaily[c.id] = Math.round(c.price * c.yield * c.divRate * 10000) / 10000;
     const eff = (c.yield * c.divRate * 100).toFixed(2).replace(/\.?0+$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
-    divText[c.id] = !c.yield ? '🚫 No dividend'
+    divText[c.id] = c.status === 'bankrupt' ? '💀 None · the company is bankrupt'
+      : !c.yield ? '🚫 No dividend'
       : c.divRate === 0 ? '💸 Suspended · next board review <t:' + unix(Date.parse(c.divReviewAt)) + ':R>'
       : c.divRate > 1.25 ? '🚀 Boosted to ' + ratePct(c.divRate) + ' · ' + eff + ' · until <t:' + unix(Date.parse(c.divBoostUntil)) + ':R>'
       : c.divRate < 1 ? '✂️ Cut to ' + ratePct(c.divRate) + ' · ' + eff
@@ -728,7 +1030,8 @@ function buildOutput({ nowIso, market, news, companies }) {
     ? withLines.slice(0, 5).map((n) => n.discord).join('\n\n')
     : 'No market news yet. Check back soon.';
   const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
-  return { updated: nowIso, engine: 2, market, prices, changes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
+  const crashText = crash ? crash.text : '';
+  return { updated: nowIso, engine: 2, market, crash, crashText, prices, changes, statuses, statusText, tradable, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 }
 
 module.exports = { tick, COMPANIES, TICK_MS, statusAt };

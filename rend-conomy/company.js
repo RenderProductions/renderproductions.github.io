@@ -29,7 +29,15 @@
     denied:    ['DENIED', null],
     market:    ['MARKET-WIDE', null],
     crossover: ['CROSSOVER', null],
-    dividend:  ['DIVIDEND', null]
+    dividend:  ['DIVIDEND', null],
+    crash:     ['MARKET CRASH', 'down'],
+    halt:      ['TRADING HALTED', 'warn'],
+    brink:     ['ON THE BRINK', 'warn'],
+    bankrupt:  ['BANKRUPT', 'down'],
+    appeal:    ['BAILOUT APPEAL', 'muted'],
+    appealDenied: ['APPEAL DENIED', 'down'],
+    bailout:   ['TODD BAILOUT', 'up'],
+    recovered: ['OUT OF BANKRUPTCY', 'up']
   };
   function kindOf(n) {
     var k = KIND[n.type] || ['NEWS', null];
@@ -47,6 +55,8 @@
   }
   function money(v) { return Number(v).toFixed(2); }
   function pct(v) { return (v >= 0 ? '▲ +' : '▼ ') + v.toFixed(2) + '%'; }
+  // Percent change that still makes sense when a price touches or crosses zero.
+  function pctOf(now, then) { return then ? ((now - then) / Math.abs(then)) * 100 : 0; }
   var clockFmt = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
   var dayFmt = new Intl.DateTimeFormat([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
   var fullFmt = new Intl.DateTimeFormat([], { dateStyle: 'medium', timeStyle: 'short' });
@@ -258,7 +268,7 @@
       evts.appendChild(b);
     });
 
-    var change = (h[h.length - 1] / h[0] - 1) * 100;
+    var change = pctOf(h[h.length - 1], h[0]);
     rangeLabel.textContent = 'H ' + money(max) + ' · L ' + money(min) + ' · ';
     var ch = el('span', up ? 'up' : 'down', pct(change));
     rangeLabel.appendChild(ch);
@@ -294,7 +304,10 @@
   // the typical size of a 5-minute move, scaled up to a day.
   function volatility(h) {
     var r = [];
-    for (var i = 1; i < h.length; i++) r.push(Math.log(h[i] / h[i - 1]));
+    // Under 3.00 prices move in Polygons (and can cross zero), so measure those moves against 3.00.
+    for (var i = 1; i < h.length; i++) {
+      r.push(h[i - 1] >= 3 && h[i] > 0 ? Math.log(h[i] / h[i - 1]) : (h[i] - h[i - 1]) / Math.max(3, Math.abs(h[i - 1])));
+    }
     if (r.length < 2) return 0;
     var mean = r.reduce(function (a, b) { return a + b; }, 0) / r.length;
     var v = r.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / (r.length - 1);
@@ -327,7 +340,8 @@
     var y = c.yield || 0;
     var rate = typeof c.divRate === 'number' ? c.divRate : (c.divSuspendedUntil ? 0 : 1);
     var eff = y * rate;
-    var divLine = !y ? 'No dividend'
+    var divLine = c.status === 'bankrupt' ? 'None · the company is bankrupt'
+      : !y ? 'No dividend'
       : rate === 0 ? 'Suspended · board review ' + (c.divReviewAt ? clockFmt.format(new Date(c.divReviewAt)) : 'soon')
       : money(c.price * eff) + ' per share per day' +
         (rate > 1.25 ? ' · boosted to ' + Math.round(rate * 100) + '%' + (c.divBoostUntil ? ' until ' + clockFmt.format(new Date(c.divBoostUntil)) : '')
@@ -341,6 +355,32 @@
     var card = $('.goal-card', top), side = $('.goal-side', top);
     clearInterval(goalTimer);
     card.innerHTML = '';
+    if (c.status === 'bankrupt' && c.bankrupt) {
+      // Bankrupt: no goals. Show the bailout appeal (or the next one) and the climb back to the surface.
+      var b = c.bankrupt;
+      card.className = 'goal-card bankrupt';
+      card.appendChild(el('div', 'goal-text', c.name + ' is bankrupt. No goals until it is rescued or climbs back above 1.00.'));
+      var bclock = el('div', 'goal-clock');
+      card.appendChild(bclock);
+      var label = el('div', 'goal-meta');
+      label.appendChild(el('span', null, b.verdictAt ? 'TODD is ruling on bailout appeal #' + b.appeals : 'Next bailout appeal to TODD'));
+      label.appendChild(el('span', null, 'Bankrupt since ' + fullFmt.format(new Date(b.since))));
+      card.appendChild(label);
+      var sbar = el('div', 'goal-bar'), sfill = el('span');
+      sfill.style.width = Math.min(100, ((b.swim || 0) / 12) * 100) + '%';
+      sbar.appendChild(sfill);
+      card.appendChild(sbar);
+      card.appendChild(el('div', 'goal-meta', b.swim ? 'Above 1.00 for ' + (b.swim * 5) + ' of 60 minutes. Stay up there and it is free.' : 'Climb above 1.00 and hold it for an hour to escape on its own.'));
+      var target = Date.parse(b.verdictAt || b.nextAppealAt);
+      var tickB = function () {
+        var left = target - Date.now();
+        bclock.textContent = left > 0 ? countdown(left) : (b.verdictAt ? 'VERDICT SOON' : 'APPEAL SOON');
+      };
+      tickB();
+      goalTimer = setInterval(tickB, 1000);
+      side.textContent = 'Bailout approved: trading restarts · Denied: it sinks deeper';
+      return;
+    }
     if (c.goal && c.goal.text) {
       card.className = 'goal-card';
       card.appendChild(el('div', 'goal-text', c.goal.text));
@@ -465,6 +505,11 @@
     var st = el('span', 'tag' + (m.status === 'open' ? ' live' : m.status === 'closed' ? ' off' : ''),
       m.status === 'after-hours' ? 'AFTER HOURS' : m.status === 'closed' ? 'CLOSED' : 'MARKET OPEN');
     chips.appendChild(st);
+    if (m.halted) chips.appendChild(el('span', 'tag bk', 'TRADING HALTED'));
+    if (data.crash && data.crash.phase === 'crash') chips.appendChild(el('span', 'tag bk', 'MARKET CRASH'));
+    if (c.status === 'bankrupt') chips.appendChild(el('span', 'tag bk', 'BANKRUPT'));
+    else if (c.status === 'distressed') chips.appendChild(el('span', 'tag brink', 'DISTRESSED'));
+    head.classList.toggle('is-bankrupt', c.status === 'bankrupt');
     if (c.goal && c.goal.text) chips.appendChild(el('span', 'tag', 'GOAL ACTIVE'));
     var dr = typeof c.divRate === 'number' ? c.divRate : (c.divSuspendedUntil ? 0 : 1);
     if (c.yield && dr === 0) chips.appendChild(el('span', 'tag off', 'DIVIDEND SUSPENDED'));
