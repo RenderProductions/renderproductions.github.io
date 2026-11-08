@@ -1047,6 +1047,39 @@
         "(He says nothing.)"
       ],
       "next": "found_more"
+    },
+    "snap": {
+      "say": [
+        {
+          "text": "[shake]ENOUGH.[/]",
+          "face": "angry",
+          "speed": 70,
+          "fx": "snap"
+        },
+        "(The desk is gone. A hand closes around the camera like a vise.)",
+        {
+          "text": "...^4 No.^3 Not yet.",
+          "face": "angry",
+          "speed": 50
+        },
+        {
+          "text": "Come back when I've found my [gold]good pistols[/].",
+          "face": "angry",
+          "fx": "release"
+        }
+      ],
+      "end": true
+    },
+    "snap_flat": {
+      "say": [
+        {
+          "text": "...^4 That's quite enough.",
+          "face": "angry",
+          "speed": 48
+        },
+        "(He turns his chair to face the wall, and doesn't turn back.)"
+      ],
+      "end": true
     }
   },
   "knownName": "CEDAR",

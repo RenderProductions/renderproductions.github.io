@@ -36,6 +36,13 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 .scene .him.gone { visibility: hidden; }
 .scene .him3d .pocket { width: 5.2%; }
 
+/* the snap (cedar3d.js): the desk flies at the screen, then everything goes dark under the dialogue box */
+.scene .him3d { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 14%); mask-image: linear-gradient(to top, transparent 0, #000 14%); }
+.scene.flung .desk { transform-origin: 50% 100%; animation: fling .6s cubic-bezier(.45,0,.85,.35) forwards; }
+@keyframes fling { 0% { transform: none; opacity: 1 } 25% { transform: translateY(-10%) rotate(-3deg) } 100% { transform: translateY(-150%) scale(2.8) rotate(-20deg); opacity: 0 } }
+.snapdark { position: absolute; inset: 0; z-index: 1; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.2s ease; }
+.snapdark.on { opacity: 1; transition: opacity .12s ease; }
+
 /* something in his pocket, glowing a dark gold */
 .scene .pocket { position: absolute; left: 50.5%; top: 80%; width: 8.5%; aspect-ratio: 1.15; transform: translate(-50%, -30%); pointer-events: none; }
 .scene .pocket::before { content: ''; position: absolute; inset: -160% -130% -10%; pointer-events: none; z-index: 1; mix-blend-mode: screen;

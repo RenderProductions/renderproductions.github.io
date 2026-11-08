@@ -20,6 +20,7 @@
 
   var BRAIN = null, SYN = {}, FINDS = {}, LOOSE = [], ITEMS = {}, CATALOG = {};
   var mode = 'chat', lastNode = '', lastTopic = '', lastReply = {}, picking = false;
+  var anger = 0;   // his temper this visit (brain.json "temper"): insults raise it, kind words cool it
   var inv = window.RPInventory;
   var room = document.getElementById('room');
 
@@ -260,6 +261,21 @@
       if (tp.do === 'show') return openPicker();
       if (tp.do === 'craft' && craft()) return;
       if (tp.do === 'tell') { lastNode = BRAIN.tellNode; return TALKER.go(BRAIN.tellNode); }
+      // temper: insults build toward him snapping; apologies and kind words cool him back down
+      var T = BRAIN.temper;
+      if (T && tp.anger > 0) {
+        anger += tp.anger;
+        if (anger >= (T.snapAt || 4)) {
+          anger = 0;
+          var to3d = window.CEDAR3D && T.snap && TALKER.data().nodes[T.snap];
+          return go(to3d ? T.snap : (T.snapFlat || T.snap));
+        }
+        var lv = (T.levels || [])[Math.min(anger, (T.levels || []).length) - 1];
+        if (lv) return speak(choose(lv, 'temper' + anger));
+      } else if (T && tp.anger < 0 && anger > 0) {
+        anger = Math.max(0, anger + tp.anger);
+        return speak(choose(T.calm, 'calm'));
+      }
       if (tp.setFlag) TALKER.flag(tp.setFlag);
       var r = null;
       if (seenBefore && tp.again && Math.random() < 0.75) r = choose(tp.again, tp.id + ':again');

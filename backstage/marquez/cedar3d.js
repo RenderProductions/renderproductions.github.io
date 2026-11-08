@@ -24,6 +24,9 @@ const LENS = '#2b6f31', LID = '#3e9943', LID_DARK = '#1f5a26';
 // way: the upper arm hangs by his side, a little out and forward; the forearm stands up in front
 // of his shoulder; the hand carries on up with its palm turned toward you.
 const POINT = { arm: [0.5, -0.6, 0.62], fore: [-0.04, 1, 0.22], hand: [-0.06, 1, 0.12], palm: [0.15, 0, 1] };
+// When he snaps (the "snap" line in dialogue.json, fx: snap) his arm shoots out at the camera, palm down,
+// and the hand closes on it. Same kind of directions as POINT.
+const REACH = { arm: [0.1, 0.55, 1], fore: [-0.08, 0.3, 1], hand: [-0.06, 0.2, 1], palm: [0, -1, 0] };
 const ARM = [['Right_Arm', 'forearm_R'], ['forearm_R', 'hand_R'], ['hand_R', 'middle_R']];
 const POCKET_AT = new THREE.Vector3(0.27, 2.62, 0.47);     // where the glowing thing in his pocket sits on the coat
 
@@ -191,15 +194,16 @@ function start() {
   // ---------------- motion ----------------
   function run(him, bones, rest, eye) {
     // ---- work out the pointing pose from the directions in POINT ----
-    const restQ = {}, aimQ = {};
+    const restQ = {}, aimQ = {}, reachQ = {};
     ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
-    function solvePoint() {
+    function solvePoint() { solveArm(POINT, aimQ); solveArm(REACH, reachQ); }
+    function solveArm(POSE, out) {
       if (!ARM.every(([b, c]) => bones[b] && bones[c])) return;
       ARM.forEach(([b]) => bones[b].quaternion.copy(restQ[b]));
       him.updateMatrixWorld(true);
       const at = (n) => bones[n].getWorldPosition(new THREE.Vector3());
       const rootQ = him.getWorldQuaternion(new THREE.Quaternion());
-      const dirs = [POINT.arm, POINT.fore, POINT.hand].map((d) => new THREE.Vector3(...d).normalize().applyQuaternion(rootQ));
+      const dirs = [POSE.arm, POSE.fore, POSE.hand].map((d) => new THREE.Vector3(...d).normalize().applyQuaternion(rootQ));
       // which way his palm faces at rest (toward his leg), in the hand's own space
       const handRestW = bones.hand_R.getWorldQuaternion(new THREE.Quaternion());
       const palmLocal = new THREE.Vector3(-1, 0, 0).applyQuaternion(rootQ).applyQuaternion(handRestW.clone().invert());
@@ -214,13 +218,13 @@ function start() {
           // roll the hand around its own length until the palm faces the way POINT.palm says
           const axis = dirs[i];
           const palmW = palmLocal.clone().applyQuaternion(bone.getWorldQuaternion(new THREE.Quaternion()));
-          const goal = new THREE.Vector3(...POINT.palm).normalize().applyQuaternion(rootQ);
+          const goal = new THREE.Vector3(...POSE.palm).normalize().applyQuaternion(rootQ);
           const a = palmW.projectOnPlane(axis).normalize(), g2 = goal.projectOnPlane(axis).normalize();
           const ang = Math.atan2(new THREE.Vector3().crossVectors(a, g2).dot(axis), a.dot(g2));
           bone.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(want.normalize(), ang));
           bone.updateMatrixWorld(true);
         }
-        aimQ[b] = bone.quaternion.clone();
+        out[b] = bone.quaternion.clone();
       });
       ARM.forEach(([b]) => bones[b].quaternion.copy(restQ[b]));
       him.updateMatrixWorld(true);
@@ -251,7 +255,37 @@ function start() {
       cursorAt = performance.now();
     }, { passive: true });
 
+    // ---- the snap: he rises, the desk goes flying, his hand takes the camera, everything goes dark ----
+    const dark = document.createElement('div');
+    dark.className = 'snapdark'; dark.setAttribute('aria-hidden', 'true');
+    (document.getElementById('room') || document.body).appendChild(dark);
+    let snapAt = 0, releaseTimer = 0;
+    const camHome = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
+    const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    function snap() {
+      snapAt = performance.now();
+      scene3.classList.remove('flung'); void scene3.offsetWidth;
+      setTimeout(() => scene3.classList.add('flung'), 260);
+      clearTimeout(releaseTimer);
+      releaseTimer = setTimeout(release, 30000);     // never leave anyone stuck in the dark
+    }
+    function release() {
+      clearTimeout(releaseTimer);
+      snapAt = 0;
+      scene3.classList.remove('flung');
+      him.position.set(0, 0, 0);
+      camera.position.copy(camHome.pos); camera.lookAt(camHome.look);
+      Object.keys(springs).forEach((k) => { if (/^(pt|curl)/.test(k)) springs[k].x = 0; });
+      dark.classList.remove('on');
+    }
+    document.addEventListener('talk:fx', (e) => {
+      const fx = e.detail && e.detail.fx;
+      if (fx === 'snap') snap();
+      if (fx === 'release') release();
+    });
+
     window.CEDAR3D = {
+      snap, release,
       face(f) { state.face = f || ''; },
       bones, POINT, solve: () => solvePoint(),
       flap() { if (!reduce) nodV += 2.2; }
@@ -276,8 +310,9 @@ function start() {
       // frame him from the waist (behind the desk) to the top of his hat
       const lo = 2.4, hi = 5.3, mid = (lo + hi) / 2;
       const dist = ((hi - lo) / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-      camera.position.set(0, mid + 0.35, dist);
-      camera.lookAt(0, mid + 0.02, 0);
+      camHome.pos.set(0, mid + 0.35, dist); camHome.look.set(0, mid + 0.02, 0);
+      camera.position.copy(camHome.pos);
+      camera.lookAt(camHome.look);
       camera.updateProjectionMatrix();
     }
     new ResizeObserver(size).observe(box);
@@ -342,8 +377,27 @@ function start() {
       // the metal arm just hangs, swaying a hair with his breath
       pose('Left_Arm', 0, 0, S('laz', -lean * 0.05) - breathe * 0.004);
 
+      // the snap, on top of everything else
+      if (snapAt) {
+        const st = window.CEDAR3D._st != null ? window.CEDAR3D._st : (now - snapAt) / 1000;   // _st: freeze it for testing
+        const rise = ease(st / 0.35), reach = ease((st - 0.5) / 0.45), grab = ease((st - 1.05) / 0.22), pull = ease((st - 0.75) / 0.6);
+        him.position.set(0, 0.32 * rise, 0.25 * reach);
+        pose('upper_body', -0.12 * rise + 0.22 * reach, 0, 0);
+        pose('chest', -0.08 * rise + 0.25 * reach, 0, 0);
+        pose('fat_fucking_dome', 0.12 * reach, 0, 0);
+        ARM.forEach(([b]) => { if (bones[b] && reachQ[b]) bones[b].quaternion.slerp(reachQ[b], reach); });
+        ['index', 'middle', 'ring'].forEach((n) => { pose(n + '_R', 0, 0, -1.25 * grab); pose(n + '_mid_R', 0, 0, -1.45 * grab); pose(n + '_tip_R', 0, 0, -0.9 * grab); });
+        pose('thumb_R', 0, 0.7 * grab, -0.4 * grab); pose('thumb_mid_R', 0, 0.6 * grab, -0.35 * grab);
+        // the camera is pulled toward the hand as it closes
+        him.updateMatrixWorld(true);
+        const hand = bones.middle_R ? bones.middle_R.getWorldPosition(new THREE.Vector3()) : camHome.look.clone();
+        camera.position.copy(camHome.pos).lerp(hand.clone().add(new THREE.Vector3(0, 0.05, 0.7)), pull);
+        camera.lookAt(camHome.look.clone().lerp(hand, pull));
+        if (st > 1.3) dark.classList.add('on');
+      }
+
       const pocket = box.querySelector('.pocket');
-      if (pocket) posePocket(pocket);
+      if (pocket) { pocket.style.visibility = snapAt ? 'hidden' : ''; if (!snapAt) posePocket(pocket); }
       renderer.render(scene, camera);
     }
     requestAnimationFrame(frame);

@@ -79,6 +79,35 @@
     "kids": ["children", "jack", "jill"],
     "popups": ["popup", "peekers", "eyes"]
   },
+  "temper": {
+    "_how": "Insults (topics with \"anger\": 1) build his temper for this visit; kind words and apologies (\"anger\": -1) cool it by one, with a 'calm' line if he was angry. Each level says one of its lines; at 'snapAt' he snaps: 'snap' (dialogue.json) when he's showing in 3D, 'snapFlat' when he's the drawing.",
+    "snapAt": 4,
+    "snap": "snap",
+    "snapFlat": "snap_flat",
+    "levels": [
+      [
+        [{ "text": "I've been yelled at by a god, friend.", "face": "smile" }, "You'll have to do better than that."],
+        ["(He goes back to his writing as if you'd said nothing at all.)"],
+        [{ "text": "Rude.^2 But honest. I can respect honest.", "face": "point" }],
+        [{ "text": "Careful, friend.^2 I've been insulted by better.", "face": "smile" }]
+      ],
+      [
+        [{ "text": "...^3 You're mistaking manners for patience.", "face": "angry", "speed": 44 }],
+        [{ "text": "(He sets his pen down. Slowly.)", "face": "angry" }, "Try that again and see what happens."],
+        [{ "text": "I ran a shop for a very long time, friend.^3 I know exactly what people like you are worth.", "face": "angry" }]
+      ],
+      [
+        [{ "text": "[shake]Say one more thing.[/]", "face": "angry", "speed": 56 }],
+        [{ "text": "(Something shifts inside his coat. Metal on metal.)", "face": "angry" }, { "text": "[red]One more.[/]", "face": "angry", "speed": 60 }],
+        [{ "text": "I am asking you, [red]politely[/],^3 to stop.", "face": "angry", "speed": 50 }]
+      ]
+    ],
+    "calm": [
+      [{ "text": "...^3 Fine.^2 Fine.", "face": "angry" }, "(He lets out a long breath.)"],
+      ["Hm.^3 Apology noted.^2 I'll pretend that never happened."],
+      [{ "text": "(He straightens his hat.)", "face": "smile" }, "Let's start over, shall we?"]
+    ]
+  },
   "topics": [
     { "id": "hello", "match": ["hello", "good morning", "good evening", "good afternoon"],
       "replies": [
@@ -364,25 +393,30 @@
         [{ "text": "TODD.", "face": "smile" }, "^3That's the joke.^2 That's all of it."]
       ] },
 
-    { "id": "thanks", "match": ["thanks", "thank you", "you are helpful", "that helps"],
+    { "id": "thanks", "anger": -1, "match": ["thanks", "thank you", "you are helpful", "that helps"],
       "replies": [
         [{ "text": "Don't thank me yet.", "face": "smile" }],
         ["You're welcome, {name}.^2 Now go do something with it."]
       ] },
 
-    { "id": "sorry", "match": ["sorry", "my bad", "forgive me", "i apologize"],
+    { "id": "sorry", "anger": -1, "match": ["sorry", "my bad", "forgive me", "i apologize", "did not mean it", "i take it back", "calm down"],
       "replies": [
         ["Forgiven.^2 Down here, grudges take up too much room."],
         [{ "text": "Apology accepted. Don't make a habit of it.", "face": "point" }]
       ] },
 
-    { "id": "love", "match": ["love you", "like you", "you are cool", "you are awesome", "you are nice", "you are my favorite", "you are great"],
+    { "id": "love", "anger": -1, "match": ["love you", "like you", "you are cool", "you are awesome", "you are nice", "you are my favorite", "you are great"],
       "replies": [
         [{ "text": "Flattery.^2 In MY shop?", "face": "smile" }, "[gray]...It still works, a little.[/]"],
         ["(He clears his throat and looks away.)", "Yes, well.^2 You're tolerable too."]
       ] },
 
-    { "id": "insult", "match": ["stupid", "hate you", "shut up", "you suck", "you are boring", "nobody likes you", "screw you", "go away"],
+    { "id": "insult", "anger": 1, "match": ["stupid", "hate you", "shut up", "you suck", "you are boring", "nobody likes you", "screw you", "go away",
+        "idiot", "moron", "dumb", "loser", "clown", "fool", "coward", "weirdo", "freak", "creep", "nerd", "trash", "garbage", "useless", "pathetic", "ugly",
+        "four eyes", "ugly hat", "stupid hat", "dumb hat", "silly hat", "ugly coat", "old man", "old geezer", "grandpa", "you smell", "you stink",
+        "you are a doodle", "you are just a doodle", "you are a drawing", "you are fake", "you are not real", "you are a nobody", "nobody cares",
+        "do not like you", "you are not cool", "you are not funny", "not funny", "you are annoying", "you are lame", "lame", "cringe", "bad shopkeeper",
+        "worst shopkeeper", "tin arm", "robot arm is ugly", "lazy", "you are weak", "weakling", "scaredy cat", "chicken"],
       "replies": [
         [{ "text": "I've been yelled at by a god, friend.", "face": "smile" }, "You'll have to do better than that."],
         ["(He goes back to his writing as if you'd said nothing at all.)"],
