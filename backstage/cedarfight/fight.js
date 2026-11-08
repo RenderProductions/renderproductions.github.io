@@ -30,7 +30,7 @@ const LIFT = 1.24 * YOU_SIZE;  // where on you his shots aim: the middle of your
 // ---------------- the player (same moves and feel as VS TODD) ----------------
 const TUNE = {
   run: 300, accel: 2600, airAccel: 1700, friction: 3000, gravity: 2300, fall: 1100, jump: 830, cut: 0.45,
-  coyote: 0.09, buffer: 0.12, parry: 0.2, spin: 0.34, parryCool: 0.22, groundHop: 380, airPop: 220, gold: 0.45, hurt: 1.1
+  coyote: 0.09, buffer: 0.12, parry: 0.3, spin: 0.34, parryCool: 0.22, groundHop: 380, airPop: 220, gold: 0.45, hurt: 1.1
 };
 const P = { s: 0, h: 0, vs: 0, vh: 0, face: 1, ground: true, coyote: 0, buffer: 0, walkT: 0,
   hp: 3, dead: false, hurtT: 0, parryT: 0, spin: 0, parryCool: 0, goldT: 0, parryAt: -9 };
@@ -60,6 +60,9 @@ document.querySelectorAll('#pad button').forEach((b) => {
 
 // only with something that can take a hit, like VS TODD: the Clear Polaroid or the Dubbed Tape
 const PARRY_ITEMS = ['clear_polaroid', 'dubbed_tape'];
+// the parry is generous: the window is open 0.3 s, it catches a round well before it would touch you, and a
+// round that hits you a moment BEFORE you press still counts (LATE). A perfect parry is the first 0.16 s.
+const HIT_R = 0.62, PARRY_REACH = 1.25, PERFECT = 0.16, LATE = 0.09;
 const canParry = () => { const inv = window.RPInventory; return !!(inv && PARRY_ITEMS.some((id) => inv.has(id))); };
 
 function stepPlayer(dt) {
@@ -517,19 +520,34 @@ function stepShots(dt) {
   const you3 = pPos(LIFT), heart = chestPos();
   for (let i = shots.length - 1; i >= 0; i--) {
     const s = shots[i];
+    // a round that just hit you, held a beat in case you parry a hair late
+    if (s.held != null) {
+      if (P.parryT > 0 && P.parryAt >= s.held - 0.02) {
+        s.held = null; s.m.visible = true; s.m.position.copy(you3);
+        s.back = true; recolor(s); P.goldT = TUNE.gold; sfx('parry', 0.8); shake(0.1);
+        s.v = heart.clone().sub(s.m.position).normalize().multiplyScalar(s.v.length() * 1.25); aimRound(s);
+        if (s.perfect) s.perfectHit = true;
+      } else if (clock - s.held > LATE) { hurtYou(); scene.remove(s.m); shots.splice(i, 1); }
+      continue;
+    }
     s.m.position.addScaledVector(s.v, dt); s.life -= dt;
     if (s.via && !s.back && s.m.position.distanceTo(s.via) < 0.45) {         // the ricochet: off the rim, now at you
       flashAt(s.via, 0.3); sfx('impact', 0.3, 2);
       s.v = pPos(LIFT).sub(s.via).normalize().multiplyScalar(s.v.length()); s.via = null; aimRound(s);
     }
-    if (!s.back && !s.via && s.m.position.distanceTo(you3) < 0.62) {
-      if (P.parryT > 0 && (!s.perfect || clock - P.parryAt < 0.1)) {
+    // where the round passed this frame, not just where it ended up (fast rounds cover half a unit a frame)
+    const seg = new THREE.Line3(s.m.position.clone().addScaledVector(s.v, -dt), s.m.position);
+    const near = seg.closestPointToPoint(you3, true, new THREE.Vector3()).distanceTo(you3);
+    const parrying = P.parryT > 0 && (!s.perfect || clock - P.parryAt < PERFECT);
+    if (!s.back && !s.via && near < (parrying ? PARRY_REACH : HIT_R)) {
+      if (parrying) {
         s.back = true; recolor(s); P.goldT = TUNE.gold; sfx('parry', 0.8); shake(0.1);
         s.v = heart.clone().sub(s.m.position).normalize().multiplyScalar(s.v.length() * 1.25); aimRound(s);
         if (s.perfect) s.perfectHit = true;
         if (P.ground) { P.vh = 520; P.ground = false; }
         continue;
       }
+      if (canParry() && P.hurtT <= 0 && P.goldT <= 0 && P.parryCool <= 0) { s.held = clock; s.m.visible = false; continue; }
       hurtYou(); scene.remove(s.m); shots.splice(i, 1); continue;
     }
     if (s.back && s.m.position.distanceTo(heart) < 0.9) {
@@ -601,9 +619,10 @@ function runRPG(dt) {
 function finale() {
   const r = fight.rpg; r.state = 'end';
   rpgText.textContent = 'CEDAR reaches into his coat...';
+  cedar.finale = clock; cedar.throwAt = null; cedar.taunt = null; aim.on = false; aim.locked = null;
   setTimeout(() => { rpgText.textContent = '...and finds it empty.'; cedar.empty = 1; }, 1800);
   setTimeout(() => { rpgEl.hidden = true; say("...Well. That's never happened before.", 2.8); }, 3800);
-  setTimeout(() => { say("Here. You've earned one.", 2.4); }, 6800);
+  setTimeout(() => { say("Here. You've earned one.", 2.4); }, 6800);   // (the last one, from the lining)
   setTimeout(won, 9200);
 }
 function won() {
@@ -615,11 +634,14 @@ function won() {
 }
 function die() {
   P.dead = true; fight.over = true;
+  // he wins: stand easy, blow the smoke off the barrel, a twirl, back in the coat, a tip of the hat
+  Object.assign(cedar, { victory: clock, back: false, whirl: 0, stagger: 0, kneel: 0, throwAt: null, taunt: null });
+  aim.on = false; aim.locked = null; fakeWindow = null;
   setTimeout(() => {
     $('d-quote').textContent = pick(LINES.death);
     $('d-sub').textContent = 'Phase ' + fight.phase + (fight.phase < 6 ? ' · ' + fight.hp + ' HP left' : '');
     $('dead').hidden = false; $('dead').querySelector('button').focus();
-  }, 1300);
+  }, 4600);
 }
 $('dead').querySelector('[data-go="retry"]').addEventListener('click', () => location.reload());
 
@@ -693,27 +715,28 @@ function poseCedar(dt) {
   pose('fat_fucking_dome', 0.08 - 0.28 * fl - 0.32 * la + 0.15 * st - 0.25 * kk, hy * 0.5, 0.1 * la * Math.sin(t * 20) + 0.04 * sway);
   runEye(dt, THREE.MathUtils.clamp((hd - 0.9 * hy) * 2.5, -0.7, 0.7));
   // the metal arm: his hand on his hip when he's at ease; it swats, and swings for balance
-  const atEase = cedar.forceHip != null ? cedar.forceHip : k0 === 'rest' || (k0 === 'paces' && cedar.back) ? 1 : 0.25;
+  const atEase = cedar.forceHip != null ? cedar.forceHip : cedar.victory != null ? 1 : k0 === 'rest' || (k0 === 'paces' && cedar.back) ? 1 : 0.25;
   cedar.hip = (cedar.hip || 0) + (atEase - (cedar.hip || 0)) * Math.min(1, dt * 4);
   const sw = cedar.swat || 0;
   pose('Left_Arm', -0.9 * sw + 0.25 * stepL * (1 - cedar.hip) - 0.5 * kk, 0.35 * cedar.hip, -0.85 * cedar.hip - 0.4 * sw - 0.3 * la);
   pose('forearm_L', 0, 0, 1.75 * cedar.hip);
   // between attacks, a little showmanship: tip the hat, beckon you closer, shrug
-  if (k0 === 'rest' && once('taunt') && step[1] >= 0.7 && Math.random() < 0.7) {
+  if (k0 === 'rest' && cedar.victory == null && cedar.finale == null && once('taunt') && step[1] >= 0.7 && Math.random() < 0.7) {
     const kind = pick(['hat', 'tilt', 'tilt', 'beckon', 'shrug']);
     if (kind === 'hat' || kind === 'tilt') step[1] = Math.max(step[1], kind === 'hat' ? 1.7 : 1.4);
     cedar.taunt = { kind, t0: clock, len: Math.min(kind === 'hat' ? 1.7 : 1.6, step[1]) };
   }
-  if (cedar.taunt && (clock - cedar.taunt.t0 > cedar.taunt.len || (k0 !== 'rest' && !cedar.dbgHold))) cedar.taunt = null;
+  if (cedar.taunt && (clock - cedar.taunt.t0 > cedar.taunt.len || (k0 !== 'rest' && !cedar.dbgHold && cedar.victory == null))) cedar.taunt = null;
   // ---------------- the gun arm ----------------
   // Every move of the gun arm is a set of poses he passes through: each pose says where his upper arm, forearm and
   // hand point (a straight point at you, or a bent-elbow reach to a spot on his body), blended over time.
   const kind = k0;
-  const aiming = (kind === 'shot' || kind === 'fake') && stepT > PH[fight.phase].draw * 0.5 || (fight.rpg && fight.rpg.state === 'his') || (kind === 'paces' && !cedar.back && step.done.whirl);
+  const ending = cedar.victory != null || cedar.finale != null;
+  const aiming = !ending && ((kind === 'shot' || kind === 'fake') && stepT > PH[fight.phase].draw * 0.5 || (fight.rpg && fight.rpg.state === 'his') || (kind === 'paces' && !cedar.back && step.done.whirl));
   cedar.aimK = (cedar.aimK || 0) + ((aiming ? 1 : 0) - (cedar.aimK || 0)) * Math.min(1, dt * 12);
   const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
-  const tt = cedar.dbgThrow != null ? cedar.dbgThrow : cedar.throwAt != null ? clock - cedar.throwAt : 9;
-  const drawK = cedar.dbgDraw != null ? cedar.dbgDraw : (kind === 'shot' || kind === 'fake') ? stepT / PH[fight.phase].draw : 9;
+  const tt = cedar.dbgThrow != null ? cedar.dbgThrow : cedar.throwAt != null && !ending ? clock - cedar.throwAt : 9;
+  const drawK = cedar.dbgDraw != null ? cedar.dbgDraw : !ending && (kind === 'shot' || kind === 'fake') ? stepT / PH[fight.phase].draw : 9;
   // the throw, as one number: +1 wound back (gun shoulder back, weight on the back foot), -1 thrown (shoulder through, lunging)
   const tw = tt >= 0.6 ? 0 : tt < 0.2 ? ease(tt / 0.2) : tt < 0.3 ? 1 - 2 * ease((tt - 0.2) / 0.1) : -(1 - ease((tt - 0.36) / 0.24));
   const twB = Math.max(0, tw), twF = Math.max(0, -tw);
@@ -735,6 +758,33 @@ function poseCedar(dt) {
   {
     const fwd = new THREE.Vector3(Math.sin(cedar.yaw), 0, Math.cos(cedar.yaw));
     him.position.addScaledVector(fwd, 0.3 * twF - 0.12 * twB - 0.14 * rc);
+  }
+  // the endings, as body poses (the arm comes below)
+  const vt = cedar.victory != null ? clock - cedar.victory : -1, ft = cedar.finale != null ? clock - cedar.finale : -1;
+  if (vt >= 0) {
+    const blow = ease((vt - 0.5) / 0.15) * (1 - ease((vt - 1.25) / 0.25)), inhale = ease((vt - 0.3) / 0.2) * (1 - ease((vt - 0.55) / 0.1));
+    const tuck = ease((vt - 2.0) / 0.3) * (1 - ease((vt - 2.55) / 0.3));
+    add('chest', -0.07 * inhale + 0.05 * blow, 0.3 * tuck, 0);
+    add('upper_body', -0.06 * (1 - blow), 0, 0);
+    add('neck', 0.12 * blow, -0.2 * blow, 0);
+    add('fat_fucking_dome', 0.22 * blow - 0.08 * inhale, -0.25 * blow, 0);
+    if (vt > 0.5 && !cedar.puffed) { cedar.puffed = 1; }
+    if (vt > 2.85 && !cedar.victoryHat) { cedar.victoryHat = 1; cedar.taunt = { kind: 'hat', t0: clock, len: 1.5 }; }
+  }
+  if (ft >= 0) {
+    // rummaging: head down at his coat; the pat-down; straightening up, puzzled; then the offer
+    const look = ease(ft / 0.4) * (1 - ease((ft - 3.8) / 0.4)) + ease((ft - 5.4) / 0.3) * (1 - ease((ft - 6.4) / 0.3));
+    const puzzled = ease((ft - 3.8) / 0.4) * (1 - ease((ft - 5.4) / 0.3));
+    const offer = ease((ft - 6.6) / 0.5);
+    add('chest', 0.06 * look - 0.03 * offer, 0.3 * look * (ft < 1.8 ? 1 : 0.6 + 0.4 * Math.sin(ft * 9)), 0.06 * puzzled);
+    add('upper_body', 0.1 * look + 0.14 * offer, 0, 0);
+    add('neck', 0.25 * look, -0.25 * look, 0);
+    add('fat_fucking_dome', 0.2 * look + 0.08 * offer, -0.15 * look, 0.2 * puzzled);
+    add('Left_Arm', 0, 0, -0.3 * puzzled); add('forearm_L', 0, 0, 0.5 * puzzled);
+    // the metal hand pats the other side of the coat while the good one searches
+    const pat = ft > 1.8 && ft < 3.8 ? 1 : 0;
+    add('Left_Arm', -0.35 * pat, 0, 0.35 * pat); add('forearm_L', -0.3 * pat * (0.5 + 0.5 * Math.sin(ft * 14)), 0, 0.8 * pat);
+    add('Left_Leg', -0.3 * offer, 0, 0); add('lowerleg_L', 0.2 * offer, 0, 0);
   }
   // the hat: lifted off his head with a bow, or tugged down over his eye
   const T = cedar.taunt, tk = T ? (clock - T.t0) / T.len : 0;
@@ -814,6 +864,46 @@ function poseCedar(dt) {
       D = reach(sh.clone().add(W(0.75, -0.35, 0.35).multiplyScalar((armL[0] + armL[1]) * 0.75)), W(0.2, -1, -0.5), W(0.6, 0, 0.5)); palm = new THREE.Vector3(0, 1, 0); amt = env;
       add('chest', -0.05 * env, 0, 0); add('fat_fucking_dome', 0, 0, 0.18 * env);
       add('Left_Arm', 0, 0, -0.35 * env); add('forearm_L', 0, 0, 0.4 * env);
+    }
+  }
+  if (vt >= 0) {
+    const L = armL[0] + armL[1];
+    const chin = reach(sh.clone().add(W(-0.5, 0.85, 0.55).multiplyScalar(L * 0.5)), W(1, -0.7, 0), W(0, 1, 0.12));
+    const side = same(W(0.25, -1, 0.15));
+    const pocket = reach(on('chest', -0.16, 0.3, 0.3), W(1, -0.5, -0.2), W(-0.4, -1, 0.1));
+    if (gun) gun.visible = vt > 0.12 && vt < 2.45;
+    grip = 1;
+    if (vt < 1.5) { D = chin; amt = Math.max(amt * (1 - ease(vt / 0.4)), ease(vt / 0.4)); palm = W(-1, 0, 0); }
+    else if (vt < 2.05) { D = mixD(chin, side, ease((vt - 1.5) / 0.45)); amt = 1; twirl = 2 * ease((vt - 1.5) / 0.55); palm = W(-1, 0, 0); }
+    else if (vt < 2.5) { D = mixD(side, pocket, ease((vt - 2.05) / 0.35)); amt = 1; palm = W(-1, 0, 0.3); }
+    else if (vt < 2.85) { D = pocket; amt = 1 - ease((vt - 2.5) / 0.35); grip = 0.25; }
+    else if (!T) { amt = 0; grip = 0.25; }
+    // the smoke he blows off the barrel
+    if (vt > 0.62 && vt < 1.2 && gun && gun.visible && Math.random() < dt * 14) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), new THREE.MeshBasicMaterial({ color: 0xcfc4b2, transparent: true, opacity: 0.22, depthWrite: false }));
+      m.position.copy(muzzlePos()).add(W(0.3, 0.4, 0.2).multiplyScalar(0.15)); scene.add(m);
+      fx.push({ m, t: 0, len: 1.4, grow: 5, rise: 0.8 });
+    }
+  }
+  if (ft >= 0) {
+    const L = armL[0] + armL[1];
+    const inner = on('chest', -0.16, 0.3, 0.3), low = on('chest', -0.22, -0.25, 0.3), hipR = on('chest', 0.3, -0.45, 0.25), lining = on('chest', -0.1, 0.05, 0.28);
+    const pole = W(1, -0.5, -0.2), hd = W(-0.4, -1, 0.1);
+    grip = 0.1; palm = W(-1, 0, 0.3); amt = 1;
+    if (gun) gun.visible = ft > 5.95;
+    if (ft < 0.5) { D = reach(inner, pole, hd); amt = ease(ft / 0.5); }
+    else if (ft < 1.8) { D = reach(inner.clone().add(W(0.1 * Math.sin(ft * 11), 0.08 * Math.sin(ft * 7), 0)), pole, hd); }      // rummaging
+    else if (ft < 3.8) {                                                                                                        // the pat-down
+      const spots = [low, inner, hipR, low], i = Math.min(3, Math.floor((ft - 1.8) / 0.5)), k = ((ft - 1.8) % 0.5) / 0.5;
+      const tap = 0.06 * Math.max(0, Math.sin(k * Math.PI * 2));
+      D = reach(spots[i].clone().add(W(0, 0, tap)), pole, W(0, -0.3, -1)); grip = 0;
+    }
+    else if (ft < 5.4) { D = same(W(0.7, -0.4, 0.5)); amt = ease((ft - 3.8) / 0.3) * 0.8; palm = new THREE.Vector3(0, 1, 0); grip = 0; }   // empty hand, palm up
+    else if (ft < 6.4) { D = reach(lining, pole, hd); grip = ease((ft - 5.7) / 0.2); }                                    // ...one last one, in the lining
+    else {                                                                                                                     // offered to you, grip first
+      const toward = nl(toYou, W(0.6, 0.35, 0.3), 0.45), out = reach(sh.clone().add(toward.clone().multiplyScalar(L * 0.92)), W(1, -1, 0), toward);
+      D = mixD(reach(lining, pole, hd), out, ease((ft - 6.4) / 0.6)); grip = 1; palm = new THREE.Vector3(0, 1, 0);
+      twirl = 0.5 * ease((ft - 6.4) / 0.6);
     }
   }
   aimArm(D, palm, amt);
@@ -947,7 +1037,7 @@ let eye = null;
 function runEye(dt, hy) {
   if (!eye) return;
   const e = eyeState;
-  e.face = cedar.laugh > 0.05 ? 'smile' : cedar.sly ? 'angry' : (cedar.flinch > 0.05 || cedar.stagger > 0 || (step && (step[0] === 'paces' || step[0] === 'kick'))) ? 'angry' : '';
+  e.face = cedar.laugh > 0.05 || (cedar.victory != null && clock - cedar.victory > 2.8) ? 'smile' : cedar.sly ? 'angry' : (cedar.flinch > 0.05 || cedar.stagger > 0 || (step && (step[0] === 'paces' || step[0] === 'kick'))) ? 'angry' : '';
   e.lx += (THREE.MathUtils.clamp(hy / 0.7, -1, 1) - e.lx) * Math.min(1, dt * 14);
   e.ly += (0.55 - e.ly) * Math.min(1, dt * 6);
   if (e.t < 0 && clock > e.next) e.t = 0;
@@ -1003,4 +1093,4 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; } };
+window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, die, finale };
