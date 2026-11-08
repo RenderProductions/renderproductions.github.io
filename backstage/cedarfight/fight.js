@@ -108,40 +108,35 @@ function audio() {
   try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
   musicBus = actx.createGain(); musicBus.gain.value = MUSIC_ON ? MUSIC_VOL : 0; musicBus.connect(actx.destination);
   Object.entries(SFX).forEach(([k, url]) => fetch(url).then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => { buffers[k] = d; }).catch(() => {}));
-  if (MUSIC_ON) Object.entries(MUSIC).forEach(([k, m]) => fetch('music/' + m.file + '.mp3?v=1').then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => musicLoaded(k, d)).catch(() => {}));
+  if (MUSIC_ON) loadMusic();
   return actx;
 }
 
-// ---- the music: a waltz in 3/4, one theme through the whole fight (music/, made by compose_cedar.py) ----
+// ---- the music: a Viennese waltz in 3/4, one theme through the whole fight (music/, made by compose_cedar.py;
+// rendered with the GeneralUser GS soundfont by S. Christian Collins) ----
 // Each piece's bars and tempo as composed, so loops land on the exact sample and phase changes wait for the
 // next bar line, like VS TODD. The music setting is VS TODD's (its options menu).
 let MUSIC_ON = true;
 try { MUSIC_ON = (JSON.parse(localStorage.getItem('rvFightOpts')) || {}).music !== false; } catch (e) {}
 const MUSIC_VOL = 0.55;
 let musicBus = null;
-const MUSIC = {
-  intro: { file: 'cedar_1_intro', bpm: [[0, 150]], bars: 4 },
-  p1: { file: 'cedar_2_phase1', bpm: [[0, 150]], bars: 32, loop: true },
-  p2: { file: 'cedar_3_phase2', bpm: [[0, 162]], bars: 32, loop: true },
-  p3: { file: 'cedar_4_phase3', bpm: [[0, 168]], bars: 32, loop: true },
-  p4: { file: 'cedar_5_phase4', bpm: [[0, 176]], bars: 32, loop: true },
-  p5: { file: 'cedar_6_phase5', bpm: [[0, 60 / 0.42]], bars: 32, loop: true },   // one beat = one pace
-  p6: { file: 'cedar_7_phase6', bpm: [[0, 128]], bars: 32, loop: true },
-  over: { file: 'cedar_8_gameover', bpm: [[0, 120], [2, 100], [4, 84]], bars: 6 },
-  end: { file: 'cedar_9_ending', bpm: [[0, 108], [14, 96], [15, 84]], bars: 19 },
-};
-for (const k in MUSIC) {
-  const m = MUSIC[k], tempo = (i) => { let b = m.bpm[0][1]; for (const [at, v] of m.bpm) if (i >= at) b = v; return b; };
-  m.start = []; let t = 0;
-  for (let i = 0; i < m.bars; i++) { m.start.push(t); t += 3 * 60 / tempo(i); }
-  m.len = t; m.at = 0; m.buf = null;
+// music/score.json (written by compose_cedar.py with the files): per piece its file, whether it loops, its
+// length and every bar's start time in seconds (the tempo bends in places, so they're measured, not computed)
+const MUSIC = {};
+fetch('music/score.json?v=2').then((r) => r.json()).then((j) => {
+  for (const k in j) MUSIC[k] = { file: j[k].file, loop: j[k].loop, len: j[k].len, start: j[k].bars, at: 0, buf: null };
+  if (actx && MUSIC_ON) loadMusic();
+}).catch(() => {});
+function loadMusic() {
+  Object.entries(MUSIC).forEach(([k, m]) => { if (!m.req && k !== 'hard' && k !== 'endless') {   // (Hard and Endless: when those modes exist)
+    m.req = 1; fetch('music/' + m.file + '.mp3?v=2').then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => musicLoaded(k, d)).catch(() => {}); } });
 }
 const MUS = { cur: null, voices: [], want: null };
 function musicLoaded(k, b) {
   // where the sound starts (the encoder puts a few ms of silence at the front)
   const d = b.getChannelData(0); let i = 0; while (i < d.length && Math.abs(d[i]) < 0.002) i++;
   MUSIC[k].at = Math.max(0, i / b.sampleRate - 0.004); MUSIC[k].buf = b;
-  if (MUS.want === k || (!MUS.cur && MUS.want && MUSIC[MUS.want].buf)) musicGo(MUS.want);
+  if (MUS.want === k || (!MUS.cur && MUS.want && MUSIC[MUS.want] && MUSIC[MUS.want].buf)) musicGo(MUS.want);
 }
 function voice(key, when, from) {
   const m = MUSIC[key], s = actx.createBufferSource(), g = actx.createGain(); s.buffer = m.buf; s.connect(g); g.connect(musicBus);
@@ -150,7 +145,7 @@ function voice(key, when, from) {
   return v;
 }
 function musicPlay(key, when, from = 0) {
-  if (!actx || !MUSIC[key].buf) return;
+  if (!actx || !MUSIC[key] || !MUSIC[key].buf) return;
   when = Math.max(actx.currentTime + 0.01, when);
   voice(key, when, from);
   MUS.cur = { key, T: when - from, queued: when - from };
@@ -168,7 +163,7 @@ function nextBar(cur, after) {
 // what should be playing: the intro then phase 1, a loop per phase, and the two endings
 function musicGo(key) {
   MUS.want = key;
-  if (!actx || !MUSIC_ON || !MUSIC[key].buf) return;
+  if (!actx || !MUSIC_ON || !MUSIC[key] || !MUSIC[key].buf) return;
   const cur = MUS.cur, now = actx.currentTime;
   if (cur && cur.key === key) return;
   if (key === 'over' || key === 'end' || !cur) { if (cur) musicStop(key === 'end' ? 2.5 : 0.5); musicPlay(key, now + (key === 'over' ? 0.35 : 0.05)); return; }
@@ -189,7 +184,7 @@ function musicTick() {
   // loops: a fresh copy starts on the loop point while the old one rings out underneath
   if (m.loop && now > cur.queued + m.len - 0.6) { voice(cur.key, cur.queued + m.len, 0); cur.queued += m.len; }
   // the intro runs straight into phase 1, on its last bar line
-  if (cur.key === 'intro' && now > cur.T + m.len - 0.6 && MUSIC.p1.buf) musicPlay('p' + Math.max(1, fight.phase), cur.T + m.len);
+  if (cur.key === 'intro' && now > cur.T + m.len - 0.6 && MUSIC.p1 && MUSIC.p1.buf) musicPlay('p' + Math.max(1, fight.phase), cur.T + m.len);
 }
 // Ten Paces counts on the beat: seconds from now until the first beat at least 'after' seconds away
 function beatIn(after) {
