@@ -416,7 +416,9 @@ function start() {
         const rise = ease(st / 0.3), wind = ease((st - 0.3) / 0.25), lunge = backOut((st - 0.55) / 0.25);
         const open = ease((st - 0.6) / 0.2), grab = ease((st - 1.1) / 0.12), pull = ease((st - 0.85) / 0.35);
         const lu = Math.min(1, lunge);
-        him.position.set(0, 0.32 * rise - 0.06 * lu, 0.6 * lu);
+        const w2 = wind * (1 - lu);        // the wind-up, fading as the lunge takes over
+        // feet on the ground: he rises a little out of the chair, then drops into the lunge
+        him.position.set(0, 0.1 * rise - 0.16 * lu + 0.03 * grab, 0.45 * lu + 0.06 * grab);
         pose('upper_body', -0.14 * wind * (1 - lu) + 0.1 * lu, 0, 0);
         pose('chest', -0.1 * wind * (1 - lu) + 0.08 * lu, -0.3 * wind * (1 - lu) + 0.14 * lu, 0);
         pose('neck', -0.06 * lu, 0, 0);
@@ -427,6 +429,19 @@ function start() {
           if (lunge > 0) bn.quaternion.copy(windQ[b]).slerp(reachQ[b], lunge);
           else bn.quaternion.slerp(windQ[b], wind);
         });
+        // the rest of him: a fencer's lunge. Wind-up: hips and chest twist back, weight on the back foot, the metal
+        // arm comes forward to balance. Lunge: the right leg steps out with the knee bent, the left pushes back
+        // straight, the hips drop and the metal arm swings back. The grab: a last push through the hips.
+        pose('pelvis', 0, 0.22 * w2 - 0.12 * lu, 0);
+        pose('hips', 0.05 * w2 - 0.04 * lu, 0.1 * w2 - 0.06 * lu, 0);
+        pose('Right_Leg', 0.18 * w2 - 0.75 * lu - 0.05 * grab, 0, 0.04 * lu);
+        pose('lowerleg_R', 0.12 * w2 + 0.7 * lu, 0, 0);
+        pose('foot_R', -0.1 * w2 + 0.08 * lu, 0, 0);
+        pose('Left_Leg', -0.12 * w2 + 0.42 * lu + 0.05 * grab, 0, -0.05 * lu);
+        pose('lowerleg_L', 0.25 * w2 + 0.12 * lu, 0, 0);
+        pose('foot_L', -0.12 * w2 - 0.3 * lu, 0, 0);
+        pose('Left_Arm', -0.45 * w2 + 0.7 * lu + 0.1 * grab, 0, -0.12 * w2 - 0.22 * lu);
+        pose('forearm_L', -0.35 * w2 - 0.25 * lu, 0, 0);
         // the hand opens wide (fingers bent back a little and spread), then slams shut
         const spread = { index: 0.16, middle: 0, ring: -0.16 };
         ['index', 'middle', 'ring'].forEach((n) => {
