@@ -202,7 +202,7 @@
     if (CHAT && !queue.length && node) {
       if (node.panel) openPanel();
       // more to say: Z goes on (a "next" that's just a menu, like back to the advice list, opens the box instead)
-      else if (node.next && !CHAT.silent(node.next) && !(DATA.nodes[node.next] && DATA.nodes[node.next].choices)) box.classList.add('done');
+      else if (node.next && (want3d(node.next) || (!CHAT.silent(node.next) && !(DATA.nodes[node.next] && DATA.nodes[node.next].choices)))) box.classList.add('done');
       else if (CHAT.ends(node)) box.classList.add('done');                         // a goodbye: Z ends the talk
       else CHAT.open(node.ask ? 'code' : 'chat', node);
       return;
@@ -233,7 +233,19 @@
     if (speed === 0) finishTyping(); else typeNext();
   }
 
+  // "when3d": once per visit, when the page shows him in 3D (cedar3d.js), he stops to notice it right
+  // before the first menu of the talk. That node's "next": "@resume" carries on to where he was going.
+  var pending3d = true, resumeTo = null, will3d;
+  function want3d(id) {
+    if (!pending3d || !DATA.when3d || !DATA.nodes[DATA.when3d] || !window.CEDAR3D || !DATA.nodes[id] || !DATA.nodes[id].choices) return false;
+    // the full reaction the first time; after that, only now and then a grumble
+    if (will3d === undefined) will3d = !seen[DATA.when3d] || (!!DATA.nodes[DATA.when3d].repeat && Math.random() < 0.25);
+    if (!will3d) pending3d = false;
+    return will3d;
+  }
   function go(id) {
+    if (id === '@resume') id = resumeTo || 'ask';
+    if (want3d(id)) { pending3d = false; resumeTo = id; return go(DATA.when3d); }
     var n = DATA.nodes[id];
     if (!n) { console.warn('[' + WHO.toLowerCase() + '] no node called "' + id + '"'); return end(); }
     // "ifFlag": {"flag": "nodeId"}: once that shared rp_flags flag is set (by anything on the site), go there instead.
