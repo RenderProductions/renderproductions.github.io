@@ -250,6 +250,8 @@ cord.position.set(0, 13.5, 0); scene.add(cord);
 
 // the turntable: dark boards round a lighter rim, a groove where you run
 const table = new THREE.Group(); scene.add(table);
+const HUB_TOP = 0.06;   // he stands on the hub; his feet are planted on it every frame
+const legParts = [], legBox = new THREE.Box3();
 {
   const tex = document.createElement('canvas'); tex.width = tex.height = 512;
   const g = tex.getContext('2d');
@@ -263,8 +265,8 @@ const table = new THREE.Group(); scene.add(table);
   side.position.y = -0.3; table.add(side);
   const groove = new THREE.Mesh(new THREE.RingGeometry(R - 0.06, R + 0.06, 96), new THREE.MeshBasicMaterial({ color: 0x8a6a40, transparent: true, opacity: 0.35 }));
   groove.rotation.x = -Math.PI / 2; groove.position.y = 0.005; table.add(groove);
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.85, 0.25, 32), new THREE.MeshStandardMaterial({ color: 0x24150a, roughness: 1 }));
-  hub.position.y = 0.12; table.add(hub);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.7, HUB_TOP, 48), new THREE.MeshStandardMaterial({ color: 0x4a2c16, roughness: 1 }));
+  hub.position.y = HUB_TOP / 2; table.add(hub);
 }
 const spin = { v: 0 };     // turntable spin (rad/s), from his kick
 
@@ -1005,6 +1007,13 @@ function poseCedar(dt) {
   // the thumb pulls the hammer back when he cocks it
   pose('thumb_R', 0, fake ? -0.4 : 0.5 * curl + 0.3 * pinch, -0.3 * curl - 0.7 * cedar.cock * (gun && gun.visible ? 1 : 0));
   if (gun) { const hm = gun.getObjectByName('hammer'); if (hm) hm.rotation.z = cedar.cock > 0.5 ? -0.75 : 0; }
+  // plant him: whatever his legs are doing, the lowest part of them rests on top of the hub
+  if (legParts.length) {
+    him.updateMatrixWorld(true);
+    let low = Infinity;
+    for (const o of legParts) { legBox.setFromObject(o); if (legBox.min.y < low) low = legBox.min.y; }
+    if (isFinite(low)) him.position.y += HUB_TOP - low;
+  }
   // a flash of light on him when your parry lands
   cedar.hitFlash = Math.max(0, (cedar.hitFlash || 0) - dt * 5);
   hisMats.forEach((m) => { m.emissive.setRGB(cedar.hitFlash * 0.9, cedar.hitFlash * 0.5, cedar.hitFlash * 0.75); });
@@ -1136,6 +1145,7 @@ Promise.all([loadGLTF('../marquez/model/cedar.gltf?v=2'), loadGLTF('../marquez/m
   him = gl.scene; him.scale.setScalar(HIM_SIZE); scene.add(him);
   him.traverse((o) => { if (o.isMesh) [].concat(o.material).forEach((m) => { if (m.emissive && hisMats.indexOf(m) < 0) hisMats.push(m); }); });
   try { eye = makeEye(him); } catch (e) { eye = null; }
+  ['Left_Leg', 'Right_Leg'].forEach((nm) => { const b = findBones(gl)[nm]; if (b) legParts.push(b); });
   bones = findBones(gl);
   Object.keys(bones).forEach((n) => { rest[n] = bones[n].rotation.clone(); });
   ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
@@ -1180,4 +1190,4 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, get mus() { return { key: MUS.cur && MUS.cur.key, want: MUS.want, voices: MUS.voices.length, t: actx && actx.currentTime, loaded: Object.keys(MUSIC).filter((k) => MUSIC[k].buf) }; }, die, finale };
+window.CEDAR = { phase: (n) => { fight.started = true; fight.hp = HP_PHASE * (6 - Math.min(6, n)); setPhase(n); }, P, fight, cedar, cam: camera, get clock() { return clock; }, get gun() { return gun; }, you, legParts, him: () => him, get mus() { return { key: MUS.cur && MUS.cur.key, want: MUS.want, voices: MUS.voices.length, t: actx && actx.currentTime, loaded: Object.keys(MUSIC).filter((k) => MUSIC[k].buf) }; }, die, finale };
