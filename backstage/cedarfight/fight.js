@@ -205,33 +205,46 @@ you.center.set(0.5, (CARD / 2 - FEET) / CARD);
 scene.add(you);
 const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.55, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.45 }));
 shadow.rotation.x = -Math.PI / 2; scene.add(shadow);
-let lastFrame = '';
+// frames and tints exactly as VS TODD draws you: the walk passes through Idle between steps, the parry flip
+// goes the way you're facing, pink while the parry window's open, gold (and untouchable) after a good one
+const WALK = ['Walk1', 'Walk2', 'Walk3', 'Idle', 'Walk4', 'Walk5', 'Walk6', 'Idle'];
+function frameFor() {
+  if (P.dead) return 'Die';
+  if (P.spin > 0 || P.parryT > 0) return art.Parry ? 'Parry' : 'Jump';
+  if (!P.ground) return P.vh > 0 ? 'Jump' : 'Fall';
+  if (Math.abs(P.vs) > 20) return WALK[Math.floor(P.walkT * 14) % WALK.length];
+  return 'Idle';
+}
+const TINT = { gold: ['rgba(255,196,40,.62)', '#ffd23a', 26], pink: [null, '#ff5cf0', 22] };
+const tintCv = document.createElement('canvas'), tintG = tintCv.getContext('2d');
 function drawYou() {
-  let name = 'Idle';
-  if (P.dead) name = 'Die';
-  else if (P.spin > 0 || P.parryT > 0) name = art.Parry ? 'Parry' : 'Jump';
-  else if (!P.ground) name = P.vh > 0 ? 'Jump' : 'Fall';
-  else if (P.walkT > 0) name = 'Walk' + (1 + Math.floor(P.walkT * 6) % 6);
-  const key = name + P.face;
-  if (key !== lastFrame && art[name]) {
-    lastFrame = key; const a = art[name];
-    cardG.clearRect(0, 0, CARD, CARD); cardG.save();
-    if (P.face < 0) { cardG.translate(CARD, 0); cardG.scale(-1, 1); }
-    cardG.drawImage(a.img, CARD / 2 + a.ox, CARD / 2 + a.oy);
-    cardG.restore(); cardTex.needsUpdate = true;
+  const name = frameFor(), a = art[name] || art.Idle;
+  cardG.clearRect(0, 0, CARD, CARD);
+  if (a) {
+    cardG.save();
+    cardG.translate(CARD / 2, CARD / 2);                       // the costume's centre
+    if (P.face < 0) cardG.scale(-1, 1);
+    if (P.hurtT > 0 && Math.floor(P.hurtT * 20) % 2) cardG.globalAlpha = 0.35;
+    if (P.spin > 0) cardG.rotate((1 - P.spin / TUNE.spin) * Math.PI * 2 * P.face * (P.face < 0 ? -1 : 1));
+    const tint = P.goldT > 0 ? 'gold' : P.parryT > 0 ? 'pink' : null;
+    if (tint) {
+      const [fill, glow, blur] = TINT[tint];
+      tintCv.width = a.img.width; tintCv.height = a.img.height;
+      tintG.drawImage(a.img, 0, 0);
+      if (fill) { tintG.globalCompositeOperation = 'source-atop'; tintG.fillStyle = fill; tintG.fillRect(0, 0, tintCv.width, tintCv.height); tintG.globalCompositeOperation = 'source-over'; }
+      if (glow) { cardG.shadowColor = glow; cardG.shadowBlur = blur; }
+      if (tint === 'gold') { const k = Math.min(1, P.goldT / 0.15); if (k < 1) { cardG.drawImage(a.img, a.ox, a.oy); } cardG.globalAlpha *= k; }
+      cardG.drawImage(tintCv, a.ox, a.oy);
+    } else cardG.drawImage(a.img, a.ox, a.oy);
+    cardG.restore();
   }
-  const m = you.material;
-  if (P.parryT > 0) m.color.setRGB(1, 0.62, 0.85);
-  else if (P.goldT > 0) m.color.setRGB(1, 0.86, 0.4);
-  else m.color.setRGB(1, 1, 1);
-  m.opacity = P.hurtT > 0 && Math.floor(clock * 14) % 2 ? 0.35 : 1;
+  cardTex.needsUpdate = true;
   const p = pPos(); you.position.copy(p);
-  you.material.rotation = P.spin > 0 ? -P.face * (1 - P.spin / TUNE.spin) * Math.PI * 2 : 0;
   shadow.position.set(p.x, 0.02, p.z); shadow.scale.setScalar(YOU_SIZE * Math.max(0.4, 1 - P.h / 600));
 }
 
 // ---------------- Cedar ----------------
-let him = null, bones = {}, rest = {}, gun = null, gunProto = null;
+let him = null, bones = {}, rest = {}, gun = null, gunProto = null, hisMats = [];
 const cedar = { yaw: 0, turn: 0.85 * TURN_SCALE, state: 'wait', t: 0, plan: [], shotN: 0, hold: false, flinch: 0, laugh: 0, stagger: 0, back: false, kneel: 0 };
 const loader = new THREE.GLTFLoader();
 const loadGLTF = (url) => new Promise((ok, no) => loader.load(url, ok, undefined, no));
@@ -299,24 +312,52 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 // bullets, thrown guns, litter
 const shots = [], thrown = [], litter = [];
-const ballGeo = new THREE.SphereGeometry(0.11, 8, 6);
-const ballMat = new THREE.MeshBasicMaterial({ color: 0xfff1c8 });
-const backMat = new THREE.MeshBasicMaterial({ color: 0xff8ad1 });
+// a round: a bright core with a long glowing tail behind it, so you can see where it's going
+const tracerGeo = new THREE.CylinderGeometry(0.09, 0.02, 1.6, 8, 1, true); tracerGeo.translate(0, -0.8, 0); tracerGeo.rotateX(Math.PI / 2);
+const coreGeo = new THREE.SphereGeometry(0.14, 10, 8);
+const glowMat = (c) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+const ballMat = new THREE.MeshBasicMaterial({ color: 0xfff6d8 }), tailMat = glowMat(0xffb347);
+const backMat = new THREE.MeshBasicMaterial({ color: 0xffd6f4 }), backTail = glowMat(0xff5cf0);
+function round(color) {
+  const g = new THREE.Group(), core = new THREE.Mesh(coreGeo, color === 'back' ? backMat : ballMat), tail = new THREE.Mesh(tracerGeo, color === 'back' ? backTail : tailMat);
+  g.add(core, tail); g.userData.tail = tail; g.userData.core = core; return g;
+}
+function aimRound(s) { s.m.lookAt(s.m.position.clone().add(s.v)); }
+function recolor(s) { s.m.userData.core.material = backMat; s.m.userData.tail.material = backTail; }
 function fire(target, opts = {}) {
   const from = muzzlePos();
-  const m = new THREE.Mesh(ballGeo, ballMat); m.position.copy(from); scene.add(m);
+  const m = round(); m.position.copy(from); scene.add(m);
   const via = opts.via || null;
   const dir = (via || target).clone().sub(from).normalize();
-  shots.push({ m, v: dir.multiplyScalar(opts.speed || PH[fight.phase].speed), via, target, back: false, perfect: !!opts.perfect, life: 4 });
-  flashAt(from, 1.0); bang(); shake(0.12);
+  const s = { m, v: dir.multiplyScalar(opts.speed || PH[fight.phase].speed), via, target, back: false, perfect: !!opts.perfect, life: 4 };
+  aimRound(s); shots.push(s);
+  flashAt(from, 1.3); bang(); shake(0.16); muzzleLight.intensity = 6; cedar.recoil = 1;
 }
 function flashAt(p, size) {
   const f = new THREE.Mesh(new THREE.SphereGeometry(0.3 * size, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95 }));
   f.position.copy(p); scene.add(f); fx.push({ m: f, t: 0, len: 0.18, grow: 2.2 });
-  const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.35 * size, 8, 6), new THREE.MeshBasicMaterial({ color: 0x8c8378, transparent: true, opacity: 0.5 }));
-  smoke.position.copy(p); scene.add(smoke); fx.push({ m: smoke, t: 0, len: 1.2, grow: 3.5, rise: 0.8 });
+  // a few faint puffs of powder smoke drifting up
+  for (let i = 0; i < 4; i++) {
+    const smoke = new THREE.Mesh(new THREE.SphereGeometry(0.16 * size, 8, 6), new THREE.MeshBasicMaterial({ color: 0xb8ad9c, transparent: true, opacity: 0.16, depthWrite: false }));
+    smoke.position.copy(p).add(new THREE.Vector3((Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4));
+    scene.add(smoke); fx.push({ m: smoke, t: -i * 0.05, len: 1.1, grow: 4 + Math.random() * 2, rise: 0.5 + Math.random() * 0.5 });
+  }
 }
 const fx = [];
+const muzzleLight = new THREE.PointLight(0xffc870, 0, 9, 2); scene.add(muzzleLight);
+// the aim line: while he takes aim a faint line runs from the barrel to you, following you; when the pan
+// flashes it locks and burns bright. The bang comes down that line a beat later.
+const aimLine = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1, 6, 1, true), glowMat(0xff6a3d));
+aimLine.geometry.translate(0, 0.5, 0); aimLine.geometry.rotateX(Math.PI / 2); aimLine.visible = false; scene.add(aimLine);
+const aim = { on: false, locked: null, k: 0 };
+function drawAim() {
+  if (!aim.on || !gun || !gun.visible) { aimLine.visible = false; return; }
+  const from = muzzlePos(), to = aim.locked || pPos(LIFT);
+  aimLine.visible = true; aimLine.position.copy(from); aimLine.lookAt(to);
+  aimLine.scale.set(aim.locked ? 1.8 : 1, aim.locked ? 1.8 : 1, from.distanceTo(to));
+  aimLine.material.opacity = aim.locked ? 0.9 : 0.15 + 0.35 * aim.k;
+  aimLine.material.color.setHex(aim.locked ? 0xffd27a : 0xff6a3d);
+}
 function panFlash() {
   if (!gun || !gun.visible) return;
   const p = gun.localToWorld(new THREE.Vector3(3 / 16, 5.4 / 16, 2 / 16));
@@ -377,23 +418,26 @@ function runCedar(dt) {
     const tD = ph.draw, tA = tD + ph.aim, tF = tA + ph.flash, tT = tF + 0.35;
     if (once('draw')) { gun.visible = false; }
     if (stepT > tD * 0.6 && once('show')) { gun.visible = true; }
+    if (stepT > tD) { aim.on = true; aim.k = Math.min(1, (stepT - tD) / ph.aim); }
     if (stepT > tA && once('cock')) { click(); cedar.cock = 1; }
-    if (stepT > tA + 0.05 && once('flash')) panFlash();
+    if (stepT > tA + 0.05 && once('flash')) { panFlash(); aim.locked = o.ricochet ? null : pPos(LIFT); }
     if (stepT > tF && once('bang')) {
+      const target = aim.locked; aim.on = false; aim.locked = null;
       if (o.misfire) { flashAt(muzzlePos(), 0.35); say(pick(["...Hm.", "Damp powder.", "Tch."]), 1.2); }
       else if (o.ricochet) {
         // off the rim on your far side, so it comes at you from where he isn't looking
         const a = ang() + (P.face > 0 ? 0.9 : -0.9);
         fire(pPos(LIFT), { via: new THREE.Vector3(DISC * Math.sin(a), 1.1, DISC * Math.cos(a)) });
-      } else fire(pPos(LIFT));
+      } else fire(target || pPos(LIFT));
     }
-    if (stepT > tF + 0.12 && once('throw')) throwGun();
+    if (stepT > tF + 0.12 && once('wind')) cedar.throwAt = clock;
+    if (stepT > tF + 0.3 && once('throw')) throwGun();
     if (stepT > tT) nextStep();
     return;
   }
   if (kind === 'fake') {
     const tA = ph.draw + ph.aim, tF = tA + ph.flash;
-    if (once('draw')) gun.visible = false;
+    if (once('draw')) { gun.visible = false; aim.on = false; }
     if (stepT > tF && once('bang')) { say('<i>bang.</i>', 1); fakeWindow = { from: clock - 0.15, to: clock + 0.25 }; }
     if (stepT > tF + 0.6) { fakeWindow = null; nextStep(); }
     return;
@@ -421,7 +465,8 @@ function runCedar(dt) {
     if (stepT > 0.8 && n >= 1 && n <= 10 && once('n' + n)) { showCount(n); click(); }
     if (stepT > 0.8 + beat * 10 && once('whirl')) { cedar.back = false; cedar.whirl = 1; }
     if (stepT > 0.8 + beat * 10 + 0.28 && once('fire')) { fire(pPos(LIFT), { speed: 30, perfect: true }); }
-    if (stepT > 0.8 + beat * 10 + 0.55 && once('throw')) throwGun();
+    if (stepT > 0.8 + beat * 10 + 0.4 && once('wind')) cedar.throwAt = clock;
+    if (stepT > 0.8 + beat * 10 + 0.58 && once('throw')) throwGun();
     if (stepT > 0.8 + beat * 10 + 1) nextStep();
     return;
   }
@@ -443,7 +488,7 @@ function hurtYou() {
   if (Math.random() < 0.4) say(pick(LINES.hurtYou), 1.4);
 }
 function hitHim(dmg) {
-  sfx('impact', 0.9); cedar.flinch = 1; shake(0.2);
+  sfx('impact', 0.9); cedar.flinch = 1; cedar.hitFlash = 1; shake(0.25);
   if (fight.phase >= 6) return;
   fight.hp = Math.max(0, fight.hp - dmg); paintHud();
   if (Math.random() < 0.3) say(pick(LINES.hit), 1.2);
@@ -466,12 +511,12 @@ function stepShots(dt) {
     s.m.position.addScaledVector(s.v, dt); s.life -= dt;
     if (s.via && !s.back && s.m.position.distanceTo(s.via) < 0.45) {         // the ricochet: off the rim, now at you
       flashAt(s.via, 0.3); sfx('impact', 0.3, 2);
-      s.v = pPos(LIFT).sub(s.via).normalize().multiplyScalar(s.v.length()); s.via = null;
+      s.v = pPos(LIFT).sub(s.via).normalize().multiplyScalar(s.v.length()); s.via = null; aimRound(s);
     }
     if (!s.back && !s.via && s.m.position.distanceTo(you3) < 0.62) {
       if (P.parryT > 0 && (!s.perfect || clock - P.parryAt < 0.1)) {
-        s.back = true; s.m.material = backMat; P.goldT = TUNE.gold; sfx('parry', 0.8);
-        s.v = heart.clone().sub(s.m.position).normalize().multiplyScalar(s.v.length() * 1.25);
+        s.back = true; recolor(s); P.goldT = TUNE.gold; sfx('parry', 0.8); shake(0.1);
+        s.v = heart.clone().sub(s.m.position).normalize().multiplyScalar(s.v.length() * 1.25); aimRound(s);
         if (s.perfect) s.perfectHit = true;
         if (P.ground) { P.vh = 520; P.ground = false; }
         continue;
@@ -481,7 +526,7 @@ function stepShots(dt) {
     if (s.back && s.m.position.distanceTo(heart) < 0.9) {
       if (PH[fight.phase].swat && Math.random() < PH[fight.phase].swat) {      // the metal arm bats it away
         cedar.swat = 1; sfx('impact', 0.6, 1.8); say(pick(["No.", "Not today."]), 0.9);
-        s.v.reflect(new THREE.Vector3(1, 0, 0)).multiplyScalar(0.8); s.back = 'swatted'; continue;
+        s.v.reflect(new THREE.Vector3(1, 0, 0)).multiplyScalar(0.8); s.back = 'swatted'; aimRound(s); continue;
       }
       if (s.perfectHit) { cedar.stagger = 1.6; hitHim(3); say("[He staggers.]", 1.2); } else hitHim(1);
       scene.remove(s.m); shots.splice(i, 1); continue;
@@ -574,9 +619,11 @@ let camAng = 0, shakeT = 0;
 function shake(a) { if (!matchMedia('(prefers-reduced-motion: reduce)').matches) shakeT = Math.max(shakeT, a); }
 function placeCamera(dt) {
   // low and far, with a long lens: close to the flat, side-on feel of VS TODD, Cedar looming over you
-  const target = ang() - 0.2 * P.face;          // a little behind you, so he's never hidden behind your back
-  let d = target - camAng; d = Math.atan2(Math.sin(d), Math.cos(d));
-  camAng += d * Math.min(1, dt * 7);
+  // like VS TODD's fixed camera: you run freely across most of the screen; only near an edge does the
+  // view turn with you, just enough to keep you in
+  let d = ang() - camAng; d = Math.atan2(Math.sin(d), Math.cos(d));
+  const DZ = 0.42;
+  if (Math.abs(d) > DZ) camAng += (d - Math.sign(d) * DZ) * Math.min(1, dt * 10);
   const dist = R + 13;
   camera.position.set(dist * Math.sin(camAng), 2.3, dist * Math.cos(camAng));
   camera.lookAt(0, 3.3, 0);
@@ -613,8 +660,27 @@ function poseCedar(dt) {
   cedar.aimK = (cedar.aimK || 0) + ((aiming ? 1 : 0) - (cedar.aimK || 0)) * Math.min(1, dt * 12);
   him.updateMatrixWorld(true);
   const sh = bones.Right_Arm ? bones.Right_Arm.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(0, 3.2, 0);
-  const dir = pPos(LIFT).sub(sh).normalize();
-  aimArm(dir, new THREE.Vector3(0, -1, 0), cedar.aimK);
+  const toYou = (aim.locked ? aim.locked.clone() : pPos(LIFT)).sub(sh).normalize();
+  const yawQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), cedar.yaw);
+  const coat = new THREE.Vector3(-0.75, -0.35, 0.55).normalize().applyQuaternion(yawQ);     // reaching into his coat
+  const up = new THREE.Vector3(0, 1, 0);
+  let dir = toYou.clone(), amt = cedar.aimK;
+  // the draw: his hand goes into the coat first, then comes up to aim
+  if (kind === 'shot' || kind === 'fake') {
+    const ph = PH[fight.phase], k = Math.min(1, stepT / ph.draw);
+    if (k < 1) { dir = coat.clone().lerp(toYou, Math.max(0, (k - 0.55) / 0.45)).normalize(); amt = Math.max(amt, Math.min(1, k * 2.5)); }
+  }
+  // recoil: the barrel kicks up and settles
+  cedar.recoil = Math.max(0, (cedar.recoil || 0) - dt * 5);
+  if (cedar.recoil > 0) dir.add(up.clone().multiplyScalar(0.55 * cedar.recoil)).normalize();
+  // the throw: arm back and up, then whipped forward at you
+  const tt = cedar.throwAt != null ? clock - cedar.throwAt : 9;
+  if (tt < 0.45) {
+    const back = new THREE.Vector3(0.3, 0.9, -0.5).normalize().applyQuaternion(yawQ);
+    dir = tt < 0.18 ? toYou.clone().lerp(back, tt / 0.18).normalize() : back.clone().lerp(toYou.clone().add(new THREE.Vector3(0, -0.4, 0)), (tt - 0.18) / 0.27).normalize();
+    amt = 1;
+  }
+  aimArm(dir, new THREE.Vector3(0, -1, 0), amt);
   // fingers: wrapped round the grip, or a finger gun for a fake
   const fake = kind === 'fake';
   const curl = gun && gun.visible ? 1 : 0.25;
@@ -623,11 +689,17 @@ function poseCedar(dt) {
   pose('index_R', 0, 0, -1.0 * ic); pose('index_mid_R', 0, 0, -0.9 * ic); pose('index_tip_R', 0, 0, -0.5 * ic);
   pose('thumb_R', 0, fake ? -0.4 : 0.5 * curl, -0.3 * curl);
   if (gun) { const hm = gun.getObjectByName('hammer'); if (hm) hm.rotation.z = cedar.cock > 0.5 ? -0.75 : 0; }
+  // a flash of light on him when your parry lands
+  cedar.hitFlash = Math.max(0, (cedar.hitFlash || 0) - dt * 5);
+  hisMats.forEach((m) => { m.emissive.setRGB(cedar.hitFlash * 0.9, cedar.hitFlash * 0.5, cedar.hitFlash * 0.75); });
+  muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt * 30);
+  if (gun && gun.visible) muzzleLight.position.copy(muzzlePos());
 }
 
 // ---------------- loading, and the opening ----------------
 Promise.all([loadGLTF('../marquez/model/cedar.gltf?v=2'), loadGLTF('../marquez/model/cedars_gun.gltf?v=1'), ...FRAMES.map(loadFrame)]).then(([gl, gg]) => {
   him = gl.scene; him.scale.setScalar(HIM_SIZE); scene.add(him);
+  him.traverse((o) => { if (o.isMesh) [].concat(o.material).forEach((m) => { if (m.emissive && hisMats.indexOf(m) < 0) hisMats.push(m); }); });
   bones = findBones(gl);
   Object.keys(bones).forEach((n) => { rest[n] = bones[n].rotation.clone(); });
   ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
@@ -658,7 +730,7 @@ function frame(now) {
   runCedar(dt); runRPG(dt);
   stepShots(dt);
   poseCedar(dt);
-  drawYou();
+  drawYou(); drawAim();
   placeCamera(dt);
   if (sayEl.hidden === false && clock > sayUntil) sayEl.hidden = true;
   renderer.render(scene, camera);
