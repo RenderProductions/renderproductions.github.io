@@ -1051,21 +1051,10 @@
     "snap": {
       "say": [
         {
-          "text": "[shake]ENOUGH.[/]",
+          "text": "[shake]Enough![/]",
           "face": "angry",
-          "speed": 70,
+          "speed": 60,
           "fx": "snap"
-        },
-        "(The desk is gone. A hand closes around the camera like a vise.)",
-        {
-          "text": "...^4 No.^3 Not yet.",
-          "face": "angry",
-          "speed": 50
-        },
-        {
-          "text": "Come back when I've found my [gold]good pistols[/].",
-          "face": "angry",
-          "fx": "release"
         }
       ],
       "end": true

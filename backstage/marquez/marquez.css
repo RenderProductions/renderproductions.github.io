@@ -40,7 +40,9 @@ body { background: #050403; color: #e9e2d2; font-family: var(--type); overflow: 
 .scene .him3d { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 14%); mask-image: linear-gradient(to top, transparent 0, #000 14%); }
 .scene.flung .desk { transform-origin: 50% 100%; animation: fling .6s cubic-bezier(.45,0,.85,.35) forwards; }
 @keyframes fling { 0% { transform: none; opacity: 1 } 25% { transform: translateY(-10%) rotate(-3deg) } 100% { transform: translateY(-150%) scale(2.8) rotate(-20deg); opacity: 0 } }
-.snapdark { position: absolute; inset: 0; z-index: 1; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.2s ease; }
+.him3d.snapping { position: fixed; inset: 0; left: 0; bottom: auto; width: 100vw; height: 100vh; aspect-ratio: auto; transform: none; z-index: 1;
+  -webkit-mask-image: none; mask-image: none; }
+.snapdark { position: fixed; inset: 0; z-index: 1; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.2s ease; }
 .snapdark.on { opacity: 1; transition: opacity .12s ease; }
 
 /* something in his pocket, glowing a dark gold */

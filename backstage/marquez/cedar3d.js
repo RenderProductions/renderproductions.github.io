@@ -30,6 +30,8 @@ const POINT = { arm: [0.5, -0.6, 0.62], fore: [-0.04, 1, 0.22], hand: [-0.06, 1,
 const WIND = { arm: [0.35, -0.45, -0.8], fore: [0.12, 0.85, -0.25], hand: [0, 1, 0.05], palm: [-0.4, 0, 1] };
 const REACH = { arm: [0, 0.1, 1], fore: [0, 0.2, 1], hand: [-0.05, 1, 0.5], palm: [0, -0.3, 1] };
 const ARM = [['Right_Arm', 'forearm_R'], ['forearm_R', 'hand_R'], ['hand_R', 'middle_R']];
+// Where his snap takes you: the fight. Until that page exists, the room just fades back in.
+const FIGHT_URL = '/backstage/cedarfight/';
 const POCKET_AT = new THREE.Vector3(0.27, 2.62, 0.47);     // where the glowing thing in his pocket sits on the coat
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -261,7 +263,7 @@ function start() {
     const dark = document.createElement('div');
     dark.className = 'snapdark'; dark.setAttribute('aria-hidden', 'true');
     (document.getElementById('room') || document.body).appendChild(dark);
-    let snapAt = 0, releaseTimer = 0;
+    let snapAt = 0, releaseTimer = 0, fightReady = false, small = null, left = false;
     const camHome = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
     const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
     // fast out, a small overshoot, then settles: for the lunge
@@ -274,6 +276,15 @@ function start() {
         REACH.arm = [to.x, to.y + 0.08, to.z]; REACH.fore = [to.x - 0.04, to.y + 0.18, to.z];
         solveArm(REACH, reachQ);
       }
+      // his reach can't stay inside the little box behind the desk: for the snap he moves onto a canvas the size of
+      // the window, drawn so that he stays exactly where he was on screen (the old box becomes a window into it)
+      const r = box.getBoundingClientRect();
+      small = { left: r.left, top: r.top, width: r.width, height: r.height };
+      box.classList.add('snapping');
+      (document.getElementById('room') || document.body).insertBefore(box, dark);
+      size();
+      fightReady = false; left = false;
+      fetch(FIGHT_URL, { method: 'HEAD', cache: 'no-store' }).then((res) => { fightReady = res.ok; }).catch(() => {});
       snapAt = performance.now();
       scene3.classList.remove('flung'); void scene3.offsetWidth;
       setTimeout(() => scene3.classList.add('flung'), 260);
@@ -283,6 +294,11 @@ function start() {
     function release() {
       clearTimeout(releaseTimer);
       snapAt = 0;
+      small = null;
+      box.classList.remove('snapping');
+      scene3.insertBefore(box, scene3.querySelector('.desk'));
+      camera.clearViewOffset();
+      size();
       scene3.classList.remove('flung');
       him.position.set(0, 0, 0);
       camera.position.copy(camHome.pos); camera.lookAt(camHome.look);
@@ -313,11 +329,14 @@ function start() {
     };
 
     function size() {
-      const w = box.clientWidth, h = box.clientHeight;
+      const full = !!small;
+      const w = full ? innerWidth : box.clientWidth, h = full ? innerHeight : box.clientHeight;
       if (!w || !h) return;
       renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
       renderer.setSize(w, h, false);
-      camera.aspect = w / h;
+      camera.aspect = full ? small.width / small.height : w / h;
+      // full window: the same view as the little box, carried on past its edges
+      if (full) camera.setViewOffset(small.width, small.height, -small.left, -small.top, w, h);
       // frame him from the waist (behind the desk) to the top of his hat
       const lo = 2.4, hi = 5.3, mid = (lo + hi) / 2;
       const dist = ((hi - lo) / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
@@ -326,7 +345,8 @@ function start() {
       camera.lookAt(camHome.look);
       camera.updateProjectionMatrix();
     }
-    new ResizeObserver(size).observe(box);
+    new ResizeObserver(() => size()).observe(box);
+    addEventListener('resize', () => { if (small) size(); });
     size();
 
     let last = performance.now();
@@ -422,6 +442,9 @@ function start() {
         if (jolt && !reduce) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * jolt * 2, (Math.random() - 0.5) * jolt * 2, 0));
         camera.lookAt(camHome.look.clone().lerp(hand, pull));
         if (st > 1.38) dark.classList.add('on');
+        // in the dark: off to the fight if it exists, otherwise the room comes back
+        if (st > 2.1 && fightReady && !left) { left = true; location.href = FIGHT_URL; }
+        if (st > 3.4 && !fightReady && window.CEDAR3D._st == null) release();
       }
 
       const pocket = box.querySelector('.pocket');
