@@ -359,7 +359,7 @@
       // Bankrupt: no goals. Show the bailout appeal (or the next one) and the climb back to the surface.
       var b = c.bankrupt;
       card.className = 'goal-card bankrupt';
-      card.appendChild(el('div', 'goal-text', c.name + ' is bankrupt. No goals until it is rescued or climbs back above 1.00.'));
+      card.appendChild(el('div', 'goal-text', c.name + ' is bankrupt. Every share was wiped. No goals until it is rescued or climbs back above 1.00.'));
       var bclock = el('div', 'goal-clock');
       card.appendChild(bclock);
       var label = el('div', 'goal-meta');

@@ -454,6 +454,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       swingAt: prev.swingAt || null,
       bk,
       bailouts: prev.bailouts || 0,
+      wipes: prev.wipes || 0,
       brinkAt: prev.brinkAt || null
     };
   });
@@ -700,8 +701,9 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     const price = h[h.length - 1];
 
     if (!x.bk) {
-      if (price < 0) {
-        // Under zero: BANKRUPT.
+      if (price <= 0) {
+        // Zero or under: BANKRUPT, and every shareholder's shares are wiped (the bot reads the wipes counter).
+        x.wipes += 1;
         const scrapped = x.goal ? x.goal.text : null;
         x.bk = { since: nowIso, appeals: 0, nextAppealAt: new Date(now + between(APPEAL_FIRST_HOURS[0], APPEAL_FIRST_HOURS[1]) * HOUR).toISOString(), verdictAt: null, swim: 0 };
         s.pit = Math.min(price, between(PIT[0], PIT[1]));
@@ -710,7 +712,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         x.goal = null;
         x.divRate = 0; x.divBoostUntil = null;
         x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'bankrupt', big: true, headline: fill(pick(B.enter), x),
-          scrapped: scrapped || undefined, dividend: 'suspended', divRate: 0 }));
+          scrapped: scrapped || undefined, dividend: 'suspended', divRate: 0, wiped: true }));
       } else if (price < BRINK && (!x.brinkAt || now - Date.parse(x.brinkAt) > 12 * HOUR)) {
         x.brinkAt = nowIso;
         x.newsLog.unshift(addNews({ id: c.id, name: c.name, type: 'brink', headline: fill(pick(B.brink), x) }));
@@ -825,6 +827,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       status: x.bk ? 'bankrupt' : price < LINEAR_BELOW ? 'distressed' : 'ok',
       bankrupt: x.bk,
       bailouts: x.bailouts,
+      wipes: x.wipes,
       brinkAt: x.brinkAt,
       history,
       times,
@@ -921,6 +924,7 @@ function discordLine(item) {
   } else if (item.until) {
     extra = 'Prices frozen · trading resumes <t:' + unix(Date.parse(item.until)) + ':R>';
   }
+  if (item.wiped) extra = (extra ? extra + '\n' : '') + '🗑️ Every share of ' + item.id + ' has been wiped from every portfolio';
   if (item.scrapped) extra = (extra ? extra + '\n' : '') + 'Goal scrapped: ' + item.scrapped;
   if (item.nextAppeal) extra = (extra ? extra + ' · ' : '') + 'next appeal <t:' + unix(Date.parse(item.nextAppeal)) + ':R>';
   const div = item.type === 'dividend' ? '' : divNote(item);
@@ -1003,8 +1007,9 @@ function statusLine(c) {
 
 function buildOutput({ nowIso, market, news, companies, crash = null }) {
   const prices = {}, changes = {}, dividends = {}, divDaily = {}, divText = {}, names = {}, sparks = {}, charts = {};
-  const statuses = {}, statusText = {}, tradable = {};
+  const statuses = {}, statusText = {}, tradable = {}, wipes = {};
   companies.forEach((c) => {
+    wipes[c.id] = c.wipes || 0;
     statuses[c.id] = c.status || 'ok';
     statusText[c.id] = statusLine(c);
     tradable[c.id] = c.status !== 'bankrupt' && !market.halted && market.status === 'open';
@@ -1031,7 +1036,7 @@ function buildOutput({ nowIso, market, news, companies, crash = null }) {
     : 'No market news yet. Check back soon.';
   const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
   const crashText = crash ? crash.text : '';
-  return { updated: nowIso, engine: 2, market, crash, crashText, prices, changes, statuses, statusText, tradable, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
+  return { updated: nowIso, engine: 2, market, crash, crashText, prices, changes, statuses, statusText, tradable, wipes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 }
 
 module.exports = { tick, COMPANIES, TICK_MS, statusAt };

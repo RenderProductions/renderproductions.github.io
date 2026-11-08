@@ -259,9 +259,9 @@ const BANKRUPT = {
     '{n} insists everything is fine. The stock suggests otherwise.'
   ],
   enter: [
-    '{n} HAS GONE BANKRUPT. The stock is now worth less than nothing.',
-    '{n} files for bankruptcy. Shareholders are left holding the bag.',
-    'IT IS OVER FOR {n}. The company sinks below zero.'
+    '{n} HAS GONE BANKRUPT. Every share is now worthless, and gone.',
+    '{n} files for bankruptcy. Shareholders lose everything.',
+    'IT IS OVER FOR {n}. The company hits zero and takes every share with it.'
   ],
   appeal: [
     '{n} begs TODD for a bailout. TODD is "reviewing the request."',

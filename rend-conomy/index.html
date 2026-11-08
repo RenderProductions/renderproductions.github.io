@@ -304,6 +304,7 @@
         } else if (n.until) {
           stamp.textContent = 'Prices frozen until ' + fmtTime(n.until);
         }
+        if (n.wiped) stamp.appendChild(document.createTextNode((stamp.textContent ? ' · ' : '') + 'Every share wiped from every portfolio'));
         if (n.scrapped) stamp.appendChild(document.createTextNode((stamp.textContent ? ' · ' : '') + 'Goal scrapped: ' + n.scrapped));
 
         item.appendChild(label);
@@ -349,7 +350,7 @@
       var title = m.halted ? 'TRADING HALTED' : c.phase === 'tremor' ? 'SOMETHING IS WRONG' : c.phase === 'crash' ? 'MARKET CRASH' : 'CRASH RECOVERY';
       var line = m.halted ? 'A circuit breaker tripped. Prices are frozen until ' + fmtTime(m.haltUntil) + '.'
         : c.phase === 'tremor' ? 'Sell orders are piling up everywhere. Brace for ' + fmtTime(c.crashFrom) + '.'
-        : c.phase === 'crash' ? 'Every company is falling. Prices can now sink below zero, and a company under zero is bankrupt. The selling is expected to end around ' + fmtTime(c.crashUntil) + '.'
+        : c.phase === 'crash' ? 'Every company is falling. Prices can now sink to zero and below. A company that hits zero goes bankrupt, and every share of it is wiped from every portfolio. The selling is expected to end around ' + fmtTime(c.crashUntil) + '.'
         : 'The selling has stopped. Prices are slowly finding a floor. Bankrupt companies still need a TODD bailout, or to climb back above 1.00 on their own.';
       var dead = (data.companies || []).filter(function (x) { return x.status === 'bankrupt'; }).map(function (x) { return x.id; });
       crashEl.querySelector('.crash-title').textContent = title;
