@@ -24,9 +24,11 @@ const LENS = '#2b6f31', LID = '#3e9943', LID_DARK = '#1f5a26';
 // way: the upper arm hangs by his side, a little out and forward; the forearm stands up in front
 // of his shoulder; the hand carries on up with its palm turned toward you.
 const POINT = { arm: [0.5, -0.6, 0.62], fore: [-0.04, 1, 0.22], hand: [-0.06, 1, 0.12], palm: [0.15, 0, 1] };
-// When he snaps (the "snap" line in dialogue.json, fx: snap) his arm shoots out at the camera, palm down,
-// and the hand closes on it. Same kind of directions as POINT.
-const REACH = { arm: [0.1, 0.55, 1], fore: [-0.08, 0.3, 1], hand: [-0.06, 0.2, 1], palm: [0, -1, 0] };
+// When he snaps (the "snap" line in dialogue.json, fx: snap) he winds his arm back (WIND), then lunges it
+// straight at the camera with the hand up and open, palm toward you (REACH), and closes it on the camera.
+// REACH's arm and forearm are aimed at the camera when he snaps; its hand and palm are as written here.
+const WIND = { arm: [0.35, -0.45, -0.8], fore: [0.12, 0.85, -0.25], hand: [0, 1, 0.05], palm: [-0.4, 0, 1] };
+const REACH = { arm: [0, 0.1, 1], fore: [0, 0.2, 1], hand: [-0.05, 1, 0.5], palm: [0, -0.3, 1] };
 const ARM = [['Right_Arm', 'forearm_R'], ['forearm_R', 'hand_R'], ['hand_R', 'middle_R']];
 const POCKET_AT = new THREE.Vector3(0.27, 2.62, 0.47);     // where the glowing thing in his pocket sits on the coat
 
@@ -194,9 +196,9 @@ function start() {
   // ---------------- motion ----------------
   function run(him, bones, rest, eye) {
     // ---- work out the pointing pose from the directions in POINT ----
-    const restQ = {}, aimQ = {}, reachQ = {};
+    const restQ = {}, aimQ = {}, reachQ = {}, windQ = {};
     ARM.forEach(([b]) => { if (bones[b]) restQ[b] = new THREE.Quaternion().setFromEuler(rest[b]); });
-    function solvePoint() { solveArm(POINT, aimQ); solveArm(REACH, reachQ); }
+    function solvePoint() { solveArm(POINT, aimQ); solveArm(WIND, windQ); solveArm(REACH, reachQ); }
     function solveArm(POSE, out) {
       if (!ARM.every(([b, c]) => bones[b] && bones[c])) return;
       ARM.forEach(([b]) => bones[b].quaternion.copy(restQ[b]));
@@ -262,7 +264,16 @@ function start() {
     let snapAt = 0, releaseTimer = 0;
     const camHome = { pos: new THREE.Vector3(), look: new THREE.Vector3() };
     const ease = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    // fast out, a small overshoot, then settles: for the lunge
+    const backOut = (x) => { if (x <= 0) return 0; if (x >= 1) return 1; const c = 1.6, y = x - 1; return 1 + (c + 1) * y * y * y + c * y * y; };
     function snap() {
+      // aim the lunge at the camera, from where his shoulder will be once he's up and leaning in
+      if (bones.Right_Arm) {
+        const sh = bones.Right_Arm.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.3, 0.6));
+        const to = camHome.pos.clone().add(new THREE.Vector3(0.15, 1.1, 0)).sub(sh).normalize();
+        REACH.arm = [to.x, to.y + 0.08, to.z]; REACH.fore = [to.x - 0.04, to.y + 0.18, to.z];
+        solveArm(REACH, reachQ);
+      }
       snapAt = performance.now();
       scene3.classList.remove('flung'); void scene3.offsetWidth;
       setTimeout(() => scene3.classList.add('flung'), 260);
@@ -380,20 +391,37 @@ function start() {
       // the snap, on top of everything else
       if (snapAt) {
         const st = window.CEDAR3D._st != null ? window.CEDAR3D._st : (now - snapAt) / 1000;   // _st: freeze it for testing
-        const rise = ease(st / 0.35), reach = ease((st - 0.5) / 0.45), grab = ease((st - 1.05) / 0.22), pull = ease((st - 0.75) / 0.6);
-        him.position.set(0, 0.32 * rise, 0.25 * reach);
-        pose('upper_body', -0.12 * rise + 0.22 * reach, 0, 0);
-        pose('chest', -0.08 * rise + 0.25 * reach, 0, 0);
-        pose('fat_fucking_dome', 0.12 * reach, 0, 0);
-        ARM.forEach(([b]) => { if (bones[b] && reachQ[b]) bones[b].quaternion.slerp(reachQ[b], reach); });
-        ['index', 'middle', 'ring'].forEach((n) => { pose(n + '_R', 0, 0, -1.25 * grab); pose(n + '_mid_R', 0, 0, -1.45 * grab); pose(n + '_tip_R', 0, 0, -0.9 * grab); });
-        pose('thumb_R', 0, 0.7 * grab, -0.4 * grab); pose('thumb_mid_R', 0, 0.6 * grab, -0.35 * grab);
-        // the camera is pulled toward the hand as it closes
+        // 0 to 0.3 he rises; 0.3 to 0.55 winds the arm back; 0.55 to 0.8 lunges, hand opening;
+        // 0.85 to 1.2 the camera is dragged to the hand; 1.1 the hand slams shut; a jolt; then black
+        const rise = ease(st / 0.3), wind = ease((st - 0.3) / 0.25), lunge = backOut((st - 0.55) / 0.25);
+        const open = ease((st - 0.6) / 0.2), grab = ease((st - 1.1) / 0.12), pull = ease((st - 0.85) / 0.35);
+        const lu = Math.min(1, lunge);
+        him.position.set(0, 0.32 * rise - 0.06 * lu, 0.6 * lu);
+        pose('upper_body', -0.14 * wind * (1 - lu) + 0.1 * lu, 0, 0);
+        pose('chest', -0.1 * wind * (1 - lu) + 0.08 * lu, -0.3 * wind * (1 - lu) + 0.14 * lu, 0);
+        pose('neck', -0.06 * lu, 0, 0);
+        pose('fat_fucking_dome', -0.14 * lu, -0.1 * lu, 0);     // head up: glaring at you from under the brim
+        ARM.forEach(([b]) => {
+          const bn = bones[b];
+          if (!bn || !reachQ[b] || !windQ[b]) return;
+          if (lunge > 0) bn.quaternion.copy(windQ[b]).slerp(reachQ[b], lunge);
+          else bn.quaternion.slerp(windQ[b], wind);
+        });
+        // the hand opens wide (fingers bent back a little and spread), then slams shut
+        const spread = { index: 0.16, middle: 0, ring: -0.16 };
+        ['index', 'middle', 'ring'].forEach((n) => {
+          const o = open * (1 - grab);
+          pose(n + '_R', spread[n] * o, 0, 0.3 * o - 1.3 * grab); pose(n + '_mid_R', 0, 0, 0.12 * o - 1.6 * grab); pose(n + '_tip_R', 0, 0, -1.0 * grab);
+        });
+        pose('thumb_R', 0, -0.45 * open * (1 - grab) + 0.75 * grab, -0.4 * grab); pose('thumb_mid_R', 0, 0.6 * grab, -0.35 * grab);
+        // the camera is dragged to the hand, then jolted as it closes
         him.updateMatrixWorld(true);
         const hand = bones.middle_R ? bones.middle_R.getWorldPosition(new THREE.Vector3()) : camHome.look.clone();
-        camera.position.copy(camHome.pos).lerp(hand.clone().add(new THREE.Vector3(0, 0.05, 0.7)), pull);
+        camera.position.copy(camHome.pos).lerp(hand.clone().add(camHome.pos.clone().sub(hand).normalize().multiplyScalar(0.75)), pull);
+        const jolt = st > 1.12 && st < 1.38 ? 0.035 * (1.38 - st) / 0.26 : 0;
+        if (jolt && !reduce) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * jolt * 2, (Math.random() - 0.5) * jolt * 2, 0));
         camera.lookAt(camHome.look.clone().lerp(hand, pull));
-        if (st > 1.3) dark.classList.add('on');
+        if (st > 1.38) dark.classList.add('on');
       }
 
       const pocket = box.querySelector('.pocket');
