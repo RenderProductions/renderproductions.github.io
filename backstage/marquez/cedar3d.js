@@ -15,7 +15,7 @@
 // Try them in the console: CEDAR3D.face('point')
 import * as THREE from '/backstage/toddguts/vendor/three-gltf.min.js';
 
-const MODEL = 'model/cedar.gltf?v=1';
+const MODEL = 'model/cedar.gltf?v=2';
 const EYE = { x: 769, y: 116, w: 12, h: 9, tex: 1024 };   // the lens patch on his texture
 const EYE_SCALE = 4;                                       // the eye panel draws 4 x 4 pixels per texture pixel
 const LENS = '#2b6f31', LID = '#3e9943', LID_DARK = '#1f5a26';
