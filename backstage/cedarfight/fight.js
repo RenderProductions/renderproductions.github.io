@@ -112,7 +112,7 @@ function audio() {
   return actx;
 }
 
-// ---- the music: a Viennese waltz in 3/4, one theme through the whole fight (music/, made by compose_boss.py;
+// ---- the music: a classical tune on violin and piano over a dance beat, in the spirit of "Beethoven Virus" (music/, made by compose_virus.py;
 // rendered with the GeneralUser GS soundfont by S. Christian Collins) ----
 // Each piece's bars and tempo as composed, so loops land on the exact sample and phase changes wait for the
 // next bar line, like VS TODD. The music setting is VS TODD's (its options menu).
@@ -123,13 +123,13 @@ let musicBus = null;
 // music/score.json (written by compose_cedar.py with the files): per piece its file, whether it loops, its
 // length and every bar's start time in seconds (the tempo bends in places, so they're measured, not computed)
 const MUSIC = {};
-fetch('music/score.json?v=3').then((r) => r.json()).then((j) => {
+fetch('music/score.json?v=4').then((r) => r.json()).then((j) => {
   for (const k in j) MUSIC[k] = { file: j[k].file, loop: j[k].loop, len: j[k].len, start: j[k].bars, at: 0, buf: null };
   if (actx && MUSIC_ON) loadMusic();
 }).catch(() => {});
 function loadMusic() {
   Object.entries(MUSIC).forEach(([k, m]) => { if (!m.req && k !== 'hard' && k !== 'endless') {   // (Hard and Endless: when those modes exist)
-    m.req = 1; fetch('music/' + m.file + '.mp3?v=3').then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => musicLoaded(k, d)).catch(() => {}); } });
+    m.req = 1; fetch('music/' + m.file + '.mp3?v=4').then((r) => r.arrayBuffer()).then((b) => actx.decodeAudioData(b)).then((d) => musicLoaded(k, d)).catch(() => {}); } });
 }
 const MUS = { cur: null, voices: [], want: null };
 function musicLoaded(k, b) {
