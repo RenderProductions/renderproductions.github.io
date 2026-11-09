@@ -1,0 +1,43 @@
+name: Deploy bot to Fly.io
+
+# Deploys the Rend-Conomy bot whenever something in engine/ changes on main.
+# Market tick commits don't touch engine/, so they never trigger a deploy.
+# Needs the repository secret FLY_API_TOKEN (see engine/README.md).
+on:
+  push:
+    branches: [main]
+    paths: ['engine/**']
+  workflow_dispatch:          # deploy by hand from the Actions tab
+
+concurrency:
+  group: deploy-engine
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Don't ship a broken bot: run the offline tests first.
+      - name: Test
+        run: |
+          npm ci
+          npm test
+
+      # Skipped until the FLY_API_TOKEN secret exists, so this doesn't fail before Fly is set up.
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: env.FLY_API_TOKEN != ''
+
+      - name: Deploy
+        if: env.FLY_API_TOKEN != ''
+        run: flyctl deploy --remote-only

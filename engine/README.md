@@ -49,14 +49,28 @@ npm start
 3. Bot tab: switch on **Message Content Intent** (needed for `r!`). Under 100 servers it's just a toggle.
 4. OAuth2 > URL Generator: scopes `bot` and `applications.commands`, permissions Send Messages, Embed Links, Read Message History. Invite it to a test server.
 
-## Hosting
+## Hosting on Fly.io
 
-GitHub Pages can't run the bot, so a host runs this folder and redeploys when you push. Any Node host works (Railway, Fly.io, a small VPS):
+`fly.toml` and `Dockerfile` in this folder are already set up: one always-on machine in Chicago, the database on a volume at `/data`, and the web API on HTTPS. Pushing changes to `engine/` deploys automatically once step 5 is done.
 
-- Root/working directory: `engine`
-- Start command: `npm start`
-- Environment variables: everything in `.env.example`
-- **Persistent volume** mounted where `DB_PATH` points, or balances reset on every deploy.
+One-time setup, from the `engine` folder on your computer (install flyctl first):
+
+```
+fly auth login
+fly apps create rend-conomy            # if taken, pick another name and update fly.toml
+fly volumes create rend_data --region ord --size 1
+fly secrets set DISCORD_TOKEN=... DISCORD_CLIENT_ID=...
+fly deploy --ha=false                  # exactly ONE machine, or the bot replies twice
+```
+
+Then for automatic deploys:
+
+5. `fly tokens create deploy` and copy the token.
+6. GitHub repo > Settings > Secrets and variables > Actions > New secret: name `FLY_API_TOKEN`, paste it.
+
+Useful commands: `fly logs` (watch the bot), `fly status`, `fly ssh console` (look at /data).
+
+The API lives at `https://<app name>.fly.dev/health`.
 
 ## Data
 
