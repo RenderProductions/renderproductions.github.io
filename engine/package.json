@@ -1,0 +1,19 @@
+{
+  "name": "rend-conomy-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Rend-Conomy Discord bot, rewritten in JavaScript. Lives next to the Render Productions site.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning src/index.js",
+    "register": "node --no-warnings=ExperimentalWarning src/register.js",
+    "test": "node --no-warnings=ExperimentalWarning test/commands.test.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.28.1"
+  }
+}

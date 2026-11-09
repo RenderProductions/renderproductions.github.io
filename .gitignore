@@ -1,0 +1,4 @@
+# Rend-Conomy engine (bot): never commit secrets, installs, or the database
+engine/node_modules/
+engine/.env
+engine/data/
