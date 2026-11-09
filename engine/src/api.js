@@ -1,5 +1,5 @@
 // A tiny web API so site pages can ask the bot for live data.
-//   GET /health                      -> { ok: true }
+//   GET /health                      -> { ok: true, discord: 'connected' | 'not connected' }
 //   GET /api/leaderboard?guild=<id>  -> top 10 players by net worth in that server
 // Only the site's own origin is allowed to call it from a browser.
 const http = require('http');
@@ -21,7 +21,7 @@ function leaderboard(db, market, m, guildId) {
     .slice(0, 10);
 }
 
-function start({ db, market }) {
+function start({ db, market }, status = () => ({})) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const origin = req.headers.origin;
@@ -30,7 +30,7 @@ function start({ db, market }) {
 
     const send = (code, body) => { res.statusCode = code; res.end(JSON.stringify(body)); };
     try {
-      if (url.pathname === '/health') return send(200, { ok: true });
+      if (url.pathname === '/health') return send(200, { ok: true, ...status() });
       if (url.pathname === '/api/leaderboard') {
         const guild = url.searchParams.get('guild');
         if (!/^\d{5,25}$/.test(guild || '')) return send(400, { error: 'guild must be a server ID' });
