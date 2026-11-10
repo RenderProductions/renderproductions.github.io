@@ -31,7 +31,7 @@
   .profile { max-width: 720px; margin: 1.5rem 0 2.5rem; background: var(--panel); border: 1px solid var(--line-strong); overflow: hidden; }
   .profile-banner { height: 120px; background: radial-gradient(circle at 20% 30%, rgba(255, 230, 0, 0.25), transparent 60%), linear-gradient(135deg, #10172a, #050810); border-bottom: 1px solid var(--line); }
   .profile-body { position: relative; padding: 0 1.5rem 1.5rem; }
-  .profile-avatar { position: absolute; top: -56px; left: 1.25rem; width: 112px; height: 112px; border-radius: 50%; border: 8px solid var(--panel); background: var(--panel-2); object-fit: cover; }
+  .profile-avatar { overflow: hidden; color: transparent; position: absolute; top: -56px; left: 1.25rem; width: 112px; height: 112px; border-radius: 50%; border: 8px solid var(--panel); background: var(--panel-2); object-fit: cover; }
   .profile-actions { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; padding-top: 1rem; min-height: 56px; }
   .profile-name { margin: 1rem 0 0; font-family: var(--display); font-weight: 400; font-size: 44px; line-height: 1; letter-spacing: 2px; color: var(--bright); overflow-wrap: anywhere; }
   .profile-title { margin: 0.35rem 0 0; color: var(--lime); font-style: italic; }
@@ -97,7 +97,7 @@
   <article class="profile" id="card" hidden aria-labelledby="p-name">
     <div class="profile-banner"></div>
     <div class="profile-body">
-      <img class="profile-avatar" id="p-avatar" src="/bot/avatar.png" alt="" width="112" height="112">
+      <img class="profile-avatar" id="p-avatar" src="/bot/avatar.png" alt="" width="112" height="112" onerror="this.onerror=null;this.src='/bot/avatar.png'">
       <div class="profile-actions" id="p-actions"></div>
       <h1 class="profile-name" id="p-name">Player</h1>
       <p class="profile-title" id="p-title" hidden></p>
