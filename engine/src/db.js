@@ -171,6 +171,27 @@ const MIGRATIONS = [
     ALTER TABLE players ADD COLUMN remind INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE players ADD COLUMN last_gig INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE players ADD COLUMN gig_earned INTEGER NOT NULL DEFAULT 0;
+  `,
+  `
+    -- Version 8: the casino. Stats per game, and lottery tickets (per server, per weekly draw)
+    CREATE TABLE gambling (
+      guild_id TEXT NOT NULL,
+      user_id  TEXT NOT NULL,
+      game     TEXT NOT NULL,
+      played   INTEGER NOT NULL DEFAULT 0,
+      wagered  INTEGER NOT NULL DEFAULT 0,  -- cents bet
+      paid     INTEGER NOT NULL DEFAULT 0,  -- cents won back (bets included)
+      biggest  INTEGER NOT NULL DEFAULT 0,  -- biggest single payout, cents
+      PRIMARY KEY (guild_id, user_id, game)
+    );
+    CREATE TABLE lottery (
+      guild_id TEXT NOT NULL,
+      draw     TEXT NOT NULL,               -- Eastern date of the Sunday draw, like 2026-11-15
+      user_id  TEXT NOT NULL,
+      username TEXT,
+      tickets  INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (guild_id, draw, user_id)
+    );
   `
 ];
 

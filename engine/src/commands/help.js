@@ -35,7 +35,8 @@ module.exports = {
           `\`${P}inventory\` shows the items you own\n` +
           `\`${P}use <item>\` uses an item from your inventory\n` +
           `\`${P}settitle <text>\` sets your custom title (uses a Title)\n` +
-          `\`${P}slots <amount>\` spins the Rend-Sino slot machine\n\n` +
+          `\`${P}slots\`, \`${P}coinflip\`, \`${P}dice\`, \`${P}blackjack\`, \`${P}bus\`, \`${P}hilo\`, \`${P}mines\`, \`${P}rocket\` and \`${P}derby\`: the Rend-Sino\n` +
+          `\`${P}lottery\` is the weekly draw (Sunday, 8 PM Eastern). \`${P}gambling\` shows your record\n\n` +
           '**Your own company**\n' +
           `\`${P}found <ticker> <name>\` starts a company (⬡ 2,500, needs mod approval)\n` +
           `\`${P}company [ticker]\` shows a company · \`${P}exchange\` lists them all\n` +

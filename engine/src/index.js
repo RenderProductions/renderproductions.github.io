@@ -98,6 +98,10 @@ client.once(Events.ClientReady, async (c) => {
   rotate();
   setInterval(rotate, statuses.ROTATE_MS).unref();
 
+  // The weekly lottery draw (Sunday 8 PM Eastern), checked every minute
+  const lottery = require('./lottery');
+  setInterval(() => { lottery.tick(deps).then((r) => r.forEach((x) => console.log(`[lottery] ${x.name} won ${x.prize / 100} Polygons in ${x.guild}`))).catch((e) => console.error('[lottery]', e)); }, 60 * 1000).unref();
+
   // Shift-ready DMs that were waiting when the bot restarted
   const restored = require('./reminders').restore(deps);
   if (restored) console.log(`[work] ${restored} shift reminder(s) restored`);

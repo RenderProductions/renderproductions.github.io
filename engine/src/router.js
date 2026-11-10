@@ -8,17 +8,23 @@ const commands = require('./commands');
 const pending = new Map();
 
 function toPayload(out) {
-  const { later, ...payload } = typeof out === 'string' ? { content: out } : out;
+  const { later, after, ...payload } = typeof out === 'string' ? { content: out } : out;
   // Never ping anyone by accident. A command can ping specific users on purpose (r!loan pings the lender).
   return { ...payload, allowedMentions: payload.allowedMentions || { parse: [] } };
 }
 
 // A reply can change itself a moment later: { ..., later: { ms, edit } } (r!work's memory tasks hide
 // the order). edit(sent) is given the sent message; the payload in `edit` replaces the message.
+// Or { ..., after(edit) }: called once the reply is sent, with edit(payload) to change it as often as it
+// likes (the live games: rocket, the derby).
 function afterSend(out, editFn) {
-  const later = out && typeof out === 'object' && out.later;
-  if (!later || !editFn) return;
-  setTimeout(() => { Promise.resolve(editFn(toPayload(later.edit))).catch((e) => console.error('[later]', e.message)); }, later.ms).unref();
+  if (!out || typeof out !== 'object' || !editFn) return;
+  const later = out.later;
+  if (later) setTimeout(() => { Promise.resolve(editFn(toPayload(later.edit))).catch((e) => console.error('[later]', e.message)); }, later.ms).unref();
+  if (typeof out.after === 'function') {
+    Promise.resolve(out.after((p) => Promise.resolve(editFn(toPayload(p))).catch((e) => console.error('[after]', e.message))))
+      .catch((e) => console.error('[after]', e));
+  }
 }
 
 async function runCommand(cmd, ctx, args) {
@@ -26,7 +32,7 @@ async function runCommand(cmd, ctx, args) {
     const out = await cmd.run(ctx, args);
     if (out == null) return null;
     const payload = toPayload(out);
-    if (out.later) Object.defineProperty(payload, 'later', { value: out.later, enumerable: false }); // kept for the sender
+    for (const k of ['later', 'after']) if (out[k]) Object.defineProperty(payload, k, { value: out[k], enumerable: false }); // kept for the sender
     return payload;
   } catch (e) {
     console.error(`[${cmd.name}]`, e);
