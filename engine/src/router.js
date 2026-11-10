@@ -8,15 +8,26 @@ const commands = require('./commands');
 const pending = new Map();
 
 function toPayload(out) {
-  const payload = typeof out === 'string' ? { content: out } : out;
+  const { later, ...payload } = typeof out === 'string' ? { content: out } : out;
   // Never ping anyone by accident. A command can ping specific users on purpose (r!loan pings the lender).
   return { ...payload, allowedMentions: payload.allowedMentions || { parse: [] } };
+}
+
+// A reply can change itself a moment later: { ..., later: { ms, edit } } (r!work's memory tasks hide
+// the order). edit(sent) is given the sent message; the payload in `edit` replaces the message.
+function afterSend(out, editFn) {
+  const later = out && typeof out === 'object' && out.later;
+  if (!later || !editFn) return;
+  setTimeout(() => { Promise.resolve(editFn(toPayload(later.edit))).catch((e) => console.error('[later]', e.message)); }, later.ms).unref();
 }
 
 async function runCommand(cmd, ctx, args) {
   try {
     const out = await cmd.run(ctx, args);
-    return out == null ? null : toPayload(out);
+    if (out == null) return null;
+    const payload = toPayload(out);
+    if (out.later) Object.defineProperty(payload, 'later', { value: out.later, enumerable: false }); // kept for the sender
+    return payload;
   } catch (e) {
     console.error(`[${cmd.name}]`, e);
     return toPayload('Something broke running that command. It has been logged.');
@@ -82,7 +93,7 @@ async function handleMessage(message, deps) {
     if (Date.now() > wait.expires) return;
     let out = null;
     try { out = await wait.handler(message); } catch (e) { console.error('[await]', e); }
-    if (out != null) return message.reply(toPayload(out));
+    if (out != null) { const sent = await message.reply(toPayload(out)); afterSend(out, (p) => sent.edit(p)); return sent; }
     return;
   }
   if (!parsed) return;
@@ -94,7 +105,7 @@ async function handleMessage(message, deps) {
   const isMod = !!(message.member && message.member.permissions.has(PermissionFlagsBits.ManageMessages));
   const ctx = makeCtx({ guildId: message.guildId, channelId: message.channelId, user: message.author, message, isMod, guildName: message.guild && message.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
-  if (out) return message.reply(out);
+  if (out) { const sent = await message.reply(out); afterSend(out, (p) => sent.edit(p)); return sent; }
 }
 
 // Buttons: custom ids look like "loan:accept:abc123". The command whose buttonPrefix matches handles it.
@@ -117,7 +128,11 @@ async function handleButton(interaction, deps) {
   if (!out) return interaction.deferUpdate();
   if (out.update) {
     await interaction.update(toPayload(out.update));
-    if (out.followUp) await interaction.followUp({ ...toPayload(out.followUp), ephemeral: !!out.private });
+    afterSend(out.update, (p) => interaction.editReply(p));
+    if (out.followUp) {
+      const sent = await interaction.followUp({ ...toPayload(out.followUp), ephemeral: !!out.private });
+      afterSend(out.followUp, (p) => sent.edit(p));
+    }
     return;
   }
   if (out.reply) return interaction.reply({ ...toPayload(out.reply), ephemeral: true });
@@ -141,7 +156,10 @@ async function handleInteraction(interaction, deps) {
   const isMod = !!(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages));
   const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod, guildName: interaction.guild && interaction.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
-  return out ? interaction.editReply(out) : interaction.deleteReply();
+  if (!out) return interaction.deleteReply();
+  const sent = await interaction.editReply(out);
+  afterSend(out, (p) => interaction.editReply(p));
+  return sent;
 }
 
 module.exports = { parsePrefix, runCommand, makeCtx, handleMessage, handleInteraction, handleButton, pending };

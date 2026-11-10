@@ -98,6 +98,10 @@ client.once(Events.ClientReady, async (c) => {
   rotate();
   setInterval(rotate, statuses.ROTATE_MS).unref();
 
+  // Shift-ready DMs that were waiting when the bot restarted
+  const restored = require('./reminders').restore(deps);
+  if (restored) console.log(`[work] ${restored} shift reminder(s) restored`);
+
   // Register slash commands on every start, so new or changed commands just appear.
   // DEV_GUILD_ID puts them in one test server (instant); otherwise they're global.
   try {

@@ -9,6 +9,7 @@ const router = require('../src/router');
 const co = require('../src/companies');
 const publish = require('../src/publish');
 const work = require('../src/commands/work');
+work.TUNING.tipMax = 0; // exact pay in these tests
 
 const base = require(path.join(__dirname, '..', '..', 'prices.json'));
 const m = JSON.parse(JSON.stringify(base));

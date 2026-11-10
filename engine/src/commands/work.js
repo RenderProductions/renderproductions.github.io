@@ -1,17 +1,35 @@
+// r!work: a shift at your job. The Labor Day Update:
+//   * three kinds of tasks per job, harder at higher ranks (memory tasks show, then hide)
+//   * speed tips for fast right answers, team bonuses when coworkers work in the same channel
+//   * a performance review every 10 shifts: promoted, kept, or demoted
+//   * the market matters: layoffs at bankrupt companies, double pay in a boom, strikes when the
+//     Polygon Reserve runs low, and (when the bot runs the market) every good shift nudges the stock up
+// r!gig (commands/gig.js) uses the same tasks for players without a job.
 const config = require('../config');
 const reserve = require('../reserve');
 const jobs = require('../jobs');
 const co = require('../companies');
 const loans = require('../loans');
+const reminders = require('../reminders');
+const marketEngine = require('../marketEngine');
 const { relTime, amt } = require('../format');
 const { button, rows, nonce } = require('../buttons');
 
-// Tasks waiting for an answer: "guild:user" -> { job, ans, start, rush }
+// Tasks waiting for an answer: "guild:user" -> task state
 const active = new Map();
 const keyOf = (ctx) => `${ctx.guildId}:${ctx.user.id}`;
+// Recent shifts per channel and company, for team bonuses: "guild:channel:job" -> Map(user -> { at, name })
+const recent = new Map();
+const TEAM = { windowMs: 2 * 60 * 1000, each: 0.15, max: 3 };
+// tipMax: a perfect-speed answer adds up to 50% on top. kind: tests can pick the task type.
+const TUNING = { tipMax: 0.5, kind: null };
+const NUDGE = { good: 0.001, scab: -0.002 }; // stock push per shift (log terms)
+const STRIKE = { below: 0.25, chance: 0.3, pay: 0.25 };
+const SEVERANCE = 3;        // shifts' worth of pay when you're laid off
 
 // Player companies borrow one of the five task styles, always the same one for a given ticker
 function taskStyle(ticker) {
+  if (jobs.COMPANIES[ticker]) return ticker;
   const styles = Object.keys(jobs.COMPANIES);
   let h = 0;
   for (const ch of ticker) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -24,89 +42,198 @@ function garnishNote(g) {
   return '\n' + g.paidTo.map((p) => `🏦 ${amt(p.cents)} went to **${p.name}** for an overdue loan${p.cleared ? ' (paid off!)' : ''}.`).join('\n');
 }
 
-// Starts a task and waits for the player's answer: a typed message, or a button press.
-// Returns { q: the prompt, components: buttons (may be empty) }.
-function startTask(ctx, job, rush) {
-  const t = jobs.task(jobs.COMPANIES[job] ? job : taskStyle(job), rush > 0, ctx.random);
+const isBoomed = (m, job) => !!(m && m.boost && (!m.boost.tickers || !m.boost.tickers.length || m.boost.tickers.includes(job)));
+
+// Starts a task and waits for the answer: a typed message, or button presses.
+// Returns a reply payload (with `later` for memory tasks, which hide the prompt after a few seconds).
+function startTask(ctx, { job, style, rush = 0, mode = 'work', tier = 0, scab = false, market = null, intro = '' }) {
+  const t = jobs.task(style, { rush: rush > 0, tier, random: ctx.random || Math.random, market, kind: TUNING.kind });
   const id = nonce();
-  active.set(keyOf(ctx), { job, ans: t.ans, start: Date.now(), rush, id, choices: t.choices || [] });
-  ctx.awaitNext((msg) => answer(ctx, msg), jobs.ABANDON_MS);
-  const components = t.choices ? rows(t.choices.map((c, i) => button(c.label, `work:${ctx.user.id}:${id}:${i}`, c.style || 'grey'))) : [];
-  return { q: t.q, components };
+  const hide = t.hideMs || 0;
+  active.set(keyOf(ctx), { job, style, mode, rush, tier, scab, id, kind: t.kind, ans: t.ans, check: t.check,
+    seq: !!t.seq, steps: t.steps || [], pressed: [], start: Date.now() + hide, limit: t.limit, choices: t.choices || [] });
+  ctx.awaitNext((msg) => answer(ctx, msg.content), jobs.ABANDON_MS + hide);
+  const comps = t.choices ? rows(t.choices.map((c, i) => button(c.label, `work:${ctx.user.id}:${id}:${i}`, c.style || 'grey', false, c.emoji)), t.perRow || 5) : [];
+  const timer = `⏱️ You have **${t.limit} seconds**.${t.seq ? ' Press them in order, or type them with spaces.' : ''}`;
+  if (hide) {
+    return { content: `${intro}${t.q}`, components: [], later: { ms: hide, edit: { content: `${intro}${t.hidden}\n${timer}`, components: comps } } };
+  }
+  return { content: `${intro}${t.q}\n${timer}`, components: comps };
 }
 
-// Grades the answer, pays, and maybe starts a rush round.
-async function answer(ctx, msg) {
+// Grades the answer and pays. Returns the reply.
+async function answer(ctx, text) {
   const key = keyOf(ctx);
   const st = active.get(key);
   if (!st) return null;
   active.delete(key);
 
+  const txt = String(text || '').trim().toLowerCase().replace(/\s+/g, ' ');
   const elapsed = (Date.now() - st.start) / 1000;
-  const limit = st.rush > 0 ? 15 : 20;
-  const result = elapsed > limit ? 'slow' : String(msg.content).trim().toLowerCase() === st.ans ? 'pass' : 'wrong';
-
+  const right = st.check ? st.check(txt) : txt === st.ans;
+  const result = elapsed > st.limit ? 'slow' : right ? 'pass' : 'wrong';
+  const speed = result === 'pass' && elapsed >= 0 ? TUNING.tipMax * Math.max(0, 1 - elapsed / st.limit) : 0;
+  const shown = st.check && st.kind === 'percent' ? `about ${st.ans}%` : `\`${st.ans}\``;
   const p = ctx.db.player(ctx.guildId, ctx.user);
-  const r = jobs.rank(p.shifts);
+
+  // ---------------- gigs ----------------
+  if (st.mode === 'gig') {
+    let pay = jobs.BASE_PAY * jobs.GIG_PAY * (result === 'pass' ? 1 : 0.4);
+    const tip = pay * speed;
+    const shrink = reserve.factor(ctx.db);
+    const total = Math.round((pay + tip) * 100 * shrink);
+    const g = ctx.db.tx(() => {
+      reserve.spend(ctx.db, total);
+      const split = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, total);
+      ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { gig_earned: (p.gig_earned || 0) + total });
+      return split;
+    });
+    let out = result === 'pass' ? `🧰 Gig done! **+${amt(Math.round(pay * 100 * shrink))}**`
+      : result === 'slow' ? `🐢 Too slow, but the client paid something: **+${amt(total)}**`
+      : `❌ Not quite, it was ${shown}. The client paid a little anyway: **+${amt(total)}**`;
+    if (tip > 0) out += `\n⚡ Speed tip **+${amt(Math.round(tip * 100 * shrink))}** (${Math.max(0, elapsed).toFixed(1)}s)`;
+    out += garnishNote(g);
+    if (shrink < 1) out += reserve.note(ctx.db);
+    return out + `\n-# Want steady pay? \`${config.prefix}apply <ticker>\` for a real job.`;
+  }
+
+  // ---------------- shifts ----------------
+  const career = ctx.db.career(ctx.guildId, ctx.user.id, st.job);
+  const r = jobs.rank(st.job, career.rank);
   const c = jobs.COMPANIES[st.job];
+  const m = await ctx.market.get();
   let pay;
   if (c) {
     // Pay follows the live stock price (falls back to the starting price)
-    const m = await ctx.market.get();
     let price = m && m.prices ? Number(m.prices[st.job]) : NaN;
     if (!Number.isFinite(price)) price = c.start;
     // BSTG swings wildly, so its pay uses a price capped between 10 and 200 (0.2x to 4x pay)
     if (st.job === 'BSTG') price = Math.max(Math.min(price, 200), 10);
-    pay = jobs.BASE_PAY * price / c.start * r.mult;
+    // A near-dead stock still pays a little
+    pay = jobs.BASE_PAY * Math.max(price, 0.5) / c.start * r.mult;
   } else {
-    // Player company: pay grows with its level
     const pc = co.get(ctx.db, st.job);
     if (!co.alive(pc)) return `💀 ${st.job} went under while you were working. You're out of a job.`;
     pay = jobs.BASE_PAY * co.level(pc).payMult * r.mult;
   }
-  let ot = '';
+
+  const extras = [];
   const update = {};
+  let tip = 0, team = 0;
   if (st.rush > 0) {
     pay = result === 'pass' ? pay * 0.6 : 0; // rush round: bonus only if you got it right
   } else {
     if (result !== 'pass') pay *= 0.4;
-    if (p.overtime) { pay *= 2; update.overtime = 0; ot = ' (overtime x2!)'; }
+    if (p.overtime) { pay *= 2; update.overtime = 0; extras.push('☕ Overtime x2'); }
+    if (c && isBoomed(m, st.job)) { pay *= 2; extras.push('🚀 Boom overtime x2'); }
+    if (st.scab) { pay *= 0.9; extras.push('🪧 Crossed the picket line (-10%)'); }
+    tip = pay * speed;
+    // Coworkers who just worked a shift in this channel
+    const tk = `${ctx.guildId}:${ctx.channelId}:${st.job}`;
+    const crew = recent.get(tk) || new Map();
+    const mates = [...crew.entries()].filter(([u, x]) => u !== ctx.user.id && Date.now() - x.at < TEAM.windowMs).slice(0, TEAM.max);
+    if (mates.length) team = pay * TEAM.each * mates.length;
+    crew.set(ctx.user.id, { at: Date.now(), name: ctx.user.username });
+    for (const [u, x] of crew) if (Date.now() - x.at > TEAM.windowMs) crew.delete(u);
+    recent.set(tk, crew);
+    if (mates.length) extras.push(`👥 Team shift with ${mates.map(([, x]) => `**${x.name}**`).join(', ')}: **+${Math.round(TEAM.each * mates.length * 100)}%**`);
   }
   // Pay comes out of the Polygon Reserve, and shrinks when it's running low
   const shrink = reserve.factor(ctx.db);
-  pay = Math.round(pay * shrink);
+  const cents = (x) => Math.round(x * 100 * shrink);
+  const total = cents(pay) + cents(tip) + cents(team);
 
   let out;
+  const cu = {};
+  let review = '';
   if (st.rush === 0) {
-    update.shifts = p.shifts + 1;
-    if (result === 'pass') out = `✅ Nice work, ${r.name}! **+${amt(pay * 100)}**${ot}`;
-    else if (result === 'slow') out = `🐢 Too slow! You still clocked in for **+${amt(pay * 100)}**${ot}`;
-    else out = `❌ Not quite, it was \`${st.ans}\`. You still get **+${amt(pay * 100)}**${ot}`;
-    if (jobs.PROMOTIONS[update.shifts]) out += '\n' + jobs.PROMOTIONS[update.shifts];
+    cu.shifts = career.shifts + 1;
+    cu.total = career.total + 1;
+    cu.correct = career.correct + (result === 'pass' ? 1 : 0);
+    cu.rev_total = career.rev_total + 1;
+    cu.rev_right = career.rev_right + (result === 'pass' ? 1 : 0);
+    update.shifts = cu.shifts;
+    if (result === 'pass') out = `✅ Nice work, ${r.name}! **+${amt(cents(pay))}**`;
+    else if (result === 'slow') out = `🐢 Too slow! You still clocked in for **+${amt(cents(pay))}**`;
+    else out = `❌ Not quite, it was ${shown}. You still get **+${amt(cents(pay))}**`;
+    if (extras.length) out += `\n${extras.join(' · ')}`;
+    if (tip > 0) out += `\n⚡ Speed tip **+${amt(cents(tip))}** (${Math.max(0, elapsed).toFixed(1)}s)`;
+    if (team > 0) out += ` · 👥 **+${amt(cents(team))}**`;
+
+    // Performance review every 10 shifts
+    if (cu.rev_total >= jobs.REVIEW.every) {
+      const score = cu.rev_right;
+      cu.rev_total = 0; cu.rev_right = 0;
+      if (score >= jobs.REVIEW.promote && career.rank < 3) {
+        cu.rank = career.rank + 1;
+        review = `\n\n📋 **Performance review: ${score}/10.** 🎉 **Promoted to ${jobs.rankName(st.job, cu.rank)}!** Pay is now ${jobs.MULTS[cu.rank]}x, and your tasks get tougher.`;
+      } else if (score >= jobs.REVIEW.promote) {
+        const bonus = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * r.mult * jobs.REVIEW.topBonus * 100));
+        review = `\n\n📋 **Performance review: ${score}/10.** ⭐ Outstanding, ${r.name}! Here's a **${amt(bonus)}** bonus.`;
+        cu._bonus = bonus;
+      } else if (score <= jobs.REVIEW.demote && career.rank > 0) {
+        cu.rank = career.rank - 1;
+        review = `\n\n📋 **Performance review: ${score}/10.** 📉 Sloppy work. **Demoted to ${jobs.rankName(st.job, cu.rank)}.** Pay is now ${jobs.MULTS[cu.rank]}x.`;
+      } else if (score <= jobs.REVIEW.demote) {
+        review = `\n\n📋 **Performance review: ${score}/10.** ⚠️ Not great. You're still a ${r.name}, so there's nowhere to go but up.`;
+      } else {
+        review = `\n\n📋 **Performance review: ${score}/10.** Meets expectations. Get ${jobs.REVIEW.promote}/10 next time for a ${career.rank < 3 ? 'promotion' : 'bonus'}.`;
+      }
+    }
   } else {
-    out = result === 'pass' ? `⚡ **RUSH CLEARED!** Bonus **+${amt(pay * 100)}**` : '💨 The rush got away from you. No bonus this time.';
+    out = result === 'pass' ? `⚡ **RUSH CLEARED!** Bonus **+${amt(total)}**` : '💨 The rush got away from you. No bonus this time.';
   }
 
+  const bonus = cu._bonus || 0;
+  delete cu._bonus;
+  cu.earned = career.earned + total + bonus;
   const g = ctx.db.tx(() => {
-    const split = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, pay * 100); // overdue loans take half
+    const split = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, total + bonus); // overdue loans take half
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, update);
-    const revenue = c ? 0 : Math.round(pay * 100 * co.RULES.revenueShare);
+    ctx.db.updateCareer(ctx.guildId, ctx.user.id, st.job, cu);
+    const revenue = c ? 0 : Math.round(total * co.RULES.revenueShare);
     if (revenue) co.addRevenue(ctx.db, st.job, revenue); // shifts earn the company money
-    reserve.spend(ctx.db, pay * 100 + revenue);
+    reserve.spend(ctx.db, total + revenue);
     return split;
   });
-  out += garnishNote(g);
+  // Good work makes the company a little more valuable; strikebreaking makes it a little less
+  if (c && st.rush === 0) {
+    if (st.scab) marketEngine.nudge(ctx.db, st.job, NUDGE.scab);
+    else if (result === 'pass') marketEngine.nudge(ctx.db, st.job, NUDGE.good);
+  }
+  out += review + garnishNote(g);
   if (shrink < 1) out += reserve.note(ctx.db);
 
   // 1 in 5: another task comes in. Only after a pass, max 5 in a row.
   const random = ctx.random || Math.random;
   if (result === 'pass' && st.rush < 5 && random() < 0.2) {
     const next = st.rush + 1;
-    const t = startTask(ctx, st.job, next);
-    out += `\n\n⚡ **RUSH ORDER #${next}!** It's not over yet!\n${t.q}\n⏱️ **15 seconds.** Bonus pay if you nail it.`;
-    return { content: out, components: t.components };
+    const t = startTask(ctx, { job: st.job, style: st.style, rush: next, tier: st.tier, market: m,
+      intro: `⚡ **RUSH ORDER #${next}!** It's not over yet! Bonus pay if you nail it.\n` });
+    return { ...t, content: `${out}\n\n${t.content}` };
   }
   return out;
+}
+
+// The shift-start checks shared by r!work. Returns a reply, or null to go ahead.
+async function events(ctx, p, m) {
+  const P = config.prefix;
+  const c = jobs.COMPANIES[p.job];
+  if (!c) return null;
+  // Layoffs: a bankrupt company can't pay its staff
+  if (m && m.statuses && m.statuses[p.job] === 'bankrupt') {
+    const career = ctx.db.career(ctx.guildId, ctx.user.id, p.job);
+    const sev = ctx.db.tx(() => {
+      const s = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * jobs.rank(p.job, career.rank).mult * SEVERANCE * 100));
+      ctx.db.addCash(ctx.guildId, ctx.user.id, s);
+      ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { job: null, shifts: 0, overtime: 0 });
+      return s;
+    });
+    reminders.cancel(ctx.guildId, ctx.user.id);
+    return `📦 **Laid off.** ${c.name} is bankrupt and can't make payroll. Here's **${amt(sev)}** in severance.\n` +
+      `Your rank there is saved if it ever comes back. Until then, try \`${P}gig\` or \`${P}apply\` somewhere else.`;
+  }
+  return null;
 }
 
 module.exports = {
@@ -114,13 +241,20 @@ module.exports = {
   description: 'Start a shift at your job (every 15 minutes)',
   options: [],
   active,
+  recent,
+  TUNING,
+  STRIKE,
+  answer,
+  startTask,
+  taskStyle,
 
   async run(ctx) {
+    const P = config.prefix;
     const p = ctx.db.player(ctx.guildId, ctx.user);
-    if (!p.job) return `❌ You need a job first. Try \`${config.prefix}apply <ticker>\`.`;
+    if (!p.job) return `❌ You need a job first. Try \`${P}apply <ticker>\`, or pick up a quick \`${P}gig\`.`;
     if (!jobs.COMPANIES[p.job] && !co.alive(co.get(ctx.db, p.job))) {
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { job: null, shifts: 0 });
-      return `💀 **${p.job}** went under. You're out of a job. Try \`${config.prefix}apply <ticker>\`.`;
+      return `💀 **${p.job}** went under. You're out of a job. Try \`${P}apply <ticker>\`.`;
     }
 
     const cur = active.get(keyOf(ctx));
@@ -130,21 +264,67 @@ module.exports = {
     const next = p.last_work + jobs.WORK_COOLDOWN_MS;
     if (Date.now() < next) return `😴 Shift's over. Next shift ${relTime(next)}.`;
 
-    ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { last_work: Date.now() });
-    const t = startTask(ctx, p.job, 0);
-    return { content: `${t.q}\n⏱️ You have **20 seconds**.`, components: t.components };
+    const m = await ctx.market.get();
+    const ev = await events(ctx, p, m);
+    if (ev) return ev;
+
+    const now = Date.now();
+    ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { last_work: now });
+    if (p.remind) reminders.schedule(ctx, ctx.guildId, ctx.user.id, now + jobs.WORK_COOLDOWN_MS);
+    const career = ctx.db.career(ctx.guildId, ctx.user.id, p.job);
+    const random = ctx.random || Math.random;
+
+    // Strikes: when the Polygon Reserve is low, the union walks out. Join them, or cross the line.
+    if (jobs.COMPANIES[p.job] && reserve.level(ctx.db) < STRIKE.below && random() < STRIKE.chance) {
+      const id = nonce();
+      active.set(keyOf(ctx), { job: p.job, style: p.job, mode: 'strike', id, start: Date.now(), tier: career.rank, market: m });
+      return {
+        content: `🪧 **STRIKE at ${jobs.COMPANIES[p.job].name}!** The Polygon Reserve is running dry and the union is walking out.\n` +
+          `**Join the strike** for strike pay (${STRIKE.pay * 100}%), or **cross the picket line** and work (-10%, and the stock takes a hit).`,
+        components: rows([button('Join the strike', `work:${ctx.user.id}:${id}:strike`, 'green'), button('Cross the line', `work:${ctx.user.id}:${id}:cross`, 'red')])
+      };
+    }
+    return startTask(ctx, { job: p.job, style: taskStyle(p.job), tier: career.rank, market: m });
   },
 
   // A task button was pressed: "work:<user>:<task id>:<choice>"
   buttonPrefix: 'work',
   async onButton(ctx, [userId, id, i]) {
-    if (ctx.user.id !== userId) return { reply: "This isn't your shift. Get your own with `r!work`." };
+    if (ctx.user.id !== userId) return { reply: `This isn't your shift. Get your own with \`${config.prefix}work\`.` };
     const st = active.get(keyOf(ctx));
     if (!st || st.id !== id) return { update: { components: [] } }; // an old task: just clear its buttons
+
+    if (st.mode === 'strike') {
+      active.delete(keyOf(ctx));
+      if (i === 'cross') {
+        const t = startTask(ctx, { job: st.job, style: st.job, tier: st.tier, scab: true, market: st.market, intro: '🪧 You cross the picket line. Boos all around.\n' });
+        return { update: t };
+      }
+      const career = ctx.db.career(ctx.guildId, ctx.user.id, st.job);
+      const c = jobs.COMPANIES[st.job];
+      const price = st.market && st.market.prices ? Number(st.market.prices[st.job]) : c.start;
+      const pay = ctx.db.tx(() => {
+        const s = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * Math.max(price || c.start, 0.5) / c.start * jobs.rank(st.job, career.rank).mult * STRIKE.pay * 100));
+        ctx.db.addCash(ctx.guildId, ctx.user.id, s);
+        ctx.db.updateCareer(ctx.guildId, ctx.user.id, st.job, { earned: career.earned + s });
+        return s;
+      });
+      return { update: { content: `🪧 **Solidarity!** You hold the line with the union. Strike pay: **+${amt(pay)}**.\n-# Strikes don't count toward your review.`, components: [] } };
+    }
+
     const choice = st.choices[Number(i)];
     if (!choice) return null;
+    if (st.seq) {
+      // Several presses in order; grade when the combo is complete
+      st.pressed.push(choice.value);
+      const soFar = st.pressed.every((v, k) => v === st.steps[k]);
+      if (soFar && st.pressed.length < st.steps.length) return null; // so far so good, keep going
+      ctx.cancelAwait();
+      const result = await answer(ctx, st.pressed.join(' '));
+      return { update: { components: [] }, followUp: result };
+    }
     ctx.cancelAwait();
-    const result = await answer(ctx, { content: choice.value });
+    const result = await answer(ctx, choice.value);
     return { update: { components: [] }, followUp: result };
   }
 };

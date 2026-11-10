@@ -116,7 +116,7 @@
       <li>
         <div class="project">
           <h3>Jobs</h3>
-          <p>Work for one of the five companies with quick in-chat tasks every 15 minutes. Pay follows your company's stock price, and loyal workers get promoted all the way to Executive.</p>
+          <p>Work for one of the five companies with quick in-chat tasks every 15 minutes: mod queues, memory orders, audits, bug hunts and more. Pay follows your company's stock price, fast answers earn tips, and a performance review every 10 shifts decides who gets promoted.</p>
           <span class="tag">EARNING</span>
         </div>
       </li>
@@ -185,9 +185,11 @@
       </tbody>
       <tbody>
         <tr><th scope="rowgroup" colspan="2">JOBS</th></tr>
-        <tr><td class="name">r!apply &lt;ticker&gt;</td><td>Joins a company as an Intern, for example <code>r!apply NACH</code>. You can work for one company at a time.</td></tr>
-        <tr><td class="name">r!work</td><td>Starts a shift. Answer the quick task within 20 seconds for full pay. Wrong or slow answers still earn 40%. Every 15 minutes.</td></tr>
-        <tr><td class="name">r!quit</td><td>Leaves your job. Locked for 24 hours after you're hired, and your rank resets.</td></tr>
+        <tr><td class="name">r!apply &lt;ticker&gt;</td><td>Joins a company, for example <code>r!apply NACH</code>. You can work for one company at a time. Nobody hires during a crash, and bankrupt companies can't hire at all.</td></tr>
+        <tr><td class="name">r!work</td><td>Starts a shift. Answer the task within 20 seconds for full pay, and fast answers earn a speed tip on top. Wrong or slow answers still earn 40%. Coworkers working in the same channel get a team bonus. Every 15 minutes.</td></tr>
+        <tr><td class="name">r!job</td><td>Your rank, next performance review, accuracy, earnings and cooldown, plus what's happening at your company. <code>r!job remind on</code> DMs you when your next shift is ready.</td></tr>
+        <tr><td class="name">r!gig</td><td>No job? Quick freelance tasks for a little pay, every 10 minutes.</td></tr>
+        <tr><td class="name">r!quit</td><td>Leaves your job. Locked for 24 hours after you're hired. Your rank there is saved if you come back.</td></tr>
       </tbody>
       <tbody>
         <tr><th scope="rowgroup" colspan="2">SHOP</th></tr>
@@ -247,30 +249,34 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td><div class="name">Render Room<span class="tkr">RRM</span></div></td><td>Moderation duty. Read a member's message and decide: <code>ban</code> or <code>ok</code>.</td></tr>
-        <tr><td><div class="name">De Nacho<span class="tkr">NACH</span></div></td><td>The nacho line. Type the order back exactly as it came in.</td></tr>
-        <tr><td><div class="name">Builder's League United<span class="tkr">BLU</span></div></td><td>The build crew. Put scrambled build steps in the right order.</td></tr>
-        <tr><td><div class="name">Business Numbers Working<span class="tkr">BNW</span></div></td><td>Number crunching. Solve the sum before the deadline.</td></tr>
-        <tr><td><div class="name">Bastardly Glory<span class="tkr">BSTG</span></div></td><td>Playtesting. One tile in the level is glitched: type its number before the build ships.</td></tr>
+        <tr><td><div class="name">Render Room<span class="tkr">RRM</span></div></td><td>Moderation duty. Work the mod queue (ban, warn or OK), spot the real link among the scams, and name the rule a post breaks.</td></tr>
+        <tr><td><div class="name">De Nacho<span class="tkr">NACH</span></div></td><td>The nacho line. Type orders back exactly, rebuild a memory order after it disappears, and count ingredients across a stack of tickets.</td></tr>
+        <tr><td><div class="name">Builder's League United<span class="tkr">BLU</span></div></td><td>The build crew. Put build steps in order, work out how many bricks a wall needs, and grab the right tool for the job.</td></tr>
+        <tr><td><div class="name">Business Numbers Working<span class="tkr">BNW</span></div></td><td>Number crunching. Solve sums, find the wrong row in a spreadsheet, and work out the percent change in a stock's price.</td></tr>
+        <tr><td><div class="name">Bastardly Glory<span class="tkr">BSTG</span></div></td><td>Playtesting. Find the glitched tile in a row or a grid, and reproduce a bug's button combo from memory.</td></tr>
       </tbody>
     </table>
 
     <table class="board" aria-label="Job ranks" style="margin-top: 1rem;">
       <thead>
         <tr>
-          <th scope="col">Rank</th>
-          <th scope="col" class="num">Shifts worked</th>
-          <th scope="col" class="num">Pay</th>
+          <th scope="col">Company</th>
+          <th scope="col">1×</th>
+          <th scope="col">1.25×</th>
+          <th scope="col">1.5×</th>
+          <th scope="col">2×</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td class="name">Intern</td><td class="num">0</td><td class="num">1×</td></tr>
-        <tr><td class="name">Employee</td><td class="num">10</td><td class="num">1.25×</td></tr>
-        <tr><td class="name">Manager</td><td class="num">25</td><td class="num">1.5×</td></tr>
-        <tr><td class="name">Executive</td><td class="num">50</td><td class="num">2×</td></tr>
+        <tr><td class="name">RRM</td><td>Trial Mod</td><td>Moderator</td><td>Senior Mod</td><td>Admin</td></tr>
+        <tr><td class="name">NACH</td><td>Dishwasher</td><td>Line Cook</td><td>Sous Chef</td><td>Head Chef</td></tr>
+        <tr><td class="name">BLU</td><td>Apprentice</td><td>Builder</td><td>Foreman</td><td>Architect</td></tr>
+        <tr><td class="name">BNW</td><td>Intern</td><td>Analyst</td><td>Accountant</td><td>CFO</td></tr>
+        <tr><td class="name">BSTG</td><td>Playtester</td><td>Bug Hunter</td><td>QA Lead</td><td>Game Director</td></tr>
+        <tr><td class="name">Player companies</td><td>Intern</td><td>Employee</td><td>Manager</td><td>Executive</td></tr>
       </tbody>
     </table>
-    <p class="empty">Pay rises and falls with your company's stock price. Quitting resets your rank to Intern.</p>
+    <p class="empty">Every 10 shifts you get a performance review: 8 or more right gets you promoted (or a bonus at the top), 4 or fewer gets you demoted. Higher ranks pay more and get tougher tasks. Pay rises and falls with your company's stock price.</p>
   </section>
 
   <section aria-labelledby="shop-title" style="margin-top: 2.5rem;">

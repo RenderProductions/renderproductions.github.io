@@ -136,11 +136,13 @@ const has = async (line, needle, user) => {
   assert.ok(Math.abs(db.player(G, ALICE).div_carry - 0.0053) < 1e-9, 'fraction carried');
   await has('r!dividends', 'collected **⬡ 0.00');
 
-  // ---- jobs ----
+  // ---- jobs (the Labor Day Update) ----
   market.set(OPEN);
+  work.TUNING.tipMax = 0;     // exact pay; tips are tested on their own below
+  work.TUNING.kind = 'order'; // pick the task type
   await has('r!work', 'need a job first');
   await has('r!apply XYZ', 'Pick a company');
-  await has('r!apply nach', 'Welcome to **De Nacho**');
+  await has('r!apply nach', 'Welcome to **De Nacho**! You start as a **Dishwasher**');
   await has('r!apply BLU', 'already work at **NACH**');
   await has('r!quit', 'You can quit <t:');
 
@@ -150,27 +152,39 @@ const has = async (line, needle, user) => {
   assert.ok(q.includes('order up') && q.includes('20 seconds'), q);
   await has('r!work', 'mid-shift');
   const ans = work.active.get(`${G}:${ALICE.id}`).ans;
-  assert.ok((await reply(ans)).includes('Nice work, Intern! **+⬡ 35.00**'));
+  assert.ok((await reply(ans)).includes('Nice work, Dishwasher! **+⬡ 35.00**'));
   assert.strictEqual(cash(), before + 35_00);
   await has('r!work', "Shift's over");
 
   db.updatePlayer(G, ALICE.id, { last_work: 0, overtime: 1 });
   await say('r!work');
-  assert.ok((await reply('wrong')).includes('Not quite') , 'wrong answer');
+  assert.ok((await reply('wrong')).includes('Not quite'), 'wrong answer');
   assert.strictEqual(cash(), before + 35_00 + 28_00, 'wrong pays 40%, overtime doubles it: 35*0.4*2 = 28');
+  let car = db.career(G, ALICE.id, 'NACH');
+  assert.ok(car.shifts === 2 && car.total === 2 && car.correct === 1 && car.rev_total === 2 && car.earned === 63_00, JSON.stringify(car));
 
-  // Promotion at 10 shifts, and a rush round (forced) that pays 60%
-  db.updatePlayer(G, ALICE.id, { last_work: 0, shifts: 9 });
+  // The review on the 10th shift: 9/10 promotes. And a rush round (forced) that pays 60%
+  db.updateCareer(G, ALICE.id, 'NACH', { shifts: 9, rev_total: 9, rev_right: 8 });
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
   await say('r!work');
   random = () => 0.1; // forces the 1-in-5 rush
   const pass = await reply(work.active.get(`${G}:${ALICE.id}`).ans);
-  assert.ok(pass.includes('Promoted to Employee') && pass.includes('RUSH ORDER #1'), pass);
+  assert.ok(pass.includes('Performance review: 9/10') && pass.includes('Promoted to Line Cook') && pass.includes('RUSH ORDER #1'), pass);
   random = () => 0.5;
   const rush = await reply(work.active.get(`${G}:${ALICE.id}`).ans);
-  assert.ok(rush.includes('RUSH CLEARED') && rush.includes('+⬡ 26.00'), rush); // 35 * 1.25 * 0.6 = 26.25
+  assert.ok(rush.includes('RUSH CLEARED') && rush.includes('+⬡ 26.25'), rush); // 35 * 1.25 * 0.6
+  assert.strictEqual(db.career(G, ALICE.id, 'NACH').rank, 1);
 
+  // A bad review demotes
+  db.updateCareer(G, ALICE.id, 'NACH', { rev_total: 9, rev_right: 2 });
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
+  await say('r!work');
+  assert.ok((await reply('nope')).includes('Demoted to Dishwasher'));
+  db.updateCareer(G, ALICE.id, 'NACH', { rank: 1, rev_total: 0, rev_right: 0 });
+
+  // Quitting keeps your rank there
   db.updatePlayer(G, ALICE.id, { hired_at: 0 });
-  await has('r!quit', 'lose your **Employee** rank');
+  await has('r!quit', "You're a **Line Cook** with 11 shifts there");
   const quitCmd = require('../src/commands/quit');
   const quitAsk = await say('r!quit');
   const [yesId, noId] = quitAsk.components[0].components.map((b) => b.custom_id);
@@ -178,26 +192,116 @@ const has = async (line, needle, user) => {
   assert.ok((await quitCmd.onButton(ctxFor(ALICE), noId.split(':').slice(1))).update.content.includes('You stayed'));
   assert.strictEqual(db.player(G, ALICE).job, 'NACH', 'Stay keeps the job');
   const quitDone = await quitCmd.onButton(ctxFor(ALICE), yesId.split(':').slice(1));
-  assert.ok(quitDone.update.content.includes('quit **NACH** after 10 shifts') && quitDone.update.components.length === 0, JSON.stringify(quitDone));
+  assert.ok(quitDone.update.content.includes('quit **NACH** after 11 shifts') && quitDone.update.components.length === 0, JSON.stringify(quitDone));
   assert.strictEqual(db.player(G, ALICE).job, null);
 
-  // Every job's task has an answer that matches its own prompt
+  // ---- gigs ----
+  await has('r!gig', 'Gig:');
+  assert.ok((await reply(work.active.get(`${G}:${ALICE.id}`).ans)).includes('Gig done! **+⬡ 14.00**'));
+  await has('r!gig', 'No gigs right now');
+  await has('r!job', 'between jobs');
+
+  // Coming back: welcome back, rank intact
+  await has('r!apply NACH', 'Welcome back to **De Nacho**! You\'re still a **Line Cook**, with 11 shifts');
+  await has('r!gig', 'already have a job');
+  await has('r!job', 'Line Cook');
+
+  // ---- speed tips ----
+  work.TUNING.tipMax = 0.5;
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
+  await say('r!work');
+  const tipped = await reply(work.active.get(`${G}:${ALICE.id}`).ans);
+  assert.ok(/Speed tip \*\*\+⬡ 2[01]\.\d\d\*\*/.test(tipped), tipped); // 35 * 1.25 = 43.75, instant answer: up to +21.88
+  work.TUNING.tipMax = 0;
+
+  // ---- team shifts: a coworker in the same channel ----
+  db.updatePlayer(G, BOB.id, { job: 'NACH', hired_at: Date.now(), last_work: 0 });
+  await say('r!work', BOB);
+  assert.ok((await reply(work.active.get(`${G}:${BOB.id}`).ans, BOB)).includes('Team shift with **alice**: **+15%**'));
+
+  // ---- the market ----
+  // Booms pay double
+  market.set(snapshot((m) => { m.boost = { tickers: [], until: new Date(Date.now() + 3600e3).toISOString() }; }));
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
+  await say('r!work');
+  assert.ok((await reply(work.active.get(`${G}:${ALICE.id}`).ans)).includes('Boom overtime x2'));
+  // Hiring freeze during a crash, layoffs at a bankrupt company
+  market.set(snapshot((m) => { m.crash = { phase: 'crash' }; }));
+  db.updatePlayer(G, BOB.id, { job: null });
+  await has('r!apply RRM', 'Hiring freeze', BOB);
+  market.set(snapshot((m) => { m.statuses.NACH = 'bankrupt'; }));
+  await has('r!apply NACH', "isn't hiring", BOB);
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
+  const c0 = cash();
+  await has('r!work', 'Laid off');
+  assert.strictEqual(db.player(G, ALICE).job, null);
+  assert.strictEqual(cash(), c0 + Math.round(35 * 1.25 * 3 * 100), 'three shifts of severance');
+  market.set(OPEN);
+
+  // Strikes when the Polygon Reserve is low: join or cross the line
+  const reserve = require('../src/reserve');
+  const full = reserve.get(db);
+  reserve.move(db, Math.round(reserve.RULES.start * 0.2) - full);
+  db.updatePlayer(G, ALICE.id, { job: 'NACH', last_work: 0 });
+  random = () => 0.1;
+  const strike = await say('r!work');
+  assert.ok(text(strike).includes('STRIKE at De Nacho'), text(strike));
+  const [join, cross] = strike.components[0].components.map((b) => b.custom_id.split(':').slice(1));
+  const joined = await work.onButton(ctxFor(ALICE), join);
+  assert.ok(joined.update.content.includes('Solidarity'), JSON.stringify(joined));
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
+  const strike2 = await say('r!work');
+  const crossed = await work.onButton(ctxFor(ALICE), strike2.components[0].components[1].custom_id.split(':').slice(1));
+  assert.ok(crossed.update.content.includes('cross the picket line'));
+  random = () => 0.5;
+  assert.ok((await reply(work.active.get(`${G}:${ALICE.id}`).ans)).includes('Crossed the picket line'));
+  reserve.move(db, full - reserve.get(db));
+
+  // Memory tasks hide the order, then you press it back in order
+  work.TUNING.kind = 'memory';
+  db.updatePlayer(G, ALICE.id, { last_work: 0 });
+  const mem = await say('r!work');
+  assert.ok(mem.later && mem.later.ms === 4000 && mem.components.length === 0, 'shown first, buttons later');
+  assert.ok(mem.later.edit.content.includes('Build it from memory') && mem.later.edit.components.length);
+  const mst = work.active.get(`${G}:${ALICE.id}`);
+  const btnFor = (v) => mem.later.edit.components.flatMap((r) => r.components).find((b, i) => mst.choices[i].value === v).custom_id.split(':').slice(1);
+  mst.start = Date.now(); // pretend the order just disappeared
+  const words = mst.steps;
+  let pressOut;
+  for (const w of words) pressOut = await work.onButton(ctxFor(ALICE), btnFor(w));
+  assert.ok(String(pressOut.followUp).includes('Nice work'), JSON.stringify(pressOut));
+  work.TUNING.kind = null;
+
+  // r!job and reminders
+  await has('r!job remind on', 'reminders **on**');
+  assert.strictEqual(db.player(G, ALICE).remind, 1);
+  await has('r!job remind off', 'reminders **off**');
+
+  // Every task of every job, at every rank, has an answer that fits its own prompt
   const jobs = require('../src/jobs');
+  const kinds = { RRM: ['queue', 'links', 'rule'], NACH: ['order', 'memory', 'count'], BLU: ['steps', 'bricks', 'tool'], BNW: ['math', 'sheet', 'percent'], BSTG: ['tile', 'grid', 'repro'] };
   for (const j of Object.keys(jobs.COMPANIES)) {
-    for (const r of [false, true]) {
-      for (let i = 0; i < 30; i++) {
-        const t = jobs.task(j, r);
-        assert.ok(t.q && t.ans, `${j} task`);
-        if (j === 'BNW') {
-          const [, x, op, y] = t.q.match(/(\d+) ([+−×]) (\d+)/);
-          const want = op === '+' ? +x + +y : op === '−' ? x - y : x * y;
+    for (const kind of kinds[j]) for (const tier of [0, 1, 2, 3]) for (const rushOn of [false, true]) {
+      for (let i = 0; i < 15; i++) {
+        const t = jobs.task(j, { tier, rush: rushOn, kind, market: OPEN });
+        assert.ok(t.q && t.ans && t.limit, `${j} ${kind} task`);
+        if (t.check) assert.ok(t.check(t.ans), `${j} ${kind}: its own answer passes`);
+        if (t.choices && !t.seq) assert.ok(t.choices.some((c) => c.value === t.ans), `${j} ${kind}: the answer is a button`);
+        if (t.seq) assert.ok(t.ans.split(' ').every((w) => t.choices.some((c) => c.value.split(' ').includes(w))), `${j} ${kind}: every step is a button`);
+        if (t.choices) assert.ok(t.choices.length <= 25, 'fits in Discord');
+        if (kind === 'math') {
+          const [, x, op, y, z] = t.q.match(/(\d+) ([+−×]) (\d+)(?: \+ (\d+))?/);
+          const want = (op === '+' ? +x + +y : op === '−' ? x - y : x * y) + (z ? +z : 0);
           assert.strictEqual(t.ans, String(want));
         }
-        if (j === 'NACH' || j === 'BLU') assert.ok(r || t.q.length > 0);
-        if (j === 'NACH') assert.ok(t.q.includes(t.ans));
+        if (kind === 'order') assert.ok(t.q.includes(t.ans));
+        if (kind === 'bricks') { const n = t.q.match(/\*\*(\d+)\*\*/g).map((x) => +x.replace(/\*/g, '')); assert.strictEqual(+t.ans, n[0] * n[1] + (n[2] || 0)); }
       }
     }
   }
+  assert.ok(jobs.task('BNW', { kind: 'percent' }).check('5') !== undefined);
+  db.updatePlayer(G, ALICE.id, { job: null, shifts: 0 });
+  db.updatePlayer(G, BOB.id, { job: null, shifts: 0 });
 
   // ---- shop and inventory ----
   db.updatePlayer(G, ALICE.id, { cash: 10000_00, last_work: 0 });

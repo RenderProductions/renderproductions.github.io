@@ -316,7 +316,9 @@ function pctChange(now, then) {
 
 // =====================================================================
 
-function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
+// nudges: { RRM: 0.002 } small pushes from outside the engine (the bot: work shifts make a company's stock
+// a little more valuable, strikebreakers a little less). Log terms, capped at ±3% per company per tick.
+function tick({ old = {}, state = null, now = Date.now(), rand, nudges = {} } = {}) {
   const rnd = makeRandom(rand);
   const { R, between, chance, pick, normal, fat, weighted } = rnd;
   const nowIso = new Date(now).toISOString();
@@ -458,6 +460,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     if (phaseChanged && phase === 'crash') s.mood = rollMood(MOODS, ONLY('freefall', MOODS));
     if (phaseChanged && oldPhase === 'crash') s.mood = rollMood(MOODS, c.moods);
 
+    let push = clamp(Number(nudges[c.id]) || 0, -0.03, 0.03); // used up by the first step
     function stepPrice(price, sc) {
       if (now >= s.mood.until) s.mood = rollMood(MOODS, phase === 'crash' ? CRASH_MOODS : c.moods);
       const z = fat();
@@ -482,6 +485,7 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         r -= sc * drag;
         r += sc * lift;
       }
+      if (push) { r += push; s.lnFair += push; if (bk) s.pit += push * LINEAR_BELOW; push = 0; }
       // Volatility clustering: big surprises raise volatility, calm ticks let it settle back toward 1.
       s.g = clamp(1 + 0.98 * (s.g - 1) + 0.05 * (Math.abs(z) - 0.8), 0.5, 3.5);
       // The fair value wanders, and is gently kept inside its bounds (not during a crash: it sinks with everything else).

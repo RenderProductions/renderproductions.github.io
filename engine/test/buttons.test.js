@@ -7,6 +7,7 @@ const market = require('../src/market');
 const router = require('../src/router');
 const jobs = require('../src/jobs');
 const work = require('../src/commands/work');
+work.TUNING.tipMax = 0; // exact pay in these tests
 const slots = require('../src/commands/slots');
 const shopCmd = require('../src/commands/shop');
 const review = require('../src/commands/review');
@@ -31,19 +32,20 @@ const press = (cmd, id, user, extra) => cmd.onButton(ctxFor(user, extra), id.spl
   db.updatePlayer(G, ANA.id, { cash: 5000_00 });
 
   // ---- task choices always include the right answer, and fit Discord's limits ----
-  for (const job of ['RRM', 'BSTG', 'BLU']) {
+  for (const [job, kind] of [['RRM', 'queue'], ['RRM', 'links'], ['RRM', 'rule'], ['BSTG', 'tile'], ['BSTG', 'grid'], ['BLU', 'steps'], ['BLU', 'tool'], ['BNW', 'sheet']]) {
     for (let i = 0; i < 40; i++) {
-      const t = jobs.task(job, i % 2 === 1);
-      assert.ok(t.choices && t.choices.some((c) => c.value === t.ans), `${job} choices include the answer`);
+      const t = jobs.task(job, { rush: i % 2 === 1, tier: i % 4, kind });
+      assert.ok(t.choices && t.choices.some((c) => c.value === t.ans), `${job} ${kind} choices include the answer`);
       assert.ok(t.choices.length <= 25 && t.choices.every((c) => c.label.length <= 80));
-      assert.strictEqual(new Set(t.choices.map((c) => c.value)).size, t.choices.length, 'no duplicate choices');
+      assert.strictEqual(new Set(t.choices.map((c) => c.value)).size, t.choices.length, `${job} ${kind}: no duplicate choices`);
     }
   }
-  assert.strictEqual(jobs.task('BLU', false).choices.length, 3);
-  assert.ok(!jobs.task('NACH', false).choices && !jobs.task('BNW', false).choices, 'typing jobs stay typed');
+  assert.strictEqual(jobs.task('BLU', { kind: 'steps' }).choices.length, 3);
+  assert.ok(!jobs.task('NACH', { kind: 'order' }).choices && !jobs.task('BNW', { kind: 'math' }).choices, 'typing tasks stay typed');
 
   // ---- work: answering with a button ----
   db.updatePlayer(G, ANA.id, { job: 'RRM', hired_at: 0, last_work: 0 });
+  work.TUNING.kind = 'queue';
   const task = await work.run(ctxFor(ANA));
   assert.deepStrictEqual(labels(task), ['Ban', 'OK']);
   const st = work.active.get(`${G}:${ANA.id}`);
@@ -59,6 +61,7 @@ const press = (cmd, id, user, extra) => cmd.onButton(ctxFor(user, extra), id.spl
 
   // BSTG gets 8 tile buttons in two rows
   db.updatePlayer(G, ANA.id, { job: 'BSTG', last_work: 0 });
+  work.TUNING.kind = 'tile';
   const tiles = await work.run(ctxFor(ANA));
   assert.deepStrictEqual(labels(tiles), ['1', '2', '3', '4', '5', '6', '7', '8']);
   assert.strictEqual(tiles.components.length, 2);
@@ -68,6 +71,7 @@ const press = (cmd, id, user, extra) => cmd.onButton(ctxFor(user, extra), id.spl
 
   // NACH stays typed: no buttons
   db.updatePlayer(G, ANA.id, { job: 'NACH', last_work: 0 });
+  work.TUNING.kind = 'order';
   assert.strictEqual((await work.run(ctxFor(ANA))).components.length, 0);
   work.active.clear(); router.pending.clear();
 
@@ -119,6 +123,7 @@ const press = (cmd, id, user, extra) => cmd.onButton(ctxFor(user, extra), id.spl
   await router.handleButton(fake(again, BEN), { db, market });
   assert.ok(calls[1][0] === 'reply' && calls[1][1].ephemeral === true, 'private answer to the wrong person');
   db.updatePlayer(G, ANA.id, { job: 'RRM', last_work: 0 });
+  work.TUNING.kind = 'queue';
   const t2 = await work.run(ctxFor(ANA));
   await router.handleButton(fake(ids(t2)[0], ANA), { db, market });
   assert.deepStrictEqual(calls.slice(2).map((c) => c[0]), ['update', 'followUp'], 'task buttons cleared, result posted');

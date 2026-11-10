@@ -16,7 +16,7 @@ const NEWS = require('../../.github/scripts/post-news');
 const controls = require('../../.github/scripts/market/controls');
 
 const enabled = () => config.marketEngine === 'bot';
-const K = { old: 'mk_old', state: 'mk_state', crash: 'mk_crash', boost: 'mk_boost', seenCrash: 'mk_seen_crash', seenBoost: 'mk_seen_boost' };
+const K = { old: 'mk_old', state: 'mk_state', crash: 'mk_crash', boost: 'mk_boost', seenCrash: 'mk_seen_crash', seenBoost: 'mk_seen_boost', nudges: 'mk_nudges' };
 let latest = null;   // the newest prices.json
 let running = false;
 
@@ -81,8 +81,10 @@ async function seed(db) {
 // One 5-minute step
 async function step(db, now = Date.now()) {
   const old = getJson(db, K.old) || {};
-  const r = ENGINE.tick({ old, state: getJson(db, K.state), now });
+  const nudges = getJson(db, K.nudges) || {};
+  const r = ENGINE.tick({ old, state: getJson(db, K.state), now, nudges });
   if (r.skip) return null;
+  db.setMeta(K.nudges, '{}');
   setJson(db, K.old, r.data);
   setJson(db, K.state, r.state);
   latest = r.data;
@@ -120,6 +122,14 @@ async function start(db) {
   return true;
 }
 
+// Work shifts nudge a company's stock (log terms, applied on the next tick). Only when the bot runs the market.
+function nudge(db, ticker, amount) {
+  if (!enabled() || !amount) return;
+  const n = getJson(db, K.nudges) || {};
+  n[ticker] = (n[ticker] || 0) + amount;
+  setJson(db, K.nudges, n);
+}
+
 // For r!crash / r!boost and the Polygon Reserve: change the settings and tick right away.
 async function control(db, kind, input) {
   const r = kind === 'crash' ? controls.crashSettings(crash(db), input) : controls.boostSettings(boost(db), input);
@@ -140,4 +150,4 @@ async function dispatch(workflow, inputs) {
   return res.ok ? { ok: true } : { error: `GitHub ${res.status}: ${(await res.text()).slice(0, 200)}` };
 }
 
-module.exports = { enabled, start, step, run, control, dispatch, crash, boost, setCrash, setBoost, latest: () => latest, openState };
+module.exports = { enabled, start, step, run, control, nudge, dispatch, crash, boost, setCrash, setBoost, latest: () => latest, openState };

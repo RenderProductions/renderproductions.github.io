@@ -15,7 +15,7 @@ function blocked(ctx, p) {
 
 module.exports = {
   name: 'quit',
-  description: 'Leave your job (24h after hiring, resets your rank)',
+  description: 'Leave your job (24h after hiring; your rank there is saved)',
   options: [],
   buttonPrefix: 'quit',
 
@@ -24,9 +24,9 @@ module.exports = {
     const p = ctx.db.player(ctx.guildId, ctx.user);
     const no = blocked(ctx, p);
     if (no) return no;
-    const rank = jobs.rank(p.shifts).name;
+    const rank = jobs.rank(p.job, ctx.db.career(ctx.guildId, ctx.user.id, p.job).rank).name;
     return {
-      content: `🤔 Quit **${p.job}**? You'll lose your **${rank}** rank and all ${p.shifts} shifts.`,
+      content: `🤔 Quit **${p.job}**? You're a **${rank}** with ${p.shifts} shifts there. Your rank is saved if you ever come back.`,
       components: rows([
         button('Quit my job', `quit:${ctx.user.id}:yes`, 'red'),
         button('Stay', `quit:${ctx.user.id}:no`, 'grey')
@@ -41,6 +41,7 @@ module.exports = {
     const no = blocked(ctx, p);
     if (no) return { update: { content: no, components: [] } };
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { job: null, shifts: 0, overtime: 0 });
-    return { update: { content: `👋 You quit **${p.job}** after ${p.shifts} shifts. Your rank resets when you join a new company.`, components: [] } };
+    require('../reminders').cancel(ctx.guildId, ctx.user.id);
+    return { update: { content: `👋 You quit **${p.job}** after ${p.shifts} shifts. Your rank there is saved. Pick up a \`${config.prefix}gig\` while you look around.`, components: [] } };
   }
 };

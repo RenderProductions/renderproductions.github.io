@@ -28,6 +28,23 @@ async function say(line, user = OWNER) { const p = router.parsePrefix(line); ret
   const b = await engine.step(db, t0 + 5 * 60 * 1000);
   assert.notStrictEqual(JSON.stringify(b.prices), JSON.stringify(a.prices), 'prices move');
 
+  // Work shifts nudge a company's stock on the next tick, then the nudges are used up
+  engine.nudge(db, 'RRM', 0.01); engine.nudge(db, 'RRM', 0.01);
+  assert.strictEqual(JSON.parse(db.meta('mk_nudges')).RRM, 0.02);
+  await engine.step(db, t0 + 10 * 60 * 1000);
+  assert.deepStrictEqual(JSON.parse(db.meta('mk_nudges')), {});
+
+  // Replies that change a moment later (memory tasks): the router edits the sent message
+  const sent = []; const edits = [];
+  const fakeMsg = { author: { id: '8', bot: false, username: 'x' }, guildId: '1', channelId: 'c', content: 'r!help',
+    reply: async (p) => { sent.push(p); return { edit: async (e) => edits.push(e) }; } };
+  const pending = router.pending;
+  pending.set('c:8', { handler: async () => ({ content: 'look!', later: { ms: 20, edit: { content: 'hidden' } } }), expires: Date.now() + 1000 });
+  await router.handleMessage({ ...fakeMsg, content: 'my answer' }, { db, market });
+  assert.ok(sent[0].content === 'look!' && !('later' in sent[0]), 'later is not sent to Discord');
+  await new Promise((r) => setTimeout(r, 60));
+  assert.strictEqual(edits[0].content, 'hidden');
+
   // r!boost and r!crash change the market right away
   assert.ok((await say('r!boost start big 2 BNW | BNW strikes gold!')).includes('Boost on'));
   assert.strictEqual(engine.boost(db).strength, 'big');

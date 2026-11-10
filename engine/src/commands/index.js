@@ -17,6 +17,8 @@ const list = [
   require('./apply'),
   require('./quit'),
   require('./work'),
+  require('./job'),
+  require('./gig'),
   require('./shop'),
   require('./purchase'),
   require('./inventory'),

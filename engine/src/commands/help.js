@@ -24,9 +24,11 @@ module.exports = {
           `\`${P}reserve\` shows how many Polygons the house has left\n` +
           `\`${P}dividends\` collects what your shares have earned\n\n` +
           '**Jobs**\n' +
-          `\`${P}apply <ticker>\` joins a company as an Intern\n` +
-          `\`${P}work\` starts a shift (every 15 minutes)\n` +
-          `\`${P}quit\` leaves your job (24h after hiring, resets your rank)\n\n` +
+          `\`${P}apply <ticker>\` joins a company (your rank there is saved if you leave)\n` +
+          `\`${P}work\` starts a shift (every 15 minutes). A review every 10 shifts promotes or demotes you\n` +
+          `\`${P}job\` shows your rank, next review and stats. \`${P}job remind on\` DMs you when a shift is ready\n` +
+          `\`${P}gig\` is quick freelance work when you don't have a job\n` +
+          `\`${P}quit\` leaves your job (24h after hiring)\n\n` +
           '**Shop**\n' +
           `\`${P}shop\` shows items, stock, and the next restock\n` +
           `\`${P}purchase <item>\` buys coffee, overtime, mystery, resume, or title into your inventory\n` +

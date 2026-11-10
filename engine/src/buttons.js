@@ -3,16 +3,21 @@ const { ButtonStyle, ComponentType } = require('discord.js');
 
 const STYLE = { primary: ButtonStyle.Primary, grey: ButtonStyle.Secondary, green: ButtonStyle.Success, red: ButtonStyle.Danger };
 
-// button('Ban', 'work:123:ab:0', 'red')
-function button(label, id, style = 'grey', disabled = false) {
-  return { type: ComponentType.Button, style: STYLE[style] || STYLE.grey, label: String(label).slice(0, 80), custom_id: id, disabled };
+const STYLE_ALIAS = { blue: 'primary' };
+
+// button('Ban', 'work:123:ab:0', 'red') or button('cheese', id, 'grey', false, '🧀')
+function button(label, id, style = 'grey', disabled = false, emoji = null) {
+  const b = { type: ComponentType.Button, style: STYLE[STYLE_ALIAS[style] || style] || STYLE.grey, label: String(label).slice(0, 80), custom_id: id, disabled };
+  if (emoji) b.emoji = { name: emoji };
+  return b;
 }
 
-// Packs buttons into rows of 5 (at most 5 rows)
-function rows(buttons) {
+// Packs buttons into rows of 5, or of perRow (at most 5 rows)
+function rows(buttons, perRow = 5) {
   const out = [];
-  for (let i = 0; i < buttons.length && out.length < 5; i += 5) {
-    out.push({ type: ComponentType.ActionRow, components: buttons.slice(i, i + 5) });
+  const n = Math.max(1, Math.min(5, perRow));
+  for (let i = 0; i < buttons.length && out.length < 5; i += n) {
+    out.push({ type: ComponentType.ActionRow, components: buttons.slice(i, i + n) });
   }
   return out;
 }

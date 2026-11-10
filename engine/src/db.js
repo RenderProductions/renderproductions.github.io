@@ -147,12 +147,37 @@ const MIGRATIONS = [
   `
     -- Version 6: DM receipts on/off (on by default)
     ALTER TABLE players ADD COLUMN receipts INTEGER NOT NULL DEFAULT 1;
+  `,
+  `
+    -- Version 7: the Labor Day Update. A career at each company you've worked for (kept when you quit),
+    -- shift-ready DMs, and gigs. players.shifts stays as the shifts at your current job.
+    CREATE TABLE careers (
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      ticker    TEXT NOT NULL,
+      shifts    INTEGER NOT NULL DEFAULT 0,
+      rank      INTEGER NOT NULL DEFAULT 0,  -- 0-3, set by performance reviews
+      rev_right INTEGER NOT NULL DEFAULT 0,  -- tasks right since the last review
+      rev_total INTEGER NOT NULL DEFAULT 0,
+      correct   INTEGER NOT NULL DEFAULT 0,  -- lifetime
+      total     INTEGER NOT NULL DEFAULT 0,
+      earned    INTEGER NOT NULL DEFAULT 0,  -- cents, lifetime
+      PRIMARY KEY (guild_id, user_id, ticker)
+    );
+    INSERT INTO careers (guild_id, user_id, ticker, shifts, rank)
+      SELECT guild_id, user_id, job, shifts,
+        CASE WHEN shifts >= 50 THEN 3 WHEN shifts >= 25 THEN 2 WHEN shifts >= 10 THEN 1 ELSE 0 END
+      FROM players WHERE job IS NOT NULL;
+    ALTER TABLE players ADD COLUMN remind INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE players ADD COLUMN last_gig INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE players ADD COLUMN gig_earned INTEGER NOT NULL DEFAULT 0;
   `
 ];
 
-const PLAYER_COLUMNS = new Set(['receipts', 'username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
+const PLAYER_COLUMNS = new Set(['receipts', 'remind', 'last_gig', 'gig_earned', 'username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
   'shifts', 'hired_at', 'overtime', 'last_work', 'div_carry']);
 const HOLDING_COLUMNS = new Set(['shares', 'div_index', 'div_shares', 'wipe_seen']);
+const CAREER_COLUMNS = new Set(['shifts', 'rank', 'rev_right', 'rev_total', 'correct', 'total', 'earned']);
 
 function open(file = config.dbPath) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -237,6 +262,19 @@ function wrap(db, file = ':memory:') {
     updatePlayer(guildId, userId, fields) {
       const { sql, values } = setClause(fields, PLAYER_COLUMNS);
       if (sql) st(`UPDATE players SET ${sql} WHERE guild_id = ? AND user_id = ?`).run(...values, guildId, userId);
+    },
+    // Your record at one company (kept even after you quit)
+    career(guildId, userId, ticker) {
+      return st('SELECT * FROM careers WHERE guild_id = ? AND user_id = ? AND ticker = ?').get(guildId, userId, ticker)
+        || { guild_id: guildId, user_id: userId, ticker, shifts: 0, rank: 0, rev_right: 0, rev_total: 0, correct: 0, total: 0, earned: 0 };
+    },
+    careers(guildId, userId) {
+      return st('SELECT * FROM careers WHERE guild_id = ? AND user_id = ? ORDER BY shifts DESC').all(guildId, userId);
+    },
+    updateCareer(guildId, userId, ticker, fields) {
+      st('INSERT OR IGNORE INTO careers (guild_id, user_id, ticker) VALUES (?, ?, ?)').run(guildId, userId, ticker);
+      const { sql, values } = setClause(fields, CAREER_COLUMNS);
+      if (sql) st(`UPDATE careers SET ${sql} WHERE guild_id = ? AND user_id = ? AND ticker = ?`).run(...values, guildId, userId, ticker);
     },
     addCash(guildId, userId, cents) {
       st('UPDATE players SET cash = cash + ? WHERE guild_id = ? AND user_id = ?').run(cents, guildId, userId);
