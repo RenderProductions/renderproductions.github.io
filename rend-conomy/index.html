@@ -242,7 +242,7 @@
       var pct = pctOf(last, h[0]);
       var up = pct >= 0;
 
-      r.priceEl.textContent = last.toFixed(2);
+      r.priceEl.textContent = '⬡ ' + last.toFixed(2); // ⬡ = a price in Polygons
       r.changeEl.textContent = (up ? '▲ +' : '▼ ') + pct.toFixed(2) + '%';
       r.changeEl.className = 'num change ' + (up ? 'up' : 'down');
       r.sparkEl.setAttribute('class', 'spark ' + (up ? 'up' : 'down'));
@@ -302,7 +302,7 @@
         } else if (n.verdict) {
           stamp.textContent = 'Appeal #' + n.appeals + ' · TODD rules ' + fmtTime(n.verdict);
         } else if (typeof n.restart === 'number') {
-          stamp.textContent = 'Trading restarts at ' + n.restart.toFixed(2) + ' · TODD keeps the dividends for a day';
+          stamp.textContent = 'Trading restarts at ⬡ ' + n.restart.toFixed(2) + ' · TODD keeps the dividends for a day';
         } else if (n.until) {
           stamp.textContent = 'Prices frozen until ' + fmtTime(n.until);
         }

@@ -121,9 +121,10 @@
       <h2 id="how-title">How companies work</h2>
     </div>
     <div class="panel prose">
-      <p>Anyone can start a company with <code>r!found &lt;ticker&gt; &lt;name&gt;</code> for <b id="rule-founding">2,500</b> Polygons. A mod approves the name first, and if it's rejected you get your money back. Once approved, that money becomes the company's treasury.</p>
+      <p>Prices and costs are marked <b>⬡</b>; Polygons a company has are marked <b>⬢</b>.</p>
+      <p>Anyone can start a company with <code>r!found &lt;ticker&gt; &lt;name&gt;</code> for <b id="rule-founding">⬡ 2,500.00</b>. A mod approves the name first, and if it's rejected you get your money back. Once approved, that money becomes the company's treasury.</p>
       <p>The treasury pays a daily upkeep. It grows when the owner invests (<code>r!invest</code>), when players work there (every shift adds half the worker's pay), and from IPO share sales. Spend it to level up with <code>r!upgrade</code>.</p>
-      <p>At <b id="rule-ipo">Firm</b> level, the owner can go public with <code>r!ipo</code> (a <b id="rule-fee">2,000</b> Polygon listing fee). Then anyone can <code>r!buy</code> and <code>r!sell</code> its shares, except the owner. The first <b id="rule-float">400</b> shares sold fund the company. The owner can pay themselves up to 10% of the treasury a day with <code>r!salary</code>, but the stock dips when they do.</p>
+      <p>At <b id="rule-ipo">Firm</b> level, the owner can go public with <code>r!ipo</code> (a <b id="rule-fee">⬡ 2,000.00</b> listing fee). Then anyone can <code>r!buy</code> and <code>r!sell</code> its shares, except the owner. The first <b id="rule-float">400</b> shares sold fund the company. The owner can pay themselves up to 10% of the treasury a day with <code>r!salary</code>, but the stock dips when they do.</p>
       <p>Miss an upkeep payment and the market panics. Keep missing them and the price slides to zero, and the company closes for good, taking every share with it. A private company closes after missing upkeep 3 days in a row.</p>
       <table class="board levels" aria-label="Company levels" style="margin-top: 1rem;">
         <thead><tr><th scope="col">Level</th><th scope="col" class="num">Cost</th><th scope="col" class="num">Upkeep / day</th><th scope="col" class="num hide-sm">Employee pay</th></tr></thead>
@@ -156,6 +157,9 @@
 
     var $ = function (id) { return document.getElementById(id); };
     function money(n) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    // ⬢ = Polygons a company has (treasury), ⬡ = prices and costs
+    function have(n) { return '⬢ ' + money(n); }
+    function amt(n) { return '⬡ ' + money(n); }
     function el(tag, cls, text) {
       var e = document.createElement(tag);
       if (cls) e.className = cls;
@@ -199,8 +203,8 @@
       levels.forEach(function (l, i) {
         var tr = el('tr');
         tr.appendChild(el('td', null, l.name));
-        tr.appendChild(el('td', 'num', money(l.cost)));
-        tr.appendChild(el('td', 'num', money(l.upkeep)));
+        tr.appendChild(el('td', 'num', amt(l.cost)));
+        tr.appendChild(el('td', 'num', amt(l.upkeep)));
         tr.appendChild(el('td', 'num hide-sm', l.payMult + 'x'));
         body.appendChild(tr);
       });
@@ -218,7 +222,7 @@
       pub.forEach(function (c) {
         var tr = el('tr');
         tr.appendChild(nameCell(c));
-        tr.appendChild(el('td', 'num price', money(c.price)));
+        tr.appendChild(el('td', 'num price', amt(c.price)));
         var up = c.change >= 0;
         tr.appendChild(el('td', 'num change ' + (up ? 'up' : 'down'), (up ? '▲ +' : '▼ ') + Number(c.change).toFixed(2) + '%'));
         var tdS = el('td', 'num hide-sm');
@@ -234,7 +238,7 @@
       priv.forEach(function (c) {
         var tr = el('tr');
         tr.appendChild(nameCell(c));
-        tr.appendChild(el('td', 'num', money(c.treasury)));
+        tr.appendChild(el('td', 'num', have(c.treasury)));
         tr.appendChild(el('td', 'num hide-sm', String(c.employees)));
         vb.appendChild(tr);
       });
@@ -256,8 +260,8 @@
 
       if (data.levels) renderLevels(data.levels);
       if (data.rules) {
-        $('rule-founding').textContent = money(data.rules.founding);
-        $('rule-fee').textContent = money(data.rules.listingFee);
+        $('rule-founding').textContent = amt(data.rules.founding);
+        $('rule-fee').textContent = amt(data.rules.listingFee);
         $('rule-float').textContent = String(data.rules.float);
         if (data.levels && data.levels[data.rules.ipoLevel - 1]) $('rule-ipo').textContent = data.levels[data.rules.ipoLevel - 1].name;
       }

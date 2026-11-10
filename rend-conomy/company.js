@@ -54,6 +54,7 @@
     return e;
   }
   function money(v) { return Number(v).toFixed(2); }
+  function price(v) { return '⬡ ' + money(v); } // ⬡ = a price in Polygons
   function pct(v) { return (v >= 0 ? '▲ +' : '▼ ') + v.toFixed(2) + '%'; }
   // Percent change that still makes sense when a price touches or crosses zero.
   function pctOf(now, then) { return then ? ((now - then) / Math.abs(then)) * 100 : 0; }
@@ -88,7 +89,7 @@
       '<div class="co-top-row"><span class="co-badge"></span><div class="co-chips"></div></div>' +
       '<h1 class="page-title co-name"></h1>' +
       '<p class="co-desc"></p>' +
-      '<div class="co-quote"><span class="co-price"><span class="co-num">--</span><small>Polygons</small></span><span class="co-pill"></span></div>' +
+      '<div class="co-quote"><span class="co-price"><span class="co-num">--</span><small>⬡ Polygons</small></span><span class="co-pill"></span></div>' +
       '<div class="co-sub"></div>' +
     '</header>' +
     '<section aria-label="Price chart">' +
@@ -269,7 +270,7 @@
     });
 
     var change = pctOf(h[h.length - 1], h[0]);
-    rangeLabel.textContent = 'H ' + money(max) + ' · L ' + money(min) + ' · ';
+    rangeLabel.textContent = 'H ' + price(max) + ' · L ' + price(min) + ' · ';
     var ch = el('span', up ? 'up' : 'down', pct(change));
     rangeLabel.appendChild(ch);
   }
@@ -287,7 +288,7 @@
     cross.style.left = x + '%'; cross.hidden = false;
     dot.style.left = x + '%'; dot.style.top = y + '%'; dot.hidden = false;
     tip.innerHTML = '';
-    tip.appendChild(document.createTextNode(money(view.h[i])));
+    tip.appendChild(document.createTextNode(price(view.h[i])));
     tip.appendChild(el('span', 't', (t[i] > 1e9 ? fullFmt.format(new Date(t[i] * 1000)) : '')));
     tip.style.left = Math.max(12, Math.min(88, x)) + '%';
     tip.hidden = false;
@@ -334,8 +335,8 @@
     var v = volatility(h), vl = volLabel(v);
     var meter = el('div', 'meter' + (vl[1] >= 4 ? ' hot' : ''));
     for (var i = 1; i <= 5; i++) meter.appendChild(el('i', i <= vl[1] ? 'on' : ''));
-    box.appendChild(stat('24H HIGH', money(Math.max.apply(null, h))));
-    box.appendChild(stat('24H LOW', money(Math.min.apply(null, h))));
+    box.appendChild(stat('24H HIGH', price(Math.max.apply(null, h))));
+    box.appendChild(stat('24H LOW', price(Math.min.apply(null, h))));
     box.appendChild(stat('VOLATILITY', vl[0], '≈' + v.toFixed(1) + '% a day', meter));
     var y = c.yield || 0;
     var rate = typeof c.divRate === 'number' ? c.divRate : (c.divSuspendedUntil ? 0 : 1);
@@ -343,7 +344,7 @@
     var divLine = c.status === 'bankrupt' ? 'None · the company is bankrupt'
       : !y ? 'No dividend'
       : rate === 0 ? 'Suspended · board review ' + (c.divReviewAt ? clockFmt.format(new Date(c.divReviewAt)) : 'soon')
-      : money(c.price * eff) + ' per share per day' +
+      : price(c.price * eff) + ' per share per day' +
         (rate > 1.25 ? ' · boosted to ' + Math.round(rate * 100) + '%' + (c.divBoostUntil ? ' until ' + clockFmt.format(new Date(c.divBoostUntil)) : '')
           : rate !== 1 ? ' · ' + (rate < 1 ? 'cut' : 'raised') + ' to ' + Math.round(rate * 100) + '%' : '');
     box.appendChild(stat('DIVIDEND', y ? (eff * 100).toFixed(2).replace(/\.?0+$/, '') + '%' : '--', divLine));
@@ -465,7 +466,7 @@
       tt.appendChild(el('span', o.change >= 0 ? 'up' : 'down', pct(o.change)));
       a.appendChild(tt);
       a.appendChild(el('div', 'pn', o.name));
-      a.appendChild(el('div', 'pp', money(o.price)));
+      a.appendChild(el('div', 'pp', price(o.price)));
       var h = o.history || [];
       var min = Math.min.apply(null, h), max = Math.max.apply(null, h), r = max - min || 1;
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -490,7 +491,7 @@
     $('.co-name', top).textContent = c.name;
     $('.co-desc', top).textContent = c.description || '';
     var num = $('.co-num', top);
-    num.textContent = money(c.price);
+    num.textContent = money(c.price); // the label beside it carries the ⬡
     if (lastPrice !== null && lastPrice !== c.price) {
       num.classList.remove('co-tick'); void num.offsetWidth; num.classList.add('co-tick');
     }
