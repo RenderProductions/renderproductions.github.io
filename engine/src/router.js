@@ -36,7 +36,9 @@ function makeCtx({ guildId, channelId, user, message, isMod = false }, deps) {
     // handler(msg) returns what to reply with (or null). One wait per player per channel.
     awaitNext(handler, ms = 60_000) {
       pending.set(`${channelId}:${user.id}`, { handler, expires: Date.now() + ms });
-    }
+    },
+    // Stops waiting (used when a button answered instead)
+    cancelAwait() { pending.delete(`${channelId}:${user.id}`); }
   };
 }
 
@@ -95,18 +97,30 @@ async function handleMessage(message, deps) {
 }
 
 // Buttons: custom ids look like "loan:accept:abc123". The command whose buttonPrefix matches handles it.
+// onButton returns any of:
+//   { update }   edit the message the button is on
+//   { followUp } send a new message after the update (or { followUp, private: true } for only the presser)
+//   { reply }    answer only the person who pressed it
+//   { say }      answer in the channel for everyone
 async function handleButton(interaction, deps) {
   const [prefix, ...parts] = interaction.customId.split(':');
   const cmd = commands.list.find((c) => c.buttonPrefix === prefix && c.onButton);
   if (!cmd) return;
-  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user }, deps);
+  const isMod = !!(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages));
+  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod }, deps);
   let out;
   try { out = await cmd.onButton(ctx, parts); } catch (e) {
     console.error(`[${cmd.name} button]`, e);
     out = { reply: 'Something broke. It has been logged.' };
   }
-  if (out && out.update) return interaction.update(toPayload(out.update));
-  if (out && out.reply) return interaction.reply({ ...toPayload(out.reply), ephemeral: true });
+  if (!out) return interaction.deferUpdate();
+  if (out.update) {
+    await interaction.update(toPayload(out.update));
+    if (out.followUp) await interaction.followUp({ ...toPayload(out.followUp), ephemeral: !!out.private });
+    return;
+  }
+  if (out.reply) return interaction.reply({ ...toPayload(out.reply), ephemeral: true });
+  if (out.say) return interaction.reply(toPayload(out.say));
 }
 
 async function handleInteraction(interaction, deps) {

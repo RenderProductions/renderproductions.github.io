@@ -1,5 +1,6 @@
 const config = require('../config');
 const { money, have, amt, parsePolygons } = require('../format');
+const { button, rows } = require('../buttons');
 
 const COOLDOWN_MS = 10_000;
 const SYMBOLS = ['🍒', '🍋', '🔔', '🔺', '💎'];
@@ -45,7 +46,17 @@ module.exports = {
         description: `**{ ${x} | ${y} | ${z} }**\n\nBet: ${amt(bet)} · Won: ${amt(win)}\nPolygons: ${have(bal)}`,
         footer: { text: '3 of a kind: 🍒3x 🍋5x 🔔8x 🔺10x 💎25x · any pair returns your bet' },
         color: config.color
-      }]
+      }],
+      components: rows([button(`Spin again (${amt(bet)})`, `slots:${ctx.user.id}:${bet}`, 'primary')])
     };
+  },
+
+  // "Spin again" re-spins in the same message with the same bet
+  buttonPrefix: 'slots',
+  async onButton(ctx, [userId, bet]) {
+    if (ctx.user.id !== userId) return { reply: 'Get your own machine: `r!slots <amount>`.' };
+    const out = await module.exports.run(ctx, { amount: (Number(bet) / 100).toFixed(2) });
+    if (typeof out === 'string') return { reply: out }; // cooldown, not enough Polygons, TODD...
+    return { update: out };
   }
 };

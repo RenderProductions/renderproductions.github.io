@@ -49,12 +49,14 @@ const RRM_POSTS = [
 ];
 
 // A work task for a job. rush = true gives the shorter rush-round wording.
-// Returns { q: the prompt, ans: the expected reply (lowercase) }.
+// Returns { q: the prompt, ans: the expected reply (lowercase), choices?: [{ label, value }] }.
+// Tasks with choices get buttons; typing the answer works for every task.
 function task(job, rush, random = Math.random) {
   const int = (min, max) => min + Math.floor(random() * (max - min + 1));
   const pick = (arr) => arr[Math.floor(random() * arr.length)];
   let q;
   let ans;
+  let choices;
 
   if (job === 'NACH') {
     ans = `${int(1, 5)} cheese ${int(1, 4)} jalapeno ${pick(['salsa', 'guac', 'beans', 'sour cream'])}`;
@@ -76,22 +78,29 @@ function task(job, rush, random = Math.random) {
   } else if (job === 'BLU') {
     const [shown, right] = pick(BLU_ORDERS);
     ans = right;
+    // Three possible orders to pick from: the right one and two wrong ones, shuffled
+    const words = right.split(' ');
+    const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]].map((o) => o.map((i) => words[i]).join(' '));
+    const wrong = perms.filter((x) => x !== right).sort(() => random() - 0.5).slice(0, 2);
+    choices = [right, ...wrong].sort(() => random() - 0.5).map((x) => ({ label: x, value: x }));
     q = rush ? `🏗️ Put these steps in the right order:\n\`${shown}\``
       : `🏗️ **BLU build crew:** put these steps in the right order:\n\`${shown}\``;
   } else if (job === 'RRM') {
     const [post, right] = pick(RRM_POSTS);
     ans = right;
-    q = rush ? `🛡️ A member posted:\n> ${post}\nReply **ban** or **ok**.`
-      : `🛡️ **Render Room mod queue.** A member posted:\n> ${post}\nReply **ban** or **ok**.`;
+    choices = [{ label: 'Ban', value: 'ban', style: 'red' }, { label: 'OK', value: 'ok', style: 'green' }];
+    q = rush ? `🛡️ A member posted:\n> ${post}\nBan them, or OK?`
+      : `🛡️ **Render Room mod queue.** A member posted:\n> ${post}\nBan them, or OK?`;
   } else if (job === 'BSTG') {
     const g = int(1, 8);
     const bug = pick(['👾', '🟪', '⬛', '🟥', '🟨']);
     const row = Array.from({ length: 8 }, (_, i) => (i + 1 === g ? bug : '🟩')).join('');
     ans = g;
+    choices = Array.from({ length: 8 }, (_, i) => ({ label: String(i + 1), value: String(i + 1) }));
     q = rush ? `🎮 Another bug report! Which tile is glitched? (1-8):\n${row}`
-      : `🎮 **Bastardly Glory playtest.** The build ships soon. Which tile is glitched? Type its number (1-8, left to right):\n${row}`;
+      : `🎮 **Bastardly Glory playtest.** The build ships soon. Which tile is glitched? (1-8, left to right):\n${row}`;
   }
-  return { q, ans: String(ans).toLowerCase() };
+  return { q, ans: String(ans).toLowerCase(), choices };
 }
 
 module.exports = { COMPANIES, WORK_COOLDOWN_MS, QUIT_LOCK_MS, ABANDON_MS, BASE_PAY, rank, PROMOTIONS, task };

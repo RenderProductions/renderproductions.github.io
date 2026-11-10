@@ -3,6 +3,7 @@ const jobs = require('../jobs');
 const co = require('../companies');
 const loans = require('../loans');
 const { relTime, amt } = require('../format');
+const { button, rows, nonce } = require('../buttons');
 
 // Tasks waiting for an answer: "guild:user" -> { job, ans, start, rush }
 const active = new Map();
@@ -22,12 +23,15 @@ function garnishNote(g) {
   return '\n' + g.paidTo.map((p) => `🏦 ${amt(p.cents)} went to **${p.name}** for an overdue loan${p.cleared ? ' (paid off!)' : ''}.`).join('\n');
 }
 
-// Starts a task and waits for the player's answer in the channel.
+// Starts a task and waits for the player's answer: a typed message, or a button press.
+// Returns { q: the prompt, components: buttons (may be empty) }.
 function startTask(ctx, job, rush) {
   const t = jobs.task(jobs.COMPANIES[job] ? job : taskStyle(job), rush > 0, ctx.random);
-  active.set(keyOf(ctx), { job, ans: t.ans, start: Date.now(), rush });
+  const id = nonce();
+  active.set(keyOf(ctx), { job, ans: t.ans, start: Date.now(), rush, id, choices: t.choices || [] });
   ctx.awaitNext((msg) => answer(ctx, msg), jobs.ABANDON_MS);
-  return t.q;
+  const components = t.choices ? rows(t.choices.map((c, i) => button(c.label, `work:${ctx.user.id}:${id}:${i}`, c.style || 'grey'))) : [];
+  return { q: t.q, components };
 }
 
 // Grades the answer, pays, and maybe starts a rush round.
@@ -92,8 +96,9 @@ async function answer(ctx, msg) {
   const random = ctx.random || Math.random;
   if (result === 'pass' && st.rush < 5 && random() < 0.2) {
     const next = st.rush + 1;
-    const q = startTask(ctx, st.job, next);
-    out += `\n\n⚡ **RUSH ORDER #${next}!** It's not over yet!\n${q}\n⏱️ **15 seconds.** Bonus pay if you nail it.`;
+    const t = startTask(ctx, st.job, next);
+    out += `\n\n⚡ **RUSH ORDER #${next}!** It's not over yet!\n${t.q}\n⏱️ **15 seconds.** Bonus pay if you nail it.`;
+    return { content: out, components: t.components };
   }
   return out;
 }
@@ -120,6 +125,20 @@ module.exports = {
     if (Date.now() < next) return `😴 Shift's over. Next shift ${relTime(next)}.`;
 
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { last_work: Date.now() });
-    return `${startTask(ctx, p.job, 0)}\n⏱️ You have **20 seconds**.`;
+    const t = startTask(ctx, p.job, 0);
+    return { content: `${t.q}\n⏱️ You have **20 seconds**.`, components: t.components };
+  },
+
+  // A task button was pressed: "work:<user>:<task id>:<choice>"
+  buttonPrefix: 'work',
+  async onButton(ctx, [userId, id, i]) {
+    if (ctx.user.id !== userId) return { reply: "This isn't your shift. Get your own with `r!work`." };
+    const st = active.get(keyOf(ctx));
+    if (!st || st.id !== id) return { update: { components: [] } }; // an old task: just clear its buttons
+    const choice = st.choices[Number(i)];
+    if (!choice) return null;
+    ctx.cancelAwait();
+    const result = await answer(ctx, { content: choice.value });
+    return { update: { components: [] }, followUp: result };
   }
 };

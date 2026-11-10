@@ -49,7 +49,8 @@ async function reply(content, user = ALICE) {
   const w = router.pending.get(`chan:${user.id}`);
   assert.ok(w, 'bot is not waiting for ' + user.username);
   router.pending.delete(`chan:${user.id}`);
-  return w.handler({ content });
+  const out = await w.handler({ content });
+  return typeof out === 'string' ? out : out && out.content; // a rush round comes back with buttons
 }
 const has = async (line, needle, user) => {
   const out = text(await say(line, user));
@@ -169,7 +170,15 @@ const has = async (line, needle, user) => {
   assert.ok(rush.includes('RUSH CLEARED') && rush.includes('+⬡ 26.00'), rush); // 35 * 1.25 * 0.6 = 26.25
 
   db.updatePlayer(G, ALICE.id, { hired_at: 0 });
-  await has('r!quit', 'quit **NACH** after 10 shifts');
+  await has('r!quit', 'lose your **Employee** rank');
+  const quitCmd = require('../src/commands/quit');
+  const quitAsk = await say('r!quit');
+  const [yesId, noId] = quitAsk.components[0].components.map((b) => b.custom_id);
+  assert.ok((await quitCmd.onButton(ctxFor(BOB), yesId.split(':').slice(1))).reply.includes('not your job'));
+  assert.ok((await quitCmd.onButton(ctxFor(ALICE), noId.split(':').slice(1))).update.content.includes('You stayed'));
+  assert.strictEqual(db.player(G, ALICE).job, 'NACH', 'Stay keeps the job');
+  const quitDone = await quitCmd.onButton(ctxFor(ALICE), yesId.split(':').slice(1));
+  assert.ok(quitDone.update.content.includes('quit **NACH** after 10 shifts') && quitDone.update.components.length === 0, JSON.stringify(quitDone));
   assert.strictEqual(db.player(G, ALICE).job, null);
 
   // Every job's task has an answer that matches its own prompt

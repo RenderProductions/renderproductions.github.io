@@ -1,6 +1,7 @@
 const config = require('../config');
 const shop = require('../shop');
 const { money, have, amt, relTime } = require('../format');
+const { button, rows } = require('../buttons');
 
 module.exports = {
   name: 'shop',
@@ -20,7 +21,16 @@ module.exports = {
           `${items.join('\n\n')}\n\nRestocks ${relTime(since + shop.RESTOCK_MS)}. ` +
           `Buy with \`${config.prefix}purchase <item>\`, then \`${config.prefix}use <item>\` whenever you like.`,
         color: config.color
-      }]
+      }],
+      components: rows(Object.entries(shop.ITEMS).map(([id, it]) => button(`${it.emoji} ${it.name}`, `shop:buy:${id}`, 'grey')))
     };
+  },
+
+  // Anyone can press a Buy button; it buys for whoever pressed it, and only they see the receipt
+  buttonPrefix: 'shop',
+  async onButton(ctx, [action, item]) {
+    if (action !== 'buy') return null;
+    const out = await require('./purchase').run(ctx, { item });
+    return { reply: out };
   }
 };

@@ -89,7 +89,12 @@ const cash = (u, g = G) => db.player(g, u).cash;
   await has('r!upgrade', 'You can go public now');
   await has('r!buy MEOW 1', 'is private', BOB);
   await has('r!salary 10', 'Only public companies');
-  await has('r!ipo', 'IS PUBLIC');
+  await has('r!ipo', 'no going back');
+  const ipoCmd = require('../src/commands/ipo');
+  assert.ok((await ipoCmd.onButton(ctxFor(OWNER), [OWNER.id, 'no'])).update.content.includes('Staying private'));
+  assert.strictEqual(co.get(db, 'MEOW').status, 'private');
+  assert.ok((await ipoCmd.onButton(ctxFor(BOB), [OWNER.id, 'yes'])).reply.includes('not your company'));
+  assert.ok((await ipoCmd.onButton(ctxFor(OWNER), [OWNER.id, 'yes'])).update.content.includes('IS PUBLIC'));
   c = co.get(db, 'MEOW');
   assert.strictEqual(c.status, 'public');
   assert.strictEqual(c.treasury, 500_00, '14,500 - 12,000 upgrade - 2,000 listing fee');
@@ -116,7 +121,8 @@ const cash = (u, g = G) => db.player(g, u).cash;
   await say('r!work', BOB);
   const w = router.pending.get(`chan:${BOB.id}`);
   router.pending.delete(`chan:${BOB.id}`);
-  const out = await w.handler({ content: work.active.get(`${G}:${BOB.id}`).ans });
+  const raw = await w.handler({ content: work.active.get(`${G}:${BOB.id}`).ans });
+  const out = typeof raw === 'string' ? raw : raw.content;
   assert.ok(out.includes('+⬡ 42.00'), out); // 35 x 1.2 (Firm)
   assert.strictEqual(co.get(db, 'MEOW').treasury, t0 + 21_00, 'half the pay goes to the company');
 

@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node --no-warnings=ExperimentalWarning src/index.js",
     "register": "node --no-warnings=ExperimentalWarning src/register.js",
-    "test": "node --check src/index.js && node --check src/register.js && node --no-warnings=ExperimentalWarning test/commands.test.js && node --no-warnings=ExperimentalWarning test/companies.test.js && node --no-warnings=ExperimentalWarning test/statuses.test.js && node --no-warnings=ExperimentalWarning test/loans.test.js"
+    "test": "node --check src/index.js && node --check src/register.js && node --no-warnings=ExperimentalWarning test/commands.test.js && node --no-warnings=ExperimentalWarning test/companies.test.js && node --no-warnings=ExperimentalWarning test/statuses.test.js && node --no-warnings=ExperimentalWarning test/loans.test.js && node --no-warnings=ExperimentalWarning test/buttons.test.js"
   },
   "dependencies": {
     "discord.js": "^14.28.1"
