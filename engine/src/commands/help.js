@@ -1,101 +1,119 @@
 // r!help: every command, one page per topic. Buttons switch pages; r!help <topic> jumps straight there.
+// Each page is an embed with one field per command, in that topic's color.
 const config = require('../config');
 const { button, rows } = require('../buttons');
 
+// [usage, what it does]. Usage starts with the command name (no prefix).
 const PAGES = {
-  market: { label: 'Market', emoji: '📈', title: '📈 Market', body: (P) => [
-    `\`${P}market\` shows current prices`,
-    `\`${P}buy <ticker> <amount>\` buys shares`,
-    `\`${P}sell <ticker> <amount or all>\` sells shares`,
-    `\`${P}chart <ticker>\` shows a price chart`,
-    `\`${P}compare <ticker> <ticker>\` compares two companies`,
-    `\`${P}balance [@player]\` shows Polygons, shares and net worth`,
-    `\`${P}daily\` gives free Polygons once a day (resets at midnight Eastern)`,
-    `\`${P}dividends\` collects what your shares have earned`,
-    `\`${P}reserve\` shows how many Polygons the house has left. If it hits zero, the market crashes`
+  market: { label: 'Market', emoji: '📈', color: 0x57f287, blurb: 'Prices, trading, dividends', cmds: [
+    ['market', 'Current prices, the market bell, booms and crashes'],
+    ['buy <ticker> <amount>', 'Buy shares'],
+    ['sell <ticker> <amount or all>', 'Sell shares back to the house'],
+    ['chart <ticker>', 'A price chart'],
+    ['compare <ticker> <ticker>', 'Two companies side by side'],
+    ['balance [@player]', 'Polygons, shares and net worth'],
+    ['daily', 'Free Polygons once a day (resets at midnight Eastern)'],
+    ['dividends', "Collect what your shares have earned"],
+    ['reserve', "How many Polygons the house has left. At zero, the market crashes"],
+    ['leaderboard [worth|polygons|shifts|casino]', "This server's top players"],
+    ['gift @player <amount> [note]', 'Send Polygons to someone (5% fee)']
   ] },
-  jobs: { label: 'Jobs', emoji: '💼', title: '💼 Jobs', body: (P) => [
-    `\`${P}apply <ticker>\` joins a company. Your rank there is saved if you leave`,
-    `\`${P}work\` starts a shift, every 15 minutes. Fast right answers earn tips, coworkers in the same channel earn a team bonus`,
-    `\`${P}job\` shows your rank, next performance review, accuracy and earnings`,
-    `\`${P}job remind on\` DMs you when your next shift is ready`,
-    `\`${P}gig\` is quick freelance work for when you don't have a job, every 10 minutes`,
-    `\`${P}quit\` leaves your job (24h after hiring)`,
-    '',
-    'A performance review every 10 shifts: 8+ right gets you promoted, 4 or fewer demoted.'
+  jobs: { label: 'Jobs', emoji: '💼', color: 0x5865f2, blurb: 'Shifts, ranks, reviews, gigs', cmds: [
+    ['apply <ticker>', 'Join a company. Your rank there is saved if you leave'],
+    ['work', 'A shift every 15 minutes. Fast answers earn tips, coworkers earn a team bonus'],
+    ['job', 'Your rank, next review, accuracy and earnings'],
+    ['job remind on', 'A DM when your next shift is ready'],
+    ['gig', "Quick freelance work when you don't have a job"],
+    ['quit', 'Leave your job (24h after hiring)']
+  ], note: '📋 A performance review every 10 shifts: **8+** right gets you promoted, **4 or fewer** demoted.' },
+  casino: { label: 'Rend-Sino', emoji: '🎰', color: 0xeb459e, blurb: 'Ten games and a weekly lottery', cmds: [
+    ['slots <bet>', 'The slot machine'],
+    ['coinflip <bet> heads|tails', 'Call it right for 1.95x'],
+    ['dice <bet> over|under <5-95>', 'Roll 1 to 100. Riskier calls pay more'],
+    ['blackjack <bet>', 'Against TODD. Hit, Stand or Double'],
+    ['bus <bet>', 'Ride the Bus: four card guesses, cash out between them'],
+    ['hilo <bet>', 'Higher or Lower: build a streak, cash out before you miss'],
+    ['mines <bet> [bombs]', 'Minesweeper: dodge the bombs, cash out any time'],
+    ['rocket <bet>', 'Cash out before the rocket crashes'],
+    ['derby <horse> <bet>', 'The Polygon Derby. The whole channel can bet'],
+    ['lottery [buy <tickets>]', 'The weekly draw, Sunday 8 PM Eastern'],
+    ['gambling', 'Your record at every game']
+  ], note: "🖥️ No gambling while you owe TODD. Every bet goes into the Polygon Reserve." },
+  shop: { label: 'Shop', emoji: '🛒', color: 0xf0b232, blurb: 'Items and your inventory', cmds: [
+    ['shop', 'Items, stock, and the next restock'],
+    ['purchase <item>', 'Buy coffee, overtime, mystery, resume, or title'],
+    ['inventory', 'The items you own'],
+    ['use <item>', 'Use an item'],
+    ['settitle <text>', 'Set your custom title (uses a Title)']
   ] },
-  casino: { label: 'Rend-Sino', emoji: '🎰', title: '🎰 The Rend-Sino', body: (P) => [
-    `\`${P}slots <bet>\` spins the slot machine`,
-    `\`${P}coinflip <bet> heads|tails\` pays 1.95x`,
-    `\`${P}dice <bet> over|under <5-95>\` rolls 1 to 100. Riskier calls pay more`,
-    `\`${P}blackjack <bet>\` against TODD. Hit, Stand or Double`,
-    `\`${P}bus <bet>\` Ride the Bus: four card guesses, cash out between them`,
-    `\`${P}hilo <bet>\` Higher or Lower: build a streak, cash out before you miss`,
-    `\`${P}mines <bet> [bombs]\` Minesweeper: dodge the bombs, cash out any time`,
-    `\`${P}rocket <bet>\` cash out before the rocket crashes`,
-    `\`${P}derby <horse> <bet>\` the Polygon Derby. The whole channel can bet`,
-    `\`${P}lottery\` · \`${P}lottery buy <tickets>\` the weekly draw, Sunday 8 PM Eastern`,
-    `\`${P}gambling\` your record at every game`,
-    '',
-    "No gambling while you owe TODD. Bets go into the Polygon Reserve."
+  companies: { label: 'Companies', emoji: '🏢', color: 0x3ba7f2, blurb: 'Found, grow and list your own', cmds: [
+    ['found <ticker> <name>', 'Start a company (⬡ 2,500, needs mod approval)'],
+    ['company [ticker]', 'A company card'],
+    ['exchange', 'Every player company'],
+    ['invest <amount>', 'Put Polygons into your company'],
+    ['upgrade', 'Level it up'],
+    ['ipo', 'List it for anyone to buy (Firm level)'],
+    ['salary <amount>', 'Pay yourself from the treasury']
+  ], note: '📊 Anyone can `buy`, `sell` and `apply` to public player companies.' },
+  money: { label: 'Loans & TODD', emoji: '🏦', color: 0xed4245, blurb: 'Borrow, lend, bail out', cmds: [
+    ['loan @player <amount> <interest>', 'Ask someone for a loan (interest is % a day)'],
+    ['payback @player <amount or all>', 'Pay a loan back'],
+    ['loans', 'What you owe and are owed'],
+    ['forgive @player', 'Let someone off the hook'],
+    ['bailout', "Borrow ⬡ 500 from TODD when you're broke (you owe ⬡ 600)"],
+    ['repay <amount or all>', 'Pay TODD back'],
+    ['receipts on|off', 'DM receipts for trades, purchases, loans and gifts']
   ] },
-  shop: { label: 'Shop', emoji: '🛒', title: '🛒 Shop', body: (P) => [
-    `\`${P}shop\` shows items, stock, and the next restock`,
-    `\`${P}purchase <item>\` buys coffee, overtime, mystery, resume, or title into your inventory`,
-    `\`${P}inventory\` shows the items you own`,
-    `\`${P}use <item>\` uses an item from your inventory`,
-    `\`${P}settitle <text>\` sets your custom title (uses a Title)`
-  ] },
-  companies: { label: 'Companies', emoji: '🏢', title: '🏢 Your own company', body: (P) => [
-    `\`${P}found <ticker> <name>\` starts a company (⬡ 2,500, needs mod approval)`,
-    `\`${P}company [ticker]\` shows a company · \`${P}exchange\` lists them all`,
-    `\`${P}invest <amount>\` puts Polygons into your company`,
-    `\`${P}upgrade\` levels it up · \`${P}ipo\` lists it at Firm level`,
-    `\`${P}salary <amount>\` pays you from the treasury`,
-    '',
-    'Anyone can `buy`, `sell` and `apply` to public player companies.'
-  ] },
-  money: { label: 'Loans & TODD', emoji: '🏦', title: '🏦 Loans and TODD', body: (P) => [
-    `\`${P}loan @player <amount> <interest>\` asks someone for a loan (interest is % a day)`,
-    `\`${P}payback @player <amount or all>\` pays a loan back`,
-    `\`${P}loans\` shows what you owe and are owed · \`${P}forgive @player\` lets someone off`,
-    `\`${P}bailout\` borrows ⬡ 500 from TODD when you're broke (you owe ⬡ 600)`,
-    `\`${P}repay <amount or all>\` pays TODD back`,
-    `\`${P}receipts on|off\` DM receipts for trades, purchases and loans`
-  ] },
-  mods: { label: 'Mods', emoji: '🛡️', title: '🛡️ Mods', body: (P) => [
-    `\`${P}cleartitle @user\` removes someone's custom title`,
-    `\`${P}review\` shows companies waiting for approval`,
-    `\`${P}approve <ticker>\` · \`${P}reject <ticker> [reason]\``,
-    '',
-    `**Bot owner:** \`${P}crash\` and \`${P}boost\` run market events, \`${P}reserve fund <amount>\` tops up the reserve`
+  mods: { label: 'Mods', emoji: '🛡️', color: 0x99aab5, blurb: 'Titles and company approvals', cmds: [
+    ['cleartitle @user', "Remove someone's custom title"],
+    ['review', 'Companies waiting for approval'],
+    ['approve <ticker>', 'Approve a company'],
+    ['reject <ticker> [reason]', 'Turn one down (the founder gets a refund)'],
+    ['crash', 'Bot owner: start, end or cancel a market crash'],
+    ['boost', 'Bot owner: boost the market for an event'],
+    ['reserve fund <amount>', 'Bot owner: top up the Polygon Reserve']
   ] }
 };
+for (const pg of Object.values(PAGES)) pg.body = (P) => pg.cmds.map(([u, d]) => `${P}${u} ${d}`);
 const ORDER = ['market', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
 const ALIAS = { stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
   items: 'shop', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
 
+const avatar = () => `${config.siteUrl}/bot/avatar.png`;
+
 function page(ctx, key, m) {
   const P = config.prefix;
-  if (!PAGES[key]) {
+  const pg = PAGES[key];
+  if (!pg) {
     return { embeds: [{
-      title: 'Rend-Conomy',
-      description: 'A fictional stock market. Prices change every 5 minutes, and everything here is fake money called Polygons. ' +
-        'Trading is open 3 AM to 9 PM Eastern, every day.\n\n' +
-        ORDER.map((k) => `${PAGES[k].emoji} **${PAGES[k].label}** · \`${P}help ${k}\``).join('\n') +
-        `\n\n**New here?** \`${P}daily\` for free Polygons, \`${P}apply <ticker>\` for a job, then \`${P}work\`.\n\n` +
-        `Tickers: ${ctx.market.tickerList(m)}\nLive board: ${config.siteUrl}/rend-conomy/ · Full guide: ${config.siteUrl}/bot/`,
-      footer: { text: 'Pick a topic below. Every command also works as a slash command, like /market.' },
+      author: { name: "Render's Vision · Help", icon_url: avatar() },
+      title: '📖 The Rend-Conomy',
+      description: 'A fictional stock market. Prices move every 5 minutes, and everything runs on fake money called **Polygons**. ' +
+        'Trading is open **3 AM to 9 PM Eastern**, every day.\n\n' +
+        `**New here?** \`${P}daily\` for free Polygons → \`${P}apply <ticker>\` for a job → \`${P}work\`.`,
+      thumbnail: { url: avatar() },
+      fields: [
+        ...ORDER.map((k) => ({ name: `${PAGES[k].emoji} ${PAGES[k].label}`, value: `${PAGES[k].blurb}\n\`${P}help ${k}\``, inline: true })),
+        { name: '📊 Tickers', value: ctx.market.tickerList(m) || 'RRM NACH BLU BNW BSTG', inline: true },
+        { name: '🔗 Links', value: `[Live board](${config.siteUrl}/rend-conomy/) · [Full guide](${config.siteUrl}/bot/) · [Patch notes](${config.siteUrl}/patch-notes/)` }
+      ],
+      footer: { text: 'Pick a topic below · Every command also works as a slash command, like /market' },
       color: config.color
     }], components: buttons(ctx, null) };
   }
-  return { embeds: [{ title: PAGES[key].title, description: PAGES[key].body(P).join('\n'), color: config.color,
-    footer: { text: 'Every command also works as a slash command, like /market.' } }], components: buttons(ctx, key) };
+  return { embeds: [{
+    author: { name: "Render's Vision · Help", icon_url: avatar() },
+    title: `${pg.emoji} ${pg.label}`,
+    description: pg.note || null,
+    fields: pg.cmds.map(([u, d]) => ({ name: `${P}${u}`, value: d })),
+    footer: { text: `${ORDER.indexOf(key) + 1} of ${ORDER.length} · Every command also works as a slash command` },
+    color: pg.color
+  }], components: buttons(ctx, key) };
 }
 
 function buttons(ctx, current) {
   return rows([...ORDER, 'home'].map((k) => k === 'home'
-    ? button('All topics', `help:${ctx.user.id}:home`, 'grey', current === null)
+    ? button('All topics', `help:${ctx.user.id}:home`, 'green', current === null, '📖')
     : button(PAGES[k].label, `help:${ctx.user.id}:${k}`, k === current ? 'blue' : 'grey', k === current, PAGES[k].emoji)), 4);
 }
 

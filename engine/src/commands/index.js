@@ -5,6 +5,8 @@ const list = [
   require('./help'),
   require('./balance'),
   require('./daily'),
+  require('./leaderboard'),
+  require('./gift'),
   require('./reserve'),
   require('./crash'),
   require('./boost'),
