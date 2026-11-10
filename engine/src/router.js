@@ -27,6 +27,19 @@ function afterSend(out, editFn) {
   }
 }
 
+// Sends a reply, and if Discord rejects it (a bad emoji, a field too long), tries again without button
+// emoji, then falls back to a short error, so a broken reply never leaves the player hanging.
+async function sendSafe(fn, payload) {
+  try { return await fn(payload); } catch (e) {
+    if (e.code !== 50035) throw e;
+    console.error('[send] Discord rejected a reply:', e.message.split('\n').slice(0, 3).join(' '));
+    const bare = { ...payload, components: (payload.components || []).map((r) => ({ ...r, components: (r.components || []).map(({ emoji, ...b }) => b) })) };
+    try { return await fn(bare); } catch (e2) {
+      return fn({ content: 'Something broke showing that. It has been logged.', embeds: [], components: [], allowedMentions: { parse: [] } });
+    }
+  }
+}
+
 async function runCommand(cmd, ctx, args) {
   try {
     if (ctx.db) require('./botstats').counted(ctx.db);
@@ -100,7 +113,7 @@ async function handleMessage(message, deps) {
     if (Date.now() > wait.expires) return;
     let out = null;
     try { out = await wait.handler(message); } catch (e) { console.error('[await]', e); }
-    if (out != null) { const sent = await message.reply(toPayload(out)); afterSend(out, (p) => sent.edit(p)); return sent; }
+    if (out != null) { const sent = await sendSafe((p) => message.reply(p), toPayload(out)); afterSend(out, (p) => sent.edit(p)); return sent; }
     return;
   }
   if (!parsed) return;
@@ -112,7 +125,7 @@ async function handleMessage(message, deps) {
   const isMod = !!(message.member && message.member.permissions.has(PermissionFlagsBits.ManageMessages));
   const ctx = makeCtx({ guildId: message.guildId, channelId: message.channelId, user: message.author, message, isMod, guildName: message.guild && message.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
-  if (out) { const sent = await message.reply(out); afterSend(out, (p) => sent.edit(p)); return sent; }
+  if (out) { const sent = await sendSafe((p) => message.reply(p), out); afterSend(out, (p) => sent.edit(p)); return sent; }
 }
 
 // Buttons: custom ids look like "loan:accept:abc123". The command whose buttonPrefix matches handles it.
@@ -134,16 +147,16 @@ async function handleButton(interaction, deps) {
   }
   if (!out) return interaction.deferUpdate();
   if (out.update) {
-    await interaction.update(toPayload(out.update));
+    await sendSafe((p) => interaction.update(p), toPayload(out.update));
     afterSend(out.update, (p) => interaction.editReply(p));
     if (out.followUp) {
-      const sent = await interaction.followUp({ ...toPayload(out.followUp), ephemeral: !!out.private });
+      const sent = await sendSafe((p) => interaction.followUp(p), { ...toPayload(out.followUp), ephemeral: !!out.private });
       afterSend(out.followUp, (p) => sent.edit(p));
     }
     return;
   }
-  if (out.reply) return interaction.reply({ ...toPayload(out.reply), ephemeral: true });
-  if (out.say) return interaction.reply(toPayload(out.say));
+  if (out.reply) return sendSafe((p) => interaction.reply(p), { ...toPayload(out.reply), ephemeral: true });
+  if (out.say) return sendSafe((p) => interaction.reply(p), toPayload(out.say));
 }
 
 async function handleInteraction(interaction, deps) {
@@ -164,7 +177,7 @@ async function handleInteraction(interaction, deps) {
   const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod, guildName: interaction.guild && interaction.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
   if (!out) return interaction.deleteReply();
-  const sent = await interaction.editReply(out);
+  const sent = await sendSafe((p) => interaction.editReply(p), out);
   afterSend(out, (p) => interaction.editReply(p));
   return sent;
 }

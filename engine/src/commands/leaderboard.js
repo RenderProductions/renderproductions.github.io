@@ -9,7 +9,7 @@ const { button, rows } = require('../buttons');
 const MEDALS = ['🥇', '🥈', '🥉'];
 const BOARDS = {
   worth:  { label: 'Net worth', emoji: '💎', color: 0xffe600, show: (v) => have(v) },
-  cash:   { label: 'Polygons', emoji: '⬢', color: 0x57f287, show: (v) => have(v) },
+  cash:   { label: 'Polygons', emoji: '💰', color: 0x57f287, show: (v) => have(v) },
   shifts: { label: 'Shifts worked', emoji: '💼', color: 0x5865f2, show: (v) => `${v.toLocaleString()} shift${v === 1 ? '' : 's'}` },
   casino: { label: 'Casino', emoji: '🎰', color: 0xeb459e, show: (v) => (v >= 0 ? `+${amt(v)}` : `−${amt(-v)}`) }
 };

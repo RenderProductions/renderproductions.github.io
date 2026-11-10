@@ -8,7 +8,8 @@ const STYLE_ALIAS = { blue: 'primary' };
 // button('Ban', 'work:123:ab:0', 'red') or button('cheese', id, 'grey', false, '🧀')
 function button(label, id, style = 'grey', disabled = false, emoji = null) {
   const b = { type: ComponentType.Button, style: STYLE[STYLE_ALIAS[style] || style] || STYLE.grey, label: String(label).slice(0, 80), custom_id: id, disabled };
-  if (emoji) b.emoji = { name: emoji };
+  // Discord only takes real emoji on buttons (⬢ and similar symbols are rejected), so anything else is left off
+  if (emoji && /\p{Extended_Pictographic}/u.test(emoji)) b.emoji = { name: emoji };
   return b;
 }
 

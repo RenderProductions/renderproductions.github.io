@@ -95,5 +95,17 @@ const cash = (u) => db.player(G, u).cash;
     assert.ok(JSON.stringify(pg.embeds[0]).length < 6000, k + ' fits in an embed');
   }
 
+  // Buttons never carry a symbol Discord rejects as an emoji (⬢ broke r!leaderboard)
+  const { button } = require('../src/buttons');
+  assert.ok(!button('x', 'id', 'grey', false, '⬢').emoji && button('x', 'id', 'grey', false, '💰').emoji);
+  for (const b of (await say('r!lb')).components.flatMap((r) => r.components)) assert.ok(!b.emoji || /\p{Extended_Pictographic}/u.test(b.emoji.name), b.label);
+  // If Discord still rejects a reply, the router retries without emoji, then sends a short error
+  const tries = [];
+  const fakeMsg = { author: { id: ANA.id, bot: false, username: 'ana' }, guildId: G, channelId: 'c', content: 'r!help', member: null, guild: { name: 'T' },
+    reply: async (p) => { tries.push(p); if (tries.length === 1) { const e = new Error('Invalid Form Body\ncomponents[0]: Invalid emoji'); e.code = 50035; throw e; } return { edit: async () => {} }; } };
+  await router.handleMessage(fakeMsg, { db, market, client });
+  assert.strictEqual(tries.length, 2);
+  assert.ok(tries[1].components.every((r) => r.components.every((b) => !b.emoji)), 'second try has no emoji');
+
   console.log('All leaderboard and gift tests passed.');
 })().catch((e) => { console.error(e); process.exit(1); });
