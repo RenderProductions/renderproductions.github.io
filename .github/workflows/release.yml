@@ -1,0 +1,57 @@
+name: Release an update
+
+# Merges an update branch into main, on a schedule or by hand (Actions tab > "Release an update" > Run workflow).
+# Set up for the 11-11, 11:11 Connections & Collections update: Nov 11 2026 at 11:11 AM Eastern (16:11 UTC).
+# GitHub can start scheduled runs a few minutes late; for an exact time, point a cron-job.org job at this
+# workflow's dispatch (like the price ticks used to be). Running it twice is harmless: once the branch is
+# merged, it does nothing.
+
+on:
+  schedule:
+    - cron: '11 16 11 11 *'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to release into main'
+        type: string
+        default: connections-and-collections
+
+permissions:
+  contents: write   # push the merge to main
+  pages: write      # ask GitHub Pages to rebuild the site
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Merge the update into main
+        id: merge
+        env:
+          BRANCH: ${{ inputs.branch || 'connections-and-collections' }}
+          SCHEDULED: ${{ github.event_name == 'schedule' }}
+        run: |
+          # The schedule fires every Nov 11; only 2026's is this update
+          if [ "$SCHEDULED" = "true" ] && [ "$(date -u +%Y)" != "2026" ]; then echo "Not 2026. Nothing to release."; exit 0; fi
+          git config user.name "rend-conomy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if ! git fetch origin "$BRANCH"; then echo "No branch called $BRANCH. Nothing to release."; exit 0; fi
+          if git merge-base --is-ancestor "origin/$BRANCH" HEAD; then echo "$BRANCH is already in main. Nothing to do."; exit 0; fi
+          git merge --no-ff "origin/$BRANCH" -m "Release: $BRANCH"
+          git push origin main
+          echo "released=yes" >> "$GITHUB_OUTPUT"
+
+      # Pushes made with the built-in token don't rebuild the site on their own
+      - name: Rebuild the site
+        if: steps.merge.outputs.released == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST repos/${{ github.repository }}/pages/builds || echo "Pages build request failed; the next push will rebuild it."
