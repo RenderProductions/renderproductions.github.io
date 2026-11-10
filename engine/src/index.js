@@ -31,25 +31,30 @@ setInterval(tickCompanies, companies.RULES.tickMs).unref();
 // The Polygon Reserve: refills during a crash recovery, and starts a crash when it runs dry
 const reserve = require('./reserve');
 console.log(`[reserve] ${Math.round(reserve.level(db) * 100)}% full (${reserve.get(db) / 100} Polygons)`);
-const announce = (text) => {
+// Warnings go to the market news feed, through the same webhook the market news uses
+const announce = (text, color = 0xf0b232) => {
   console.log('[reserve]', text.replace(/\*/g, ''));
-  const client = deps.client; // may not exist yet at startup
-  if (!config.announceChannelId || !client || !client.isReady()) return;
-  client.channels.fetch(config.announceChannelId).then((ch) => ch && ch.send({ content: text, allowedMentions: { parse: [] } }))
+  if (!config.newsWebhook) return;
+  const body = JSON.stringify({
+    username: 'Rend-Conomy Market', avatar_url: 'https://renderproductions.github.io/bot/market-icon.png',
+    embeds: [{ color, description: text + `\nCheck it with \`${config.prefix}reserve\`.` }], allowed_mentions: { parse: [] }
+  });
+  fetch(config.newsWebhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body })
+    .then((r) => { if (!r.ok) console.error('[reserve] Webhook said', r.status); })
     .catch((e) => console.error('[reserve] Could not post the warning:', e.message));
 };
 reserve.events.on('low', ({ line }) => announce(line <= 0
   ? '💀 **THE POLYGON RESERVE IS EMPTY.** The house is out of Polygons. Brace for a crash.'
   : line <= 0.1 ? '🚨 **The Polygon Reserve is under 10%.** Payouts are way down. One more big cash-out and the market crashes.'
   : line <= 0.25 ? '⚠️ **The Polygon Reserve is under 25%.** Payouts are shrinking. Buy stock and shop to fill it back up!'
-  : '😬 **The Polygon Reserve is under half.** TODD is starting to sweat.'));
-reserve.events.on('safe', () => announce('🏦 **The Polygon Reserve is back above half.** Crisis averted. For now.'));
+  : '😬 **The Polygon Reserve is under half.** TODD is starting to sweat.', line <= 0.1 ? 0x992d22 : line <= 0.25 ? 0xff6b6b : 0xf0b232));
+reserve.events.on('safe', () => announce('🏦 **The Polygon Reserve is back above half.** Crisis averted. For now.', 0x57f287));
 const tickReserve = async () => {
   try {
     const m = await market.get();
     reserve.recover(db, m);
     const r = await reserve.maybeCrash(db, m);
-    if (r.started) announce('💥 **The Polygon Reserve ran dry. The market is about to crash.**');
+    if (r.started) announce('💥 **The Polygon Reserve ran dry. The market is about to crash.**', 0x992d22);
     else if (r.error && r.error !== 'no GITHUB_TOKEN') console.error('[reserve] Could not start the crash:', r.error, '(the GitHub token needs Actions: Read and write)');
   } catch (e) { console.error('[reserve] Tick failed:', e.message); }
 };

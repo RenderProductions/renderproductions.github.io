@@ -44,8 +44,9 @@ module.exports = {
   dailyAmount: 250_00,         // r!daily gives 250 Polygons
   // The Polygon Reserve (src/reserve.js): how many Polygons the house starts with, shared by every server
   reserveStart: Math.round((Number(process.env.RESERVE_START) || 250_000) * 100),
-  // Optional: a channel ID where the bot posts Polygon Reserve warnings
-  announceChannelId: process.env.ANNOUNCE_CHANNEL_ID || '',
+  // Optional: the market news webhook URL (the same one as the DISCORD_WEBHOOK secret on GitHub),
+  // so Polygon Reserve warnings post in the market news feed
+  newsWebhook: process.env.NEWS_WEBHOOK || '',
 
   color: 0xffe600,             // site yellow
   colorTodd: 0xff6b6b,         // TODD red
