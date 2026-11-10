@@ -45,7 +45,19 @@ deps.client = client; // lets commands look up users (r!balance @someone)
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Online as ${c.user.tag} in ${c.guilds.cache.size} server(s)`);
-  c.user.setActivity(`${config.prefix}help · /help`, { type: ActivityType.Watching });
+
+  // Rotating status (the list lives in src/statuses.js)
+  const statuses = require('./statuses');
+  const TYPES = { watching: ActivityType.Watching, listening: ActivityType.Listening, playing: ActivityType.Playing,
+    competing: ActivityType.Competing, custom: ActivityType.Custom };
+  const rotate = async () => {
+    try {
+      const s = statuses.next({ market: await market.get(), db });
+      c.user.setActivity(s.type === 'custom' ? { name: 'custom', state: s.text, type: TYPES.custom } : { name: s.text, type: TYPES[s.type] });
+    } catch (e) { console.error('[status]', e.message); }
+  };
+  rotate();
+  setInterval(rotate, statuses.ROTATE_MS).unref();
 
   // Register slash commands on every start, so new or changed commands just appear.
   // DEV_GUILD_ID puts them in one test server (instant); otherwise they're global.
