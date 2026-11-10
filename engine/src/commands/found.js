@@ -4,7 +4,7 @@ const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'found',
-  description: 'Start your own company (2,500 Polygons, needs mod approval)',
+  description: 'Start your own company (⬡ 2,500, needs mod approval)',
   usage: '<ticker> <name>',
   options: [
     { name: 'ticker', type: 'string', description: '2 to 5 letters, like MEOW', required: true },

@@ -8,7 +8,7 @@ const BROKE_BELOW = 100_00; // net worth must be under this
 
 module.exports = {
   name: 'bailout',
-  description: "Borrow 500 from TODD when you're broke (you owe 600)",
+  description: "Borrow ⬡ 500 from TODD when you're broke (you owe ⬡ 600)",
   options: [],
 
   async run(ctx) {

@@ -54,7 +54,7 @@ if (!posts.length) { console.log('No market news to post.'); process.exit(0); }
 if (!hooks.length && !dryRun) { console.log('DISCORD_WEBHOOK is not set; skipping ' + posts.length + ' post(s).'); process.exit(0); }
 
 const ts = (iso, style) => '<t:' + Math.floor(Date.parse(iso) / 1000) + ':' + style + '>';
-const money = (n) => '$' + Number(n).toFixed(2);
+const money = (n) => '⬡ ' + Number(n).toFixed(2); // ⬡ = a price in Polygons
 
 function embed(p) {
   if (p.kind === 'market') {

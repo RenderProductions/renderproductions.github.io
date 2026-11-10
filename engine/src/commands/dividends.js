@@ -30,7 +30,7 @@ module.exports = {
         const earn = Math.max(0, (now - h.div_index) * elig);
         total += earn;
         ctx.db.updateHolding(ctx.guildId, ctx.user.id, t, { div_index: now, div_shares: held });
-        lines.push(`**${t}** · ${elig} earning shares · +${earn.toFixed(2)}\n${(m.divText && m.divText[t]) || ''}`);
+        lines.push(`**${t}** · ${elig} earning shares · +${amt(Math.round(earn * 100))}\n${(m.divText && m.divText[t]) || ''}`);
       }
       // Pay to the cent, keep anything smaller for next time
       const cents = Math.floor(total * 100 + 1e-9);

@@ -10,7 +10,7 @@ module.exports = {
   name: 'slots',
   description: 'Spin the Rend-Sino slot machine',
   usage: '<amount>',
-  options: [{ name: 'amount', type: 'string', description: 'Bet, 10 to 1000 Polygons', required: true }],
+  options: [{ name: 'amount', type: 'string', description: 'Bet, ⬡ 10 to ⬡ 1,000', required: true }],
   lastSpin,
 
   async run(ctx, args) {
@@ -23,8 +23,8 @@ module.exports = {
 
     const bet = parsePolygons(args.amount);
     if (bet === null) return `Usage: \`${config.prefix}slots AMOUNT\`, for example \`${config.prefix}slots 50\` or \`${config.prefix}slots 12.50\``;
-    if (bet < 10_00) return 'The minimum bet is 10 Polygons.';
-    if (bet > 1000_00) return 'The maximum bet is 1000 Polygons.';
+    if (bet < 10_00) return `The minimum bet is ${amt(10_00)}.`;
+    if (bet > 1000_00) return `The maximum bet is ${amt(1000_00)}.`;
     if (p.cash < bet) return `You only have ${have(p.cash)}.`;
 
     lastSpin.set(ctx.user.id, Date.now());

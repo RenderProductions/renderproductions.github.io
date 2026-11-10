@@ -931,7 +931,7 @@ function discordLine(item) {
   } else if (item.verdict) {
     extra = 'Appeal #' + item.appeals + ' · TODD rules <t:' + unix(Date.parse(item.verdict)) + ':R>';
   } else if (typeof item.restart === 'number') {
-    extra = 'Trading restarts at $' + item.restart.toFixed(2) + ' · TODD keeps the dividends for ' + BAILOUT_DIV_HOURS + ' hours';
+    extra = 'Trading restarts at ⬡ ' + item.restart.toFixed(2) + ' · TODD keeps the dividends for ' + BAILOUT_DIV_HOURS + ' hours';
   } else if (item.until) {
     extra = 'Prices frozen · trading resumes <t:' + unix(Date.parse(item.until)) + ':R>';
   }
@@ -1010,9 +1010,9 @@ function statusLine(c) {
     return '💀 **BANKRUPT** since <t:' + unix(Date.parse(b.since)) + ':R> · ' +
       (b.verdictAt ? 'TODD rules on appeal #' + b.appeals + ' <t:' + unix(Date.parse(b.verdictAt)) + ':R>'
         : 'next bailout appeal <t:' + unix(Date.parse(b.nextAppealAt)) + ':R>') +
-      (b.swim ? ' · back above $' + SWIM_PRICE.toFixed(2) + ' for ' + (b.swim * TICK_MIN) + '/' + (SWIM_TICKS * TICK_MIN) + ' min' : '');
+      (b.swim ? ' · back above ⬡ ' + SWIM_PRICE.toFixed(2) + ' for ' + (b.swim * TICK_MIN) + '/' + (SWIM_TICKS * TICK_MIN) + ' min' : '');
   }
-  if (c.status === 'distressed') return '⚠️ **Distressed** · under $' + LINEAR_BELOW.toFixed(2) + ', one bad day from bankruptcy';
+  if (c.status === 'distressed') return '⚠️ **Distressed** · under ⬡ ' + LINEAR_BELOW.toFixed(2) + ', one bad day from bankruptcy';
   return '✅ Solvent';
 }
 
@@ -1028,7 +1028,7 @@ function buildOutput({ nowIso, market, news, companies, crash = null }) {
     changes[c.id] = c.change;
     dividends[c.id] = c.divIndex;
     divDaily[c.id] = Math.round(c.price * c.yield * c.divRate * 10000) / 10000;
-    const eff = (c.yield * c.divRate * 100).toFixed(2).replace(/\.?0+$/, '') + '% daily · $' + divDaily[c.id].toFixed(2) + ' per share';
+    const eff = (c.yield * c.divRate * 100).toFixed(2).replace(/\.?0+$/, '') + '% daily · ⬡ ' + divDaily[c.id].toFixed(2) + ' per share';
     divText[c.id] = c.status === 'bankrupt' ? '💀 None · the company is bankrupt'
       : !c.yield ? '🚫 No dividend'
       : c.divRate === 0 ? '💸 Suspended · next board review <t:' + unix(Date.parse(c.divReviewAt)) + ':R>'
