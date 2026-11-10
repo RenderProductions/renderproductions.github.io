@@ -1,8 +1,8 @@
 {
   "note": "Written by the 'Crash the market' workflow (Actions tab). start null = no crash.",
-  "start": "2026-11-08T20:30:00Z",
-  "tremorHours": 2,
+  "start": "2026-11-10T03:49:35.477Z",
+  "tremorHours": 0.08333333333333333,
   "crashHours": 48,
   "recoveryHours": 72,
-  "severity": "normal"
+  "severity": "brutal"
 }
