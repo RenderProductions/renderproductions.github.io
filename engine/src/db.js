@@ -7,6 +7,7 @@ const { DatabaseSync } = require('node:sqlite');
 const config = require('./config');
 
 // Each entry upgrades the database by one version. Never edit an old entry; add a new one.
+// From version 3 on, upgrades must only ADD things (tables, columns). Never drop player data.
 const MIGRATIONS = [
   null, // version 0 = empty database
   null, // version 1 = the first scaffold (replaced by version 2)
@@ -75,6 +76,20 @@ const MIGRATIONS = [
       key   TEXT PRIMARY KEY,
       value TEXT
     );
+  `,
+  `
+    -- Version 3: inventory. Shop items go here and are used later with r!use.
+    CREATE TABLE inventory (
+      guild_id TEXT NOT NULL,
+      user_id  TEXT NOT NULL,
+      item     TEXT NOT NULL,
+      qty      INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (guild_id, user_id, item)
+    );
+    -- Titles bought before the inventory existed become a Title in the inventory
+    INSERT INTO inventory (guild_id, user_id, item, qty)
+      SELECT guild_id, user_id, 'title', title_credit FROM players WHERE title_credit > 0;
+    UPDATE players SET title_credit = 0;
   `
 ];
 
@@ -86,8 +101,25 @@ function open(file = config.dbPath) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL;');
+  const before = db.prepare('PRAGMA user_version').get().user_version;
+  if (file !== ':memory:' && before > 0 && before < MIGRATIONS.length - 1) {
+    backup(db, path.join(path.dirname(file), 'backups'), `before-v${MIGRATIONS.length - 1}`); // safety copy before upgrading
+  }
   migrate(db);
-  return wrap(db);
+  return wrap(db, file);
+}
+
+// Copies the whole database to backups/rend-conomy-<label>.db, keeping the newest `keep` copies.
+function backup(db, dir, label, keep = 10) {
+  fs.mkdirSync(dir, { recursive: true });
+  const out = path.join(dir, `rend-conomy-${label}.db`);
+  if (fs.existsSync(out)) fs.unlinkSync(out);
+  db.exec(`VACUUM INTO '${out.replace(/'/g, "''")}'`);
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.db'))
+    .map((f) => ({ f, t: fs.statSync(path.join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  for (const old of files.slice(keep)) fs.unlinkSync(path.join(dir, old.f));
+  return out;
 }
 
 function migrate(db) {
@@ -99,7 +131,7 @@ function migrate(db) {
   }
 }
 
-function wrap(db) {
+function wrap(db, file = ':memory:') {
   const cache = new Map();
   const st = (sql) => { if (!cache.has(sql)) cache.set(sql, db.prepare(sql)); return cache.get(sql); };
 
@@ -112,6 +144,14 @@ function wrap(db) {
 
   const api = {
     raw: db,
+
+    // Saves a dated copy in data/backups (keeps the newest 10). Called on start and every 6 hours.
+    backup() {
+      if (file === ':memory:') return null;
+      const stamp = new Date().toISOString().slice(0, 13).replace('T', '_'); // 2026-11-09_22
+      return backup(db, path.join(path.dirname(file), 'backups'), stamp);
+    },
+    playerCount() { return st('SELECT count(*) AS n FROM players').get().n; },
 
     // Runs fn inside a transaction so nothing can half-happen. Nested calls join the outer one.
     tx(fn) {
@@ -168,6 +208,19 @@ function wrap(db) {
     },
     recordBuy(guildId, userId, item, restockAt) {
       st('INSERT OR IGNORE INTO shop_buys (guild_id, user_id, item, restock_at) VALUES (?, ?, ?, ?)').run(guildId, userId, item, restockAt);
+    },
+
+    // Inventory
+    inventory(guildId, userId) {
+      return st('SELECT item, qty FROM inventory WHERE guild_id = ? AND user_id = ? AND qty > 0 ORDER BY item').all(guildId, userId);
+    },
+    itemCount(guildId, userId, item) {
+      const r = st('SELECT qty FROM inventory WHERE guild_id = ? AND user_id = ? AND item = ?').get(guildId, userId, item);
+      return r ? r.qty : 0;
+    },
+    addItem(guildId, userId, item, n = 1) {
+      st(`INSERT INTO inventory (guild_id, user_id, item, qty) VALUES (?, ?, ?, ?)
+        ON CONFLICT (guild_id, user_id, item) DO UPDATE SET qty = MAX(0, qty + excluded.qty)`).run(guildId, userId, item, n);
     },
 
     // For the leaderboard API

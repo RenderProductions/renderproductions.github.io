@@ -180,22 +180,54 @@ const has = async (line, needle, user) => {
     }
   }
 
-  // ---- shop ----
-  await has('r!shop', 'Rend-Conomy Shop');
+  // ---- shop and inventory ----
+  db.updatePlayer(G, ALICE.id, { cash: 10000_00, last_work: 0 });
+  random = () => 0.5; // Mystery price this restock: 75 + floor(0.5 * 26) = 88
+  await has('r!shop', 'Mystery**: 88.00');
+  await has('r!shop', 'Title**: 5,000.00');
   await has('r!purchase', 'Which item');
-  await has('r!purchase resume', "don't have a job");
-  db.updatePlayer(G, ALICE.id, { last_work: Date.now() });
-  await has('r!purchase coffee', 'cooldown is reset');
-  assert.strictEqual(db.player(G, ALICE).last_work, 0);
+  await has('r!inv', 'Empty');
+  await has('r!use coffee', "don't have a **Coffee**");
+  await has('r!purchase coffee', 'Bought a **Coffee** for 100.00');
+  assert.strictEqual(cash(), 9900_00);
   await has('r!purchase coffee', 'already bought');
-  await has('r!settitle Boss', 'need to buy a **Title**');
-  await has('r!purchase title', 'Title bought');
+  await has('r!use coffee', 'not on a work cooldown'); // kept, not wasted
+  db.updatePlayer(G, ALICE.id, { last_work: Date.now() });
+  await has('r!use coffee', 'cooldown is reset');
+  assert.strictEqual(db.player(G, ALICE).last_work, 0);
+  assert.strictEqual(db.itemCount(G, ALICE.id, 'coffee'), 0);
+
+  await has('r!purchase overtime', 'for 250.00');
+  await has('r!use overtime', 'Overtime approved');
+  db.addItem(G, ALICE.id, 'overtime', 1);
+  await has('r!use overtime', 'already have Overtime queued');
+  await has('r!purchase resume', 'for 350.00');
+  await has('r!use resume', "don't have a job");
+  await has('r!inventory', 'Resume** × 1');
+  await has('r!bag', 'Overtime is queued');
+
+  await has('r!purchase mystery', 'for 88.00');
+  random = () => 0.2; // Overtime pass
+  await has('r!use mystery', 'Overtime pass');
+  assert.strictEqual(db.itemCount(G, ALICE.id, 'overtime'), 2);
+
+  await has('r!settitle Boss', 'need a **Title**');
+  await has('r!purchase title', 'for 5,000.00');
   await has('r!purchase title', 'sold out', BOB); // only 1 Title per restock, shared by everyone
+  await has('r!use title', 'settitle');
   await has('r!settitle **Nacho** @Baron', 'Nacho Baron'); // formatting and @ pings are stripped
   await has('r!bal', '🏷️ *Nacho Baron*');
-  await has('r!settitle again', 'need to buy');
-  random = () => 0.01; // mystery jackpot
-  await has('r!purchase mystery', 'JACKPOT');
+  await has('r!settitle again', 'need a **Title**');
+  const bobInv = await router.runCommand(require('../src/commands/inventory'), ctxFor(ALICE), { user: BOB });
+  assert.ok(text(bobInv).includes("bob's inventory"));
+
+  // A new restock rolls a new Mystery price and lets players buy again
+  db.setMeta('lastRestock', 0);
+  random = () => 0.99;
+  await has('r!shop', 'Mystery**: 100.00');
+  await has('r!purchase mystery', 'for 100.00');
+  random = () => 0.01; // jackpot
+  await has('r!use mystery', 'JACKPOT');
 
   // ---- cleartitle (mods only) ----
   const clear = require('../src/commands/cleartitle');

@@ -4,7 +4,7 @@ The Rend-Conomy Discord bot in JavaScript, living next to the site. Every comman
 
 **Status:** full port of the BDFD bot (minus the AI commands), hosted on Bot-Hosting.net. The BDFD bot keeps running until the "Crash the Rend-Conomy" update swaps them, which also wipes balances.
 
-Commands: help, balance (bal, portfolio, pf), daily, market, buy, sell, chart, compare, dividends, apply, quit, work, shop, purchase, settitle, cleartitle (mods), slots, bailout, repay, and the secret 404 (prefix only, not in help or the slash list).
+Commands: help, balance (bal, portfolio, pf), daily, market, buy, sell, chart, compare, dividends, apply, quit, work, shop, purchase, inventory, use, settitle, cleartitle (mods), slots, bailout, repay, and the secret 404 (prefix only, not in help or the slash list).
 
 ## Folder map
 
@@ -93,7 +93,9 @@ Money is stored in cents (500 Polygons = `50000`), so balances keep their decima
 
 The database upgrades itself on start (see `MIGRATIONS` in `src/db.js`). To change the layout later, add a new entry rather than editing an old one.
 
-**Placeholders to check:** shop prices in `src/shop.js` (the BDFD prices weren't in the export), and `r!purchase`, `r!settitle` and `r!cleartitle`, which were rebuilt from their descriptions.
+Shop items go into an inventory (`inventory` table) and are used later with `r!use`. Mystery's price is rolled between 75 and 100 at every restock.
+
+**Backups:** the bot saves a copy of the database to `engine/data/backups` on every start and every 6 hours (keeps the newest 10), plus a `before-vN` copy before any upgrade. To restore one, stop the bot, replace `engine/data/rend-conomy.db` with the backup (delete the `-wal` and `-shm` files next to it), and start again.
 
 ## Next steps
 

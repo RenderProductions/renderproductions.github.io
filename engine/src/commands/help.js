@@ -28,8 +28,10 @@ module.exports = {
           `\`${P}quit\` leaves your job (24h after hiring, resets your rank)\n\n` +
           '**Shop**\n' +
           `\`${P}shop\` shows items, stock, and the next restock\n` +
-          `\`${P}purchase <item>\` buys coffee, overtime, mystery, resume, or title\n` +
-          `\`${P}settitle <text>\` sets your custom title\n` +
+          `\`${P}purchase <item>\` buys coffee, overtime, mystery, resume, or title into your inventory\n` +
+          `\`${P}inventory\` shows the items you own\n` +
+          `\`${P}use <item>\` uses an item from your inventory\n` +
+          `\`${P}settitle <text>\` sets your custom title (uses a Title)\n` +
           `\`${P}slots <amount>\` spins the Rend-Sino slot machine\n\n` +
           '**TODD**\n' +
           `\`${P}bailout\` borrow 500 when you're broke (you owe 600)\n` +

@@ -10,6 +10,12 @@ const { slashCommands } = require('./slash');
 
 const deps = { db, market }; // the Discord client is added once it exists
 
+// Show that saved data survived the restart, and keep backups in data/backups
+console.log(`[db] ${db.playerCount()} player record(s) loaded from ${config.dbPath}`);
+const saveBackup = () => { try { console.log('[db] Backup saved:', db.backup()); } catch (e) { console.error('[db] Backup failed:', e.message); } };
+saveBackup();
+setInterval(saveBackup, 6 * 60 * 60 * 1000).unref();
+
 // Start the web API first, so the host's health check passes even if Discord has trouble.
 // /health reports whether the bot is actually connected.
 api.start(deps, () => ({ discord: client.isReady() ? 'connected' : 'not connected' }));

@@ -9,17 +9,16 @@ module.exports = {
 
   async run(ctx) {
     const p = ctx.db.player(ctx.guildId, ctx.user);
-    const since = shop.restock(ctx.db);
-    const items = Object.values(shop.ITEMS).map((it, i) => {
-      const id = Object.keys(shop.ITEMS)[i];
-      return `${it.emoji} **${it.name}**: ${money(it.price)} | Stock: ${ctx.db.stock(id)}\n${it.desc}`;
-    });
+    const since = shop.restock(ctx.db, Date.now(), ctx.random);
+    const items = Object.entries(shop.ITEMS).map(([id, it]) =>
+      `${it.emoji} **${it.name}**: ${money(shop.price(ctx.db, id))} | Stock: ${ctx.db.stock(id)}\n${it.desc}`);
 
     return {
       embeds: [{
         title: '🛒 Rend-Conomy Shop',
         description: `You have **${money(p.cash)} Polygons**. One of each item per player per restock.\n\n` +
-          `${items.join('\n\n')}\n\nRestocks ${relTime(since + shop.RESTOCK_MS)}. Buy with \`${config.prefix}purchase <item>\`.`,
+          `${items.join('\n\n')}\n\nRestocks ${relTime(since + shop.RESTOCK_MS)}. ` +
+          `Buy with \`${config.prefix}purchase <item>\`, then \`${config.prefix}use <item>\` whenever you like.`,
         color: config.color
       }]
     };
