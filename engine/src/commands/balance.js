@@ -1,6 +1,7 @@
 const config = require('../config');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
+const loans = require('../loans');
 
 // What r!balance shows when you look up the bot itself
 function housePortfolio(bot, m, ctx) {
@@ -53,13 +54,17 @@ module.exports = {
     for (const r of pcv.rows) fields.push({ name: `🏢 ${r.name} (${r.ticker})`, value: `${r.shares} shares, worth ${have(r.value)}` });
 
     const titleLine = p.title ? `🏷️ *${p.title}*\n` : '';
-    const debtLine = p.debt > 0 ? `\n🖥️ Owed to TODD: **${amt(p.debt)}**` : '';
+    const owedLoans = loans.totalOwed(ctx.db, ctx.guildId, target.id);
+    const lentLoans = loans.totalLent(ctx.db, ctx.guildId, target.id);
+    const debtLine = (p.debt > 0 ? `\n🖥️ Owed to TODD: **${amt(p.debt)}**` : '') +
+      (owedLoans > 0 ? `\n🏦 Owed to players: **${amt(owedLoans)}**` : '') +
+      (lentLoans > 0 ? `\n🏦 Lent out: **${have(lentLoans)}**` : '');
 
     return {
       embeds: [{
         title: `${target.username}'s portfolio`,
         description: `${titleLine}Polygons: **${have(p.cash)}**\nStocks: **${have(stocks)}**${debtLine}\n` +
-          `Net worth: **${have(p.cash + stocks - p.debt)}**`,
+          `Net worth: **${have(p.cash + stocks - p.debt - owedLoans + lentLoans)}**`,
         fields,
         footer: { text: 'Prices as of' },
         timestamp: m.updated,

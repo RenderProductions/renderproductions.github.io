@@ -122,6 +122,27 @@ const MIGRATIONS = [
       shares   INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (guild_id, user_id, ticker)
     );
+  `,
+  `
+    -- Version 5: loans between players (per server, like balances)
+    CREATE TABLE loans (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id      TEXT NOT NULL,
+      lender_id     TEXT NOT NULL,
+      lender_name   TEXT,
+      borrower_id   TEXT NOT NULL,
+      borrower_name TEXT,
+      principal     INTEGER NOT NULL,        -- cents lent
+      rate          REAL NOT NULL,           -- percent per day
+      owed          INTEGER NOT NULL,        -- cents still owed, interest included
+      created_at    INTEGER NOT NULL,
+      due_at        INTEGER NOT NULL,        -- interest stops and garnishing starts here
+      last_accrual  INTEGER NOT NULL,        -- when interest was last added
+      status        TEXT NOT NULL DEFAULT 'active', -- active, paid
+      paid_at       INTEGER
+    );
+    CREATE INDEX loans_borrower ON loans (guild_id, borrower_id, status);
+    CREATE INDEX loans_lender ON loans (guild_id, lender_id, status);
   `
 ];
 

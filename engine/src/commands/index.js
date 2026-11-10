@@ -31,6 +31,9 @@ const list = [
   require('./approve'),
   require('./reject'),
   require('./slots'),
+  require('./loan'),
+  require('./payback'),
+  require('./loans'),
   require('./bailout'),
   require('./repay'),
   require('./404')

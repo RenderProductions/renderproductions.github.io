@@ -1,6 +1,7 @@
 const config = require('../config');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
+const loans = require('../loans');
 
 // Each company's dividend total (prices.json "dividends") only ever goes up. A player earns
 // (total now - total at their last claim) x shares they held at their last claim, so shares
@@ -35,7 +36,8 @@ module.exports = {
       // Pay to the cent, keep anything smaller for next time
       const cents = Math.floor(total * 100 + 1e-9);
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { div_carry: Math.round((total - cents / 100) * 10000) / 10000 });
-      ctx.db.addCash(ctx.guildId, ctx.user.id, cents);
+      const g = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, cents); // overdue loans take half
+      if (g.taken) lines.push(g.paidTo.map((x) => `🏦 ${amt(x.cents)} went to **${x.name}** for an overdue loan.`).join('\n'));
       return cents;
     });
 

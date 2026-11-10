@@ -9,7 +9,8 @@ const pending = new Map();
 
 function toPayload(out) {
   const payload = typeof out === 'string' ? { content: out } : out;
-  return { ...payload, allowedMentions: { parse: [] } }; // never ping anyone by accident
+  // Never ping anyone by accident. A command can ping specific users on purpose (r!loan pings the lender).
+  return { ...payload, allowedMentions: payload.allowedMentions || { parse: [] } };
 }
 
 async function runCommand(cmd, ctx, args) {
@@ -93,7 +94,23 @@ async function handleMessage(message, deps) {
   if (out) return message.reply(out);
 }
 
+// Buttons: custom ids look like "loan:accept:abc123". The command whose buttonPrefix matches handles it.
+async function handleButton(interaction, deps) {
+  const [prefix, ...parts] = interaction.customId.split(':');
+  const cmd = commands.list.find((c) => c.buttonPrefix === prefix && c.onButton);
+  if (!cmd) return;
+  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user }, deps);
+  let out;
+  try { out = await cmd.onButton(ctx, parts); } catch (e) {
+    console.error(`[${cmd.name} button]`, e);
+    out = { reply: 'Something broke. It has been logged.' };
+  }
+  if (out && out.update) return interaction.update(toPayload(out.update));
+  if (out && out.reply) return interaction.reply({ ...toPayload(out.reply), ephemeral: true });
+}
+
 async function handleInteraction(interaction, deps) {
+  if (interaction.isButton()) return handleButton(interaction, deps);
   if (!interaction.isChatInputCommand()) return;
   const cmd = commands.find(interaction.commandName);
   if (!cmd || cmd.hidden) return;
@@ -112,4 +129,4 @@ async function handleInteraction(interaction, deps) {
   return out ? interaction.editReply(out) : interaction.deleteReply();
 }
 
-module.exports = { parsePrefix, runCommand, makeCtx, handleMessage, handleInteraction, pending };
+module.exports = { parsePrefix, runCommand, makeCtx, handleMessage, handleInteraction, handleButton, pending };

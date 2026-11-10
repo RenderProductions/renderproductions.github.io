@@ -1,6 +1,7 @@
 const config = require('../config');
 const jobs = require('../jobs');
 const co = require('../companies');
+const loans = require('../loans');
 const { relTime, amt } = require('../format');
 
 // Tasks waiting for an answer: "guild:user" -> { job, ans, start, rush }
@@ -13,6 +14,12 @@ function taskStyle(ticker) {
   let h = 0;
   for (const ch of ticker) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return styles[h % styles.length];
+}
+
+// "🏦 ⬡ 17.50 went to KorbedOut for an overdue loan." (empty when nothing was taken)
+function garnishNote(g) {
+  if (!g.taken) return '';
+  return '\n' + g.paidTo.map((p) => `🏦 ${amt(p.cents)} went to **${p.name}** for an overdue loan${p.cleared ? ' (paid off!)' : ''}.`).join('\n');
 }
 
 // Starts a task and waits for the player's answer in the channel.
@@ -73,11 +80,13 @@ async function answer(ctx, msg) {
     out = result === 'pass' ? `⚡ **RUSH CLEARED!** Bonus **+${amt(pay * 100)}**` : '💨 The rush got away from you. No bonus this time.';
   }
 
-  ctx.db.tx(() => {
-    ctx.db.addCash(ctx.guildId, ctx.user.id, pay * 100);
+  const g = ctx.db.tx(() => {
+    const split = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, pay * 100); // overdue loans take half
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, update);
     if (!c) co.addRevenue(ctx.db, st.job, Math.round(pay * 100 * co.RULES.revenueShare)); // shifts earn the company money
+    return split;
   });
+  out += garnishNote(g);
 
   // 1 in 5: another task comes in. Only after a pass, max 5 in a row.
   const random = ctx.random || Math.random;
