@@ -21,7 +21,8 @@ module.exports = {
     let got = 0;
     const g = ctx.db.tx(() => {
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { daily_day: today });
-      got = reserve.pay(ctx.db, config.dailyAmount); // comes out of the Polygon Reserve
+      const twice = require('../effects').take(ctx.db, ctx.guildId, ctx.user.id, 'dailyDouble'); // TODD's Floppy Disk
+      got = reserve.pay(ctx.db, config.dailyAmount * (twice ? 2 : 1)); // comes out of the Polygon Reserve
       return loans.garnish(ctx.db, ctx.guildId, ctx.user.id, got); // overdue loans take half
     });
     const loanLine = g.taken ? '\n' + g.paidTo.map((x) => `🏦 ${amt(x.cents)} went to **${x.name}** for an overdue loan.`).join('\n') : '';

@@ -45,6 +45,8 @@ function takeBet(ctx, game, raw) {
 // Pays out (the bet included, if it's coming back). Returns the player's Polygons after.
 function payout(ctx, game, cents) {
   cents = Math.max(0, Math.round(cents));
+  // A Platinum Chip charge: this game pays 4% more (no house edge)
+  if (ctx.guildId && require('./effects').take(ctx.db, ctx.guildId, ctx.user.id, 'chip') && cents > 0) cents = Math.round(cents * 1.04);
   ctx.db.tx(() => {
     if (cents) {
       ctx.db.addCash(ctx.guildId, ctx.user.id, cents);

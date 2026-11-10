@@ -6,6 +6,12 @@ function shares(ctx, m, ticker, userId = ctx.user.id) {
   const h = ctx.db.holding(ctx.guildId, userId, ticker);
   const wipes = Number((m && m.wipes && m.wipes[ticker]) || 0);
   if (m && wipes > h.wipe_seen) {
+    // An Insurance Policy in the inventory saves the shares (once)
+    if (h.shares > 0 && require('./effects').usePassive(ctx.db, ctx.guildId, userId, 'insurance')) {
+      ctx.db.updateHolding(ctx.guildId, userId, ticker, { wipe_seen: wipes });
+      if (ctx.notes && ctx.user && ctx.user.id === userId) ctx.notes.push(`🛡️ **Insurance paid out!** ${ticker} went bankrupt, but your Insurance Policy saved your **${h.shares}** shares.`);
+      return h.shares;
+    }
     ctx.db.updateHolding(ctx.guildId, userId, ticker, { shares: 0, div_shares: 0, wipe_seen: wipes });
     ctx.db.clearLots(ctx.guildId, userId, ticker);
     if (h.shares > 0) require('./achievements').award(ctx, 'wiped_out', userId);

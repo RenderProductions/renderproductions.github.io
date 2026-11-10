@@ -10,15 +10,19 @@ module.exports = {
   aliases: ['buyitem'],
   description: 'Buy a shop item into your inventory',
   usage: '<item>',
-  options: [{ name: 'item', type: 'string', description: 'coffee, overtime, mystery, resume, or title', required: true }],
+  options: [{ name: 'item', type: 'string', description: 'The item, like coffee, rocket fuel, or the collectible of the week', required: true }],
 
   async run(ctx, args) {
-    const id = String(args.item || '').trim().toLowerCase();
-    const item = shop.ITEMS[id];
-    if (!item) return `🛒 Which item? Try \`${config.prefix}purchase <item>\`: ${Object.keys(shop.ITEMS).join(', ')}.`;
+    const id = shop.find(args.item);
+    const item = id && shop.any(id);
+    if (!item) return `🛒 Which item? See \`${config.prefix}shop\`, then \`${config.prefix}purchase <item>\`.`;
 
-    const since = shop.restock(ctx.db, Date.now(), ctx.random);
-    const next = relTime(since + shop.RESTOCK_MS);
+    const hourly = shop.restock(ctx.db, Date.now(), ctx.random);
+    const col = shop.isCollectible(id);
+    if (col && shop.collectibleOfWeek() !== id) return `🗃️ Marquez doesn't have **${item.name}** this week. Check \`${config.prefix}shop\` for this week's collectible.`;
+    // Collectibles are one per player per week; everything else one per restock
+    const since = col ? Math.floor(Date.now() / shop.WEEK_MS) * shop.WEEK_MS : hourly;
+    const next = col ? relTime(since + shop.WEEK_MS) : relTime(hourly + shop.RESTOCK_MS);
     const cost = shop.price(ctx.db, id);
     const p = ctx.db.player(ctx.guildId, ctx.user);
 
@@ -39,7 +43,8 @@ module.exports = {
 
     receipts.send(ctx, { title: `Bought a ${item.name}`, lines: [
       ['Item', `${item.emoji} ${item.name}`], ['Price', amt(cost)], ['Polygons left', have(p.cash - cost)], ['In your inventory', owned]] });
-    const how = id === 'title' ? `\`${config.prefix}settitle <text>\`` : `\`${config.prefix}use ${id}\``;
-    return `${item.emoji} Bought a **${item.name}** for ${amt(cost)}. You have ${owned} in your inventory. Use it with ${how}.`;
+    const how = id === 'title' ? `Use it with \`${config.prefix}settitle <text>\`.` : col ? 'It\'s on your profile now. Marquez won\'t restock this one for a while.'
+      : item.passive ? 'It works on its own while it\'s in your inventory.' : `Use it with \`${config.prefix}use ${id}\`.`;
+    return `${item.emoji} Bought ${col ? '' : 'a '}**${item.name}** for ${amt(cost)}. You have ${owned} in your inventory. ${how}`;
   }
 };

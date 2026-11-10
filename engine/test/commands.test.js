@@ -317,8 +317,8 @@ const has = async (line, needle, user) => {
   // ---- shop and inventory ----
   db.updatePlayer(G, ALICE.id, { cash: 10000_00, last_work: 0 });
   random = () => 0.5; // Mystery price this restock: 75 + floor(0.5 * 26) = 88
-  await has('r!shop', 'Mystery**: ⬡ 88.00');
-  await has('r!shop', 'Title**: ⬡ 5,000.00');
+  await has('r!shop casino', 'Mystery**: ⬡ 88.00');
+  await has('r!shop fun', 'Title**: ⬡ 5,000.00');
   await has('r!purchase', 'Which item');
   await has('r!inv', 'Empty');
   await has('r!use coffee', "don't have a **Coffee**");
@@ -358,7 +358,7 @@ const has = async (line, needle, user) => {
   // A new restock rolls a new Mystery price and lets players buy again
   db.setMeta('lastRestock', 0);
   random = () => 0.99;
-  await has('r!shop', 'Mystery**: ⬡ 100.00');
+  await has('r!shop casino', 'Mystery**: ⬡ 100.00');
   await has('r!purchase mystery', 'for ⬡ 100.00');
   random = () => 0.01; // jackpot
   await has('r!use mystery', 'JACKPOT');

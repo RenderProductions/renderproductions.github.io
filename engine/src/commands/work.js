@@ -13,6 +13,7 @@ const loans = require('../loans');
 const reminders = require('../reminders');
 const marketEngine = require('../marketEngine');
 const A = require('../achievements');
+const effects = require('../effects');
 const { relTime, amt } = require('../format');
 const { button, rows, nonce } = require('../buttons');
 
@@ -49,6 +50,9 @@ const isBoomed = (m, job) => !!(m && m.boost && (!m.boost.tickers || !m.boost.ti
 // Returns a reply payload (with `later` for memory tasks, which hide the prompt after a few seconds).
 function startTask(ctx, { job, style, rush = 0, mode = 'work', tier = 0, scab = false, market = null, intro = '' }) {
   const t = jobs.task(style, { rush: rush > 0, tier, random: ctx.random || Math.random, market, kind: TUNING.kind });
+  // A Stopwatch charge: 10 extra seconds on a regular shift
+  const watch = mode === 'work' && !rush && effects.take(ctx.db, ctx.guildId, ctx.user.id, 'stopwatch');
+  if (watch) { t.limit += 10; intro = `${intro}⏱️ Stopwatch: **+10 seconds**.\n`; }
   const id = nonce();
   const hide = t.hideMs || 0;
   active.set(keyOf(ctx), { job, style, mode, rush, tier, scab, id, kind: t.kind, ans: t.ans, check: t.check,
@@ -177,6 +181,8 @@ async function answer(ctx, text) {
         const bonus = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * r.mult * jobs.REVIEW.topBonus * 100));
         review = `\n\n📋 **Performance review: ${score}/10.** ⭐ Outstanding, ${r.name}! Here's a **${amt(bonus)}** bonus.`;
         cu._bonus = bonus;
+      } else if (score <= jobs.REVIEW.demote && career.rank > 0 && effects.usePassive(ctx.db, ctx.guildId, ctx.user.id, 'reference')) {
+        review = `\n\n📋 **Performance review: ${score}/10.** ✉️ It was going to be a demotion, but your **Reference Letter** saved you. You're still a ${r.name}.`;
       } else if (score <= jobs.REVIEW.demote && career.rank > 0) {
         cu.rank = career.rank - 1;
         review = `\n\n📋 **Performance review: ${score}/10.** 📉 Sloppy work. **Demoted to ${jobs.rankName(st.job, cu.rank)}.** Pay is now ${jobs.MULTS[cu.rank]}x.`;
@@ -230,6 +236,10 @@ async function events(ctx, p, m) {
   if (!c) return null;
   // Layoffs: a bankrupt company can't pay its staff
   if (m && m.statuses && m.statuses[p.job] === 'bankrupt') {
+    if (effects.usePassive(ctx.db, ctx.guildId, ctx.user.id, 'hardhat')) {
+      ctx.notes.push(`🪖 **${c.name} is bankrupt and laying people off**, but your Hard Hat kept you on the crew. Pay is rough until it recovers.`);
+      return null;
+    }
     const career = ctx.db.career(ctx.guildId, ctx.user.id, p.job);
     const sev = ctx.db.tx(() => {
       const s = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * jobs.rank(p.job, career.rank).mult * SEVERANCE * 100));
