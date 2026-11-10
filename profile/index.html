@@ -278,7 +278,12 @@
     var data = res[1];
     $('status').textContent = data ? 'Profiles update every few minutes · ' + data.players + ' players · ' + 'r!profile private hides yours' : "Profiles couldn't be loaded right now.";
     var id = params.get('id') || (me && me.id);
-    if (!data) { showLogin(null); return; }
+    if (!data) {
+      // No profile data yet (the bot hasn't published it). If they just logged in, say so instead of showing the login again.
+      showLogin(null);
+      if (me) $('status').textContent = 'You\'re logged in as ' + me.name + ', but profiles haven\'t been published yet. The bot puts them up a few minutes after it starts. Try again soon!';
+      return;
+    }
     if (id) show(data, id, me); else showLogin(data);
   });
 })();
