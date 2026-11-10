@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 const econ = require('../economy');
 const co = require('../companies');
 
@@ -20,8 +20,8 @@ async function sellPlayerCompany(ctx, m, pc, amount) {
   return {
     embeds: [{
       title: `Order filled: sold ${n} ${pc.ticker}`,
-      description: `Price per share: **${money(r.priceCents)}**\nTotal received: **${money(r.proceeds)}** Polygons\n` +
-        `Cash now: **${money(cash)}** Polygons\nYou now own **${r.left}** shares of ${pc.ticker}.`,
+      description: `Price per share: **${amt(r.priceCents)}**\nTotal received: **${amt(r.proceeds)}**\n` +
+        `Polygons now: **${have(cash)}**\nYou now own **${r.left}** shares of ${pc.ticker}.`,
       color: config.color
     }]
   };
@@ -74,8 +74,8 @@ module.exports = {
     return {
       embeds: [{
         title: `Order filled: sold ${qty} ${t}`,
-        description: `Price per share: **${money(q.priceCents)}**\nTotal received: **${money(proceeds)}** Polygons\n` +
-          `Cash now: **${money(cash)}** Polygons\nYou now own **${owned - qty}** shares of ${t}.`,
+        description: `Price per share: **${amt(q.priceCents)}**\nTotal received: **${amt(proceeds)}**\n` +
+          `Polygons now: **${have(cash)}**\nYou now own **${owned - qty}** shares of ${t}.`,
         color: config.color
       }]
     };

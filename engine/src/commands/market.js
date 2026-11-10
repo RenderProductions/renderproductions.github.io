@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'market',
@@ -19,7 +19,7 @@ module.exports = {
         fields: [
           ...m.companies.map((c) => {
             const q = ctx.market.quote(m, c.id);
-            return { name: `${q.name} (${q.id})`, value: `**${money(q.priceCents)}**  (${q.change}%)\n${q.spark || ' '}` };
+            return { name: `${q.name} (${q.id})`, value: `**${amt(q.priceCents)}**  (${q.change}%)\n${q.spark || ' '}` };
           }),
           { name: 'View in detail at:', value: `${config.siteUrl}/rend-conomy` }
         ]

@@ -10,7 +10,7 @@
 // so a company nobody keeps afloat slides to 0 and dies.
 
 const config = require('./config');
-const { money } = require('./format');
+const { money, have, amt } = require('./format');
 
 const LEVELS = [
   // cost = founding cost (level 1) or price to reach this level, paid from the treasury
@@ -158,7 +158,7 @@ function buy(db, { guildId, user, ticker, n }) {
   const priceCents = Math.round(c.price * 100);
   const cost = n * priceCents;
   const p = db.player(guildId, user);
-  if (p.cash < cost) return { error: `Not enough Polygons. That order costs ${money(cost)} and you have ${money(p.cash)}.` };
+  if (p.cash < cost) return { error: `Not enough Polygons. That order costs ${amt(cost)} and you have ${have(p.cash)}.` };
 
   return db.tx(() => {
     const fromOffering = Math.min(n, c.offering_left);

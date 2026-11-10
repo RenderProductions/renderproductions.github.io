@@ -1,6 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'reject',
@@ -23,9 +23,9 @@ module.exports = {
     if (ctx.client) {
       ctx.client.users.fetch(c.owner_id)
         .then((u) => u.send(`🏢 **${c.name}** (${c.ticker}) wasn't approved${reason ? `: ${reason}` : '.'} ` +
-          `Your ${money(co.LEVELS[0].cost)} Polygons were refunded. You can try again with a different name.`))
+          `Your ${amt(co.LEVELS[0].cost)} was refunded. You can try again with a different name.`))
         .catch(() => {});
     }
-    return `❌ Rejected **${c.name}** (${c.ticker}). The founder got their ${money(co.LEVELS[0].cost)} back.`;
+    return `❌ Rejected **${c.name}** (${c.ticker}). The founder got their ${amt(co.LEVELS[0].cost)} back.`;
   }
 };

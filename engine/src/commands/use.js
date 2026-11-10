@@ -2,7 +2,7 @@
 const config = require('../config');
 const shop = require('../shop');
 const jobs = require('../jobs');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'use',
@@ -55,14 +55,14 @@ module.exports = {
       let out;
       if (roll < 0.05) {
         ctx.db.addCash(ctx.guildId, ctx.user.id, 750_00);
-        out = '🎁 ✨ **JACKPOT!** The box had **750.00 Polygons** in it!';
+        out = `🎁 ✨ **JACKPOT!** The box had **${amt(750_00)}** in it!`;
       } else if (roll < 0.30) {
         ctx.db.addItem(ctx.guildId, ctx.user.id, 'overtime', 1);
         out = `🎁 An **Overtime pass**! It's in your inventory: \`${P}use overtime\`.`;
       } else {
         const prize = (40 + Math.floor(random() * 121)) * 100;
         ctx.db.addCash(ctx.guildId, ctx.user.id, prize);
-        out = `🎁 The box had **${money(prize)} Polygons** in it.`;
+        out = `🎁 The box had **${amt(prize)}** in it.`;
       }
       return out + left(n);
     });

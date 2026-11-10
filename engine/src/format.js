@@ -9,8 +9,14 @@ function money(cents) {
   return sign + whole + '.' + String(abs % 100).padStart(2, '0');
 }
 
-// "1,234.56 Polygons"
-const poly = (cents) => money(cents) + ' Polygons';
+// Polygon symbols:
+//   ⬢ solid  = Polygons you HAVE (balances, what's left, net worth, a treasury)
+//   ⬡ hollow = Polygons MOVING or PRICED (costs, prices, payouts, bets, debts)
+const HAVE = '⬢';
+const MOVE = '⬡';
+const have = (cents) => `${HAVE} ${money(cents)}`;
+const amt = (cents) => `${MOVE} ${money(cents)}`;
+const poly = amt; // older name
 
 // Discord timestamp that shows as "in 3 hours" for each viewer
 const relTime = (ms) => `<t:${Math.floor(ms / 1000)}:R>`;
@@ -40,4 +46,4 @@ function nextMidnight(ms) {
   return ms + 24 * 60 * 60 * 1000;
 }
 
-module.exports = { money, poly, relTime, parsePolygons, day, nextMidnight };
+module.exports = { money, have, amt, poly, HAVE, MOVE, relTime, parsePolygons, day, nextMidnight };

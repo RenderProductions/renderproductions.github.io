@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money, parsePolygons } = require('../format');
+const { money, have, amt, parsePolygons } = require('../format');
 
 const COOLDOWN_MS = 10_000;
 const SYMBOLS = ['🍒', '🍋', '🔔', '🔺', '💎'];
@@ -16,7 +16,7 @@ module.exports = {
   async run(ctx, args) {
     const p = ctx.db.player(ctx.guildId, ctx.user);
     if (p.debt > 0) {
-      return `🖥️ GAMBLING?!? With MY money?! NOT a CHANCE. You owe me **${money(p.debt)} Polygons**. (\`${config.prefix}repay\`)`;
+      return `🖥️ GAMBLING?!? With MY money?! NOT a CHANCE. You owe me **${amt(p.debt)}**. (\`${config.prefix}repay\`)`;
     }
     const wait = (lastSpin.get(ctx.user.id) || 0) + COOLDOWN_MS - Date.now();
     if (wait > 0) return `Easy. The machine needs ${Math.ceil(wait / 1000)}s to cool down.`;
@@ -25,7 +25,7 @@ module.exports = {
     if (bet === null) return `Usage: \`${config.prefix}slots AMOUNT\`, for example \`${config.prefix}slots 50\` or \`${config.prefix}slots 12.50\``;
     if (bet < 10_00) return 'The minimum bet is 10 Polygons.';
     if (bet > 1000_00) return 'The maximum bet is 1000 Polygons.';
-    if (p.cash < bet) return `You only have ${money(p.cash)} Polygons.`;
+    if (p.cash < bet) return `You only have ${have(p.cash)}.`;
 
     lastSpin.set(ctx.user.id, Date.now());
     const random = ctx.random || Math.random;
@@ -42,7 +42,7 @@ module.exports = {
     return {
       embeds: [{
         title: '🎰 Rend-Sino!',
-        description: `**{ ${x} | ${y} | ${z} }**\n\nBet: ${money(bet)} · Won: ${money(win)}\nBalance: ${money(bal)} Polygons`,
+        description: `**{ ${x} | ${y} | ${z} }**\n\nBet: ${amt(bet)} · Won: ${amt(win)}\nPolygons: ${have(bal)}`,
         footer: { text: '3 of a kind: 🍒3x 🍋5x 🔔8x 🔺10x 💎25x · any pair returns your bet' },
         color: config.color
       }]

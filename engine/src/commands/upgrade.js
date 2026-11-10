@@ -1,6 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'upgrade',
@@ -15,12 +15,12 @@ module.exports = {
     if (!next) return `🏢 **${c.name}** is already a ${co.level(c).name}. That's the top.`;
     if (c.strikes > 0) return "🏢 You can't expand while you're behind on upkeep.";
     if (c.treasury < next.cost) {
-      return `🏢 Becoming a **${next.name}** costs **${money(next.cost)}** from the treasury, which has ${money(c.treasury)}. Try \`${P}invest\`.`;
+      return `🏢 Becoming a **${next.name}** costs **${amt(next.cost)}** from the treasury, which has ${have(c.treasury)}. Try \`${P}invest\`.`;
     }
 
     co.update(ctx.db, c.ticker, { level: c.level + 1, treasury: c.treasury - next.cost });
     const extra = c.level + 1 === co.RULES.ipoLevel && c.status === 'private'
       ? `\nYou can go public now with \`${P}ipo\`.` : '';
-    return `🎉 **${c.name}** is now a **${next.name}**! Upkeep is ${money(next.upkeep)} a day and employees earn ${next.payMult}x.${extra}`;
+    return `🎉 **${c.name}** is now a **${next.name}**! Upkeep is ${amt(next.upkeep)} a day and employees earn ${next.payMult}x.${extra}`;
   }
 };

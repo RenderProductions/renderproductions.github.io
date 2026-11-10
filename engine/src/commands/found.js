@@ -1,6 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'found',
@@ -16,7 +16,7 @@ module.exports = {
     const ticker = String(args.ticker || '').toUpperCase();
     const name = co.cleanName(args.name);
     const cost = co.LEVELS[0].cost;
-    if (!ticker || !args.name) return `🏢 Usage: \`${P}found <ticker> <name>\`, for example \`${P}found MEOW Meow Industries\`. Costs ${money(cost)} Polygons.`;
+    if (!ticker || !args.name) return `🏢 Usage: \`${P}found <ticker> <name>\`, for example \`${P}found MEOW Meow Industries\`. Costs ${amt(cost)}.`;
 
     const p = ctx.db.player(ctx.guildId, ctx.user);
     if (p.debt > 0) return `🖥️ Start a COMPANY?! With MY money?! Pay me back first. (\`${P}repay\`)`;
@@ -26,7 +26,7 @@ module.exports = {
     const m = await ctx.market.get();
     const problem = co.checkNew(ctx.db, ticker, name, ctx.market.ids(m));
     if (problem) return `🏢 ${problem}`;
-    if (p.cash < cost) return `🏢 Founding a company costs **${money(cost)} Polygons**. You have ${money(p.cash)}.`;
+    if (p.cash < cost) return `🏢 Founding a company costs **${amt(cost)}**. You have ${have(p.cash)}.`;
 
     ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -cost);
@@ -40,7 +40,7 @@ module.exports = {
         .catch(() => {});
     }
 
-    return `🏢 **${name}** (${ticker}) is filed! ${money(cost)} Polygons are held while a mod reviews the name.\n` +
+    return `🏢 **${name}** (${ticker}) is filed! ${amt(cost)} is held while a mod reviews the name.\n` +
       "If it's approved, that money becomes your company's treasury. If it's rejected, you get it all back.";
   }
 };

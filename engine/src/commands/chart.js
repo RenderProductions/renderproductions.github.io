@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'chart',
@@ -19,7 +19,7 @@ module.exports = {
     return {
       embeds: [{
         title: `${q.name} (${t})`,
-        description: `**${money(q.priceCents)} Polygons** · ${q.change}%\n${q.spark}`,
+        description: `**${amt(q.priceCents)}** · ${q.change}%\n${q.spark}`,
         image: { url: q.chart },
         footer: { text: 'Fictional prices · updates every few minutes' },
         color: config.color

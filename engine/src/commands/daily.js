@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money, relTime, day, nextMidnight } = require('../format');
+const { money, have, amt, relTime, day, nextMidnight } = require('../format');
 
 module.exports = {
   name: 'daily',
@@ -22,7 +22,7 @@ module.exports = {
     return {
       embeds: [{
         title: 'Daily claimed',
-        description: `You received **${money(config.dailyAmount)}** Polygons.\nCash now: **${money(p.cash + config.dailyAmount)}** Polygons.`,
+        description: `You received **${amt(config.dailyAmount)}**.\nPolygons now: **${have(p.cash + config.dailyAmount)}**`,
         color: config.color
       }]
     };

@@ -43,7 +43,7 @@ const cash = (u, g = G) => db.player(g, u).cash;
   // ---- founding ----
   await has('r!found', 'Usage');
   db.player(G, OWNER);
-  await has('r!found MEOW Meow Industries', 'costs **2,500.00');
+  await has('r!found MEOW Meow Industries', 'costs **⬡ 2,500.00');
   db.updatePlayer(G, OWNER.id, { cash: 100_000_00, debt: 5_00 });
   await has('r!found MEOW Meow Industries', 'Pay me back');
   db.updatePlayer(G, OWNER.id, { debt: 0 });
@@ -68,7 +68,7 @@ const cash = (u, g = G) => db.player(g, u).cash;
   db.player(G, BOB);
   db.updatePlayer(G, BOB.id, { cash: 10_000_00 });
   await has('r!found BARK Bark Bark', 'is filed', BOB);
-  await has('r!reject BARK too loud', 'got their 2,500.00 back', MOD, { isMod: true });
+  await has('r!reject BARK too loud', 'got their ⬡ 2,500.00 back', MOD, { isMod: true });
   assert.strictEqual(cash(BOB), 10_000_00, 'rejected founder is refunded');
   assert.strictEqual(co.get(db, 'BARK').note, 'too loud');
   await has('r!found BARK Quiet Bark', 'is filed', BOB); // a rejected ticker can be used again
@@ -81,11 +81,11 @@ const cash = (u, g = G) => db.player(g, u).cash;
 
   // ---- growing ----
   await has('r!ipo', 'Only a **Firm**');
-  await has('r!upgrade', 'costs **5,000.00**');
+  await has('r!upgrade', 'costs **⬡ 5,000.00**');
   await has('r!invest abc', 'Usage');
-  await has('r!invest 3000', 'Treasury: **5,500.00**');
+  await has('r!invest 3000', 'Treasury: **⬢ 5,500.00**');
   await has('r!upgrade', 'now a **Small Business**');
-  await has('r!invest 14000', 'Treasury: **14,500.00**');
+  await has('r!invest 14000', 'Treasury: **⬢ 14,500.00**');
   await has('r!upgrade', 'You can go public now');
   await has('r!buy MEOW 1', 'is private', BOB);
   await has('r!salary 10', 'Only public companies');
@@ -117,7 +117,7 @@ const cash = (u, g = G) => db.player(g, u).cash;
   const w = router.pending.get(`chan:${BOB.id}`);
   router.pending.delete(`chan:${BOB.id}`);
   const out = await w.handler({ content: work.active.get(`${G}:${BOB.id}`).ans });
-  assert.ok(out.includes('+42 Polygons'), out); // 35 x 1.2 (Firm)
+  assert.ok(out.includes('+⬡ 42.00'), out); // 35 x 1.2 (Firm)
   assert.strictEqual(co.get(db, 'MEOW').treasury, t0 + 21_00, 'half the pay goes to the company');
 
   // ---- salary ----

@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 const econ = require('../economy');
 
 module.exports = {
@@ -23,21 +23,21 @@ module.exports = {
       const owned = econ.shares(ctx, m, c.id, target.id);
       const value = owned * q.priceCents;
       stocks += value;
-      return { name: `${q.name} (${q.id})`, value: `${owned} shares, worth ${money(value)}` };
+      return { name: `${q.name} (${q.id})`, value: `${owned} shares, worth ${have(value)}` };
     });
 
     const pcv = econ.playerCompanyValue(ctx, target.id);
     stocks += pcv.total;
-    for (const r of pcv.rows) fields.push({ name: `🏢 ${r.name} (${r.ticker})`, value: `${r.shares} shares, worth ${money(r.value)}` });
+    for (const r of pcv.rows) fields.push({ name: `🏢 ${r.name} (${r.ticker})`, value: `${r.shares} shares, worth ${have(r.value)}` });
 
     const titleLine = p.title ? `🏷️ *${p.title}*\n` : '';
-    const debtLine = p.debt > 0 ? `\n🖥️ Owed to TODD: **${money(p.debt)}** Polygons` : '';
+    const debtLine = p.debt > 0 ? `\n🖥️ Owed to TODD: **${amt(p.debt)}**` : '';
 
     return {
       embeds: [{
         title: `${target.username}'s portfolio`,
-        description: `${titleLine}Cash: **${money(p.cash)}** Polygons\nStocks: **${money(stocks)}** Polygons${debtLine}\n` +
-          `Net worth: **${money(p.cash + stocks - p.debt)}** Polygons`,
+        description: `${titleLine}Polygons: **${have(p.cash)}**\nStocks: **${have(stocks)}**${debtLine}\n` +
+          `Net worth: **${have(p.cash + stocks - p.debt)}**`,
         fields,
         footer: { text: 'Prices as of' },
         timestamp: m.updated,

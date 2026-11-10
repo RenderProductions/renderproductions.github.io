@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money, parsePolygons } = require('../format');
+const { money, have, amt, parsePolygons } = require('../format');
 
 module.exports = {
   name: 'repay',
@@ -12,22 +12,22 @@ module.exports = {
     if (p.debt <= 0) return `🖥️ You don't OWE me anything?! ...Do you WANT to? (\`${config.prefix}bailout\`)`;
 
     const arg = String(args.amount || '').trim().toLowerCase();
-    let amt;
+    let paid;
     if (arg === 'all') {
-      amt = Math.min(p.cash, p.debt); // pay as much as you can, up to the whole debt
+      paid = Math.min(p.cash, p.debt); // pay as much as you can, up to the whole debt
     } else {
-      amt = parsePolygons(arg);
-      if (amt === null) {
-        return `🖥️ HOW MUCH?! Try \`${config.prefix}repay 100\` or \`${config.prefix}repay all\`. You owe **${money(p.debt)}**.`;
+      paid = parsePolygons(arg);
+      if (paid === null) {
+        return `🖥️ HOW MUCH?! Try \`${config.prefix}repay 100\` or \`${config.prefix}repay all\`. You owe **${amt(p.debt)}**.`;
       }
-      amt = Math.min(amt, p.debt);
+      paid = Math.min(paid, p.debt);
     }
-    if (amt <= 0) return `🖥️ You have NOTHING to give me?! Go \`${config.prefix}work\`!!`;
-    if (p.cash < amt) return `🖥️ You only HAVE **${money(p.cash)} Polygons**! NICE try?!`;
+    if (paid <= 0) return `🖥️ You have NOTHING to give me?! Go \`${config.prefix}work\`!!`;
+    if (p.cash < paid) return `🖥️ You only HAVE **${have(p.cash)}**! NICE try?!`;
 
-    const left = p.debt - amt;
+    const left = p.debt - paid;
     ctx.db.tx(() => {
-      ctx.db.addCash(ctx.guildId, ctx.user.id, -amt);
+      ctx.db.addCash(ctx.guildId, ctx.user.id, -paid);
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { debt: left });
     });
 
@@ -35,7 +35,7 @@ module.exports = {
       return {
         embeds: [{
           title: '🖥️ DEBT CLEARED',
-          description: `You paid **${money(amt)} Polygons**. ALL PAID?!?\n\nTODD will MISS you. Come BACK when you're BROKE again!!`,
+          description: `You paid **${amt(paid)}**. ALL PAID?!?\n\nTODD will MISS you. Come BACK when you're BROKE again!!`,
           color: config.colorGood
         }]
       };
@@ -43,7 +43,7 @@ module.exports = {
     return {
       embeds: [{
         title: '🖥️ PAYMENT RECEIVED',
-        description: `You paid **${money(amt)} Polygons**. THANK you?!\n\nStill owed: **${money(left)} Polygons**.\nTODD is PATIENT. TODD is SO patient.`,
+        description: `You paid **${amt(paid)}**. THANK you?!\n\nStill owed: **${amt(left)}**.\nTODD is PATIENT. TODD is SO patient.`,
         color: config.colorTodd
       }]
     };

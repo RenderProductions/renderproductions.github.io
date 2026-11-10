@@ -62,12 +62,12 @@ const has = async (line, needle, user) => {
   // ---- help, balance, daily ----
   await has('r!help', 'r!buy');
   assert.ok(!/\bAI\b|setai/.test(text(await say('r!help'))), 'help has no AI commands');
-  await has('r!bal', '500.00');
+  await has('r!bal', 'Polygons: **⬢ 500.00**');
   await has('r!portfolio', "alice's portfolio");
   const viewBob = await router.runCommand(require('../src/commands/balance'), ctxFor(ALICE), { user: BOB });
   assert.ok(text(viewBob).includes("bob's portfolio"), 'can view someone else');
 
-  await has('r!daily', 'You received **250.00**');
+  await has('r!daily', 'You received **⬡ 250.00**');
   assert.strictEqual(cash(), 750_00);
   await has('r!daily', 'Come back <t:');
   db.updatePlayer(G, ALICE.id, { daily_day: '2000-01-01' }); // pretend it was yesterday
@@ -119,11 +119,11 @@ const has = async (line, needle, user) => {
   // ---- dividends ----
   const W1 = (m) => { m.wipes.BLU = 1; };
   market.set(snapshot((m) => { W1(m); m.dividends.BLU = 1; }));
-  await has('r!dividends', 'collected **0.00'); // first claim just starts tracking
+  await has('r!dividends', 'collected **⬡ 0.00'); // first claim just starts tracking
   market.set(snapshot((m) => { W1(m); m.dividends.BLU = 3.5051; }));
-  await has('r!div', 'collected **7.51'); // 3 shares x 2.5051 = 7.5153 -> 7.51, 0.0053 carried
+  await has('r!div', 'collected **⬡ 7.51'); // 3 shares x 2.5051 = 7.5153 -> 7.51, 0.0053 carried
   assert.ok(Math.abs(db.player(G, ALICE).div_carry - 0.0053) < 1e-9, 'fraction carried');
-  await has('r!dividends', 'collected **0.00');
+  await has('r!dividends', 'collected **⬡ 0.00');
 
   // ---- jobs ----
   market.set(OPEN);
@@ -139,7 +139,7 @@ const has = async (line, needle, user) => {
   assert.ok(q.includes('order up') && q.includes('20 seconds'), q);
   await has('r!work', 'mid-shift');
   const ans = work.active.get(`${G}:${ALICE.id}`).ans;
-  assert.ok((await reply(ans)).includes('Nice work, Intern! **+35 Polygons**'));
+  assert.ok((await reply(ans)).includes('Nice work, Intern! **+⬡ 35.00**'));
   assert.strictEqual(cash(), before + 35_00);
   await has('r!work', "Shift's over");
 
@@ -156,7 +156,7 @@ const has = async (line, needle, user) => {
   assert.ok(pass.includes('Promoted to Employee') && pass.includes('RUSH ORDER #1'), pass);
   random = () => 0.5;
   const rush = await reply(work.active.get(`${G}:${ALICE.id}`).ans);
-  assert.ok(rush.includes('RUSH CLEARED') && rush.includes('+26 Polygons'), rush); // 35 * 1.25 * 0.6 = 26.25
+  assert.ok(rush.includes('RUSH CLEARED') && rush.includes('+⬡ 26.00'), rush); // 35 * 1.25 * 0.6 = 26.25
 
   db.updatePlayer(G, ALICE.id, { hired_at: 0 });
   await has('r!quit', 'quit **NACH** after 10 shifts');
@@ -183,12 +183,12 @@ const has = async (line, needle, user) => {
   // ---- shop and inventory ----
   db.updatePlayer(G, ALICE.id, { cash: 10000_00, last_work: 0 });
   random = () => 0.5; // Mystery price this restock: 75 + floor(0.5 * 26) = 88
-  await has('r!shop', 'Mystery**: 88.00');
-  await has('r!shop', 'Title**: 5,000.00');
+  await has('r!shop', 'Mystery**: ⬡ 88.00');
+  await has('r!shop', 'Title**: ⬡ 5,000.00');
   await has('r!purchase', 'Which item');
   await has('r!inv', 'Empty');
   await has('r!use coffee', "don't have a **Coffee**");
-  await has('r!purchase coffee', 'Bought a **Coffee** for 100.00');
+  await has('r!purchase coffee', 'Bought a **Coffee** for ⬡ 100.00');
   assert.strictEqual(cash(), 9900_00);
   await has('r!purchase coffee', 'already bought');
   await has('r!use coffee', 'not on a work cooldown'); // kept, not wasted
@@ -197,22 +197,22 @@ const has = async (line, needle, user) => {
   assert.strictEqual(db.player(G, ALICE).last_work, 0);
   assert.strictEqual(db.itemCount(G, ALICE.id, 'coffee'), 0);
 
-  await has('r!purchase overtime', 'for 250.00');
+  await has('r!purchase overtime', 'for ⬡ 250.00');
   await has('r!use overtime', 'Overtime approved');
   db.addItem(G, ALICE.id, 'overtime', 1);
   await has('r!use overtime', 'already have Overtime queued');
-  await has('r!purchase resume', 'for 350.00');
+  await has('r!purchase resume', 'for ⬡ 350.00');
   await has('r!use resume', "don't have a job");
   await has('r!inventory', 'Resume** × 1');
   await has('r!bag', 'Overtime is queued');
 
-  await has('r!purchase mystery', 'for 88.00');
+  await has('r!purchase mystery', 'for ⬡ 88.00');
   random = () => 0.2; // Overtime pass
   await has('r!use mystery', 'Overtime pass');
   assert.strictEqual(db.itemCount(G, ALICE.id, 'overtime'), 2);
 
   await has('r!settitle Boss', 'need a **Title**');
-  await has('r!purchase title', 'for 5,000.00');
+  await has('r!purchase title', 'for ⬡ 5,000.00');
   await has('r!purchase title', 'sold out', BOB); // only 1 Title per restock, shared by everyone
   await has('r!use title', 'settitle');
   await has('r!settitle **Nacho** @Baron', 'Nacho Baron'); // formatting and @ pings are stripped
@@ -224,8 +224,8 @@ const has = async (line, needle, user) => {
   // A new restock rolls a new Mystery price and lets players buy again
   db.setMeta('lastRestock', 0);
   random = () => 0.99;
-  await has('r!shop', 'Mystery**: 100.00');
-  await has('r!purchase mystery', 'for 100.00');
+  await has('r!shop', 'Mystery**: ⬡ 100.00');
+  await has('r!purchase mystery', 'for ⬡ 100.00');
   random = () => 0.01; // jackpot
   await has('r!use mystery', 'JACKPOT');
 
@@ -245,8 +245,8 @@ const has = async (line, needle, user) => {
   await has('r!bailout', 'STiLL owe', BOB);
   await has('r!slots 50', 'GAMBLING', BOB);
   await has('r!repay', 'HOW MUCH', BOB);
-  await has('r!repay 100', 'Still owed: **500.00', BOB);
-  await has('r!repay all', 'Still owed: **50.00', BOB); // only had 450 left
+  await has('r!repay 100', 'Still owed: **⬡ 500.00', BOB);
+  await has('r!repay all', 'Still owed: **⬡ 50.00', BOB); // only had 450 left
   db.updatePlayer(G, BOB.id, { cash: 1000_00 });
   await has('r!repay 9999', 'DEBT CLEARED', BOB); // capped at the debt
   assert.strictEqual(cash(BOB), 950_00);
@@ -257,13 +257,13 @@ const has = async (line, needle, user) => {
   await has('r!slots 5', 'minimum', BOB);
   await has('r!slots 5000', 'maximum', BOB);
   random = () => 0.99; // 💎💎💎
-  await has('r!slots 10', 'Won: 250.00', BOB);
+  await has('r!slots 10', 'Won: ⬡ 250.00', BOB);
   assert.strictEqual(cash(BOB), 950_00 + 240_00);
   await has('r!slots 10', 'cool down', BOB);
   slots.lastSpin.clear();
   let n = 0;
   random = () => [0, 0.3, 0.5][n++ % 3]; // 🍒🍋🔔, no match
-  await has('r!slots 12.50', 'Won: 0.00', BOB);
+  await has('r!slots 12.50', 'Won: ⬡ 0.00', BOB);
 
   // ---- 404 ----
   dms = [];

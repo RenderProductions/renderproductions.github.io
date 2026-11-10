@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 const econ = require('../economy');
 const co = require('../companies');
 
@@ -19,9 +19,9 @@ async function buyPlayerCompany(ctx, m, pc, amount) {
   return {
     embeds: [{
       title: `Order filled: bought ${n} ${pc.ticker}`,
-      description: `Price per share: **${money(r.priceCents)}**\nTotal cost: **${money(r.cost)}** Polygons\n` +
-        `Cash left: **${money(cash)}** Polygons\nYou now own **${r.held}** shares of ${pc.ticker}.` +
-        (r.raised ? `\n🏢 ${money(r.raised)} of that went into ${pc.name}'s treasury (IPO shares).` : ''),
+      description: `Price per share: **${amt(r.priceCents)}**\nTotal cost: **${amt(r.cost)}**\n` +
+        `Polygons left: **${have(cash)}**\nYou now own **${r.held}** shares of ${pc.ticker}.` +
+        (r.raised ? `\n🏢 ${amt(r.raised)} of that went into ${pc.name}'s treasury (IPO shares).` : ''),
       color: config.color
     }]
   };
@@ -62,7 +62,7 @@ module.exports = {
     if (q.priceCents <= 0) return `${t} is worth nothing right now. Trading is paused.`;
 
     const cost = qty * q.priceCents;
-    if (p.cash < cost) return `Not enough Polygons. That order costs ${money(cost)} and you have ${money(p.cash)}.`;
+    if (p.cash < cost) return `Not enough Polygons. That order costs ${amt(cost)} and you have ${have(p.cash)}.`;
 
     const held = ctx.db.tx(() => {
       const now = econ.shares(ctx, m, t) + qty;
@@ -78,8 +78,8 @@ module.exports = {
     return {
       embeds: [{
         title: `Order filled: bought ${qty} ${t}`,
-        description: `Price per share: **${money(q.priceCents)}**\nTotal cost: **${money(cost)}** Polygons\n` +
-          `Cash left: **${money(p.cash - cost)}** Polygons\nYou now own **${held}** shares of ${t}.${warn}`,
+        description: `Price per share: **${amt(q.priceCents)}**\nTotal cost: **${amt(cost)}**\n` +
+          `Polygons left: **${have(p.cash - cost)}**\nYou now own **${held}** shares of ${t}.${warn}`,
         color: config.color
       }]
     };

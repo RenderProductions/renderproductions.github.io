@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'compare',
@@ -22,7 +22,7 @@ module.exports = {
     if (!qa) return `No company called ${a}. Try ${list}.`;
     if (!qb) return `No company called ${b}. Try ${list}.`;
 
-    const field = (q) => ({ name: `${q.name} (${q.id})`, value: `**${money(q.priceCents)}** · ${q.change}%\n${q.spark || ' '}` });
+    const field = (q) => ({ name: `${q.name} (${q.id})`, value: `**${amt(q.priceCents)}** · ${q.change}%\n${q.spark || ' '}` });
     return {
       embeds: [{
         title: `${a} vs ${b}`,

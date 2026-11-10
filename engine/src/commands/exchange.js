@@ -1,6 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'exchange',
@@ -17,7 +17,7 @@ module.exports = {
       const pct = co.change(c);
       return {
         name: `${c.name} (${c.ticker}) · ${co.level(c).name}`,
-        value: `**${money(Math.round(c.price * 100))}**  (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)${c.strikes ? ' ⚠️' : ''}\n${co.spark(c.history) || ' '}`
+        value: `**${amt(Math.round(c.price * 100))}**  (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)${c.strikes ? ' ⚠️' : ''}\n${co.spark(c.history) || ' '}`
       };
     });
     const privateLine = priv.length

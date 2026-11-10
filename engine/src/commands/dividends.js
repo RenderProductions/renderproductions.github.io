@@ -1,5 +1,5 @@
 const config = require('../config');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 const econ = require('../economy');
 
 // Each company's dividend total (prices.json "dividends") only ever goes up. A player earns
@@ -42,7 +42,7 @@ module.exports = {
     return {
       embeds: [{
         title: '💰 Dividends',
-        description: `You collected **${money(pay)} Polygons**.\n\n${lines.join('\n\n')}\n\n` +
+        description: `You collected **${amt(pay)}**.\n\n${lines.join('\n\n')}\n\n` +
           'Shares you bought since your last claim start earning now. Unclaimed dividends keep building, so claim whenever you like.',
         color: config.color
       }]

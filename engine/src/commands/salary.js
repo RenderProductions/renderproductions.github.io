@@ -1,6 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
-const { money, relTime, parsePolygons } = require('../format');
+const { money, have, amt, relTime, parsePolygons } = require('../format');
 
 module.exports = {
   name: 'salary',
@@ -19,13 +19,13 @@ module.exports = {
 
     const max = Math.floor(c.treasury * co.RULES.salaryMaxPct);
     const raw = String(args.amount || '').trim().toLowerCase();
-    const amt = raw === 'max' ? max : parsePolygons(raw);
-    if (amt === null) return `🏢 Usage: \`${P}salary <amount>\` or \`${P}salary max\`. You can take up to **${money(max)}** today.`;
-    if (amt <= 0) return "🏢 The treasury can't pay you anything right now.";
-    if (amt > max) return `🏢 You can take up to **${money(max)}** today (10% of the treasury).`;
+    const pay = raw === 'max' ? max : parsePolygons(raw);
+    if (pay === null) return `🏢 Usage: \`${P}salary <amount>\` or \`${P}salary max\`. You can take up to **${amt(max)}** today.`;
+    if (pay <= 0) return "🏢 The treasury can't pay you anything right now.";
+    if (pay > max) return `🏢 You can take up to **${amt(max)}** today (10% of the treasury).`;
 
     ctx.db.player(ctx.guildId, ctx.user);
-    co.salary(ctx.db, c.ticker, amt);
-    return `💼 You paid yourself **${money(amt)} Polygons** from **${c.name}**. Investors noticed, and the stock dipped.`;
+    co.salary(ctx.db, c.ticker, pay);
+    return `💼 You paid yourself **${amt(pay)}** from **${c.name}**. Investors noticed, and the stock dipped.`;
   }
 };

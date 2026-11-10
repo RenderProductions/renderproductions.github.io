@@ -1,7 +1,7 @@
 // Buys an item into your inventory. Use it later with r!use.
 const config = require('../config');
 const shop = require('../shop');
-const { money, relTime } = require('../format');
+const { money, have, amt, relTime } = require('../format');
 
 module.exports = {
   name: 'purchase',
@@ -24,7 +24,7 @@ module.exports = {
     if (ctx.db.boughtThisRestock(ctx.guildId, ctx.user.id, id, since)) {
       return `${item.emoji} You already bought a **${item.name}** this restock. Restocks ${next}.`;
     }
-    if (p.cash < cost) return `Not enough Polygons. **${item.name}** costs ${money(cost)} and you have ${money(p.cash)}.`;
+    if (p.cash < cost) return `Not enough Polygons. **${item.name}** costs ${amt(cost)} and you have ${have(p.cash)}.`;
 
     const owned = ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -cost);
@@ -35,6 +35,6 @@ module.exports = {
     });
 
     const how = id === 'title' ? `\`${config.prefix}settitle <text>\`` : `\`${config.prefix}use ${id}\``;
-    return `${item.emoji} Bought a **${item.name}** for ${money(cost)} Polygons. You have ${owned} in your inventory. Use it with ${how}.`;
+    return `${item.emoji} Bought a **${item.name}** for ${amt(cost)}. You have ${owned} in your inventory. Use it with ${how}.`;
   }
 };

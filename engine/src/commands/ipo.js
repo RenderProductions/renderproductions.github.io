@@ -1,6 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
-const { money } = require('../format');
+const { money, have, amt } = require('../format');
 
 module.exports = {
   name: 'ipo',
@@ -17,12 +17,12 @@ module.exports = {
     }
     if (c.strikes > 0) return '🏢 No exchange will list a company that is behind on upkeep.';
     if (c.treasury < co.RULES.listingFee) {
-      return `🏢 Listing costs **${money(co.RULES.listingFee)}** from the treasury, which has ${money(c.treasury)}.`;
+      return `🏢 Listing costs **${amt(co.RULES.listingFee)}** from the treasury, which has ${have(c.treasury)}.`;
     }
 
     const price = co.ipo(ctx.db, c.ticker);
     const f = co.RULES.float;
-    return `🔔 **${c.name} (${c.ticker}) IS PUBLIC!** Opening price: **${money(Math.round(price * 100))}**.\n` +
+    return `🔔 **${c.name} (${c.ticker}) IS PUBLIC!** Opening price: **${amt(Math.round(price * 100))}**.\n` +
       `${f} shares are up for grabs, and money from those first ${f} sales goes straight into the treasury. ` +
       `Anyone can \`${P}buy ${c.ticker} <amount>\`, except you.`;
   }

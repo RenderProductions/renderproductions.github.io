@@ -1,7 +1,7 @@
 const config = require('../config');
 const jobs = require('../jobs');
 const co = require('../companies');
-const { relTime } = require('../format');
+const { relTime, amt } = require('../format');
 
 // Tasks waiting for an answer: "guild:user" -> { job, ans, start, rush }
 const active = new Map();
@@ -65,12 +65,12 @@ async function answer(ctx, msg) {
   let out;
   if (st.rush === 0) {
     update.shifts = p.shifts + 1;
-    if (result === 'pass') out = `✅ Nice work, ${r.name}! **+${pay} Polygons**${ot}`;
-    else if (result === 'slow') out = `🐢 Too slow! You still clocked in for **+${pay} Polygons**${ot}`;
-    else out = `❌ Not quite, it was \`${st.ans}\`. You still get **+${pay} Polygons**${ot}`;
+    if (result === 'pass') out = `✅ Nice work, ${r.name}! **+${amt(pay * 100)}**${ot}`;
+    else if (result === 'slow') out = `🐢 Too slow! You still clocked in for **+${amt(pay * 100)}**${ot}`;
+    else out = `❌ Not quite, it was \`${st.ans}\`. You still get **+${amt(pay * 100)}**${ot}`;
     if (jobs.PROMOTIONS[update.shifts]) out += '\n' + jobs.PROMOTIONS[update.shifts];
   } else {
-    out = result === 'pass' ? `⚡ **RUSH CLEARED!** Bonus **+${pay} Polygons**` : '💨 The rush got away from you. No bonus this time.';
+    out = result === 'pass' ? `⚡ **RUSH CLEARED!** Bonus **+${amt(pay * 100)}**` : '💨 The rush got away from you. No bonus this time.';
   }
 
   ctx.db.tx(() => {
