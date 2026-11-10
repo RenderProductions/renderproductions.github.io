@@ -61,7 +61,18 @@ const has = async (line, needle, user) => {
   market.set(OPEN);
 
   // ---- help, balance, daily ----
-  await has('r!help', 'r!buy');
+  await has('r!help', 'r!help casino');
+  await has('r!help market', 'r!buy');
+  await has('r!help gambling', 'r!rocket');
+  // Every command is on a help page, and the buttons switch pages
+  const help = require('../src/commands/help');
+  const allHelp = Object.values(help.PAGES).map((pg) => pg.body('r!').join(' ')).join(' ');
+  for (const c of require('../src/commands').list) if (!c.hidden && c.name !== 'help') assert.ok(allHelp.includes('r!' + c.name), `r!${c.name} is in r!help`);
+  const hp = await say('r!help');
+  const casinoBtn = hp.components.flatMap((r) => r.components).find((b) => b.custom_id.endsWith(':casino'));
+  const flipped = await help.onButton(ctxFor(ALICE), casinoBtn.custom_id.split(':').slice(1));
+  assert.ok(flipped.update.embeds[0].title.includes('Rend-Sino'));
+  assert.ok((await help.onButton(ctxFor(BOB), casinoBtn.custom_id.split(':').slice(1))).reply, 'others get their own copy');
   assert.ok(!/\bAI\b|setai/.test(text(await say('r!help'))), 'help has no AI commands');
   await has('r!bal', 'Polygons: **⬢ 500.00**');
   await has('r!portfolio', "alice's portfolio");
