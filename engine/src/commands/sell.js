@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const receipts = require('../receipts');
 const { money, have, amt } = require('../format');
@@ -69,13 +70,21 @@ module.exports = {
     if (owned < qty) return `You only own ${owned} shares of ${t}.`;
 
     const proceeds = qty * q.priceCents;
+    let sold = [];
     const cash = ctx.db.tx(() => {
       ctx.db.updateHolding(ctx.guildId, ctx.user.id, t, { shares: owned - qty });
       ctx.db.addCash(ctx.guildId, ctx.user.id, proceeds);
       reserve.spend(ctx.db, proceeds); // the house buys them back
       ctx.db.logTrade(ctx.guildId, ctx.user.id, t, -qty, q.priceCents);
+      sold = ctx.db.takeLots(ctx.guildId, ctx.user.id, t, qty);
       return ctx.db.player(ctx.guildId, ctx.user).cash;
     });
+    // What you sold, against what you paid for it
+    const WEEK = 7 * 24 * 3600 * 1000;
+    if (sold.some((l) => q.priceCents <= l.price_cents / 2)) A.award(ctx, 'paper_hands');
+    if (sold.some((l) => Date.now() - l.bought_at >= WEEK && q.priceCents > l.price_cents)) A.award(ctx, 'time_well_spent');
+    const crash = A.lastCrash(ctx.db);
+    if (crash && Date.now() > crash.end && sold.some((l) => l.bought_at < crash.start)) A.award(ctx, 'diamond_hands');
 
     receipts.send(ctx, { title: `Sold ${qty} ${t}`, lines: [
       ['Company', `${q.name} (${t})`], ['Shares', qty], ['Price per share', amt(q.priceCents)],

@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const loans = require('../loans');
 const { money, have, amt, relTime, day, nextMidnight } = require('../format');
@@ -16,6 +17,7 @@ module.exports = {
       return `You already claimed your daily. Come back ${relTime(nextMidnight(now))}.`;
     }
 
+    A.award(ctx, 'day_one');
     let got = 0;
     const g = ctx.db.tx(() => {
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { daily_day: today });

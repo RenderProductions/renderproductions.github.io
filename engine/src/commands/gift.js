@@ -2,6 +2,7 @@
 // A 5% fee goes to the Polygon Reserve. No gifting while you owe TODD or have an overdue loan (so it can't
 // be used to dodge garnishing), and at most ⬡ 5,000 sent per day.
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const receipts = require('../receipts');
 const loans = require('../loans');
@@ -27,7 +28,7 @@ module.exports = {
     const to = args.player;
     if (!to) return usage;
     if (to.id === ctx.user.id) return "🎁 You can't gift yourself. Nice try.";
-    if (to.bot) return "🎁 The house doesn't take tips. It takes everything else, though.";
+    if (to.bot) { A.award(ctx, 'tip_the_house'); return "🎁 The house doesn't take tips. It takes everything else, though."; }
     const cents = parsePolygons(args.amount);
     if (cents === null) return usage;
     if (cents < RULES.min) return `🎁 The smallest gift is ${amt(RULES.min)}.`;
@@ -52,6 +53,7 @@ module.exports = {
       reserve.take(ctx.db, fee);
       ctx.db.setMeta(sentKey, sent + cents);
     });
+    if (A.bump(ctx, 'gifted', cents) >= 1000_00) A.award(ctx, 'generous');
     receipts.send(ctx, { title: `Gift to ${to.username}`, lines: [['Sent', amt(cents)], ['Fee', amt(fee)], ['Polygons left', have(p.cash - cents - fee)], ...(note ? [['Note', note]] : [])] });
     receipts.send(ctx, { title: `Gift from ${ctx.user.username}`, userId: to.id, username: to.username, lines: [['Received', amt(cents)], ...(note ? [['Note', note]] : [])] });
     return {

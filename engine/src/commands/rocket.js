@@ -36,6 +36,7 @@ function settle(ctx, s, now = Date.now()) {
     const mult = Math.floor(m * 100) / 100;
     const win = Math.floor(s.bet * mult);
     s.result = { won: true, mult, win, cash: casino.payout(ctx, 'rocket', win) };
+    if (mult >= 10) require('../achievements').award(ctx, 'moon_shot');
   }
   return s.result;
 }

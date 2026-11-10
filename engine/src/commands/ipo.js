@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const co = require('../companies');
 const { have, amt } = require('../format');
 const { button, rows } = require('../buttons');
@@ -49,6 +50,7 @@ module.exports = {
     if (error) return { update: { content: error, components: [] } };
 
     const price = co.ipo(ctx.db, c.ticker);
+    A.award(ctx, 'going_public');
     const f = co.RULES.float;
     const P = config.prefix;
     return {

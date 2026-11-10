@@ -38,6 +38,7 @@ function finish(ctx, s) {
   else {
     while (value(s.dealer) < 17) s.dealer.push(s.deck.pop());
     const d = value(s.dealer);
+    if (natural(s.hand)) require('../achievements').award(ctx, 'natural');
     if (natural(s.hand) && !natural(s.dealer)) { win = s.bet * 2.5; line = `🂡 **BLACKJACK!** You win ${amt(win)}!`; }
     else if (natural(s.dealer) && !natural(s.hand)) line = `🖥️ TODD has blackjack. "Heh." You lose ${amt(total)}.`;
     else if (d > 21) { win = total * 2; line = `🖥️ TODD busts! You win ${amt(win)}!`; }

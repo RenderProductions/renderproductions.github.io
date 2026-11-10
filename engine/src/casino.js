@@ -38,6 +38,7 @@ function takeBet(ctx, game, raw) {
     stat(ctx.db, ctx.guildId, ctx.user.id, game, { played: 1, wagered: bet });
   });
   last.set(key, Date.now());
+  if (bet === RULES.maxBet[game]) require('./achievements').award(ctx, 'high_roller');
   return { bet };
 }
 
@@ -51,6 +52,10 @@ function payout(ctx, game, cents) {
     }
     stat(ctx.db, ctx.guildId, ctx.user.id, game, { paid: cents, biggest: cents });
   });
+  // Achievements: the first win, and a losing streak
+  const A = require('./achievements');
+  if (cents > 0) { A.award(ctx, 'beginners_luck'); A.set(ctx, 'loss_streak', 0); }
+  else if (A.bump(ctx, 'loss_streak') >= 10) A.award(ctx, 'down_bad');
   return ctx.db.player(ctx.guildId, ctx.user).cash;
 }
 

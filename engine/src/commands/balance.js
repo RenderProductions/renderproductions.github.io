@@ -57,6 +57,7 @@ module.exports = {
     const titleLine = p.title ? `🏷️ *${p.title}*\n` : '';
     const owedLoans = loans.totalOwed(ctx.db, ctx.guildId, target.id);
     const lentLoans = loans.totalLent(ctx.db, ctx.guildId, target.id);
+    if (target.id === ctx.user.id && p.cash + stocks - p.debt - owedLoans + lentLoans >= 1_000_000_00) require('../achievements').award(ctx, 'millionaire');
     const debtLine = (p.debt > 0 ? `\n🖥️ Owed to TODD: **${amt(p.debt)}**` : '') +
       (owedLoans > 0 ? `\n🏦 Owed to players: **${amt(owedLoans)}**` : '') +
       (lentLoans > 0 ? `\n🏦 Lent out: **${have(lentLoans)}**` : '');

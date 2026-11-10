@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const { money, have, amt, parsePolygons } = require('../format');
 
@@ -34,6 +35,7 @@ module.exports = {
     });
 
     if (left <= 0) {
+      A.award(ctx, 'debt_free');
       return {
         embeds: [{
           title: '🖥️ DEBT CLEARED',

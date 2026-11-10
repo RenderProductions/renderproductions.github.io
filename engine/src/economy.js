@@ -7,6 +7,8 @@ function shares(ctx, m, ticker, userId = ctx.user.id) {
   const wipes = Number((m && m.wipes && m.wipes[ticker]) || 0);
   if (m && wipes > h.wipe_seen) {
     ctx.db.updateHolding(ctx.guildId, userId, ticker, { shares: 0, div_shares: 0, wipe_seen: wipes });
+    ctx.db.clearLots(ctx.guildId, userId, ticker);
+    if (h.shares > 0) require('./achievements').award(ctx, 'wiped_out', userId);
     return 0;
   }
   return h.shares;

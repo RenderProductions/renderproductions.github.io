@@ -192,10 +192,38 @@ const MIGRATIONS = [
       tickets  INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (guild_id, draw, user_id)
     );
+  `,
+  `
+    -- Version 9: Connections & Collections. Achievements and progress counters follow a player across
+    -- servers; share lots remember when (and for how much) each batch of shares was bought.
+    CREATE TABLE achievements (
+      user_id     TEXT NOT NULL,
+      id          TEXT NOT NULL,
+      guild_id    TEXT,                  -- where it was unlocked
+      unlocked_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, id)
+    );
+    CREATE TABLE progress (
+      user_id TEXT NOT NULL,
+      key     TEXT NOT NULL,
+      value   INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (user_id, key)
+    );
+    CREATE TABLE lots (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id    TEXT NOT NULL,
+      user_id     TEXT NOT NULL,
+      ticker      TEXT NOT NULL,
+      shares      INTEGER NOT NULL,
+      price_cents INTEGER NOT NULL,       -- what each share cost
+      bought_at   INTEGER NOT NULL
+    );
+    CREATE INDEX lots_holder ON lots (guild_id, user_id, ticker);
+    ALTER TABLE players ADD COLUMN effects TEXT NOT NULL DEFAULT '{}'; -- item effects in play, as JSON
   `
 ];
 
-const PLAYER_COLUMNS = new Set(['receipts', 'remind', 'last_gig', 'gig_earned', 'username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
+const PLAYER_COLUMNS = new Set(['effects', 'receipts', 'remind', 'last_gig', 'gig_earned', 'username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
   'shifts', 'hired_at', 'overtime', 'last_work', 'div_carry']);
 const HOLDING_COLUMNS = new Set(['shares', 'div_index', 'div_shares', 'wipe_seen']);
 const CAREER_COLUMNS = new Set(['shifts', 'rank', 'rev_right', 'rev_total', 'correct', 'total', 'earned']);
@@ -297,6 +325,28 @@ function wrap(db, file = ':memory:') {
       const { sql, values } = setClause(fields, CAREER_COLUMNS);
       if (sql) st(`UPDATE careers SET ${sql} WHERE guild_id = ? AND user_id = ? AND ticker = ?`).run(...values, guildId, userId, ticker);
     },
+    // Share lots: when and for how much each batch was bought. Sells use up the oldest first.
+    addLot(guildId, userId, ticker, shares, priceCents, at = Date.now()) {
+      st('INSERT INTO lots (guild_id, user_id, ticker, shares, price_cents, bought_at) VALUES (?, ?, ?, ?, ?, ?)').run(guildId, userId, ticker, shares, priceCents, at);
+    },
+    lots(guildId, userId, ticker) {
+      return st('SELECT * FROM lots WHERE guild_id = ? AND user_id = ? AND ticker = ? ORDER BY bought_at, id').all(guildId, userId, ticker);
+    },
+    // Takes n shares from the oldest lots. Returns [{ shares, price_cents, bought_at }] that were sold.
+    takeLots(guildId, userId, ticker, n) {
+      const out = [];
+      for (const l of api.lots(guildId, userId, ticker)) {
+        if (n <= 0) break;
+        const k = Math.min(n, l.shares);
+        if (k === l.shares) st('DELETE FROM lots WHERE id = ?').run(l.id);
+        else st('UPDATE lots SET shares = shares - ? WHERE id = ?').run(k, l.id);
+        out.push({ shares: k, price_cents: l.price_cents, bought_at: l.bought_at });
+        n -= k;
+      }
+      return out;
+    },
+    clearLots(guildId, userId, ticker) { st('DELETE FROM lots WHERE guild_id = ? AND user_id = ? AND ticker = ?').run(guildId, userId, ticker); },
+
     addCash(guildId, userId, cents) {
       st('UPDATE players SET cash = cash + ? WHERE guild_id = ? AND user_id = ?').run(cents, guildId, userId);
     },

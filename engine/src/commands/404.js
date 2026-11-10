@@ -9,8 +9,14 @@ module.exports = {
   async run(ctx) {
     if (ctx.message) ctx.message.delete().catch(() => {}); // needs Manage Messages; fine if it can't
     const random = ctx.random || Math.random;
-    const text = random() < 0.25 ? '75.40' : 'Soon, friend.';
+    const lucky = random() < 0.25;
+    const text = lucky ? '75.40' : 'Soon, friend.';
     await ctx.user.send(text).catch(() => {}); // DMs might be closed
+    if (lucky) {
+      const line = require('../achievements').award(ctx, 'soon_friend');
+      if (ctx.notes) ctx.notes.length = 0; // a secret stays secret: the unlock goes in a DM, not the channel
+      if (line) await ctx.user.send(line).catch(() => {});
+    }
     return null; // no reply in the channel
   }
 };

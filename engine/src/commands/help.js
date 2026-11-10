@@ -18,6 +18,11 @@ const PAGES = {
     ['leaderboard [worth|polygons|shifts|casino]', "This server's top players"],
     ['gift @player <amount> [note]', 'Send Polygons to someone (5% fee)']
   ] },
+  profile: { label: 'Profile', emoji: '🏆', color: 0xffe600, blurb: 'Your card and achievements', cmds: [
+    ['profile [@player]', 'A player card: title, rarest achievements, net worth, job and more'],
+    ['achievements [@player]', 'Every achievement, by category, and how rare each one is'],
+    ['profile private', 'Hide your profile from the site (public to show it again)']
+  ], note: '🏆 Achievements follow you to every server. Legendary ones come with a free Title.' },
   jobs: { label: 'Jobs', emoji: '💼', color: 0x5865f2, blurb: 'Shifts, ranks, reviews, gigs', cmds: [
     ['apply <ticker>', 'Join a company. Your rank there is saved if you leave'],
     ['work', 'A shift every 15 minutes. Fast answers earn tips, coworkers earn a team bonus'],
@@ -75,9 +80,9 @@ const PAGES = {
   ] }
 };
 for (const pg of Object.values(PAGES)) pg.body = (P) => pg.cmds.map(([u, d]) => `${P}${u} ${d}`);
-const ORDER = ['market', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
+const ORDER = ['market', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
 const ALIAS = { stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
-  items: 'shop', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
+  items: 'shop', achievements: 'profile', badges: 'profile', me: 'profile', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
 
 const avatar = () => `${config.siteUrl}/bot/avatar.png`;
 

@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
@@ -40,6 +41,7 @@ module.exports = {
       const paid = reserve.pay(ctx.db, cents); // comes out of the Polygon Reserve
       const g = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, paid); // overdue loans take half
       if (g.taken) lines.push(g.paidTo.map((x) => `🏦 ${amt(x.cents)} went to **${x.name}** for an overdue loan.`).join('\n'));
+      if (A.bump(ctx, 'dividends', paid) >= 1000_00) A.award(ctx, 'dividend_collector');
       return paid;
     });
 

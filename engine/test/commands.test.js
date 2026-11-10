@@ -35,7 +35,7 @@ function ctxFor(user) {
   ctx.random = () => random();
   return ctx;
 }
-const text = (out) => (out == null ? '' : out.content || JSON.stringify(out.embeds));
+const text = (out) => (out == null ? '' : (out.content || '') + (out.embeds ? JSON.stringify(out.embeds) : ''));
 const cash = (u = ALICE) => db.player(G, u).cash;
 
 // Runs "r!..." as a player, the same way the router does.
@@ -403,10 +403,11 @@ const has = async (line, needle, user) => {
   dms = [];
   random = () => 0.1;
   assert.strictEqual(await say('r!404'), null, 'no reply in the channel');
-  assert.deepStrictEqual(dms, ['75.40']);
+  assert.strictEqual(dms[0], '75.40');
+  assert.ok(dms[1].includes('Soon, Friend'), 'the secret achievement comes in its own DM');
   random = () => 0.9;
   await say('r!404');
-  assert.strictEqual(dms[1], 'Soon, friend.');
+  assert.strictEqual(dms[2], 'Soon, friend.');
 
   // ---- plumbing ----
   assert.strictEqual(router.parsePrefix('hello r!buy'), null, 'only messages starting with the prefix');
