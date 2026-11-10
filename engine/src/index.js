@@ -6,6 +6,7 @@ const db = require('./db').open();
 const market = require('./market');
 const router = require('./router');
 const api = require('./api');
+const { slashCommands } = require('./slash');
 
 const deps = { db, market };
 
@@ -22,9 +23,20 @@ const client = new Client({
   ]
 });
 
-client.once(Events.ClientReady, (c) => {
+client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Online as ${c.user.tag} in ${c.guilds.cache.size} server(s)`);
   c.user.setActivity(`${config.prefix}help · /help`, { type: ActivityType.Watching });
+
+  // Register slash commands on every start, so new or changed commands just appear.
+  // DEV_GUILD_ID puts them in one test server (instant); otherwise they're global.
+  try {
+    const body = slashCommands();
+    if (config.devGuildId) await c.application.commands.set(body, config.devGuildId);
+    else await c.application.commands.set(body);
+    console.log(`[bot] Registered ${body.length} slash commands ${config.devGuildId ? 'in the test server' : 'globally'}`);
+  } catch (e) {
+    console.error('[bot] Could not register slash commands (r! commands still work):', e.message);
+  }
 });
 
 client.on(Events.MessageCreate, (msg) => router.handleMessage(msg, deps).catch((e) => console.error('[message]', e)));
