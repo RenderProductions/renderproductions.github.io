@@ -71,6 +71,8 @@ async function publish(db) {
   const files = { [FILE]: JSON.stringify({ updated: new Date().toISOString(), ...data }, null, 1) };
   // When the bot runs the market, the prices go on the data branch too
   const prices = require('./marketEngine').latest();
+  // Public player profiles for the site's profile page
+  files['profiles.json'] = JSON.stringify({ updated: new Date().toISOString(), ...require('./profiles').snapshot(db, prices || await require('./market').get().catch(() => null)) });
   if (prices) files['prices.json'] = JSON.stringify(prices);
 
   const tree = await gh(`/repos/${repo}/git/trees`, {

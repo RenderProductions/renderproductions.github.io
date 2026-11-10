@@ -36,6 +36,7 @@
       <li><a href="/" aria-current="page">Home</a></li>
       <li><a href="/rend-conomy/">Rend-Conomy</a></li>
       <li><a href="/bot/">Bot</a></li>
+      <li><a href="/profile/">Profile</a></li>
       <li><a href="/games/">Games</a></li>
       <li><a href="/face/">Face</a></li>
       <li><a href="/patch-notes/">Patch Notes</a></li>
@@ -56,6 +57,7 @@
 
     <div class="btns">
       <a class="btn primary" href="https://discord.gg/D2v4EsuZBU">Join the Render Room</a>
+      <a class="btn" href="/profile/" id="profile-btn">Log in with Discord</a>
       <a class="btn" href="/rend-conomy/">Open Rend-Conomy</a>
       <a class="btn" href="/patch-notes/">What's new</a>
       <a class="btn" href="/games/">Play games</a>
@@ -172,5 +174,9 @@
 </script>
 <script src="/inventory.js?v=3"></script>
 <script src="/face/popup.js" data-odds="10"></script>
+<script>
+  // Already logged in on the profile page? Say so on the button.
+  try { var me = JSON.parse(localStorage.getItem('rv_me')); if (me && me.name) document.getElementById('profile-btn').textContent = 'My profile (' + me.name + ')'; } catch (e) {}
+</script>
 </body>
 </html>

@@ -30,4 +30,4 @@ function count(db) {
 // Counts a command (called by the router)
 function counted(db) { try { db.setMeta('commands_run', (Number(db.meta('commands_run')) || 0) + 1); } catch (e) { /* never block a command */ } }
 
-module.exports = { setClient, setPresence, count, counted, started };
+module.exports = { setClient, setPresence, count, counted, started, client: () => client };
