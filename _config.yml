@@ -2,3 +2,6 @@ title: Render Productions Headquarters
 description: The Home of File Tycoon, Varandia, & More!
 exclude:
   - engine
+  - package.json
+  - package-lock.json
+  - node_modules

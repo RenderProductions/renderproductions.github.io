@@ -2,3 +2,4 @@
 engine/node_modules/
 engine/.env
 engine/data/
+/node_modules/

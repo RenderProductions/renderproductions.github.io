@@ -31,7 +31,7 @@ client.on(Events.MessageCreate, (msg) => router.handleMessage(msg, deps).catch((
 client.on(Events.InteractionCreate, (i) => router.handleInteraction(i, deps).catch((e) => console.error('[interaction]', e)));
 
 if (!config.token) {
-  console.error('[bot] DISCORD_TOKEN is missing. Set it as a secret on Fly (or in .env locally). The bot stays offline until then.');
+  console.error('[bot] DISCORD_TOKEN is missing. Put it in engine/.env (or your host's secrets). The bot stays offline until then.');
 } else {
   client.login(config.token).catch((e) => {
     console.error('[bot] Could not log in to Discord:', e.message);

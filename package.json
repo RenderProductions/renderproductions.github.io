@@ -1,0 +1,16 @@
+{
+  "name": "renderproductions-site",
+  "private": true,
+  "description": "Lets bot hosts that only see the top of the repo run the Rend-Conomy bot in engine/. The site itself doesn't use this file.",
+  "main": "engine/src/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning engine/src/index.js",
+    "register": "node --no-warnings=ExperimentalWarning engine/src/register.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.28.1"
+  }
+}
