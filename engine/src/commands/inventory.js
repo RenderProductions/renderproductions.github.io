@@ -11,6 +11,21 @@ module.exports = {
   async run(ctx, args) {
     const P = config.prefix;
     const target = args.user || ctx.user;
+
+    // Easter egg: the house has infinite everything
+    const botId = (ctx.client && ctx.client.user && ctx.client.user.id) || config.clientId;
+    if (target.id === botId) {
+      return {
+        embeds: [{
+          title: `🎒 ${target.username}'s inventory`,
+          description: Object.values(shop.ITEMS).map((it) => `${it.emoji} **${it.name}** × ∞`).join('\n') +
+            '\n\n🏷️ Title: *The House*\n*It never runs out. It never needs to.*',
+          color: config.color
+        }]
+      };
+    }
+    if (target.bot) return `🤖 **${target.username}** is a bot. Bots don't carry anything.`;
+
     const p = ctx.db.player(ctx.guildId, target);
     const items = ctx.db.inventory(ctx.guildId, target.id).filter((r) => shop.ITEMS[r.item]);
 

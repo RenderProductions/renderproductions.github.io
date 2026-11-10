@@ -72,6 +72,10 @@ const has = async (line, needle, user) => {
   assert.ok(text(house).includes('⬢ ∞') && text(house).includes('∞ shares') && text(house).includes('The house always wins'), text(house));
   const otherBot = await router.runCommand(balanceCmd, ctxFor(ALICE), { user: { id: '888', username: 'SomeBot', bot: true } });
   assert.ok(text(otherBot).includes("Bots don't play the market"), text(otherBot));
+  const invCmd = require('../src/commands/inventory');
+  const houseInv = await router.runCommand(invCmd, { ...ctxFor(ALICE), client: { user: { id: '999' } } }, { user: { id: '999', username: "Render's Vision", bot: true } });
+  assert.ok(text(houseInv).includes('**Coffee** × ∞') && text(houseInv).includes('**Title** × ∞'), text(houseInv));
+  assert.ok(text(await router.runCommand(invCmd, ctxFor(ALICE), { user: { id: '888', username: 'SomeBot', bot: true } })).includes("Bots don't carry"));
 
   await has('r!daily', 'You received **⬡ 250.00**');
   assert.strictEqual(cash(), 750_00);
