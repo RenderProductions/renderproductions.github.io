@@ -42,11 +42,25 @@
   .roles .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bright); }
   .roles .dot.red { background: #ff6b6b; }
   .try { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+  /* Live status: a dot on the icon, like Discord, and the bot's current activity */
+  .presence { position: absolute; top: 28px; left: calc(1.25rem + 96px); width: 28px; height: 28px; border-radius: 50%; border: 6px solid var(--panel); background: #80848e; }
+  .presence.online { background: #23a55a; }
+  .presence.idle { background: #f0b232; }
+  .presence.dnd { background: #f23f43; }
+  .activity { margin: 0.5rem 0 0; font-size: 14px; color: var(--lime); overflow-wrap: anywhere; }
+  .activity:empty { display: none; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem 1rem; margin: 0; }
+  .stats div { min-width: 0; }
+  .stats dt { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); }
+  .stats dd { margin: 0.15rem 0 0; font-family: var(--display); font-size: 26px; line-height: 1.1; color: var(--bright); overflow-wrap: anywhere; }
+  .stats-note { margin-top: 0.6rem !important; font-size: 12px; color: var(--grey) !important; }
   @media (max-width: 560px) {
     .profile-body { padding: 0 1rem 1.25rem; }
     .profile-avatar { width: 96px; height: 96px; top: -48px; left: 0.9rem; border-width: 6px; }
     .profile-actions { padding-top: 60px; justify-content: flex-start; }
     .profile-name { font-size: 40px; margin-top: 0.75rem; }
+    .presence { top: 18px; left: calc(0.9rem + 70px); width: 24px; height: 24px; border-width: 5px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 </style>
 </head>
@@ -71,12 +85,14 @@
     <img class="profile-banner" src="banner.png" alt="" width="1500" height="600">
     <div class="profile-body">
       <img class="profile-avatar" src="avatar.png" alt="Render's Vision icon: a gold R inside a hexagon" width="512" height="512">
+      <span class="presence" id="presence" role="img" aria-label="Status: unknown" title="Status: unknown"></span>
       <div class="profile-actions">
         <a class="btn primary" href="https://discord.com/oauth2/authorize?client_id=1569206837352337609&amp;permissions=274878000128&amp;scope=bot+applications.commands" target="_blank" rel="noopener">Add to your server</a>
         <a class="btn" href="https://discord.gg/D2v4EsuZBU">Join the Render Room</a>
       </div>
       <h1 class="profile-name" id="bot-name">Render's Vision <span class="app-badge">APP</span></h1>
       <p class="profile-handle">The Rend-Conomy bot · <code>r!</code> or <code>/</code> commands</p>
+      <p class="activity" id="activity"></p>
 
       <div class="profile-section">
         <h2>About me</h2>
@@ -90,12 +106,27 @@
           <li><span class="dot"></span>Shop</li>
           <li><span class="dot"></span>Player companies</li>
           <li><span class="dot red"></span>TODD loans</li>
-          <li><span class="dot"></span>Slots</li>
+          <li><span class="dot"></span>Rend-Sino</li>
+          <li><span class="dot"></span>Gigs</li>
         </ul>
+      </div>
+      <div class="profile-section" id="stats-section" hidden>
+        <h2>Live stats</h2>
+        <dl class="stats">
+          <div><dt>Servers</dt><dd id="st-servers">—</dd></div>
+          <div><dt>Players</dt><dd id="st-players">—</dd></div>
+          <div><dt>Polygons out there</dt><dd id="st-polygons">—</dd></div>
+          <div><dt>Polygon Reserve</dt><dd id="st-reserve">—</dd></div>
+          <div><dt>Shifts worked</dt><dd id="st-shifts">—</dd></div>
+          <div><dt>Bets placed</dt><dd id="st-bets">—</dd></div>
+          <div><dt>Player companies</dt><dd id="st-companies">—</dd></div>
+          <div><dt>Commands run</dt><dd id="st-commands">—</dd></div>
+        </dl>
+        <p class="stats-note" id="stats-note"></p>
       </div>
       <div class="profile-section">
         <h2>Try it</h2>
-        <p class="try"><code>r!help</code> <code>r!market</code> <code>r!daily</code> <code>r!work</code> <code>r!found</code></p>
+        <p class="try"><code>r!help</code> <code>r!market</code> <code>r!daily</code> <code>r!work</code> <code>r!job</code> <code>r!blackjack</code> <code>r!found</code></p>
       </div>
     </div>
   </header>
@@ -271,19 +302,16 @@
       <thead>
         <tr>
           <th scope="col">Company</th>
-          <th scope="col">1×</th>
-          <th scope="col">1.25×</th>
-          <th scope="col">1.5×</th>
-          <th scope="col">2×</th>
+          <th scope="col">Ranks (pay 1× → 1.25× → 1.5× → 2×)</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td class="name">RRM</td><td>Trial Mod</td><td>Moderator</td><td>Senior Mod</td><td>Admin</td></tr>
-        <tr><td class="name">NACH</td><td>Dishwasher</td><td>Line Cook</td><td>Sous Chef</td><td>Head Chef</td></tr>
-        <tr><td class="name">BLU</td><td>Apprentice</td><td>Builder</td><td>Foreman</td><td>Architect</td></tr>
-        <tr><td class="name">BNW</td><td>Intern</td><td>Analyst</td><td>Accountant</td><td>CFO</td></tr>
-        <tr><td class="name">BSTG</td><td>Playtester</td><td>Bug Hunter</td><td>QA Lead</td><td>Game Director</td></tr>
-        <tr><td class="name">Player companies</td><td>Intern</td><td>Employee</td><td>Manager</td><td>Executive</td></tr>
+        <tr><td class="name">RRM</td><td>Trial Mod → Moderator → Senior Mod → Admin</td></tr>
+        <tr><td class="name">NACH</td><td>Dishwasher → Line Cook → Sous Chef → Head Chef</td></tr>
+        <tr><td class="name">BLU</td><td>Apprentice → Builder → Foreman → Architect</td></tr>
+        <tr><td class="name">BNW</td><td>Intern → Analyst → Accountant → CFO</td></tr>
+        <tr><td class="name">BSTG</td><td>Playtester → Bug Hunter → QA Lead → Game Director</td></tr>
+        <tr><td class="name">Player companies</td><td>Intern → Employee → Manager → Executive</td></tr>
       </tbody>
     </table>
     <p class="empty">Every 10 shifts you get a performance review: 8 or more right gets you promoted (or a bonus at the top), 4 or fewer gets you demoted. Higher ranks pay more and get tougher tasks. Pay rises and falls with your company's stock price.</p>
@@ -331,6 +359,49 @@
   </footer>
 
 </div>
+<script>
+  // Live stats: the bot publishes these with the site data every few minutes
+  (function () {
+    var URL_ = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/player-companies.json';
+    var $ = function (id) { return document.getElementById(id); };
+    var num = function (n) { return Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }); };
+    var short = function (n) { n = Number(n || 0); return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? (n / 1e3).toFixed(0) + 'K' : num(n); };
+    function since(iso) {
+      var s = (Date.now() - Date.parse(iso)) / 1000;
+      return s < 3600 ? Math.max(1, Math.round(s / 60)) + ' min' : s < 172800 ? Math.round(s / 3600) + ' hours' : Math.round(s / 86400) + ' days';
+    }
+    function load() {
+      fetch(URL_ + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) {
+          var b = d.bot;
+          if (!b) return;
+          // If the bot hasn't published in 20 minutes, it's probably offline
+          var fresh = Date.now() - Date.parse(d.updated) < 20 * 60 * 1000;
+          var status = fresh ? b.status || 'online' : 'offline';
+          var label = { online: 'Online', idle: 'Idle (market closed)', dnd: 'Do not disturb (trading halted)', offline: 'Offline' }[status] || status;
+          var dot = $('presence');
+          dot.className = 'presence ' + status;
+          dot.setAttribute('aria-label', 'Status: ' + label);
+          dot.title = label;
+          $('activity').textContent = fresh ? b.activity : '';
+          $('st-servers').textContent = b.servers == null ? '—' : num(b.servers);
+          $('st-players').textContent = num(b.players);
+          $('st-polygons').textContent = '⬢ ' + short(b.polygons);
+          $('st-reserve').textContent = d.reserve ? Math.max(0, Math.round(d.reserve.level * 100)) + '%' : '—';
+          $('st-shifts').textContent = num(b.shifts);
+          $('st-bets').textContent = num(b.bets);
+          $('st-companies').textContent = num(b.companies);
+          $('st-commands').textContent = num(b.commands);
+          $('stats-note').textContent = (fresh ? label + ' · up for ' + since(b.online) : 'Offline right now') + ' · updated ' + since(d.updated) + ' ago';
+          $('stats-section').hidden = false;
+        })
+        .catch(function () { /* no data yet: the card stays as it is */ });
+    }
+    load();
+    setInterval(load, 60 * 1000);
+  })();
+</script>
 <script src="/face/popup.js" data-odds="10"></script>
 </body>
 </html>

@@ -29,6 +29,7 @@ function afterSend(out, editFn) {
 
 async function runCommand(cmd, ctx, args) {
   try {
+    if (ctx.db) require('./botstats').counted(ctx.db);
     const out = await cmd.run(ctx, args);
     if (out == null) return null;
     const payload = toPayload(out);

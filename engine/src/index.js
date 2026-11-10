@@ -77,6 +77,7 @@ const client = new Client({
   ]
 });
 deps.client = client; // lets commands look up users (r!balance @someone)
+require('./botstats').setClient(client); // server count for the bot page
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Online as ${c.user.tag} in ${c.guilds.cache.size} server(s)`);
@@ -93,6 +94,8 @@ client.once(Events.ClientReady, async (c) => {
         status: statuses.presence(m), // online while trading, idle after hours, do not disturb during halts
         activities: [s.type === 'custom' ? { name: 'custom', state: s.text, type: TYPES.custom } : { name: s.text, type: TYPES[s.type] }]
       });
+      const verb = { watching: 'Watching ', listening: 'Listening to ', playing: 'Playing ', competing: 'Competing in ', custom: '' }[s.type] || '';
+      require('./botstats').setPresence(statuses.presence(m), verb + s.text);
     } catch (e) { console.error('[status]', e.message); }
   };
   rotate();
