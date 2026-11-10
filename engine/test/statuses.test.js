@@ -45,4 +45,10 @@ assert.deepStrictEqual(statuses.next({ market: calm, db }, () => 0.01), { type: 
 // Market data down: still shows something
 for (let i = 0; i < 20; i++) assert.ok(statuses.next({ market: null, db }, never).text);
 
+// Online dot follows the market
+assert.strictEqual(statuses.presence(calm), 'online');
+assert.strictEqual(statuses.presence(wild), 'idle');
+assert.strictEqual(statuses.presence(clone((m) => { m.market.status = 'open'; m.market.halted = true; })), 'dnd');
+assert.strictEqual(statuses.presence(null), 'online');
+
 console.log('All status tests passed.');

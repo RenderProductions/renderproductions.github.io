@@ -52,8 +52,12 @@ client.once(Events.ClientReady, async (c) => {
     competing: ActivityType.Competing, custom: ActivityType.Custom };
   const rotate = async () => {
     try {
-      const s = statuses.next({ market: await market.get(), db });
-      c.user.setActivity(s.type === 'custom' ? { name: 'custom', state: s.text, type: TYPES.custom } : { name: s.text, type: TYPES[s.type] });
+      const m = await market.get();
+      const s = statuses.next({ market: m, db });
+      c.user.setPresence({
+        status: statuses.presence(m), // online while trading, idle after hours, do not disturb during halts
+        activities: [s.type === 'custom' ? { name: 'custom', state: s.text, type: TYPES.custom } : { name: s.text, type: TYPES[s.type] }]
+      });
     } catch (e) { console.error('[status]', e.message); }
   };
   rotate();

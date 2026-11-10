@@ -79,4 +79,12 @@ function next(data, random = Math.random) {
   return { type: 'custom', text: 'r!help · /help' };
 }
 
-module.exports = { STATUSES, ROTATE_MS, next, BREADCRUMB };
+// The bot's online dot follows the market: online while trading, idle when closed,
+// do not disturb while trading is halted. Online if the market data can't be reached.
+function presence(m) {
+  if (!m || !m.market) return 'online';
+  if (m.market.halted) return 'dnd';
+  return m.market.status === 'open' ? 'online' : 'idle';
+}
+
+module.exports = { STATUSES, ROTATE_MS, next, presence, BREADCRUMB };
