@@ -537,9 +537,21 @@
     $('.co-note', top).textContent = 'Shaded stretches are after hours (9 PM to 3 AM Eastern), when prices only drift.';
   }
 
+  function newestPrices(url) {
+    // The market's prices live in two places: /prices.json (the GitHub Action) and the data branch (when the
+    // bot runs the market). Whichever was updated last wins, so the site keeps working through the switch.
+    var BOT = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/prices.json';
+    var get = function (u) { return fetch(u + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; }); };
+    return Promise.all([get(url || '/prices.json'), get(BOT)]).then(function (l) {
+      var a = l[0], b = l[1];
+      if (!a && !b) throw new Error('no prices');
+      if (!a || !b) return a || b;
+      return Date.parse(b.updated) > Date.parse(a.updated) ? b : a;
+    });
+  }
+
   function load() {
-    fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    newestPrices(DATA_URL)
       .then(show)
       .catch(function () { $('.co-note', top).textContent = 'Live prices could not be loaded right now.'; })
       .then(function () { setTimeout(load, REFRESH_MS); });

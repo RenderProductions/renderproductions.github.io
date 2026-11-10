@@ -44,16 +44,6 @@ const COLORS = {
   down: 0xff6b6b
 };
 
-const queueFile = process.argv[2] ||
-  (process.env.RUNNER_TEMP && path.join(process.env.RUNNER_TEMP, 'market-posts.json'));
-const dryRun = !!process.env.DRY_RUN;
-const hooks = (process.env.DISCORD_WEBHOOK || '').split(/[\s,]+/).filter(Boolean);
-
-let posts = [];
-try { posts = JSON.parse(fs.readFileSync(queueFile, 'utf8')); } catch (e) { /* nothing queued */ }
-if (!posts.length) { console.log('No market news to post.'); process.exit(0); }
-if (!hooks.length && !dryRun) { console.log('DISCORD_WEBHOOK is not set; skipping ' + posts.length + ' post(s).'); process.exit(0); }
-
 const ts = (iso, style) => '<t:' + Math.floor(Date.parse(iso) / 1000) + ':' + style + '>';
 const money = (n) => '⬡ ' + Number(n).toFixed(2); // ⬡ = a price in Polygons
 
@@ -82,29 +72,45 @@ function embed(p) {
   return { color: COLORS[p.type] || COLORS.goal, description: p.discord + tail };
 }
 
-// Discord takes up to 10 embeds per message.
-const embeds = posts.map(embed);
-const batches = [];
-for (let i = 0; i < embeds.length; i += 10) batches.push(embeds.slice(i, i + 10));
-
-async function main() {
+// Posts a list of engine posts to every webhook. Used by this script and by the bot when it runs the market.
+async function send(posts, hooks, { dryRun = false, log = console.log } = {}) {
+  // Discord takes up to 10 embeds per message.
+  const embeds = posts.map(embed);
+  const batches = [];
+  for (let i = 0; i < embeds.length; i += 10) batches.push(embeds.slice(i, i + 10));
   let failed = 0;
   for (const batch of batches) {
     batch[batch.length - 1].footer = { text: 'Live board: ' + BOARD };
     const body = JSON.stringify({ username: NAME, avatar_url: AVATAR, embeds: batch, allowed_mentions: { parse: [] } });
-    if (dryRun) { console.log(JSON.stringify(JSON.parse(body), null, 2)); continue; }
+    if (dryRun) { log(JSON.stringify(JSON.parse(body), null, 2)); continue; }
     for (const url of hooks) {
       try {
         const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-        if (!res.ok) { failed++; console.log('Webhook replied ' + res.status + ': ' + (await res.text()).slice(0, 200)); }
+        if (!res.ok) { failed++; log('Webhook replied ' + res.status + ': ' + (await res.text()).slice(0, 200)); }
       } catch (e) {
         failed++;
-        console.log('Webhook request failed: ' + e.message);
+        log('Webhook request failed: ' + e.message);
       }
     }
   }
-  // A Discord hiccup shouldn't mark the price update as failed; the log says what happened.
-  console.log('Posted ' + posts.length + ' item(s) to ' + hooks.length + ' webhook(s)' + (failed ? ', ' + failed + ' failed.' : '.'));
+  return { posted: posts.length, failed };
 }
 
-main();
+module.exports = { send, embed, COLORS, NAME, AVATAR };
+
+if (require.main === module) {
+  const queueFile = process.argv[2] ||
+    (process.env.RUNNER_TEMP && path.join(process.env.RUNNER_TEMP, 'market-posts.json'));
+  const dryRun = !!process.env.DRY_RUN;
+  const hooks = (process.env.DISCORD_WEBHOOK || '').split(/[\s,]+/).filter(Boolean);
+
+  let posts = [];
+  try { posts = JSON.parse(fs.readFileSync(queueFile, 'utf8')); } catch (e) { /* nothing queued */ }
+  if (!posts.length) { console.log('No market news to post.'); process.exit(0); }
+  if (!hooks.length && !dryRun) { console.log('DISCORD_WEBHOOK is not set; skipping ' + posts.length + ' post(s).'); process.exit(0); }
+
+  send(posts, hooks, { dryRun }).then(({ failed }) => {
+    // A Discord hiccup shouldn't mark the price update as failed; the log says what happened.
+    console.log('Posted ' + posts.length + ' item(s) to ' + hooks.length + ' webhook(s)' + (failed ? ', ' + failed + ' failed.' : '.'));
+  });
+}

@@ -1822,8 +1822,10 @@ function renderMarket(){
   }).join('');
 }
 function loadMarket(){
-  fetch(MARKET_URL+'?t='+Date.now(),{cache:'no-store'})
-    .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
+  // newest of the site's copy and the bot's copy (the bot may be running the market)
+  Promise.all([MARKET_URL,'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/prices.json']
+    .map(u=>fetch(u+'?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)))
+    .then(([a,b])=>{const d=!b?a:!a?b:Date.parse(b.updated)>Date.parse(a.updated)?b:a;if(!d)throw new Error('no prices');return d;})
     .then(d=>{
       if(!d||!d.prices)throw new Error('bad data');
       MARKET.prices=d.prices;MARKET.online=true;renderMarket();

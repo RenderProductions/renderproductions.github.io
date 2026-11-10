@@ -54,28 +54,7 @@ jobs:
           HOURS: ${{ inputs.hours }}
           TICKERS: ${{ inputs.tickers }}
           HEADLINE: ${{ inputs.headline }}
-        run: |
-          node - <<'JS'
-          const fs = require('fs');
-          const FILE = '.github/market-boost.json';
-          const KNOWN = ['RRM', 'NACH', 'BLU', 'BNW', 'BSTG'];
-          let cur = {};
-          try { cur = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) {}
-          let out;
-          if (process.env.ACTION.startsWith('start')) {
-            const hours = Number(process.env.HOURS);
-            const tickers = String(process.env.TICKERS || '').toUpperCase().split(/[\s,]+/).filter(Boolean);
-            const bad = tickers.filter((t) => !KNOWN.includes(t));
-            if (bad.length) { console.error('Unknown ticker(s): ' + bad.join(', ') + '. Use: ' + KNOWN.join(', ')); process.exit(1); }
-            out = { start: new Date().toISOString(), hours: Number.isFinite(hours) && hours > 0 ? hours : 6,
-              strength: process.env.STRENGTH || 'normal', tickers, headline: String(process.env.HEADLINE || '').trim().slice(0, 200) };
-          } else {
-            out = Object.assign({}, cur, { start: null });
-          }
-          out = Object.assign({ note: "Written by the 'Boost the market' workflow (Actions tab). start null = no boost." }, out);
-          fs.writeFileSync(FILE, JSON.stringify(out, null, 2) + '\n');
-          console.log(process.env.ACTION + ' ->', JSON.stringify(out));
-          JS
+        run: node .github/scripts/market/controls.js boost
 
       - name: Commit and run a tick
         env:

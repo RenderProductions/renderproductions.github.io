@@ -278,8 +278,10 @@
 
   // Which way is this company's stock going? (only fetched on company pages)
   if (ticker && window.fetch) {
-    fetch('/prices.json', { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
+    // newest of the site's copy and the bot's copy (see rend-conomy/company.js)
+    Promise.all(['/prices.json', 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/prices.json'].map(function (u) {
+      return fetch(u + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    })).then(function (l) { return !l[1] ? l[0] : !l[0] ? l[1] : Date.parse(l[1].updated) > Date.parse(l[0].updated) ? l[1] : l[0]; })
       .then(function (d) {
         var ch = d && d.changes && d.changes[ticker];
         if (typeof ch === 'number') { stockUp = ch >= 0; foundLines = null; }

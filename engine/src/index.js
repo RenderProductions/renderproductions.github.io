@@ -64,7 +64,10 @@ require('./publish').start(db);
 // Start the web API first, so the host's health check passes even if Discord has trouble.
 // /health reports whether the bot is actually connected.
 api.start(deps, () => ({ discord: client.isReady() ? 'connected' : 'not connected' }));
-market.startAutoRefresh();
+// The market: run it here (MARKET_ENGINE=bot), or read the GitHub Action's prices.json (the default)
+const marketEngine = require('./marketEngine');
+if (marketEngine.enabled()) marketEngine.start(db).catch((e) => console.error('[market] Could not start the market:', e));
+else market.startAutoRefresh();
 
 const client = new Client({
   intents: [

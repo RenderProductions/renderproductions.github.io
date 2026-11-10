@@ -33,6 +33,11 @@ module.exports = {
   githubRepo: process.env.GITHUB_REPO || 'RenderProductions/renderproductions.github.io',
   dataBranch: process.env.DATA_BRANCH || 'data',
 
+  // Who moves prices: "github" (the GitHub Action writes prices.json, the default) or "bot" (the bot
+  // runs the market itself, see src/marketEngine.js). MARKET_SECRET decrypts the Action's hidden state.
+  marketEngine: (process.env.MARKET_ENGINE || 'github').toLowerCase(),
+  marketSecret: process.env.MARKET_SECRET || '',
+
   // The market's time zone. r!daily resets at midnight here.
   timeZone: 'America/New_York',
 

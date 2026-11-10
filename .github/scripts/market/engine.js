@@ -43,15 +43,16 @@ const CRASH_DEFAULTS = {
   depth: { RRM: 3.7, NACH: 3.5, BLU: 3.7, BNW: 2.9, BSTG: 5.5 },
   spread: [0.7, 1.35]
 };
-const CRASH = (() => {
-  let file = {};
-  try { file = JSON.parse(require('fs').readFileSync(process.env.MARKET_CRASH_FILE || require('path').join(__dirname, '..', '..', 'market-crash.json'), 'utf8')) || {}; } catch (e) { /* no crash file: no crash */ }
-  const c = Object.assign({}, CRASH_DEFAULTS, file);
+// Read from the file at start; the bot can swap in new settings with configure().
+function makeCrash(file) {
+  const c = Object.assign({}, CRASH_DEFAULTS, file || {});
   const k = SEVERITY[c.severity] || 1;
   c.depth = {};
   Object.keys(CRASH_DEFAULTS.depth).forEach((id) => { c.depth[id] = CRASH_DEFAULTS.depth[id] * k; });
   return c;
-})();
+}
+const readJson = (file) => { try { return JSON.parse(require('fs').readFileSync(file, 'utf8')) || {}; } catch (e) { return {}; } };
+let CRASH = makeCrash(readJson(process.env.MARKET_CRASH_FILE || require('path').join(__dirname, '..', '..', 'market-crash.json')));
 const CRASH_MOODS = { calm: 0, normal: 0, rally: 0, slide: 4, choppy: 3, mania: 0, freefall: 10, bounce: 3 };
 const PANIC_RATE = 1 / 200;         // per company per open crash tick: a sudden panic leg down
 const CRASH_NEWS_HOURS = [2, 5];    // time between crash headlines
@@ -68,14 +69,19 @@ const BOOST_STRENGTH = { small: 0.15, normal: 0.35, big: 0.7 };
 const BOOST_POP = { small: [0.01, 0.02], normal: [0.02, 0.04], big: [0.04, 0.07] };   // the jump when it's announced
 const BOOST_SPREAD = [0.7, 1.3];
 const BOOST_NEWS_HOURS = [3, 6];    // time between boom headlines
-const BOOST = (() => {
-  let file = {};
-  try { file = JSON.parse(require('fs').readFileSync(process.env.MARKET_BOOST_FILE || require('path').join(__dirname, '..', '..', 'market-boost.json'), 'utf8')) || {}; } catch (e) { /* no boost file: no boost */ }
-  const b = Object.assign({ start: null, hours: 6, strength: 'normal', tickers: [], headline: '' }, file);
+function makeBoost(file) {
+  const b = Object.assign({ start: null, hours: 6, strength: 'normal', tickers: [], headline: '' }, file || {});
   b.tickers = (Array.isArray(b.tickers) ? b.tickers : String(b.tickers || '').split(/[\s,]+/)).map((t) => String(t).trim().toUpperCase()).filter(Boolean);
   if (!BOOST_STRENGTH[b.strength]) b.strength = 'normal';
   return b;
-})();
+}
+let BOOST = makeBoost(readJson(process.env.MARKET_BOOST_FILE || require('path').join(__dirname, '..', '..', 'market-boost.json')));
+
+// Lets the bot (which runs the market itself) change the crash and boost settings while running.
+function configure({ crash, boost } = {}) {
+  if (crash !== undefined) CRASH = makeCrash(crash);
+  if (boost !== undefined) BOOST = makeBoost(boost);
+}
 const HALT_DROP = -12;              // the average stock falls this much (%) in an hour: circuit breaker
 const HALT_MIN = 15;                // trading halts this long; prices freeze
 const HALT_COOLDOWN_HOURS = 4;
@@ -1152,4 +1158,4 @@ function buildOutput({ nowIso, market, news, companies, crash = null, boost = nu
   return { updated: nowIso, engine: 2, market, crash, crashText, boost, boostText, prices, changes, statuses, statusText, tradable, wipes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 }
 
-module.exports = { tick, COMPANIES, TICK_MS, statusAt };
+module.exports = { tick, configure, COMPANIES, TICK_MS, statusAt };

@@ -6,8 +6,10 @@ const REFRESH_MS = 60 * 1000;
 let data = null;
 let fetchedAt = 0;
 let inflight = null;
+let local = false; // true when the bot runs the market itself (src/marketEngine.js)
 
 async function refresh() {
+  if (local) return data;
   if (inflight) return inflight;
   inflight = (async () => {
     try {
@@ -33,10 +35,13 @@ async function get() {
   return data;
 }
 
-// Lets tests supply data directly.
+// Lets tests (and the in-bot market) supply data directly.
 function set(json) { data = json; fetchedAt = json ? Date.now() : 0; }
+// Stop fetching prices.json: the bot makes its own
+function useLocal() { local = true; }
 
 function startAutoRefresh() {
+  if (local) return null;
   refresh();
   return setInterval(refresh, REFRESH_MS).unref();
 }
@@ -72,4 +77,4 @@ function closedReason(m) {
   return '';
 }
 
-module.exports = { get, set, refresh, startAutoRefresh, quote, closedReason, ids, tickerList };
+module.exports = { get, set, useLocal, refresh, startAutoRefresh, quote, closedReason, ids, tickerList };

@@ -54,35 +54,7 @@ jobs:
           WARNING: ${{ inputs.warning_hours }}
           CRASH: ${{ inputs.crash_hours }}
           RECOVERY: ${{ inputs.recovery_hours }}
-        run: |
-          node - <<'EOF'
-          const fs = require('fs');
-          const FILE = '.github/market-crash.json';
-          let cur = {};
-          try { cur = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) {}
-          const num = (v, d, min) => { const n = Number(v); return Number.isFinite(n) && n >= min ? n : d; };
-          const H = 3600 * 1000;
-          const now = Date.now();
-          const act = process.env.ACTION;
-          let out;
-          if (act.startsWith('start')) {
-            // A tremor of 0 hours needs one tick inside the window, so it is nudged to 5 minutes.
-            const warn = Math.max(num(process.env.WARNING, 2, 0), 5 / 60);
-            out = { start: new Date(now).toISOString(), tremorHours: warn,
-              crashHours: num(process.env.CRASH, 48, 1), recoveryHours: num(process.env.RECOVERY, 72, 0),
-              severity: process.env.SEVERITY || 'normal' };
-            if (num(process.env.WARNING, 2, 0) === 0) out.start = new Date(now - warn * H).toISOString();
-          } else if (act.startsWith('end')) {
-            if (!cur.start) { console.log('No crash is running; nothing to end.'); process.exit(0); }
-            const t = cur.tremorHours || 2, c = cur.crashHours || 48;
-            out = Object.assign({}, cur, { start: new Date(now - (t + c) * H - 60 * 1000).toISOString() });
-          } else {
-            out = Object.assign({}, cur, { start: null });
-          }
-          out = Object.assign({ note: "Written by the 'Crash the market' workflow (Actions tab). start null = no crash." }, out);
-          fs.writeFileSync(FILE, JSON.stringify(out, null, 2) + '\n');
-          console.log(act + ' ->', JSON.stringify(out));
-          EOF
+        run: node .github/scripts/market/controls.js crash
 
       - name: Commit and run a tick
         env:

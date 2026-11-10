@@ -62,17 +62,24 @@ async function gh(path, opts = {}) {
 async function publish(db) {
   if (!config.githubToken) return false;
   const data = snapshot(db);
-  const body = JSON.stringify(data);
+  const m = require('./marketEngine').latest();
+  const body = JSON.stringify(data) + (m ? m.updated : '');
   if (body === lastBody) return false; // nothing changed
   const repo = config.githubRepo;
-  const content = JSON.stringify({ updated: new Date().toISOString(), ...data }, null, 1);
+  const files = { [FILE]: JSON.stringify({ updated: new Date().toISOString(), ...data }, null, 1) };
+  // When the bot runs the market, the prices go on the data branch too
+  const prices = require('./marketEngine').latest();
+  if (prices) files['prices.json'] = JSON.stringify(prices);
 
-  const blob = await gh(`/repos/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content, encoding: 'utf-8' }) });
   const tree = await gh(`/repos/${repo}/git/trees`, {
-    method: 'POST', body: JSON.stringify({ tree: [{ path: FILE, mode: '100644', type: 'blob', sha: blob.sha }] })
+    method: 'POST',
+    body: JSON.stringify({ tree: await Promise.all(Object.entries(files).map(async ([path, content]) => {
+      const blob = await gh(`/repos/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content, encoding: 'utf-8' }) });
+      return { path, mode: '100644', type: 'blob', sha: blob.sha };
+    })) })
   });
   const commit = await gh(`/repos/${repo}/git/commits`, {
-    method: 'POST', body: JSON.stringify({ message: 'Update player companies', tree: tree.sha, parents: [] })
+    method: 'POST', body: JSON.stringify({ message: 'Update site data', tree: tree.sha, parents: [] })
   });
   const ref = `heads/${config.dataBranch}`;
   if (await gh(`/repos/${repo}/git/ref/${ref}`)) {

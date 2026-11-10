@@ -201,7 +201,10 @@
   let pricesAt = 0, prices = null;
   function market() {
     if (prices && Date.now() - pricesAt < 60000) return Promise.resolve(prices);
-    return fetch('/prices.json?v=' + Date.now()).then((r) => r.json()).then((d) => { prices = d; pricesAt = Date.now(); return d; }).catch(() => null);
+    // newest of the site's copy and the bot's copy (the bot may be running the market)
+    const get = (u) => fetch(u + '?v=' + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    return Promise.all([get('/prices.json'), get('https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/prices.json')])
+      .then(([a, b]) => { const d = !b ? a : !a ? b : Date.parse(b.updated) > Date.parse(a.updated) ? b : a; if (d) { prices = d; pricesAt = Date.now(); } return d; });
   }
   function quote(c) {
     const ch = +c.change || 0;

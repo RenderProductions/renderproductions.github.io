@@ -6,6 +6,8 @@ const list = [
   require('./balance'),
   require('./daily'),
   require('./reserve'),
+  require('./crash'),
+  require('./boost'),
   require('./market'),
   require('./buy'),
   require('./sell'),

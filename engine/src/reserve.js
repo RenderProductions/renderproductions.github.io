@@ -82,6 +82,14 @@ async function maybeCrash(db, m, now = Date.now()) {
   if (get(db) > 0 || (m && m.crash)) return { started: false };
   const last = Number(db.meta('reserve_crash_at')) || 0;
   if (now - last < RULES.recrashHours * 3600000) return { started: false };
+  const engine = require('./marketEngine');
+  if (engine.enabled()) {
+    // The bot runs the market: start the crash right here
+    db.setMeta('reserve_crash_at', now);
+    const r = await engine.control(db, 'crash', { action: 'start', severity: RULES.crash.severity,
+      warning: RULES.crash.warning_hours, crash: RULES.crash.crash_hours, recovery: RULES.crash.recovery_hours });
+    return r.error ? { started: false, error: r.error } : { started: true };
+  }
   if (!config.githubToken) return { started: false, error: 'no GITHUB_TOKEN' };
   db.setMeta('reserve_crash_at', now);
   const res = await fetch(`https://api.github.com/repos/${config.githubRepo}/actions/workflows/crash.yml/dispatches`, {
