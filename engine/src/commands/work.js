@@ -1,14 +1,23 @@
 const config = require('../config');
 const jobs = require('../jobs');
+const co = require('../companies');
 const { relTime } = require('../format');
 
 // Tasks waiting for an answer: "guild:user" -> { job, ans, start, rush }
 const active = new Map();
 const keyOf = (ctx) => `${ctx.guildId}:${ctx.user.id}`;
 
+// Player companies borrow one of the five task styles, always the same one for a given ticker
+function taskStyle(ticker) {
+  const styles = Object.keys(jobs.COMPANIES);
+  let h = 0;
+  for (const ch of ticker) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return styles[h % styles.length];
+}
+
 // Starts a task and waits for the player's answer in the channel.
 function startTask(ctx, job, rush) {
-  const t = jobs.task(job, rush > 0, ctx.random);
+  const t = jobs.task(jobs.COMPANIES[job] ? job : taskStyle(job), rush > 0, ctx.random);
   active.set(keyOf(ctx), { job, ans: t.ans, start: Date.now(), rush });
   ctx.awaitNext((msg) => answer(ctx, msg), jobs.ABANDON_MS);
   return t.q;
@@ -25,17 +34,24 @@ async function answer(ctx, msg) {
   const limit = st.rush > 0 ? 15 : 20;
   const result = elapsed > limit ? 'slow' : String(msg.content).trim().toLowerCase() === st.ans ? 'pass' : 'wrong';
 
-  // Pay follows the live stock price (falls back to the starting price)
-  const c = jobs.COMPANIES[st.job];
-  const m = await ctx.market.get();
-  let price = m && m.prices ? Number(m.prices[st.job]) : NaN;
-  if (!Number.isFinite(price)) price = c.start;
-  // BSTG swings wildly, so its pay uses a price capped between 10 and 200 (0.2x to 4x pay)
-  if (st.job === 'BSTG') price = Math.max(Math.min(price, 200), 10);
-
   const p = ctx.db.player(ctx.guildId, ctx.user);
   const r = jobs.rank(p.shifts);
-  let pay = jobs.BASE_PAY * price / c.start * r.mult;
+  const c = jobs.COMPANIES[st.job];
+  let pay;
+  if (c) {
+    // Pay follows the live stock price (falls back to the starting price)
+    const m = await ctx.market.get();
+    let price = m && m.prices ? Number(m.prices[st.job]) : NaN;
+    if (!Number.isFinite(price)) price = c.start;
+    // BSTG swings wildly, so its pay uses a price capped between 10 and 200 (0.2x to 4x pay)
+    if (st.job === 'BSTG') price = Math.max(Math.min(price, 200), 10);
+    pay = jobs.BASE_PAY * price / c.start * r.mult;
+  } else {
+    // Player company: pay grows with its level
+    const pc = co.get(ctx.db, st.job);
+    if (!co.alive(pc)) return `💀 ${st.job} went under while you were working. You're out of a job.`;
+    pay = jobs.BASE_PAY * co.level(pc).payMult * r.mult;
+  }
   let ot = '';
   const update = {};
   if (st.rush > 0) {
@@ -60,6 +76,7 @@ async function answer(ctx, msg) {
   ctx.db.tx(() => {
     ctx.db.addCash(ctx.guildId, ctx.user.id, pay * 100);
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, update);
+    if (!c) co.addRevenue(ctx.db, st.job, Math.round(pay * 100 * co.RULES.revenueShare)); // shifts earn the company money
   });
 
   // 1 in 5: another task comes in. Only after a pass, max 5 in a row.
@@ -81,6 +98,10 @@ module.exports = {
   async run(ctx) {
     const p = ctx.db.player(ctx.guildId, ctx.user);
     if (!p.job) return `❌ You need a job first. Try \`${config.prefix}apply <ticker>\`.`;
+    if (!jobs.COMPANIES[p.job] && !co.alive(co.get(ctx.db, p.job))) {
+      ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { job: null, shifts: 0 });
+      return `💀 **${p.job}** went under. You're out of a job. Try \`${config.prefix}apply <ticker>\`.`;
+    }
 
     const cur = active.get(keyOf(ctx));
     if (cur && Date.now() - cur.start <= jobs.ABANDON_MS) return "⏱️ You're mid-shift! Answer your current task first.";

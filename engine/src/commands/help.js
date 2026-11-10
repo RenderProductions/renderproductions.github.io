@@ -33,11 +33,17 @@ module.exports = {
           `\`${P}use <item>\` uses an item from your inventory\n` +
           `\`${P}settitle <text>\` sets your custom title (uses a Title)\n` +
           `\`${P}slots <amount>\` spins the Rend-Sino slot machine\n\n` +
+          '**Your own company**\n' +
+          `\`${P}found <ticker> <name>\` starts a company (2,500, needs mod approval)\n` +
+          `\`${P}company [ticker]\` shows a company · \`${P}exchange\` lists them all\n` +
+          `\`${P}invest <amount>\` · \`${P}upgrade\` · \`${P}ipo\` · \`${P}salary <amount>\` run your company\n` +
+          'Anyone can `buy`, `sell`, and `apply` to public player companies.\n\n' +
           '**TODD**\n' +
           `\`${P}bailout\` borrow 500 when you're broke (you owe 600)\n` +
           `\`${P}repay <amount or all>\` pay TODD back\n\n` +
           '**Mods**\n' +
-          `\`${P}cleartitle @user\` removes someone's custom title\n\n` +
+          `\`${P}cleartitle @user\` removes someone's custom title\n` +
+          `\`${P}review\` · \`${P}approve <ticker>\` · \`${P}reject <ticker> [reason]\` new companies\n\n` +
           `Tickers: ${ctx.market.tickerList(m)}\n` +
           `Live board: ${config.siteUrl}/rend-conomy/\nFull guide: ${config.siteUrl}/bot/`,
         footer: { text: 'Every command also works as a slash command, like /market.' },

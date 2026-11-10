@@ -1,6 +1,31 @@
 const config = require('../config');
 const { money } = require('../format');
 const econ = require('../economy');
+const co = require('../companies');
+
+// Buying shares of a player company (see src/companies.js)
+async function buyPlayerCompany(ctx, m, pc, amount) {
+  if (pc.status === 'dead') return `💀 ${pc.name} (${pc.ticker}) went under. Its shares are gone.`;
+  if (pc.status !== 'public') return `🔒 ${pc.name} (${pc.ticker}) is private. It has to \`${config.prefix}ipo\` before anyone can buy in.`;
+  if (m) { const closed = ctx.market.closedReason(m); if (closed) return closed; }
+  const raw = String(amount || '').trim().toLowerCase();
+  const n = Number(raw);
+  if (raw === '' || Number.isNaN(n)) return `The amount must be a whole number, for example \`${config.prefix}buy ${pc.ticker} 5\`.`;
+  if (n <= 0) return 'The amount must be at least 1.';
+  if (!Number.isInteger(n)) return 'You can only buy whole shares.';
+  const r = co.buy(ctx.db, { guildId: ctx.guildId, user: ctx.user, ticker: pc.ticker, n });
+  if (r.error) return r.error;
+  const cash = ctx.db.player(ctx.guildId, ctx.user).cash;
+  return {
+    embeds: [{
+      title: `Order filled: bought ${n} ${pc.ticker}`,
+      description: `Price per share: **${money(r.priceCents)}**\nTotal cost: **${money(r.cost)}** Polygons\n` +
+        `Cash left: **${money(cash)}** Polygons\nYou now own **${r.held}** shares of ${pc.ticker}.` +
+        (r.raised ? `\n🏢 ${money(r.raised)} of that went into ${pc.name}'s treasury (IPO shares).` : ''),
+      color: config.color
+    }]
+  };
+}
 
 module.exports = {
   name: 'buy',
@@ -16,6 +41,8 @@ module.exports = {
     const t = String(args.ticker || '').toUpperCase();
     const list = ctx.market.tickerList(m);
     if (!ctx.market.ids(m).includes(t)) {
+      const pc = co.get(ctx.db, t);
+      if (pc && pc.status !== 'rejected' && pc.status !== 'pending') return buyPlayerCompany(ctx, m, pc, args.amount);
       return `Usage: \`${config.prefix}buy <ticker> <amount>\`, for example \`${config.prefix}buy RRM 5\`. Tickers: ${list}.`;
     }
     if (!m) return 'The market is offline right now. Try again shortly.';

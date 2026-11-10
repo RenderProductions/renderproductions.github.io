@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+  (function () {
+    try {
+      if (sessionStorage.getItem('passedRedirect')) return;
+      sessionStorage.setItem('probe', '1'); sessionStorage.removeItem('probe');
+    } catch (e) { return; }  // storage blocked: skip, so nobody gets stuck in a loop
+    location.replace('/redirect/?to=' + encodeURIComponent(location.pathname + location.search + location.hash));
+  })();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Exchange | Render Productions</title>
+<meta name="description" content="Player-run companies on the Rend-Conomy: founded, grown, and kept alive by members of The Render Room.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="The Exchange | Render Productions">
+<meta property="og:description" content="Player-run companies on the Rend-Conomy: founded, grown, and kept alive by members of The Render Room.">
+<meta property="og:url" content="https://renderproductions.github.io/rend-conomy/exchange/">
+<meta property="og:image" content="https://renderproductions.github.io/og/rend-conomy.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffe600">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<link rel="stylesheet" href="../../style.css">
+<style>
+  /* Exchange (page-specific) */
+  .board .owner { font-size: 13px; color: var(--grey); margin-top: 2px; }
+  .board .tag { margin-left: 0.5rem; }
+  .board .tag.warn { color: #f0b232; border-color: rgba(240,178,50,0.6); }
+  .board .tag.ipo { color: var(--lime); }
+  .closed-list .log { margin-bottom: 0.6rem; border-left-color: #ff6b6b; }
+  .closed-list .kind { color: #ff6b6b; letter-spacing: 1px; }
+  .levels td:first-child { color: var(--bright); }
+  .prose code { color: var(--bright); }
+  .board .name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 0; }
+  .board td:first-child { overflow-wrap: anywhere; }
+  @media (max-width: 600px) {
+    .board th, .board td { padding: 0.75rem 0.6rem; }
+    .board .tag { white-space: normal; font-size: 10px; }
+    .panel.prose { padding: 1rem; }
+    .levels { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/" aria-current="page">Rend-Conomy</a></li>
+      <li><a href="/bot/">Bot</a></li>
+      <li><a href="/games/">Games</a></li>
+      <li><a href="/face/">Face</a></li>
+      <li><a href="/patch-notes/">Patch Notes</a></li>
+      <li><a href="/discord/">Discord</a></li>
+    </ul>
+  </nav>
+
+  <header class="hero">
+    <h1>THE<br>EXCHANGE</h1>
+    <p class="tagline">Player-run companies. Founded by members of The Render Room, and kept alive by them too. When a company's stock hits zero, it's gone.</p>
+    <div class="btns">
+      <a class="btn primary" href="#public">See the companies</a>
+      <a class="btn" href="/rend-conomy/">Main market</a>
+    </div>
+  </header>
+
+  <section id="public" aria-labelledby="public-title">
+    <div class="section-head">
+      <h2 id="public-title">Public companies</h2>
+      <span class="tag" id="mode-tag">LOADING</span>
+    </div>
+    <table class="board" aria-label="Public player companies">
+      <thead>
+        <tr>
+          <th scope="col">Company</th>
+          <th scope="col" class="num">Price</th>
+          <th scope="col" class="num">Change</th>
+          <th scope="col" class="num hide-sm">Trend</th>
+        </tr>
+      </thead>
+      <tbody id="public-body"></tbody>
+    </table>
+    <p class="empty" id="public-note">Loading companies...</p>
+  </section>
+
+  <section aria-labelledby="private-title" style="margin-top: 2.5rem;">
+    <div class="section-head">
+      <h2 id="private-title">Private companies</h2>
+      <span>Not trading yet</span>
+    </div>
+    <table class="board" aria-label="Private player companies">
+      <thead>
+        <tr>
+          <th scope="col">Company</th>
+          <th scope="col" class="num">Treasury</th>
+          <th scope="col" class="num hide-sm">Employees</th>
+        </tr>
+      </thead>
+      <tbody id="private-body"></tbody>
+    </table>
+    <p class="empty" id="private-note" hidden>No private companies right now.</p>
+  </section>
+
+  <section id="closed" aria-labelledby="closed-title" style="margin-top: 2.5rem;" hidden>
+    <div class="section-head">
+      <h2 id="closed-title">Recently closed</h2>
+      <span>Last 7 days</span>
+    </div>
+    <div class="closed-list" id="closed-list"></div>
+  </section>
+
+  <section aria-labelledby="how-title" style="margin-top: 2.5rem;">
+    <div class="section-head">
+      <h2 id="how-title">How companies work</h2>
+    </div>
+    <div class="panel prose">
+      <p>Anyone can start a company with <code>r!found &lt;ticker&gt; &lt;name&gt;</code> for <b id="rule-founding">2,500</b> Polygons. A mod approves the name first, and if it's rejected you get your money back. Once approved, that money becomes the company's treasury.</p>
+      <p>The treasury pays a daily upkeep. It grows when the owner invests (<code>r!invest</code>), when players work there (every shift adds half the worker's pay), and from IPO share sales. Spend it to level up with <code>r!upgrade</code>.</p>
+      <p>At <b id="rule-ipo">Firm</b> level, the owner can go public with <code>r!ipo</code> (a <b id="rule-fee">2,000</b> Polygon listing fee). Then anyone can <code>r!buy</code> and <code>r!sell</code> its shares, except the owner. The first <b id="rule-float">400</b> shares sold fund the company. The owner can pay themselves up to 10% of the treasury a day with <code>r!salary</code>, but the stock dips when they do.</p>
+      <p>Miss an upkeep payment and the market panics. Keep missing them and the price slides to zero, and the company closes for good, taking every share with it. A private company closes after missing upkeep 3 days in a row.</p>
+      <table class="board levels" aria-label="Company levels" style="margin-top: 1rem;">
+        <thead><tr><th scope="col">Level</th><th scope="col" class="num">Cost</th><th scope="col" class="num">Upkeep / day</th><th scope="col" class="num hide-sm">Employee pay</th></tr></thead>
+        <tbody id="levels-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>Render Productions</span>
+    <span>Fictional companies. Nothing here is financial advice.</span>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    // The Rend-Conomy bot publishes this file on the repo's "data" branch every 10 minutes.
+    var DATA_URL = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/player-companies.json';
+    var REFRESH_MS = 60 * 1000;
+
+    // Shown until the bot publishes its first file
+    var DEFAULT_LEVELS = [
+      { name: 'Startup', cost: 2500, upkeep: 25, payMult: 1 },
+      { name: 'Small Business', cost: 5000, upkeep: 50, payMult: 1.1 },
+      { name: 'Firm', cost: 12000, upkeep: 100, payMult: 1.2 },
+      { name: 'Corporation', cost: 30000, upkeep: 200, payMult: 1.35 },
+      { name: 'Conglomerate', cost: 75000, upkeep: 400, payMult: 1.5 }
+    ];
+
+    var $ = function (id) { return document.getElementById(id); };
+    function money(n) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text; // company names come from players: always text, never HTML
+      return e;
+    }
+    function tag(text, cls) { return el('span', 'tag' + (cls ? ' ' + cls : ''), text); }
+
+    function nameCell(c) {
+      var td = el('td');
+      var name = el('div', 'name', c.name);
+      name.appendChild(el('span', 'tkr', c.ticker));
+      name.appendChild(tag(String(c.levelName).toUpperCase()));
+      if (c.strikes > 0) name.appendChild(tag('BEHIND ON UPKEEP', 'warn'));
+      if (c.offeringLeft > 0) name.appendChild(tag('IPO SHARES LEFT: ' + c.offeringLeft, 'ipo'));
+      td.appendChild(name);
+      td.appendChild(el('div', 'owner', 'Run by ' + c.owner));
+      return td;
+    }
+
+    function spark(history) {
+      var NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 96 28');
+      svg.setAttribute('preserveAspectRatio', 'none');
+      svg.setAttribute('aria-hidden', 'true');
+      var line = document.createElementNS(NS, 'polyline');
+      var h = history && history.length > 1 ? history : [0, 0];
+      var min = Math.min.apply(null, h), max = Math.max.apply(null, h), range = max - min || 1, n = h.length - 1;
+      line.setAttribute('points', h.map(function (v, i) {
+        return ((i / n) * 96).toFixed(1) + ',' + (26 - ((v - min) / range) * 24).toFixed(1);
+      }).join(' '));
+      svg.appendChild(line);
+      svg.setAttribute('class', 'spark ' + (h[h.length - 1] >= h[0] ? 'up' : 'down'));
+      return svg;
+    }
+
+    function renderLevels(levels) {
+      var body = $('levels-body');
+      body.innerHTML = '';
+      levels.forEach(function (l, i) {
+        var tr = el('tr');
+        tr.appendChild(el('td', null, l.name));
+        tr.appendChild(el('td', 'num', money(l.cost)));
+        tr.appendChild(el('td', 'num', money(l.upkeep)));
+        tr.appendChild(el('td', 'num hide-sm', l.payMult + 'x'));
+        body.appendChild(tr);
+      });
+    }
+
+    function render(data) {
+      var list = data.companies || [];
+      var pub = list.filter(function (c) { return c.status === 'public'; })
+        .sort(function (a, b) { return b.price - a.price; });
+      var priv = list.filter(function (c) { return c.status === 'private'; })
+        .sort(function (a, b) { return b.level - a.level || b.treasury - a.treasury; });
+
+      var pb = $('public-body');
+      pb.innerHTML = '';
+      pub.forEach(function (c) {
+        var tr = el('tr');
+        tr.appendChild(nameCell(c));
+        tr.appendChild(el('td', 'num price', money(c.price)));
+        var up = c.change >= 0;
+        tr.appendChild(el('td', 'num change ' + (up ? 'up' : 'down'), (up ? '▲ +' : '▼ ') + Number(c.change).toFixed(2) + '%'));
+        var tdS = el('td', 'num hide-sm');
+        tdS.appendChild(spark(c.history));
+        tr.appendChild(tdS);
+        pb.appendChild(tr);
+      });
+      $('public-note').hidden = pub.length > 0;
+      $('public-note').textContent = 'No player companies are public yet. Grow one to Firm level and r!ipo it.';
+
+      var vb = $('private-body');
+      vb.innerHTML = '';
+      priv.forEach(function (c) {
+        var tr = el('tr');
+        tr.appendChild(nameCell(c));
+        tr.appendChild(el('td', 'num', money(c.treasury)));
+        tr.appendChild(el('td', 'num hide-sm', String(c.employees)));
+        vb.appendChild(tr);
+      });
+      $('private-note').hidden = priv.length > 0;
+
+      var closed = data.closed || [];
+      $('closed').hidden = !closed.length;
+      var cl = $('closed-list');
+      cl.innerHTML = '';
+      closed.forEach(function (c) {
+        var item = el('div', 'log');
+        var label = el('div', 'label');
+        label.appendChild(el('span', 'kind', 'CLOSED'));
+        label.appendChild(document.createTextNode(' · ' + new Date(c.died).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })));
+        item.appendChild(label);
+        item.appendChild(el('div', 'fragment', c.name + ' (' + c.ticker + '), a ' + c.levelName + ' run by ' + c.owner + '. ' + (c.cause || '')));
+        cl.appendChild(item);
+      });
+
+      if (data.levels) renderLevels(data.levels);
+      if (data.rules) {
+        $('rule-founding').textContent = money(data.rules.founding);
+        $('rule-fee').textContent = money(data.rules.listingFee);
+        $('rule-float').textContent = String(data.rules.float);
+        if (data.levels && data.levels[data.rules.ipoLevel - 1]) $('rule-ipo').textContent = data.levels[data.rules.ipoLevel - 1].name;
+      }
+      var tagEl = $('mode-tag');
+      tagEl.textContent = 'LIVE';
+      tagEl.className = 'tag live';
+      tagEl.title = data.updated ? 'Updated ' + new Date(data.updated).toLocaleString() : '';
+    }
+
+    function load() {
+      fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(render)
+        .catch(function () {
+          $('mode-tag').textContent = 'OFFLINE';
+          $('mode-tag').className = 'tag off';
+          $('public-note').hidden = false;
+          $('public-note').textContent = 'No player companies yet. Start one in Discord with r!found.';
+          $('private-note').hidden = false;
+          $('private-note').textContent = 'No private companies yet.';
+        });
+    }
+
+    renderLevels(DEFAULT_LEVELS);
+    load();
+    setInterval(load, REFRESH_MS);
+  })();
+</script>
+</body>
+</html>

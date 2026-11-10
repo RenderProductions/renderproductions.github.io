@@ -17,9 +17,21 @@ module.exports = {
   devGuildId: process.env.DEV_GUILD_ID || '',
   prefix: process.env.PREFIX || 'r!',
   pricesUrl: process.env.PRICES_URL || 'https://renderproductions.github.io/prices.json',
-  dbPath: process.env.DB_PATH || path.join(__dirname, '..', 'data', 'rend-conomy.db'),
+  // A relative DB_PATH is read from the engine folder, so it doesn't depend on where the host starts the bot
+  dbPath: path.resolve(path.join(__dirname, '..'), process.env.DB_PATH || path.join('data', 'rend-conomy.db')),
   port: Number(process.env.PORT) || 8080,
   siteUrl: 'https://renderproductions.github.io',
+
+  // Player company approvals: your Discord user ID, and/or The Render Room's server ID
+  // (mods with Manage Messages there can approve). Companies can't be approved until one is set.
+  ownerId: process.env.BOT_OWNER_ID || '',
+  homeGuildId: process.env.HOME_GUILD_ID || '',
+
+  // Publishing player companies to the site: a GitHub token that can write to the repo.
+  // The bot saves player-companies.json on the "data" branch, which the exchange page reads.
+  githubToken: process.env.GITHUB_TOKEN || '',
+  githubRepo: process.env.GITHUB_REPO || 'RenderProductions/renderproductions.github.io',
+  dataBranch: process.env.DATA_BRANCH || 'data',
 
   // The market's time zone. r!daily resets at midnight here.
   timeZone: 'America/New_York',

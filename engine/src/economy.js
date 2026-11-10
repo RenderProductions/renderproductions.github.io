@@ -16,7 +16,18 @@ function shares(ctx, m, ticker, userId = ctx.user.id) {
 function worth(ctx, m, player, userId = ctx.user.id) {
   let total = player.cash;
   for (const c of m.companies) total += shares(ctx, m, c.id, userId) * Math.round(Number(m.prices[c.id]) * 100);
-  return total;
+  return total + playerCompanyValue(ctx, userId).total;
 }
 
-module.exports = { shares, worth };
+// Value of a player's shares in player companies: { total cents, rows: [{ ticker, name, shares, value }] }
+function playerCompanyValue(ctx, userId = ctx.user.id) {
+  const co = require('./companies');
+  const rows = co.holdingsOf(ctx.db, ctx.guildId, userId).map((h) => {
+    const c = co.get(ctx.db, h.ticker);
+    const value = c && c.status === 'public' ? h.shares * Math.round(c.price * 100) : 0;
+    return { ticker: h.ticker, name: c ? c.name : h.ticker, shares: h.shares, value };
+  });
+  return { total: rows.reduce((a, r) => a + r.value, 0), rows };
+}
+
+module.exports = { shares, worth, playerCompanyValue };

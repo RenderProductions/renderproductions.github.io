@@ -26,6 +26,10 @@ module.exports = {
       return { name: `${q.name} (${q.id})`, value: `${owned} shares, worth ${money(value)}` };
     });
 
+    const pcv = econ.playerCompanyValue(ctx, target.id);
+    stocks += pcv.total;
+    for (const r of pcv.rows) fields.push({ name: `🏢 ${r.name} (${r.ticker})`, value: `${r.shares} shares, worth ${money(r.value)}` });
+
     const titleLine = p.title ? `🏷️ *${p.title}*\n` : '';
     const debtLine = p.debt > 0 ? `\n🖥️ Owed to TODD: **${money(p.debt)}** Polygons` : '';
 

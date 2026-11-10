@@ -16,6 +16,19 @@ const saveBackup = () => { try { console.log('[db] Backup saved:', db.backup());
 saveBackup();
 setInterval(saveBackup, 6 * 60 * 60 * 1000).unref();
 
+// Player companies: upkeep and prices move every 5 minutes, and the site gets a copy
+const companies = require('./companies');
+const tickCompanies = () => {
+  try {
+    for (const e of companies.tick(db)) {
+      console.log(`[companies] ${e.ticker}: ${e.type === 'dead' ? 'went under' : `missed upkeep (${e.strikes} in a row)`}`);
+    }
+  } catch (e) { console.error('[companies] Tick failed:', e); }
+};
+tickCompanies();
+setInterval(tickCompanies, companies.RULES.tickMs).unref();
+require('./publish').start(db);
+
 // Start the web API first, so the host's health check passes even if Discord has trouble.
 // /health reports whether the bot is actually connected.
 api.start(deps, () => ({ discord: client.isReady() ? 'connected' : 'not connected' }));

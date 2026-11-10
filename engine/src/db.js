@@ -90,6 +90,38 @@ const MIGRATIONS = [
     INSERT INTO inventory (guild_id, user_id, item, qty)
       SELECT guild_id, user_id, 'title', title_credit FROM players WHERE title_credit > 0;
     UPDATE players SET title_credit = 0;
+  `,
+  `
+    -- Version 4: player companies. Companies are shared by every server; shares are per server
+    -- like balances (you buy with the Polygons you have in that server).
+    CREATE TABLE pc_companies (
+      ticker        TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      owner_id      TEXT NOT NULL,
+      owner_name    TEXT,
+      owner_guild   TEXT NOT NULL,             -- where the founding cost was paid (refunds go here)
+      level         INTEGER NOT NULL DEFAULT 1,
+      treasury      INTEGER NOT NULL DEFAULT 0, -- cents
+      status        TEXT NOT NULL,             -- pending, private, public, dead, rejected
+      price         REAL,                      -- Polygons per share, once public
+      offering_left INTEGER NOT NULL DEFAULT 0, -- IPO shares not sold yet (their money goes to the treasury)
+      strikes       INTEGER NOT NULL DEFAULT 0, -- missed upkeep payments in a row
+      created_at    INTEGER NOT NULL,
+      approved_at   INTEGER,
+      ipo_at        INTEGER,
+      died_at       INTEGER,
+      last_upkeep   INTEGER NOT NULL DEFAULT 0,
+      last_salary   INTEGER NOT NULL DEFAULT 0,
+      history       TEXT NOT NULL DEFAULT '[]', -- recent prices, newest last
+      note          TEXT                        -- rejection reason or cause of death
+    );
+    CREATE TABLE pc_holdings (
+      guild_id TEXT NOT NULL,
+      user_id  TEXT NOT NULL,
+      ticker   TEXT NOT NULL,
+      shares   INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (guild_id, user_id, ticker)
+    );
   `
 ];
 

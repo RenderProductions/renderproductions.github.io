@@ -4,7 +4,7 @@ The Rend-Conomy Discord bot in JavaScript, living next to the site. Every comman
 
 **Status:** full port of the BDFD bot (minus the AI commands), hosted on Bot-Hosting.net. The BDFD bot keeps running until the "Crash the Rend-Conomy" update swaps them, which also wipes balances.
 
-Commands: help, balance (bal, portfolio, pf), daily, market, buy, sell, chart, compare, dividends, apply, quit, work, shop, purchase, inventory, use, settitle, cleartitle (mods), slots, bailout, repay, and the secret 404 (prefix only, not in help or the slash list).
+Commands: help, balance (bal, portfolio, pf), daily, market, buy, sell, chart, compare, dividends, apply, quit, work, shop, purchase, inventory, use, settitle, cleartitle (mods), player companies (found, company, exchange, invest, upgrade, ipo, salary, plus review/approve/reject for mods), slots, bailout, repay, and the secret 404 (prefix only, not in help or the slash list).
 
 ## Folder map
 
@@ -20,6 +20,8 @@ engine/
     register.js    tells Discord about the slash commands
     format.js      money/percent formatting
     economy.js     shares (with bankruptcy wipes) and net worth
+    companies.js   player companies: levels, treasury, upkeep, IPO, trading, prices, death
+    publish.js     sends player companies to the site (data branch) every 10 minutes
     jobs.js        companies, ranks, and r!work's tasks
     shop.js        shop items, prices, and hourly restocks
     slash.js       turns the command files into slash commands
@@ -86,6 +88,12 @@ Then for automatic deploys:
 Useful commands: `fly logs` (watch the bot), `fly status`, `fly ssh console` (look at /data).
 
 The API lives at `https://<app name>.fly.dev/health`.
+
+## Player companies
+
+Global (every server sees the same companies); shares are bought with each server's own Polygons. Founding costs 2,500 and needs approval from the bot owner (`BOT_OWNER_ID`) or a mod with Manage Messages in the home server (`HOME_GUILD_ID`). Levels, upkeep, fees and the price model are at the top of `src/companies.js`.
+
+The exchange page (`/rend-conomy/exchange/`) reads `player-companies.json` from the repo's `data` branch, which the bot rewrites as a single commit (so it never grows) when `GITHUB_TOKEN` is set. The token needs Contents read/write on this repo only.
 
 ## Data
 
