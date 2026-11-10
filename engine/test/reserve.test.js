@@ -83,6 +83,12 @@ const S = reserve.RULES.start;
   config.ownerId = 'someone-else';
   assert.ok(JSON.stringify(await say('r!reserve fund 1000')).includes('Only the bot owner'));
 
+  // Reset puts it back to exactly full
+  config.ownerId = ANA.id;
+  await say('r!reserve reset');
+  assert.strictEqual(reserve.get(db), S);
+  config.ownerId = 'someone-else';
+
   // The house's balance is the reserve now
   const bal = await say('r!balance', { user: { id: '1', username: "Render's Vision", bot: true } });
   assert.ok(bal.embeds[0].description.includes('Polygon Reserve'));

@@ -8,12 +8,19 @@ module.exports = {
   aliases: ['vault'],
   description: "See how many Polygons the house has left",
   usage: '',
-  options: [{ name: 'fund', type: 'string', description: 'Bot owner only: add Polygons to the reserve' }],
+  options: [{ name: 'fund', type: 'string', description: 'Bot owner only: "fund <amount>" adds Polygons, "reset" refills it to full' }],
 
   async run(ctx, args) {
-    const raw = String(args.fund || '').trim().toLowerCase().replace(/^fund\s+/, '');
+    let raw = String(args.fund || '').trim().toLowerCase().replace(/^fund\s+/, '');
+    const isOwner = config.ownerId && ctx.user.id === config.ownerId;
+    // r!reserve reset: back to exactly full (RESERVE_START), for after changing the size
+    if (raw === 'reset') {
+      if (!isOwner) return '🏦 Only the bot owner can reset the reserve.';
+      reserve.move(ctx.db, reserve.RULES.start - reserve.get(ctx.db));
+      return `🏦 The Polygon Reserve is reset to full: **${have(reserve.get(ctx.db))}**.`;
+    }
     if (raw) {
-      if (!config.ownerId || ctx.user.id !== config.ownerId) return '🏦 Only the bot owner can fund the reserve. Buy stock and shop to fill it up instead!';
+      if (!isOwner) return '🏦 Only the bot owner can fund the reserve. Buy stock and shop to fill it up instead!';
       const cents = parsePolygons(raw);
       if (!cents || cents <= 0) return `🏦 Usage: \`${config.prefix}reserve fund <amount>\``;
       reserve.take(ctx.db, cents);
