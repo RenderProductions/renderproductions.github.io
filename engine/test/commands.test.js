@@ -66,6 +66,12 @@ const has = async (line, needle, user) => {
   await has('r!portfolio', "alice's portfolio");
   const viewBob = await router.runCommand(require('../src/commands/balance'), ctxFor(ALICE), { user: BOB });
   assert.ok(text(viewBob).includes("bob's portfolio"), 'can view someone else');
+  // Easter egg: the bot's own portfolio is infinite, and other bots don't play
+  const balanceCmd = require('../src/commands/balance');
+  const house = await router.runCommand(balanceCmd, { ...ctxFor(ALICE), client: { user: { id: '999' } } }, { user: { id: '999', username: "Render's Vision", bot: true } });
+  assert.ok(text(house).includes('⬢ ∞') && text(house).includes('∞ shares') && text(house).includes('The house always wins'), text(house));
+  const otherBot = await router.runCommand(balanceCmd, ctxFor(ALICE), { user: { id: '888', username: 'SomeBot', bot: true } });
+  assert.ok(text(otherBot).includes("Bots don't play the market"), text(otherBot));
 
   await has('r!daily', 'You received **⬡ 250.00**');
   assert.strictEqual(cash(), 750_00);
