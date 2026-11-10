@@ -12,6 +12,8 @@ const co = require('../companies');
 const loans = require('../loans');
 const reminders = require('../reminders');
 const marketEngine = require('../marketEngine');
+const A = require('../achievements');
+const effects = require('../effects');
 const { relTime, amt } = require('../format');
 const { button, rows, nonce } = require('../buttons');
 
@@ -48,6 +50,9 @@ const isBoomed = (m, job) => !!(m && m.boost && (!m.boost.tickers || !m.boost.ti
 // Returns a reply payload (with `later` for memory tasks, which hide the prompt after a few seconds).
 function startTask(ctx, { job, style, rush = 0, mode = 'work', tier = 0, scab = false, market = null, intro = '' }) {
   const t = jobs.task(style, { rush: rush > 0, tier, random: ctx.random || Math.random, market, kind: TUNING.kind });
+  // A Stopwatch charge: 10 extra seconds on a regular shift
+  const watch = mode === 'work' && !rush && effects.take(ctx.db, ctx.guildId, ctx.user.id, 'stopwatch');
+  if (watch) { t.limit += 10; intro = `${intro}⏱️ Stopwatch: **+10 seconds**.\n`; }
   const id = nonce();
   const hide = t.hideMs || 0;
   active.set(keyOf(ctx), { job, style, mode, rush, tier, scab, id, kind: t.kind, ans: t.ans, check: t.check,
@@ -94,6 +99,7 @@ async function answer(ctx, text) {
     if (tip > 0) out += `\n⚡ Speed tip **+${amt(Math.round(tip * 100 * shrink))}** (${Math.max(0, elapsed).toFixed(1)}s)`;
     out += garnishNote(g);
     if (shrink < 1) out += reserve.note(ctx.db);
+    if (A.bump(ctx, 'gigs') >= 25) A.award(ctx, 'gig_economy');
     return out + `\n-# Want steady pay? \`${config.prefix}apply <ticker>\` for a real job.`;
   }
 
@@ -132,7 +138,7 @@ async function answer(ctx, text) {
     const tk = `${ctx.guildId}:${ctx.channelId}:${st.job}`;
     const crew = recent.get(tk) || new Map();
     const mates = [...crew.entries()].filter(([u, x]) => u !== ctx.user.id && Date.now() - x.at < TEAM.windowMs).slice(0, TEAM.max);
-    if (mates.length) team = pay * TEAM.each * mates.length;
+    if (mates.length) { team = pay * TEAM.each * mates.length; if (A.bump(ctx, 'team_shifts') >= 10) A.award(ctx, 'team_player'); }
     crew.set(ctx.user.id, { at: Date.now(), name: ctx.user.username });
     for (const [u, x] of crew) if (Date.now() - x.at > TEAM.windowMs) crew.delete(u);
     recent.set(tk, crew);
@@ -153,6 +159,7 @@ async function answer(ctx, text) {
     cu.rev_total = career.rev_total + 1;
     cu.rev_right = career.rev_right + (result === 'pass' ? 1 : 0);
     update.shifts = cu.shifts;
+    A.award(ctx, 'first_paycheck');
     if (result === 'pass') out = `✅ Nice work, ${r.name}! **+${amt(cents(pay))}**`;
     else if (result === 'slow') out = `🐢 Too slow! You still clocked in for **+${amt(cents(pay))}**`;
     else out = `❌ Not quite, it was ${shown}. You still get **+${amt(cents(pay))}**`;
@@ -163,14 +170,19 @@ async function answer(ctx, text) {
     // Performance review every 10 shifts
     if (cu.rev_total >= jobs.REVIEW.every) {
       const score = cu.rev_right;
+      if (score >= jobs.REVIEW.every) A.award(ctx, 'perfect_review');
       cu.rev_total = 0; cu.rev_right = 0;
       if (score >= jobs.REVIEW.promote && career.rank < 3) {
         cu.rank = career.rank + 1;
+        A.award(ctx, 'promoted');
+        if (cu.rank === 3) A.award(ctx, 'top_of_the_ladder');
         review = `\n\n📋 **Performance review: ${score}/10.** 🎉 **Promoted to ${jobs.rankName(st.job, cu.rank)}!** Pay is now ${jobs.MULTS[cu.rank]}x, and your tasks get tougher.`;
       } else if (score >= jobs.REVIEW.promote) {
         const bonus = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * r.mult * jobs.REVIEW.topBonus * 100));
         review = `\n\n📋 **Performance review: ${score}/10.** ⭐ Outstanding, ${r.name}! Here's a **${amt(bonus)}** bonus.`;
         cu._bonus = bonus;
+      } else if (score <= jobs.REVIEW.demote && career.rank > 0 && effects.usePassive(ctx.db, ctx.guildId, ctx.user.id, 'reference')) {
+        review = `\n\n📋 **Performance review: ${score}/10.** ✉️ It was going to be a demotion, but your **Reference Letter** saved you. You're still a ${r.name}.`;
       } else if (score <= jobs.REVIEW.demote && career.rank > 0) {
         cu.rank = career.rank - 1;
         review = `\n\n📋 **Performance review: ${score}/10.** 📉 Sloppy work. **Demoted to ${jobs.rankName(st.job, cu.rank)}.** Pay is now ${jobs.MULTS[cu.rank]}x.`;
@@ -182,6 +194,7 @@ async function answer(ctx, text) {
     }
   } else {
     out = result === 'pass' ? `⚡ **RUSH CLEARED!** Bonus **+${amt(total)}**` : '💨 The rush got away from you. No bonus this time.';
+    if (result === 'pass' && st.rush >= 5) A.award(ctx, 'rush_hour');
   }
 
   const bonus = cu._bonus || 0;
@@ -196,6 +209,7 @@ async function answer(ctx, text) {
     reserve.spend(ctx.db, total + revenue);
     return split;
   });
+  if (st.rush === 0 && c && ctx.db.careers(ctx.guildId, ctx.user.id).filter((x) => jobs.COMPANIES[x.ticker] && x.shifts > 0).length >= Object.keys(jobs.COMPANIES).length) A.award(ctx, 'jack_of_all_trades');
   // Good work makes the company a little more valuable; strikebreaking makes it a little less
   if (c && st.rush === 0) {
     if (st.scab) marketEngine.nudge(ctx.db, st.job, NUDGE.scab);
@@ -222,6 +236,10 @@ async function events(ctx, p, m) {
   if (!c) return null;
   // Layoffs: a bankrupt company can't pay its staff
   if (m && m.statuses && m.statuses[p.job] === 'bankrupt') {
+    if (effects.usePassive(ctx.db, ctx.guildId, ctx.user.id, 'hardhat')) {
+      ctx.notes.push(`🪖 **${c.name} is bankrupt and laying people off**, but your Hard Hat kept you on the crew. Pay is rough until it recovers.`);
+      return null;
+    }
     const career = ctx.db.career(ctx.guildId, ctx.user.id, p.job);
     const sev = ctx.db.tx(() => {
       const s = reserve.pay(ctx.db, Math.round(jobs.BASE_PAY * jobs.rank(p.job, career.rank).mult * SEVERANCE * 100));
@@ -230,6 +248,7 @@ async function events(ctx, p, m) {
       return s;
     });
     reminders.cancel(ctx.guildId, ctx.user.id);
+    A.award(ctx, 'pink_slip');
     return `📦 **Laid off.** ${c.name} is bankrupt and can't make payroll. Here's **${amt(sev)}** in severance.\n` +
       `Your rank there is saved if it ever comes back. Until then, try \`${P}gig\` or \`${P}apply\` somewhere else.`;
   }
@@ -297,6 +316,7 @@ module.exports = {
     if (st.mode === 'strike') {
       active.delete(keyOf(ctx));
       if (i === 'cross') {
+        A.award(ctx, 'scab');
         const t = startTask(ctx, { job: st.job, style: st.job, tier: st.tier, scab: true, market: st.market, intro: '🪧 You cross the picket line. Boos all around.\n' });
         return { update: t };
       }
@@ -309,6 +329,7 @@ module.exports = {
         ctx.db.updateCareer(ctx.guildId, ctx.user.id, st.job, { earned: career.earned + s });
         return s;
       });
+      A.award(ctx, 'solidarity');
       return { update: { content: `🪧 **Solidarity!** You hold the line with the union. Strike pay: **+${amt(pay)}**.\n-# Strikes don't count toward your review.`, components: [] } };
     }
 

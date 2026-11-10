@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const co = require('../companies');
 const { money, have, amt } = require('../format');
 
@@ -32,6 +33,7 @@ module.exports = {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -cost);
       co.found(ctx.db, { ticker, name, owner: ctx.user, guildId: ctx.guildId });
     });
+    A.award(ctx, 'founder');
 
     // Let the bot owner know there's something to review
     if (config.ownerId && ctx.client) {

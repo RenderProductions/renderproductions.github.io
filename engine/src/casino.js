@@ -38,12 +38,15 @@ function takeBet(ctx, game, raw) {
     stat(ctx.db, ctx.guildId, ctx.user.id, game, { played: 1, wagered: bet });
   });
   last.set(key, Date.now());
+  if (bet === RULES.maxBet[game]) require('./achievements').award(ctx, 'high_roller');
   return { bet };
 }
 
 // Pays out (the bet included, if it's coming back). Returns the player's Polygons after.
 function payout(ctx, game, cents) {
   cents = Math.max(0, Math.round(cents));
+  // A Platinum Chip charge: this game pays 4% more (no house edge)
+  if (ctx.guildId && require('./effects').take(ctx.db, ctx.guildId, ctx.user.id, 'chip') && cents > 0) cents = Math.round(cents * 1.04);
   ctx.db.tx(() => {
     if (cents) {
       ctx.db.addCash(ctx.guildId, ctx.user.id, cents);
@@ -51,6 +54,10 @@ function payout(ctx, game, cents) {
     }
     stat(ctx.db, ctx.guildId, ctx.user.id, game, { paid: cents, biggest: cents });
   });
+  // Achievements: the first win, and a losing streak
+  const A = require('./achievements');
+  if (cents > 0) { A.award(ctx, 'beginners_luck'); A.set(ctx, 'loss_streak', 0); }
+  else if (A.bump(ctx, 'loss_streak') >= 10) A.award(ctx, 'down_bad');
   return ctx.db.player(ctx.guildId, ctx.user).cash;
 }
 

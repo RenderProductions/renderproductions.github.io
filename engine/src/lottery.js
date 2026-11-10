@@ -80,6 +80,7 @@ async function tick(deps, now = Date.now(), random = Math.random) {
     });
     if (!win) continue;
     out.push({ guild: g, draw, winner: win.user_id, name: win.username, prize, tickets: win.tickets, total });
+    const unlock = require('./achievements').award({ db: deps.db, guildId: g }, 'jackpot', win.user_id);
     const text = `🎟️ **THE LOTTERY HAS BEEN DRAWN!** ${total} ticket${total === 1 ? '' : 's'} were in the drum...\n` +
       `🎉 **${win.username}** wins the pot of **${amt(prize)}** with ${win.tickets} ticket${win.tickets === 1 ? '' : 's'}!\n` +
       `-# The next draw is Sunday at 8 PM Eastern. \`${config.prefix}lottery buy <tickets>\``;
@@ -88,7 +89,7 @@ async function tick(deps, now = Date.now(), random = Math.random) {
       const ch = client && client.channels ? await client.channels.fetch(deps.db.meta(`lotto_ch:${g}`)) : null;
       if (ch) await ch.send({ content: text, allowedMentions: { parse: [] } });
       const u = client && client.users ? await client.users.fetch(win.user_id) : null;
-      if (u) await u.send(`🎟️ You won the lottery! **${amt(prize)}** is in your balance.`);
+      if (u) await u.send(`🎟️ You won the lottery! **${amt(prize)}** is in your balance.${unlock ? '\n\n' + unlock : ''}`);
     } catch (e) { console.error('[lottery] Could not announce:', e.message); }
   }
   return out;

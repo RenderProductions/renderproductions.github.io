@@ -1,5 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const { money, have, amt } = require('../format');
 
@@ -19,6 +20,7 @@ module.exports = {
       return `🏢 Becoming a **${next.name}** costs **${amt(next.cost)}** from the treasury, which has ${have(c.treasury)}. Try \`${P}invest\`.`;
     }
 
+    if (c.level + 1 >= co.LEVELS.length) A.award(ctx, 'conglomerate');
     ctx.db.tx(() => {
       co.update(ctx.db, c.ticker, { level: c.level + 1, treasury: c.treasury - next.cost });
       reserve.take(ctx.db, next.cost); // expansion costs go to the house

@@ -75,6 +75,7 @@ module.exports = {
     }
     s.open.add(i);
     if (s.open.size === SIZE - s.count) {
+      require('../achievements').award(ctx, 'field_cleared');
       casino.end(ctx);
       const win = s.bet * multFor(s.count, s.open.size);
       const cash = casino.payout(ctx, 'mines', win);

@@ -15,7 +15,7 @@ const BEN = mk('700000000000000002', 'ben');
 let random = Math.random;
 const ctxFor = (user, extra = {}) => ({ ...router.makeCtx({ guildId: G, channelId: 'table', user }, { db, market }), random: () => random(), ...extra });
 async function say(line, user = ANA, extra) { const p = router.parsePrefix(line); return router.runCommand(p.cmd, ctxFor(user, extra), p.args); }
-const text = (o) => (o == null ? '' : typeof o === 'string' ? o : o.content || JSON.stringify(o.embeds));
+const text = (o) => (o == null ? '' : typeof o === 'string' ? o : (o.content || '') + (o.embeds ? JSON.stringify(o.embeds) : ''));
 const ids = (o) => o.components.flatMap((r) => r.components.map((b) => b.custom_id));
 const press = (cmd, id, user = ANA) => cmd.onButton(ctxFor(user), id.split(':').slice(1));
 const cash = (u = ANA) => db.player(G, u).cash;

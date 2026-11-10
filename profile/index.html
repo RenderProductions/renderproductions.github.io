@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Profile | Render Productions</title>
+<meta name="description" content="Your Rend-Conomy profile: achievements, collectibles, net worth and more. Log in with Discord to see yours.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="My Profile | Render Productions">
+<meta property="og:description" content="Your Rend-Conomy profile: achievements, collectibles, net worth and more.">
+<meta property="og:url" content="https://renderproductions.github.io/profile/">
+<meta property="og:image" content="https://renderproductions.github.io/og/bot.png">
+<meta name="theme-color" content="#ffe600">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/x-icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<style>
+  .login { max-width: 720px; margin: 1.5rem 0 2.5rem; padding: 1.5rem; background: var(--panel); border: 1px solid var(--line-strong); }
+  .login h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 48px; line-height: 1; letter-spacing: 2px; color: var(--bright); }
+  .login p { color: var(--lime); max-width: 60ch; margin: 0.75rem 0; }
+  .login .btn { margin: 0.25rem 0 0.25rem; }
+  .btn.discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+  .btn.discord:hover { background: #4752c4; }
+  .find { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+  .find input { flex: 1 1 200px; min-width: 0; padding: 0.55rem 0.75rem; font: inherit; color: var(--bright); background: var(--bg); border: 1px solid var(--line-strong); }
+  .results { list-style: none; margin: 0.75rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .results a { display: inline-flex; align-items: center; gap: 0.4rem; padding: 3px 10px; font-size: 13px; color: var(--lime); border: 1px solid var(--line-strong); text-decoration: none; }
+  .results img { width: 18px; height: 18px; border-radius: 50%; }
+
+  .profile { max-width: 720px; margin: 1.5rem 0 2.5rem; background: var(--panel); border: 1px solid var(--line-strong); overflow: hidden; }
+  .profile-banner { height: 120px; background: radial-gradient(circle at 20% 30%, rgba(255, 230, 0, 0.25), transparent 60%), linear-gradient(135deg, #10172a, #050810); border-bottom: 1px solid var(--line); }
+  .profile-body { position: relative; padding: 0 1.5rem 1.5rem; }
+  .profile-avatar { overflow: hidden; color: transparent; position: absolute; top: -56px; left: 1.25rem; width: 112px; height: 112px; border-radius: 50%; border: 8px solid var(--panel); background: var(--panel-2); object-fit: cover; }
+  .profile-actions { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; padding-top: 1rem; min-height: 56px; }
+  .profile-name { margin: 1rem 0 0; font-family: var(--display); font-weight: 400; font-size: 44px; line-height: 1; letter-spacing: 2px; color: var(--bright); overflow-wrap: anywhere; }
+  .profile-title { margin: 0.35rem 0 0; color: var(--lime); font-style: italic; }
+  .profile-section { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  .profile-section h2 { margin: 0 0 0.6rem; font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem 1rem; margin: 0; }
+  .stats dt { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--grey); }
+  .stats dd { margin: 0.15rem 0 0; font-family: var(--display); font-size: 26px; line-height: 1.1; color: var(--bright); overflow-wrap: anywhere; }
+  .server-name { margin: 0.9rem 0 0.4rem; font-size: 13px; color: var(--grey); }
+  .server-name:first-of-type { margin-top: 0; }
+  .meter { height: 8px; background: #161616; border: 1px solid #333; margin: 0.25rem 0 1rem; overflow: hidden; }
+  .meter div { height: 100%; background: var(--bright); }
+  .cat { margin: 1rem 0 0.4rem; font-size: 13px; color: var(--lime); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.5rem; }
+  .ach { padding: 0.55rem 0.7rem; border: 1px solid var(--line); background: rgba(255, 230, 0, 0.03); min-width: 0; }
+  .ach .n { font-size: 14px; color: var(--bright); overflow-wrap: anywhere; }
+  .ach .d { font-size: 12px; color: var(--grey); margin-top: 0.2rem; }
+  .ach .r { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-top: 0.35rem; }
+  .ach.locked { opacity: 0.38; filter: grayscale(1); }
+  .ach.common .r { color: #b9bbbe; } .ach.rare .r { color: #3ba7f2; } .ach.epic .r { color: #b57edc; } .ach.legendary .r { color: var(--bright); }
+  .ach.legendary:not(.locked) { border-color: var(--line-strong); box-shadow: 0 0 14px rgba(255, 230, 0, 0.12); }
+  .cols { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .col { padding: 0.45rem 0.7rem; border: 1px solid var(--line-strong); font-size: 13px; color: var(--lime); }
+  .note { color: var(--grey); font-size: 13px; }
+  @media (max-width: 560px) {
+    .profile-body, .login { padding-left: 1rem; padding-right: 1rem; }
+    .profile-avatar { width: 88px; height: 88px; top: -44px; left: 0.9rem; border-width: 6px; }
+    .profile-actions { padding-top: 52px; justify-content: flex-start; }
+    .profile-name { font-size: 36px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/bot/">Bot</a></li>
+      <li><a href="/profile/" aria-current="page">Profile</a></li>
+      <li><a href="/games/">Games</a></li>
+      <li><a href="/patch-notes/">Patch Notes</a></li>
+      <li><a href="/discord/">Discord</a></li>
+    </ul>
+  </nav>
+
+  <!-- Logged out: log in, or look someone up -->
+  <section class="login" id="login" hidden>
+    <h1>MY PROFILE</h1>
+    <p>Your Rend-Conomy profile: achievements, collectibles, net worth, and where you work. Log in with Discord to see yours.</p>
+    <a class="btn discord" id="login-btn" href="#">Log in with Discord</a>
+    <p class="note">This only tells the site your Discord name and picture, nothing else. It never sees your password or messages.</p>
+    <div class="find">
+      <input id="find" type="search" placeholder="Or look someone up by name" aria-label="Look someone up by name" autocomplete="off">
+    </div>
+    <ul class="results" id="results"></ul>
+  </section>
+
+  <!-- A profile -->
+  <article class="profile" id="card" hidden aria-labelledby="p-name">
+    <div class="profile-banner"></div>
+    <div class="profile-body">
+      <img class="profile-avatar" id="p-avatar" src="/bot/avatar.png" alt="" width="112" height="112" onerror="this.onerror=null;this.src='/bot/avatar.png'">
+      <div class="profile-actions" id="p-actions"></div>
+      <h1 class="profile-name" id="p-name">Player</h1>
+      <p class="profile-title" id="p-title" hidden></p>
+
+      <div class="profile-section" id="p-servers-section">
+        <h2>Rend-Conomy</h2>
+        <div id="p-servers"></div>
+      </div>
+      <div class="profile-section" id="p-cols-section">
+        <h2>Collectibles</h2>
+        <div class="cols" id="p-cols"></div>
+      </div>
+      <div class="profile-section">
+        <h2>Achievements</h2>
+        <p class="note" id="p-ach-count"></p>
+        <div class="meter" aria-hidden="true"><div id="p-ach-meter" style="width: 0%"></div></div>
+        <div id="p-ach"></div>
+      </div>
+    </div>
+  </article>
+
+  <p class="note" id="status" aria-live="polite">Loading profiles…</p>
+</div>
+
+<script>
+(function () {
+  var CLIENT_ID = '1569206837352337609';
+  var REDIRECT = location.origin + '/profile/';
+  var DATA = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/profiles.json';
+  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', secret: '❓ Secret' };
+  var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+  var $ = function (id) { return document.getElementById(id); };
+  var store = {
+    get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  var num = function (n) { return Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 }); };
+
+  // ---- Log in with Discord (the browser-only kind: Discord hands back a token in the URL, which we use once) ----
+  function loginUrl() {
+    var state = Math.random().toString(36).slice(2);
+    try { sessionStorage.setItem('rv_state', state); } catch (e) {}
+    return 'https://discord.com/oauth2/authorize?client_id=' + CLIENT_ID + '&response_type=token&scope=identify' +
+      '&redirect_uri=' + encodeURIComponent(REDIRECT) + '&state=' + state;
+  }
+  function fromRedirect() {
+    if (!location.hash || location.hash.indexOf('access_token=') < 0) return Promise.resolve(null);
+    var h = new URLSearchParams(location.hash.slice(1));
+    history.replaceState(null, '', location.pathname + location.search); // the token never stays in the address bar
+    var want = null;
+    try { want = sessionStorage.getItem('rv_state'); } catch (e) {}
+    if (want && h.get('state') !== want) return Promise.resolve(null);
+    return fetch('https://discord.com/api/users/@me', { headers: { Authorization: 'Bearer ' + h.get('access_token') } })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (u) {
+        var me = { id: u.id, name: u.global_name || u.username, avatar: u.avatar ? 'https://cdn.discordapp.com/avatars/' + u.id + '/' + u.avatar + '.png?size=128' : null };
+        store.set('rv_me', me);
+        return me;
+      })
+      .catch(function () { $('status').textContent = "Discord didn't log you in. Try again?"; return null; });
+  }
+
+  // ---- Showing a profile ----
+  function show(data, id, me) {
+    var u = data.users[id];
+    $('login').hidden = true;
+    $('card').hidden = false;
+    var mine = me && me.id === id;
+    document.title = (mine ? 'My Profile' : (u ? u.name : 'Profile')) + ' | Render Productions';
+    var actions = $('p-actions');
+    actions.textContent = '';
+    if (mine) {
+      var out = el('a', 'btn', 'Log out'); out.href = '#';
+      out.onclick = function (e) { e.preventDefault(); store.del('rv_me'); location.href = '/profile/'; };
+      actions.appendChild(out);
+    } else {
+      var back = el('a', 'btn', me ? 'My profile' : 'Log in'); back.href = '/profile/';
+      actions.appendChild(back);
+    }
+    if (!u) {
+      $('p-name').textContent = mine ? me.name : 'Not found';
+      if (mine && me.avatar) $('p-avatar').src = me.avatar;
+      $('p-ach-count').textContent = mine
+        ? "You don't have a public profile yet. Play Rend-Conomy in Discord (try r!daily), and it shows up here within a few minutes. If you set it private, r!profile public turns it back on."
+        : "This player doesn't have a public profile.";
+      $('p-servers-section').hidden = true;
+      $('p-cols-section').hidden = true;
+      renderAchievements(data, new Map());
+      return;
+    }
+    $('p-name').textContent = u.name;
+    $('p-avatar').src = u.avatar || (mine && me.avatar) || '/bot/avatar.png';
+    $('p-avatar').alt = u.name + "'s picture";
+    var top = u.servers[0] || {};
+    $('p-title').hidden = !top.title;
+    $('p-title').textContent = top.title ? '🏷️ ' + top.title : '';
+
+    var got = new Map(u.achievements.map(function (a) { return [a[0], a]; }));
+    renderAchievements(data, got);
+
+    // Each server they play in
+    var box = $('p-servers');
+    box.textContent = '';
+    $('p-servers-section').hidden = false;
+    $('p-cols-section').hidden = false;
+    u.servers.forEach(function (s) {
+      if (u.servers.length > 1) box.appendChild(el('p', 'server-name', s.server));
+      var dl = el('dl', 'stats');
+      [['Net worth', '⬢ ' + num(s.worth)], ['Job', s.job ? s.job.rank + ' · ' + s.job.ticker : 'None'], ['Shifts', num(s.shifts)], ['Best casino hit', s.bestHit ? '⬡ ' + num(s.bestHit) : '—']]
+        .forEach(function (p) { var d = el('div'); d.appendChild(el('dt', null, p[0])); d.appendChild(el('dd', null, p[1])); dl.appendChild(d); });
+      box.appendChild(dl);
+    });
+
+    var cols = $('p-cols');
+    cols.textContent = '';
+    var have = {};
+    u.servers.forEach(function (s) { s.collectibles.forEach(function (c) { have[c] = true; }); });
+    var owned = data.collectibles.filter(function (c) { return have[c.id]; });
+    if (!owned.length) cols.appendChild(el('p', 'note', 'None yet. Marquez stocks one each week.'));
+    owned.forEach(function (c) { var d = el('span', 'col', c.emoji + ' ' + c.name); d.title = c.desc; cols.appendChild(d); });
+  }
+
+  function renderAchievements(data, got) {
+    var box = $('p-ach');
+    box.textContent = '';
+    var total = data.achievements.length;
+    $('p-ach-meter').style.width = Math.round((got.size / total) * 100) + '%';
+    if (got.size || !$('p-ach-count').textContent) $('p-ach-count').textContent = got.size + ' of ' + total + ' unlocked · % = share of players who have it';
+    Object.keys(CATS).forEach(function (cat) {
+      var list = data.achievements.filter(function (a) { return a.cat === cat; });
+      if (!list.length) return;
+      box.appendChild(el('p', 'cat', CATS[cat]));
+      var grid = el('div', 'grid');
+      list.forEach(function (a) {
+        var mine = got.get(a.id);
+        var name = a.secret ? (mine ? mine[2] : '???') : a.name;
+        var desc = a.secret ? (mine ? mine[3] : 'A secret. Keep playing.') : a.desc;
+        var card = el('div', 'ach ' + a.rarity + (mine ? '' : ' locked'));
+        card.appendChild(el('div', 'n', (mine ? '✅ ' : '🔒 ') + name));
+        card.appendChild(el('div', 'd', desc));
+        card.appendChild(el('div', 'r', RARITY[a.rarity] + ' · ' + a.pct + '%' + (mine ? ' · ' + new Date(mine[1]).toLocaleDateString() : '')));
+        grid.appendChild(card);
+      });
+      box.appendChild(grid);
+    });
+  }
+
+  function showLogin(data) {
+    $('login').hidden = false;
+    $('card').hidden = true;
+    $('login-btn').href = loginUrl();
+    var input = $('find');
+    var list = $('results');
+    function search() {
+      var q = input.value.trim().toLowerCase();
+      list.textContent = '';
+      if (!data || q.length < 2) return;
+      Object.keys(data.users).filter(function (id) { return data.users[id].name.toLowerCase().indexOf(q) >= 0; }).slice(0, 12).forEach(function (id) {
+        var u = data.users[id];
+        var li = el('li'); var a = el('a'); a.href = '/profile/?id=' + id;
+        if (u.avatar) { var img = el('img'); img.src = u.avatar; img.alt = ''; a.appendChild(img); }
+        a.appendChild(document.createTextNode(u.name + ' · ' + u.achievements.length + ' 🏆'));
+        li.appendChild(a); list.appendChild(li);
+      });
+    }
+    input.oninput = search;
+  }
+
+  // ---- Start ----
+  var params = new URLSearchParams(location.search);
+  Promise.all([
+    fromRedirect(),
+    fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; })
+  ]).then(function (res) {
+    var me = res[0] || store.get('rv_me');
+    var data = res[1];
+    $('status').textContent = data ? 'Profiles update every few minutes · ' + data.players + ' players · ' + 'r!profile private hides yours' : "Profiles couldn't be loaded right now.";
+    var id = params.get('id') || (me && me.id);
+    if (!data) { showLogin(null); return; }
+    if (id) show(data, id, me); else showLogin(data);
+  });
+})();
+</script>
+<script src="/face/popup.js" data-odds="10"></script>
+</body>
+</html>

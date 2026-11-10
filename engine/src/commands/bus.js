@@ -90,6 +90,7 @@ module.exports = {
     s.mult *= step;
     s.round++;
     if (s.round === 5) {
+      require('../achievements').award(ctx, 'bus_driver');
       casino.end(ctx);
       const win = Math.floor(s.bet * s.mult);
       const cash = casino.payout(ctx, 'bus', win);

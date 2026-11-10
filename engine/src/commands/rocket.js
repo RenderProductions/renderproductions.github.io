@@ -36,6 +36,7 @@ function settle(ctx, s, now = Date.now()) {
     const mult = Math.floor(m * 100) / 100;
     const win = Math.floor(s.bet * mult);
     s.result = { won: true, mult, win, cash: casino.payout(ctx, 'rocket', win) };
+    if (mult >= 10) require('../achievements').award(ctx, 'moon_shot');
   }
   return s.result;
 }
@@ -54,7 +55,8 @@ module.exports = {
   async run(ctx, args) {
     const t = casino.takeBet(ctx, 'rocket', args.amount);
     if (!t.bet) return t.error || casino.usage('rocket', 'rocket <amount>');
-    const s = casino.start(ctx, 'rocket', { bet: t.bet, t0: Date.now() + 2000, crashAt: crashPoint(ctx.random || Math.random) });
+    const fuel = require('../effects').take(ctx.db, ctx.guildId, ctx.user.id, 'fuel'); // Rocket Fuel: 20% higher
+    const s = casino.start(ctx, 'rocket', { bet: t.bet, t0: Date.now() + 2000, crashAt: Math.min(RULES.cap, crashPoint(ctx.random || Math.random) * (fuel ? 1.2 : 1)), fuel });
     const out = view(ctx, s, s.t0);
     out.embeds[0].description = '`🌍🚀` Launching in 2...\n' + out.embeds[0].description;
     // The live countdown: edits the message every 1.5s until it crashes or you cash out

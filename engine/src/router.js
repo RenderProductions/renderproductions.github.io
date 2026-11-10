@@ -43,7 +43,7 @@ async function sendSafe(fn, payload) {
 async function runCommand(cmd, ctx, args) {
   try {
     if (ctx.db) require('./botstats').counted(ctx.db);
-    const out = await cmd.run(ctx, args);
+    const out = require('./achievements').attach(ctx, await cmd.run(ctx, args)); // adds any achievements unlocked
     if (out == null) return null;
     const payload = toPayload(out);
     for (const k of ['later', 'after']) if (out[k]) Object.defineProperty(payload, k, { value: out[k], enumerable: false }); // kept for the sender
@@ -56,8 +56,9 @@ async function runCommand(cmd, ctx, args) {
 
 // Shared context every command gets.
 function makeCtx({ guildId, channelId, user, message, isMod = false, guildName = '' }, deps) {
-  return {
+  const ctx = {
     ...deps,
+    notes: [], // achievement announcements to add to the reply
     guildName, // shown on DM receipts
     isMod, // has Manage Messages in this server
     guildId,
@@ -67,11 +68,12 @@ function makeCtx({ guildId, channelId, user, message, isMod = false, guildName =
     // Waits for this player's next non-command message in this channel.
     // handler(msg) returns what to reply with (or null). One wait per player per channel.
     awaitNext(handler, ms = 60_000) {
-      pending.set(`${channelId}:${user.id}`, { handler, expires: Date.now() + ms });
+      pending.set(`${channelId}:${user.id}`, { handler, expires: Date.now() + ms, ctx });
     },
     // Stops waiting (used when a button answered instead)
     cancelAwait() { pending.delete(`${channelId}:${user.id}`); }
   };
+  return ctx;
 }
 
 // "r!buy rrm 5" -> { cmd, args: { ticker: 'rrm', amount: '5' } }, or null if it isn't a command.
@@ -113,6 +115,7 @@ async function handleMessage(message, deps) {
     if (Date.now() > wait.expires) return;
     let out = null;
     try { out = await wait.handler(message); } catch (e) { console.error('[await]', e); }
+    if (wait.ctx) out = require('./achievements').attach(wait.ctx, out);
     if (out != null) { const sent = await sendSafe((p) => message.reply(p), toPayload(out)); afterSend(out, (p) => sent.edit(p)); return sent; }
     return;
   }
@@ -144,6 +147,14 @@ async function handleButton(interaction, deps) {
   try { out = await cmd.onButton(ctx, parts); } catch (e) {
     console.error(`[${cmd.name} button]`, e);
     out = { reply: 'Something broke. It has been logged.' };
+  }
+  if (ctx.notes.length && out) {
+    // Achievements unlocked by a button go on whatever gets sent
+    const A = require('./achievements');
+    if (out.followUp) out.followUp = A.attach(ctx, out.followUp);
+    else if (out.update) out.update = A.attach(ctx, out.update);
+    else if (out.reply) out.reply = A.attach(ctx, out.reply);
+    else if (out.say) out.say = A.attach(ctx, out.say);
   }
   if (!out) return interaction.deferUpdate();
   if (out.update) {

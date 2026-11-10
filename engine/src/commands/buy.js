@@ -1,4 +1,5 @@
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const receipts = require('../receipts');
 const { money, have, amt } = require('../format');
@@ -75,8 +76,12 @@ module.exports = {
       reserve.take(ctx.db, cost); // the house sold you the shares
       ctx.db.updateHolding(ctx.guildId, ctx.user.id, t, { shares: now });
       ctx.db.logTrade(ctx.guildId, ctx.user.id, t, qty, q.priceCents);
+      ctx.db.addLot(ctx.guildId, ctx.user.id, t, qty, q.priceCents); // remembers what these cost, and when
       return now;
     });
+    A.award(ctx, 'shareholder');
+    if (m.crash && (m.crash.phase === 'crash' || m.crash.phase === 'tremor')) A.award(ctx, 'buy_the_dip');
+    if (m.companies.every((c) => c.id === t || econ.shares(ctx, m, c.id) > 0)) A.award(ctx, 'diversified');
 
     receipts.send(ctx, { title: `Bought ${qty} ${t}`, lines: [
       ['Company', `${q.name} (${t})`], ['Shares', qty], ['Price per share', amt(q.priceCents)],

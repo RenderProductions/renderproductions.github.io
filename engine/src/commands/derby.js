@@ -58,7 +58,10 @@ async function runRace(r, ctx) {
   for (const b of r.bets) {
     const win = b.horse === winner ? Math.floor(b.bet * r.odds[winner]) : 0;
     casino.payout({ db: ctx.db, guildId: ctx.guildId, user: { id: b.id } }, 'derby', win);
-    if (win) lines.push(`🏆 **${b.name}** wins ${amt(win)}!`);
+    if (win) {
+      const got = require('../achievements').award({ db: ctx.db, guildId: ctx.guildId }, 'photo_finish', b.id);
+      lines.push(`🏆 **${b.name}** wins ${amt(win)}!${got ? ` (🏆 ${require('../achievements').BY_ID.photo_finish.name})` : ''}`);
+    }
   }
   const [e, n] = HORSES[winner];
   const line = `${e} **${n} wins!**\n${lines.join('\n') || 'Nobody backed the winner. The house thanks you.'}`;

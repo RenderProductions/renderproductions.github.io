@@ -7,6 +7,8 @@ const list = [
   require('./daily'),
   require('./leaderboard'),
   require('./gift'),
+  require('./profile'),
+  require('./achievements'),
   require('./reserve'),
   require('./crash'),
   require('./boost'),

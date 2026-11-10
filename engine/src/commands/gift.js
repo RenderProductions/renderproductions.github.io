@@ -2,6 +2,7 @@
 // A 5% fee goes to the Polygon Reserve. No gifting while you owe TODD or have an overdue loan (so it can't
 // be used to dodge garnishing), and at most ⬡ 5,000 sent per day.
 const config = require('../config');
+const A = require('../achievements');
 const reserve = require('../reserve');
 const receipts = require('../receipts');
 const loans = require('../loans');
@@ -27,7 +28,7 @@ module.exports = {
     const to = args.player;
     if (!to) return usage;
     if (to.id === ctx.user.id) return "🎁 You can't gift yourself. Nice try.";
-    if (to.bot) return "🎁 The house doesn't take tips. It takes everything else, though.";
+    if (to.bot) { A.award(ctx, 'tip_the_house'); return "🎁 The house doesn't take tips. It takes everything else, though."; }
     const cents = parsePolygons(args.amount);
     if (cents === null) return usage;
     if (cents < RULES.min) return `🎁 The smallest gift is ${amt(RULES.min)}.`;
@@ -41,7 +42,8 @@ module.exports = {
     const sentKey = `gift_sent:${ctx.guildId}:${ctx.user.id}:${today}`;
     const sent = Number(ctx.db.meta(sentKey)) || 0;
     if (sent + cents > RULES.perDay) return `🎁 You can send up to ${amt(RULES.perDay)} a day. You have ${amt(Math.max(0, RULES.perDay - sent))} left today.`;
-    const fee = Math.max(1, Math.round(cents * RULES.fee));
+    const wrapped = (require('../effects').get(ctx.db, ctx.guildId, ctx.user.id).wrap || 0) > 0; // Gift Wrap: no fee
+    const fee = wrapped ? 0 : Math.max(1, Math.round(cents * RULES.fee));
     if (p.cash < cents + fee) return `🎁 Gifting ${amt(cents)} costs ${amt(cents + fee)} with the ${RULES.fee * 100}% fee. You have ${have(p.cash)}.`;
 
     const note = String(args.note || '').trim().slice(0, 200);
@@ -51,11 +53,13 @@ module.exports = {
       ctx.db.addCash(ctx.guildId, to.id, cents);
       reserve.take(ctx.db, fee);
       ctx.db.setMeta(sentKey, sent + cents);
+      if (wrapped) require('../effects').take(ctx.db, ctx.guildId, ctx.user.id, 'wrap');
     });
+    if (A.bump(ctx, 'gifted', cents) >= 1000_00) A.award(ctx, 'generous');
     receipts.send(ctx, { title: `Gift to ${to.username}`, lines: [['Sent', amt(cents)], ['Fee', amt(fee)], ['Polygons left', have(p.cash - cents - fee)], ...(note ? [['Note', note]] : [])] });
     receipts.send(ctx, { title: `Gift from ${ctx.user.username}`, userId: to.id, username: to.username, lines: [['Received', amt(cents)], ...(note ? [['Note', note]] : [])] });
     return {
-      content: `🎁 <@${to.id}>, **${ctx.user.username}** sent you **${amt(cents)}**!${note ? `\n> ${note.replace(/\n/g, ' ')}` : ''}\n-# Fee: ${amt(fee)} to the Polygon Reserve`,
+      content: `🎁 <@${to.id}>, **${ctx.user.username}** sent you **${amt(cents)}**!${note ? `\n> ${note.replace(/\n/g, ' ')}` : ''}\n-# ${wrapped ? '🎀 Gift wrapped: no fee' : `Fee: ${amt(fee)} to the Polygon Reserve`}`,
       allowedMentions: { users: [to.id] }
     };
   }

@@ -1,5 +1,6 @@
 // r!forgive @borrower: a lender wipes out what someone owes them.
 const config = require('../config');
+const A = require('../achievements');
 const receipts = require('../receipts');
 const loans = require('../loans');
 const { amt } = require('../format');
@@ -16,6 +17,7 @@ module.exports = {
     if (!loan) return `🏦 **${args.borrower.username}** doesn't owe you anything.`;
 
     loans.forgive(ctx.db, loan);
+    A.award(ctx, 'merciful');
     receipts.send(ctx, { title: `${ctx.user.username} forgave your loan`, userId: args.borrower.id, username: args.borrower.username, lines: [['Forgiven', amt(loan.owed)], ['You owe them', 'Nothing']] });
     receipts.send(ctx, { title: `You forgave ${args.borrower.username}'s loan`, lines: [['Forgiven', amt(loan.owed)]] });
     return {
