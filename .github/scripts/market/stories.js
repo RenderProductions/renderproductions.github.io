@@ -249,6 +249,42 @@ const CRASH = {
   ]
 };
 
+// THE BOOST  headlines for a boost (see BOOST in engine.js). all = the whole market, one = only some companies ({n} = their names).
+//   start: when it's switched on · during: every few hours while it lasts · end: when it's over
+// A headline typed into the workflow replaces the start one.
+const BOOST = {
+  start: {
+    all: [
+      'BOOM TIME. Money floods into the Rend-Conomy and every stock on the board is going up.',
+      'TODD accidentally leaves the Polygon printer on overnight. The whole market is rallying.',
+      'A mystery investor buys a little of everything. The board lights up green.',
+      'Polygon confidence hits an all-time high. Investors pile in across the board.'
+    ],
+    one: [
+      'Investors are suddenly crazy about {n}. Buy orders are pouring in.',
+      '{n} catches the eye of a mystery investor with very deep pockets.',
+      'Everyone wants a piece of {n} today.'
+    ]
+  },
+  during: {
+    all: [
+      'The rally keeps going. Brokers are seen high-fiving in the hallway.',
+      'More money pours in. Analysts call it "irrational" and buy more anyway.',
+      'Green across the board again. Somebody frame this.',
+      'TODD comments on the boom: "nice." Markets climb further.'
+    ],
+    one: [
+      '{n} keeps climbing. The buyers are not done yet.',
+      'Another wave of buy orders lifts {n}.'
+    ]
+  },
+  end: [
+    'The boom cools off. The party is over, but the snacks are still out.',
+    'The buying frenzy fades. The market catches its breath.',
+    'The rally runs out of steam. Prices settle in for a nap.'
+  ]
+};
+
 // BANKRUPTCY  {n} = company name.
 //   brink: falls under 1.50 · enter: drops under 0 · appeal / appealAgain: files for a TODD bailout
 //   approved / denied: TODD's verdict · hope / doom: news while bankrupt · swim: climbs out on its own
@@ -302,4 +338,4 @@ const BANKRUPT = {
   ]
 };
 
-module.exports = { GOALS, GOOD, BAD, RUMORS, MARKET, CROSSOVER, CRASH, BANKRUPT };
+module.exports = { GOALS, GOOD, BAD, RUMORS, MARKET, CROSSOVER, CRASH, BOOST, BANKRUPT };

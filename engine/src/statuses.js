@@ -43,6 +43,7 @@ const STATUSES = [
     return `🌙 After hours${left ? ` · opens in ${left}` : ''}`;
   } },
   { type: 'custom', text: ({ market: m }) => (m && m.crash && m.crash.phase === 'crash' ? '🚨 MARKET CRASH IN PROGRESS' : null) },
+  { type: 'custom', text: ({ market: m }) => (m && m.boost ? '🚀 MARKET BOOM' : null) },
   { type: 'watching', text: ({ db }) => {
     const n = co.list(db, ['public', 'private']).length;
     return n ? `${n} player compan${n === 1 ? 'y' : 'ies'}` : null;

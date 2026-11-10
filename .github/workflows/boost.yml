@@ -1,0 +1,91 @@
+name: Boost the market
+
+# Actions tab > "Boost the market" > Run workflow. For random events: a hype wave, a holiday, a giveaway.
+# Writes .github/market-boost.json (the market engine reads it every tick), then runs one tick
+# right away so the site and the Discord feed pick it up within a minute or two.
+# It stacks with a crash: during the selling it softens the fall, during the recovery it speeds it up.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'What to do'
+        type: choice
+        options:
+          - start a boost
+          - stop the boost now
+        default: start a boost
+      strength:
+        description: 'How big (small ≈ +16%, normal ≈ +40%, big ≈ double)'
+        type: choice
+        options: [small, normal, big]
+        default: normal
+      hours:
+        description: 'Hours the boost lasts'
+        type: string
+        default: '6'
+      tickers:
+        description: 'Only these companies, e.g. "RRM BLU" (blank = the whole market)'
+        type: string
+        default: ''
+      headline:
+        description: 'Your own headline for the news (blank = a random one)'
+        type: string
+        default: ''
+
+permissions:
+  contents: write   # commit market-boost.json
+  actions: write    # start a price tick right away
+
+concurrency:
+  group: market-prices   # never runs at the same time as a price tick
+  cancel-in-progress: false
+
+jobs:
+  boost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write the boost settings
+        env:
+          ACTION: ${{ inputs.action }}
+          STRENGTH: ${{ inputs.strength }}
+          HOURS: ${{ inputs.hours }}
+          TICKERS: ${{ inputs.tickers }}
+          HEADLINE: ${{ inputs.headline }}
+        run: |
+          node - <<'JS'
+          const fs = require('fs');
+          const FILE = '.github/market-boost.json';
+          const KNOWN = ['RRM', 'NACH', 'BLU', 'BNW', 'BSTG'];
+          let cur = {};
+          try { cur = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) {}
+          let out;
+          if (process.env.ACTION.startsWith('start')) {
+            const hours = Number(process.env.HOURS);
+            const tickers = String(process.env.TICKERS || '').toUpperCase().split(/[\s,]+/).filter(Boolean);
+            const bad = tickers.filter((t) => !KNOWN.includes(t));
+            if (bad.length) { console.error('Unknown ticker(s): ' + bad.join(', ') + '. Use: ' + KNOWN.join(', ')); process.exit(1); }
+            out = { start: new Date().toISOString(), hours: Number.isFinite(hours) && hours > 0 ? hours : 6,
+              strength: process.env.STRENGTH || 'normal', tickers, headline: String(process.env.HEADLINE || '').trim().slice(0, 200) };
+          } else {
+            out = Object.assign({}, cur, { start: null });
+          }
+          out = Object.assign({ note: "Written by the 'Boost the market' workflow (Actions tab). start null = no boost." }, out);
+          fs.writeFileSync(FILE, JSON.stringify(out, null, 2) + '\n');
+          console.log(process.env.ACTION + ' ->', JSON.stringify(out));
+          JS
+
+      - name: Commit and run a tick
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "rend-conomy-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/market-boost.json
+          if git diff --cached --quiet; then echo "Nothing changed."; exit 0; fi
+          git commit -m "Market boost: ${{ inputs.action }}"
+          git pull --rebase
+          git push
+          gh api -X POST repos/${{ github.repository }}/actions/workflows/update-prices.yml/dispatches -f ref=${{ github.ref_name }}

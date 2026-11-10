@@ -10,7 +10,7 @@ module.exports = {
     const m = await ctx.market.get();
     if (!m) return 'The market is offline right now. Try again in a minute.';
 
-    const top = [m.market && m.market.text, m.crashText].filter(Boolean).join('\n');
+    const top = [m.market && m.market.text, m.crashText, m.boostText].filter(Boolean).join('\n');
     return {
       embeds: [{
         title: 'Rend-Conomy Market',

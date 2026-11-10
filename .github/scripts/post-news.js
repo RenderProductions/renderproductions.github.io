@@ -30,6 +30,7 @@ const COLORS = {
   crossover: 0xeb459e,
   dividend: 0x2ecc71,
   crash: 0x992d22,
+  boom: 0x57f287,
   halt: 0xe67e22,
   brink: 0xf0b232,
   bankrupt: 0x23272a,

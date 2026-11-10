@@ -45,7 +45,7 @@ const CRASH_DEFAULTS = {
 };
 const CRASH = (() => {
   let file = {};
-  try { file = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'market-crash.json'), 'utf8')) || {}; } catch (e) { /* no crash file: no crash */ }
+  try { file = JSON.parse(require('fs').readFileSync(process.env.MARKET_CRASH_FILE || require('path').join(__dirname, '..', '..', 'market-crash.json'), 'utf8')) || {}; } catch (e) { /* no crash file: no crash */ }
   const c = Object.assign({}, CRASH_DEFAULTS, file);
   const k = SEVERITY[c.severity] || 1;
   c.depth = {};
@@ -55,6 +55,27 @@ const CRASH = (() => {
 const CRASH_MOODS = { calm: 0, normal: 0, rally: 0, slide: 4, choppy: 3, mania: 0, freefall: 10, bounce: 3 };
 const PANIC_RATE = 1 / 200;         // per company per open crash tick: a sudden panic leg down
 const CRASH_NEWS_HOURS = [2, 5];    // time between crash headlines
+
+// ---------- The Boost ----------
+// The opposite of a crash, for random events: Actions tab > "Boost the market" > Run workflow.
+// That workflow writes .github/market-boost.json. It can run on its own or on top of a crash or its
+// recovery (it fights the selling, and speeds the climb back up afterward).
+// strength: how far the boosted companies get lifted over the whole boost, in log terms
+// (0.15 = about +16%, 0.35 = about +42%, 0.7 = about double). Each company rolls its own share of it.
+// The lift is spread over the hours the market is actually moving, so a boost started at night still lands.
+// When it ends, prices that went above their usual range slowly settle back (unless something else holds them up).
+const BOOST_STRENGTH = { small: 0.15, normal: 0.35, big: 0.7 };
+const BOOST_POP = { small: [0.01, 0.02], normal: [0.02, 0.04], big: [0.04, 0.07] };   // the jump when it's announced
+const BOOST_SPREAD = [0.7, 1.3];
+const BOOST_NEWS_HOURS = [3, 6];    // time between boom headlines
+const BOOST = (() => {
+  let file = {};
+  try { file = JSON.parse(require('fs').readFileSync(process.env.MARKET_BOOST_FILE || require('path').join(__dirname, '..', '..', 'market-boost.json'), 'utf8')) || {}; } catch (e) { /* no boost file: no boost */ }
+  const b = Object.assign({ start: null, hours: 6, strength: 'normal', tickers: [], headline: '' }, file);
+  b.tickers = (Array.isArray(b.tickers) ? b.tickers : String(b.tickers || '').split(/[\s,]+/)).map((t) => String(t).trim().toUpperCase()).filter(Boolean);
+  if (!BOOST_STRENGTH[b.strength]) b.strength = 'normal';
+  return b;
+})();
 const HALT_DROP = -12;              // the average stock falls this much (%) in an hour: circuit breaker
 const HALT_MIN = 15;                // trading halts this long; prices freeze
 const HALT_COOLDOWN_HOURS = 4;
@@ -258,6 +279,29 @@ function crashPhase(ms) {
   return ms < t.t1 ? 'tremor' : ms < t.t2 ? 'crash' : 'recovery';
 }
 
+// The boost window, or null when no boost is on (or it's over).
+function boostTimes() {
+  if (!BOOST.start) return null;
+  const t0 = Date.parse(BOOST.start);
+  if (isNaN(t0) || !(BOOST.hours > 0)) return null;
+  return { t0, t1: t0 + BOOST.hours * HOUR };
+}
+function boostOn(ms) {
+  const t = boostTimes();
+  return !!t && ms >= t.t0 && ms < t.t1;
+}
+// How many full-size ticks of movement fit in the boost (after-hours ticks count a quarter).
+function boostTicks() {
+  const t = boostTimes();
+  let n = 0;
+  for (let x = t.t0 - (t.t0 % TICK_MS); x < t.t1; x += TICK_MS) {
+    const st = statusAt(x);
+    n += st === 'open' ? 1 : st === 'after-hours' ? AFTER_HOURS_SCALE : 0;
+  }
+  return n;
+}
+const boosted = (id) => !BOOST.tickers.length || BOOST.tickers.includes(id);
+
 // Percent change that still makes sense when prices touch or cross zero.
 function pctChange(now, then) {
   if (!then) return 0;
@@ -301,9 +345,18 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
   if (phaseChanged && phase === 'crash') state.market.mood = rollMood(MARKET_MOODS, ONLY('crash'));
   if (phaseChanged && phase === 'tremor') state.market.mood = rollMood(MARKET_MOODS, ONLY('jitters'));
   if (phaseChanged && oldPhase === 'crash') state.market.mood = rollMood(MARKET_MOODS, ONLY('jitters'));
+  // ----- The Boost -----
+  const boosting = boostOn(now);
+  const boostStarted = boosting && state.market.boost !== BOOST.start;
+  const boostEnded = !boosting && !!state.market.boost;
+  state.market.boost = boosting ? BOOST.start : null;
+  const BOOM_MOODS = { flat: 25, bull: 60, bear: 0, jitters: 15, crash: 0 };
+  const calmPhase = phase !== 'crash' && phase !== 'tremor';
+  if (boostStarted && calmPhase && !BOOST.tickers.length) state.market.mood = rollMood(MARKET_MOODS, ONLY('bull'));
   if (now >= state.market.mood.until) {
     state.market.mood = phase === 'crash' ? rollMood(MARKET_MOODS, ONLY('crash'))
       : phase === 'tremor' ? rollMood(MARKET_MOODS, ONLY('jitters'))
+      : boosting && !BOOST.tickers.length ? rollMood(MARKET_MOODS, BOOM_MOODS)
       : phase === 'recovery' ? rollMood(MARKET_MOODS, { flat: 40, bull: 15, bear: 25, jitters: 20, crash: 0 })
       : rollMood(MARKET_MOODS);
   }
@@ -390,6 +443,12 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       s.crash = { id: CRASH.start, rate: depth / (CRASH.crashHours * 60 / TICK_MIN) };
     }
     const drag = !s.crash ? 0 : phase === 'crash' ? s.crash.rate : phase === 'tremor' ? s.crash.rate * 0.3 : 0;
+    // Each boost gives every boosted company its own lift, spread over the boost.
+    if (boosting && boosted(c.id) && (!s.boost || s.boost.id !== BOOST.start)) {
+      const ticks = boostTicks();
+      s.boost = { id: BOOST.start, rate: ticks ? BOOST_STRENGTH[BOOST.strength] * between(BOOST_SPREAD[0], BOOST_SPREAD[1]) / ticks : 0 };
+    }
+    const lift = boosting && s.boost && s.boost.id === BOOST.start ? s.boost.rate : 0;
     if (phaseChanged && phase === 'crash') s.mood = rollMood(MOODS, ONLY('freefall', MOODS));
     if (phaseChanged && oldPhase === 'crash') s.mood = rollMood(MOODS, c.moods);
 
@@ -406,6 +465,8 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         r += sc * kappaPit * (s.pit - price) / LINEAR_BELOW;
         if (!phase || phase === 'recovery') s.pit += sc * PIT_CLIMB / TICKS_PER_DAY;
         r -= sc * drag * 0.5;
+        r += sc * lift;
+        s.pit += sc * lift * LINEAR_BELOW;
       } else {
         r += sc * kappa * (s.lnFair - lp);
         // Outside a crash, cheap stocks get a gentle lift off the floor (going bankrupt is possible, just rare).
@@ -413,16 +474,17 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
         r += sc * s.hype / TICKS_PER_DAY;
         if (s.secret && s.secret.leakDir) r += sc * s.secret.leakDir * (c.leak / (DECIDE_MIN / TICK_MIN));
         r -= sc * drag;
+        r += sc * lift;
       }
       // Volatility clustering: big surprises raise volatility, calm ticks let it settle back toward 1.
       s.g = clamp(1 + 0.98 * (s.g - 1) + 0.05 * (Math.abs(z) - 0.8), 0.5, 3.5);
       // The fair value wanders, and is gently kept inside its bounds (not during a crash: it sinks with everything else).
-      s.lnFair += sc * (c.fairVol / Math.sqrt(TICKS_PER_DAY)) * normal() - sc * drag;
+      s.lnFair += sc * (c.fairVol / Math.sqrt(TICKS_PER_DAY)) * normal() - sc * drag + sc * lift;
       const keep = drag ? 0 : phase === 'recovery' ? 0.08 : 1;
       if (s.lnFair > bounds[1]) s.lnFair -= sc * 0.01 * keep * (s.lnFair - bounds[1]);
       if (s.lnFair < bounds[0]) s.lnFair += sc * 0.01 * keep * (bounds[0] - s.lnFair);
       // Health drifts slowly back toward neutral (and rots during a crash).
-      s.health = clamp(s.health * (1 - 0.003 * sc) + 0.035 * Math.sqrt(sc) * normal() - (drag ? 0.004 * sc : 0), -1, 1);
+      s.health = clamp(s.health * (1 - 0.003 * sc) + 0.035 * Math.sqrt(sc) * normal() - (drag ? 0.004 * sc : 0) + (lift ? 0.003 * sc : 0), -1, 1);
       // Above LINEAR_BELOW moves are percentages; below it they're Polygons, so the price can cross zero.
       const next = !bk && price >= LINEAR_BELOW ? price * Math.exp(r) : price + LINEAR_BELOW * r;
       return round2(next);
@@ -704,6 +766,36 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
     state.market.crashNewsAt = now + between(CRASH_NEWS_HOURS[0], CRASH_NEWS_HOURS[1]) * HOUR;
   }
 
+  // ---------- The Boost: headlines ----------
+  const boostIds = live.filter((x) => boosted(x.c.id)).map((x) => x.c.id);
+  const boostNames = live.filter((x) => boosted(x.c.id)).map((x) => x.c.name);
+  const boostWho = BOOST.tickers.length ? boostNames.join(' and ') : '';
+  const boomLine = (list) => pick(list).replace(/\{n\}/g, boostWho);
+  function boomHit(lo, hi, headline) {
+    const moves = {};
+    live.forEach((x) => {
+      if (!boosted(x.c.id)) return;
+      const size = between(lo, hi) * between(0.7, 1.3);
+      moves[x.c.id] = shove(x, size, { fair: 0.6, vol: 0.2, health: 0.04 });
+      x.newsLog.unshift({ time: nowIso, id: x.c.id, name: x.c.name, type: 'boom', headline, move: moves[x.c.id] });
+    });
+    return moves;
+  }
+  const BS = STORIES.BOOST;
+  const one = BOOST.tickers.length ? 'one' : 'all';
+  if (boostStarted && boostIds.length) {
+    const headline = BOOST.headline || boomLine(BS.start[one]);
+    const pop = BOOST_POP[BOOST.strength];
+    addNews({ id: BOOST.tickers.length === 1 ? BOOST.tickers[0] : 'MARKET', name: boostWho || 'Whole market', type: 'boom', big: BOOST.strength === 'big', headline, moves: boomHit(pop[0], pop[1], headline) });
+    state.market.boostNewsAt = now + between(BOOST_NEWS_HOURS[0], BOOST_NEWS_HOURS[1]) * HOUR;
+  } else if (boosting && boostIds.length && open && !halted && now >= (state.market.boostNewsAt || 0)) {
+    const headline = boomLine(BS.during[one]);
+    addNews({ id: BOOST.tickers.length === 1 ? BOOST.tickers[0] : 'MARKET', name: boostWho || 'Whole market', type: 'boom', headline, moves: boomHit(0.005, 0.015, headline) });
+    state.market.boostNewsAt = now + between(BOOST_NEWS_HOURS[0], BOOST_NEWS_HOURS[1]) * HOUR;
+  } else if (boostEnded) {
+    addNews({ id: 'MARKET', name: 'Whole market', type: 'boom', headline: pick(BS.end) });
+  }
+
   // ---------- Bankruptcy ----------
   const B = STORIES.BANKRUPT;
   live.forEach((x) => {
@@ -869,7 +961,15 @@ function tick({ old = {}, state = null, now = Date.now(), rand } = {}) {
       : phase === 'crash' ? '🚨 **MARKET CRASH IN PROGRESS** · the selling ends <t:' + unix(t.t2) + ':R>... maybe'
       : '🩹 **Crash recovery** · the market is finding its floor'
   } : null;
-  const data = buildOutput({ nowIso, market, news, companies, crash });
+  const bt = boostTimes();
+  const boost = boosting ? {
+    started: new Date(bt.t0).toISOString(),
+    until: new Date(bt.t1).toISOString(),
+    strength: BOOST.strength,
+    tickers: boostIds,
+    text: '🚀 **MARKET BOOM** · ' + (BOOST.tickers.length ? boostIds.join(', ') + ' ' + (boostIds.length === 1 ? 'is' : 'are') + ' climbing' : 'the whole board is climbing') + ' · ends <t:' + unix(bt.t1) + ':R>'
+  } : null;
+  const data = buildOutput({ nowIso, market, news, companies, crash, boost });
 
   // News made this tick goes to Discord too (oldest first, so it reads in order).
   news.filter((n) => n.time === nowIso).reverse().forEach((n) => {
@@ -896,6 +996,7 @@ const KINDS = {
   crossover: '🤝 **CROSSOVER**',
   dividend:  '💸 **DIVIDEND**',
   crash:     '🚨 **MARKET CRASH**',
+  boom:      '🚀 **MARKET BOOM**',
   halt:      '🛑 **TRADING HALTED**',
   brink:     '⚠️ **ON THE BRINK**',
   bankrupt:  '💀 **BANKRUPT**',
@@ -1016,7 +1117,7 @@ function statusLine(c) {
   return '✅ Solvent';
 }
 
-function buildOutput({ nowIso, market, news, companies, crash = null }) {
+function buildOutput({ nowIso, market, news, companies, crash = null, boost = null }) {
   const prices = {}, changes = {}, dividends = {}, divDaily = {}, divText = {}, names = {}, sparks = {}, charts = {};
   const statuses = {}, statusText = {}, tradable = {}, wipes = {};
   companies.forEach((c) => {
@@ -1047,7 +1148,8 @@ function buildOutput({ nowIso, market, news, companies, crash = null }) {
     : 'No market news yet. Check back soon.';
   const headlineText = withLines[0] ? withLines[0].discord : 'No market news yet.';
   const crashText = crash ? crash.text : '';
-  return { updated: nowIso, engine: 2, market, crash, crashText, prices, changes, statuses, statusText, tradable, wipes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
+  const boostText = boost ? boost.text : '';
+  return { updated: nowIso, engine: 2, market, crash, crashText, boost, boostText, prices, changes, statuses, statusText, tradable, wipes, dividends, divDaily, divText, names, sparks, charts, headline, headlineText, newsText, news: withLines, companies };
 }
 
 module.exports = { tick, COMPANIES, TICK_MS, statusAt };

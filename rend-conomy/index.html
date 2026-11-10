@@ -47,6 +47,9 @@
   .crash-banner.is-tremor .crash-title { color: var(--bright); text-shadow: none; animation: none; }
   .crash-banner.is-tremor .crash-line { color: var(--lime); }
   .crash-banner.is-recovery .crash-title { animation: none; }
+  .boost-banner { border: 1px solid #57f287; border-left: 4px solid #57f287; background: repeating-linear-gradient(-45deg, rgba(87,242,135,0.07) 0 12px, transparent 12px 24px), #06100a; padding: 1rem 1.25rem; margin-bottom: 2.5rem; }
+  .boost-banner .boost-title { font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: 3px; color: #57f287; text-shadow: 0 0 12px rgba(87,242,135,0.4); }
+  .boost-banner .boost-line { margin-top: 0.5rem; font-size: 14px; color: #b8f5cb; max-width: 68ch; }
   @keyframes crashflash { 50% { opacity: 0.55; } }
   .board .tag.bk { margin-left: 0.5rem; color: #fff; background: #ff6b6b; border-color: #ff6b6b; font-weight: 600; }
   .board .tag.brink { margin-left: 0.5rem; color: #f0b232; border-color: rgba(240,178,50,0.6); }
@@ -84,6 +87,10 @@
   <div class="crash-banner" id="crash" role="status" hidden>
     <div class="crash-title"></div>
     <p class="crash-line"></p>
+  </div>
+  <div class="boost-banner" id="boost" role="status" hidden>
+    <div class="boost-title">MARKET BOOM</div>
+    <p class="boost-line"></p>
   </div>
 
   <!-- Hidden until prices.json has news -->
@@ -156,7 +163,7 @@
       goal: 'NEW GOAL', success: 'GOAL HIT', fail: 'GOAL MISSED', mixed: 'MIXED RESULT',
       good: 'BREAKING', bad: 'BREAKING', rumor: 'RUMOR', confirmed: 'CONFIRMED', denied: 'DENIED',
       market: 'MARKET-WIDE', crossover: 'CROSSOVER', dividend: 'DIVIDEND',
-      crash: 'MARKET CRASH', halt: 'TRADING HALTED', brink: 'ON THE BRINK', bankrupt: 'BANKRUPT',
+      crash: 'MARKET CRASH', boom: 'MARKET BOOM', halt: 'TRADING HALTED', brink: 'ON THE BRINK', bankrupt: 'BANKRUPT',
       appeal: 'BAILOUT APPEAL', appealDenied: 'APPEAL DENIED', bailout: 'TODD BAILOUT', recovered: 'OUT OF BANKRUPTCY'
     };
     // Percent change that still makes sense when a price touches or crosses zero.
@@ -322,6 +329,7 @@
       build(data.companies);
       showNews(data.news);
       showCrash(data);
+      showBoost(data);
       var m = data.market || { status: 'open' };
       var hours = ' Trading hours: 3 AM to 9 PM Eastern, every day.';
       var stamp = data.updated ? ' Last update: ' + fmtTime(data.updated) + '.' : '';
@@ -357,6 +365,16 @@
       var dead = (data.companies || []).filter(function (x) { return x.status === 'bankrupt'; }).map(function (x) { return x.id; });
       crashEl.querySelector('.crash-title').textContent = title;
       crashEl.querySelector('.crash-line').textContent = line + (dead.length ? ' Bankrupt: ' + dead.join(', ') + '.' : '');
+    }
+
+    // Boost banner: shown while a boost is running.
+    var boostEl = document.getElementById('boost');
+    function showBoost(data) {
+      var b = data.boost;
+      if (!b) { boostEl.hidden = true; return; }
+      boostEl.hidden = false;
+      var who = b.tickers && b.tickers.length && b.tickers.length < (data.companies || []).length ? b.tickers.join(', ') + (b.tickers.length === 1 ? ' is' : ' are') : 'The whole board is';
+      boostEl.querySelector('.boost-line').textContent = who + ' climbing. The boom is expected to cool off around ' + fmtTime(b.until) + '.';
     }
 
     function showFallback() {

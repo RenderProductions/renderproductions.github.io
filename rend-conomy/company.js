@@ -31,6 +31,7 @@
     crossover: ['CROSSOVER', null],
     dividend:  ['DIVIDEND', null],
     crash:     ['MARKET CRASH', 'down'],
+    boom:      ['MARKET BOOM', 'up'],
     halt:      ['TRADING HALTED', 'warn'],
     brink:     ['ON THE BRINK', 'warn'],
     bankrupt:  ['BANKRUPT', 'down'],
