@@ -44,6 +44,7 @@ module.exports = {
           '**TODD**\n' +
           `\`${P}bailout\` borrow ⬡ 500 when you're broke (you owe ⬡ 600)\n` +
           `\`${P}repay <amount or all>\` pay TODD back\n\n` +
+          `🧾 Receipts for trades, purchases and loans go to your DMs. \`${P}receipts off\` to stop them.\n\n` +
           '**Mods**\n' +
           `\`${P}cleartitle @user\` removes someone's custom title\n` +
           `\`${P}review\` · \`${P}approve <ticker>\` · \`${P}reject <ticker> [reason]\` new companies\n\n` +

@@ -1,4 +1,5 @@
 const config = require('../config');
+const receipts = require('../receipts');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
 const co = require('../companies');
@@ -16,6 +17,9 @@ async function buyPlayerCompany(ctx, m, pc, amount) {
   const r = co.buy(ctx.db, { guildId: ctx.guildId, user: ctx.user, ticker: pc.ticker, n });
   if (r.error) return r.error;
   const cash = ctx.db.player(ctx.guildId, ctx.user).cash;
+  receipts.send(ctx, { title: `Bought ${n} ${pc.ticker}`, lines: [
+    ['Company', `${pc.name} (${pc.ticker})`], ['Shares', n], ['Price per share', amt(r.priceCents)],
+    ['Total cost', amt(r.cost)], ['Polygons left', have(cash)], ['You now own', `${r.held} ${pc.ticker}`]] });
   return {
     embeds: [{
       title: `Order filled: bought ${n} ${pc.ticker}`,
@@ -71,6 +75,10 @@ module.exports = {
       ctx.db.logTrade(ctx.guildId, ctx.user.id, t, qty, q.priceCents);
       return now;
     });
+
+    receipts.send(ctx, { title: `Bought ${qty} ${t}`, lines: [
+      ['Company', `${q.name} (${t})`], ['Shares', qty], ['Price per share', amt(q.priceCents)],
+      ['Total cost', amt(cost)], ['Polygons left', have(p.cash - cost)], ['You now own', `${held} ${t}`]] });
 
     const warn = q.status === 'distressed'
       ? `\n⚠️ ${t} is under 3.00. If it drops below zero it goes **bankrupt** and your shares are wiped.` : '';

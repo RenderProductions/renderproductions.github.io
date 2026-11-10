@@ -1,4 +1,5 @@
 const config = require('../config');
+const receipts = require('../receipts');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
 const co = require('../companies');
@@ -17,6 +18,9 @@ async function sellPlayerCompany(ctx, m, pc, amount) {
   const r = co.sell(ctx.db, { guildId: ctx.guildId, user: ctx.user, ticker: pc.ticker, n });
   if (r.error) return r.error;
   const cash = ctx.db.player(ctx.guildId, ctx.user).cash;
+  receipts.send(ctx, { title: `Sold ${n} ${pc.ticker}`, lines: [
+    ['Company', `${pc.name} (${pc.ticker})`], ['Shares', n], ['Price per share', amt(r.priceCents)],
+    ['Total received', amt(r.proceeds)], ['Polygons now', have(cash)], ['You still own', `${r.left} ${pc.ticker}`]] });
   return {
     embeds: [{
       title: `Order filled: sold ${n} ${pc.ticker}`,
@@ -71,6 +75,9 @@ module.exports = {
       return ctx.db.player(ctx.guildId, ctx.user).cash;
     });
 
+    receipts.send(ctx, { title: `Sold ${qty} ${t}`, lines: [
+      ['Company', `${q.name} (${t})`], ['Shares', qty], ['Price per share', amt(q.priceCents)],
+      ['Total received', amt(proceeds)], ['Polygons now', have(cash)], ['You still own', `${owned - qty} ${t}`]] });
     return {
       embeds: [{
         title: `Order filled: sold ${qty} ${t}`,

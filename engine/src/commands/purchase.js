@@ -1,5 +1,6 @@
 // Buys an item into your inventory. Use it later with r!use.
 const config = require('../config');
+const receipts = require('../receipts');
 const shop = require('../shop');
 const { money, have, amt, relTime } = require('../format');
 
@@ -34,6 +35,8 @@ module.exports = {
       return ctx.db.itemCount(ctx.guildId, ctx.user.id, id);
     });
 
+    receipts.send(ctx, { title: `Bought a ${item.name}`, lines: [
+      ['Item', `${item.emoji} ${item.name}`], ['Price', amt(cost)], ['Polygons left', have(p.cash - cost)], ['In your inventory', owned]] });
     const how = id === 'title' ? `\`${config.prefix}settitle <text>\`` : `\`${config.prefix}use ${id}\``;
     return `${item.emoji} Bought a **${item.name}** for ${amt(cost)}. You have ${owned} in your inventory. Use it with ${how}.`;
   }

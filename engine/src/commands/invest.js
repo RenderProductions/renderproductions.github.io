@@ -1,4 +1,5 @@
 const config = require('../config');
+const receipts = require('../receipts');
 const co = require('../companies');
 const { money, have, amt, parsePolygons } = require('../format');
 
@@ -24,6 +25,7 @@ module.exports = {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -put);
       co.addRevenue(ctx.db, c.ticker, put);
     });
+    receipts.send(ctx, { title: `Invested in ${c.name}`, lines: [['Invested', amt(put)], ['Treasury now', have(c.treasury + put)], ['Polygons left', have(p.cash - put)]] });
     return `🏢 You put **${amt(put)}** into **${c.name}**. Treasury: **${have(c.treasury + put)}**.`;
   }
 };

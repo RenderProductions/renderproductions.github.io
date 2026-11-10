@@ -143,10 +143,14 @@ const MIGRATIONS = [
     );
     CREATE INDEX loans_borrower ON loans (guild_id, borrower_id, status);
     CREATE INDEX loans_lender ON loans (guild_id, lender_id, status);
+  `,
+  `
+    -- Version 6: DM receipts on/off (on by default)
+    ALTER TABLE players ADD COLUMN receipts INTEGER NOT NULL DEFAULT 1;
   `
 ];
 
-const PLAYER_COLUMNS = new Set(['username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
+const PLAYER_COLUMNS = new Set(['receipts', 'username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
   'shifts', 'hired_at', 'overtime', 'last_work', 'div_carry']);
 const HOLDING_COLUMNS = new Set(['shares', 'div_index', 'div_shares', 'wipe_seen']);
 

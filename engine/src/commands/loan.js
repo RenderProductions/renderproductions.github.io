@@ -1,6 +1,7 @@
 // r!loan @lender <amount> <interest>: ask another player for a loan. They answer with buttons.
 const { ButtonStyle, ComponentType } = require('discord.js');
 const config = require('../config');
+const receipts = require('../receipts');
 const loans = require('../loans');
 const { amt, have, parsePolygons } = require('../format');
 
@@ -92,6 +93,9 @@ module.exports = {
 
     loans.takeRequest(id);
     loans.create(ctx.db, { guildId: req.guildId, lender: req.lender, borrower: req.borrower, amount: req.amount, rate: req.rate });
+    const terms = [['Amount', amt(req.amount)], ['Interest', `${req.rate}% a day`], ['Due', `<t:${Math.floor((Date.now() + loans.RULES.termMs) / 1000)}:R>`]];
+    receipts.send(ctx, { title: `Loan received from ${req.lender.username}`, userId: req.borrower.id, username: req.borrower.username, lines: terms });
+    receipts.send(ctx, { title: `Loan given to ${req.borrower.username}`, lines: terms });
     const due = Math.floor((Date.now() + loans.RULES.termMs) / 1000);
     return {
       update: {

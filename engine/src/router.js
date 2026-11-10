@@ -24,9 +24,10 @@ async function runCommand(cmd, ctx, args) {
 }
 
 // Shared context every command gets.
-function makeCtx({ guildId, channelId, user, message, isMod = false }, deps) {
+function makeCtx({ guildId, channelId, user, message, isMod = false, guildName = '' }, deps) {
   return {
     ...deps,
+    guildName, // shown on DM receipts
     isMod, // has Manage Messages in this server
     guildId,
     channelId,
@@ -91,7 +92,7 @@ async function handleMessage(message, deps) {
     if (o.type === 'user') args[o.name] = await resolveUser(args[o.name], message, deps.client);
   }
   const isMod = !!(message.member && message.member.permissions.has(PermissionFlagsBits.ManageMessages));
-  const ctx = makeCtx({ guildId: message.guildId, channelId: message.channelId, user: message.author, message, isMod }, deps);
+  const ctx = makeCtx({ guildId: message.guildId, channelId: message.channelId, user: message.author, message, isMod, guildName: message.guild && message.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
   if (out) return message.reply(out);
 }
@@ -107,7 +108,7 @@ async function handleButton(interaction, deps) {
   const cmd = commands.list.find((c) => c.buttonPrefix === prefix && c.onButton);
   if (!cmd) return;
   const isMod = !!(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages));
-  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod }, deps);
+  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod, guildName: interaction.guild && interaction.guild.name }, deps);
   let out;
   try { out = await cmd.onButton(ctx, parts); } catch (e) {
     console.error(`[${cmd.name} button]`, e);
@@ -138,7 +139,7 @@ async function handleInteraction(interaction, deps) {
   }
   await interaction.deferReply();
   const isMod = !!(interaction.memberPermissions && interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages));
-  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod }, deps);
+  const ctx = makeCtx({ guildId: interaction.guildId, channelId: interaction.channelId, user: interaction.user, isMod, guildName: interaction.guild && interaction.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
   return out ? interaction.editReply(out) : interaction.deleteReply();
 }

@@ -1,5 +1,6 @@
 // r!payback @lender <amount or all>: pay down a loan from another player.
 const config = require('../config');
+const receipts = require('../receipts');
 const loans = require('../loans');
 const { amt, have, parsePolygons } = require('../format');
 
@@ -29,6 +30,9 @@ module.exports = {
 
     const paid = ctx.db.tx(() => loans.pay(ctx.db, loan, want));
     const left = loan.owed - paid;
+    const lines = [['Paid', amt(paid)], ['Still owed', left > 0 ? amt(left) : 'Nothing, paid off!']];
+    receipts.send(ctx, { title: `Loan payment to ${args.lender.username}`, lines: [...lines, ['Polygons left', have(p.cash - paid)]] });
+    receipts.send(ctx, { title: `Loan payment from ${ctx.user.username}`, userId: args.lender.id, username: args.lender.username, lines });
     return left <= 0
       ? `🏦 You paid **${amt(paid)}** to **${args.lender.username}**. **Loan paid off!** 🎉`
       : `🏦 You paid **${amt(paid)}** to **${args.lender.username}**. Still owed: **${amt(left)}**.`;

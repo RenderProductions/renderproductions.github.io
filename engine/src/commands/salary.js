@@ -1,4 +1,5 @@
 const config = require('../config');
+const receipts = require('../receipts');
 const co = require('../companies');
 const { money, have, amt, relTime, parsePolygons } = require('../format');
 
@@ -26,6 +27,7 @@ module.exports = {
 
     ctx.db.player(ctx.guildId, ctx.user);
     co.salary(ctx.db, c.ticker, pay);
+    receipts.send(ctx, { title: `Salary from ${c.name}`, lines: [['Paid to you', amt(pay)], ['Treasury left', have(c.treasury - pay)], ['Polygons now', have(ctx.db.player(ctx.guildId, ctx.user).cash)]] });
     return `💼 You paid yourself **${amt(pay)}** from **${c.name}**. Investors noticed, and the stock dipped.`;
   }
 };
