@@ -17,7 +17,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # When Render's Vision runs the market itself (MARKET_ENGINE=bot), .github/market-engine.json says
+      # so and this whole job stands down, so two markets never run at once. To hand the market back to
+      # this Action, set "engine" to "github" in that file.
+      - name: Who runs the market?
+        id: who
+        run: |
+          engine=$(node -e "try{console.log(require('./.github/market-engine.json').engine||'github')}catch(e){console.log('github')}")
+          echo "engine=$engine" >> "$GITHUB_OUTPUT"
+          if [ "$engine" = "bot" ]; then echo "The bot runs the market now (.github/market-engine.json). Nothing to do."; fi
+
       - name: Advance prices
+        if: steps.who.outputs.engine != 'bot'
         env:
           MARKET_SECRET: ${{ secrets.MARKET_SECRET }}   # encrypts the hidden market state (optional but recommended)
         run: node .github/scripts/tick.js ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
@@ -25,6 +36,7 @@ jobs:
       # Commits pushed with the built-in token do not trigger a Pages build,
       # so we ask for one ourselves, but only when prices.json really changed.
       - name: Commit and publish
+        if: steps.who.outputs.engine != 'bot'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -53,6 +65,7 @@ jobs:
       # Only runs if the push above worked. Does nothing until the
       # DISCORD_WEBHOOK secret exists (Settings > Secrets and variables > Actions).
       - name: Post market news to Discord
+        if: steps.who.outputs.engine != 'bot'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: node .github/scripts/post-news.js

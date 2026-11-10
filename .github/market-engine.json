@@ -1,0 +1,4 @@
+{
+  "note": "Who moves prices. \"bot\": Render's Vision runs the market (MARKET_ENGINE=bot) and the update-prices Action stands down. \"github\": the Action runs it.",
+  "engine": "bot"
+}
