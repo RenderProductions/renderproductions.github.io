@@ -1,5 +1,6 @@
 // Uses an item from your inventory.
 const config = require('../config');
+const reserve = require('../reserve');
 const shop = require('../shop');
 const jobs = require('../jobs');
 const { money, have, amt } = require('../format');
@@ -54,13 +55,14 @@ module.exports = {
       const roll = random();
       let out;
       if (roll < 0.05) {
-        ctx.db.addCash(ctx.guildId, ctx.user.id, 750_00);
-        out = `🎁 ✨ **JACKPOT!** The box had **${amt(750_00)}** in it!`;
+        const jackpot = reserve.pay(ctx.db, 750_00);
+        ctx.db.addCash(ctx.guildId, ctx.user.id, jackpot);
+        out = `🎁 ✨ **JACKPOT!** The box had **${amt(jackpot)}** in it!`;
       } else if (roll < 0.30) {
         ctx.db.addItem(ctx.guildId, ctx.user.id, 'overtime', 1);
         out = `🎁 An **Overtime pass**! It's in your inventory: \`${P}use overtime\`.`;
       } else {
-        const prize = (40 + Math.floor(random() * 121)) * 100;
+        const prize = reserve.pay(ctx.db, (40 + Math.floor(random() * 121)) * 100);
         ctx.db.addCash(ctx.guildId, ctx.user.id, prize);
         out = `🎁 The box had **${amt(prize)}** in it.`;
       }

@@ -1,4 +1,5 @@
 const config = require('../config');
+const reserve = require('../reserve');
 const { money, have, amt, parsePolygons } = require('../format');
 const { button, rows } = require('../buttons');
 
@@ -37,8 +38,16 @@ module.exports = {
     if (x === y && y === z) win = bet * TRIPLE[x];
     else if (x === y || y === z || x === z) win = bet; // any pair returns your bet
 
-    const bal = p.cash - bet + win;
-    ctx.db.addCash(ctx.guildId, ctx.user.id, win - bet);
+    // Losses go into the Polygon Reserve; winnings come out of it (and shrink when it's low)
+    const net = win - bet;
+    const got = ctx.db.tx(() => {
+      const g = net > 0 ? reserve.pay(ctx.db, net) : net;
+      if (net < 0) reserve.take(ctx.db, -net);
+      ctx.db.addCash(ctx.guildId, ctx.user.id, g);
+      return g;
+    });
+    if (net > 0) win = bet + got;
+    const bal = p.cash + got;
 
     return {
       embeds: [{

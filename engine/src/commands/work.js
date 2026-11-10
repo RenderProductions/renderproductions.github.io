@@ -1,4 +1,5 @@
 const config = require('../config');
+const reserve = require('../reserve');
 const jobs = require('../jobs');
 const co = require('../companies');
 const loans = require('../loans');
@@ -71,7 +72,9 @@ async function answer(ctx, msg) {
     if (result !== 'pass') pay *= 0.4;
     if (p.overtime) { pay *= 2; update.overtime = 0; ot = ' (overtime x2!)'; }
   }
-  pay = Math.round(pay);
+  // Pay comes out of the Polygon Reserve, and shrinks when it's running low
+  const shrink = reserve.factor(ctx.db);
+  pay = Math.round(pay * shrink);
 
   let out;
   if (st.rush === 0) {
@@ -87,10 +90,13 @@ async function answer(ctx, msg) {
   const g = ctx.db.tx(() => {
     const split = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, pay * 100); // overdue loans take half
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, update);
-    if (!c) co.addRevenue(ctx.db, st.job, Math.round(pay * 100 * co.RULES.revenueShare)); // shifts earn the company money
+    const revenue = c ? 0 : Math.round(pay * 100 * co.RULES.revenueShare);
+    if (revenue) co.addRevenue(ctx.db, st.job, revenue); // shifts earn the company money
+    reserve.spend(ctx.db, pay * 100 + revenue);
     return split;
   });
   out += garnishNote(g);
+  if (shrink < 1) out += reserve.note(ctx.db);
 
   // 1 in 5: another task comes in. Only after a pass, max 5 in a row.
   const random = ctx.random || Math.random;

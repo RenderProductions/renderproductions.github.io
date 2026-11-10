@@ -1,4 +1,5 @@
 const config = require('../config');
+const reserve = require('../reserve');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
 const loans = require('../loans');
@@ -36,9 +37,10 @@ module.exports = {
       // Pay to the cent, keep anything smaller for next time
       const cents = Math.floor(total * 100 + 1e-9);
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { div_carry: Math.round((total - cents / 100) * 10000) / 10000 });
-      const g = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, cents); // overdue loans take half
+      const paid = reserve.pay(ctx.db, cents); // comes out of the Polygon Reserve
+      const g = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, paid); // overdue loans take half
       if (g.taken) lines.push(g.paidTo.map((x) => `🏦 ${amt(x.cents)} went to **${x.name}** for an overdue loan.`).join('\n'));
-      return cents;
+      return paid;
     });
 
     return {

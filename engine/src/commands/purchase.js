@@ -1,5 +1,6 @@
 // Buys an item into your inventory. Use it later with r!use.
 const config = require('../config');
+const reserve = require('../reserve');
 const receipts = require('../receipts');
 const shop = require('../shop');
 const { money, have, amt, relTime } = require('../format');
@@ -29,6 +30,7 @@ module.exports = {
 
     const owned = ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -cost);
+      reserve.take(ctx.db, cost);
       ctx.db.setStock(id, ctx.db.stock(id) - 1);
       ctx.db.recordBuy(ctx.guildId, ctx.user.id, id, since);
       ctx.db.addItem(ctx.guildId, ctx.user.id, id, 1);

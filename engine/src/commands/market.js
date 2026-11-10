@@ -1,5 +1,6 @@
 const config = require('../config');
 const { money, have, amt } = require('../format');
+const reserve = require('../reserve');
 
 module.exports = {
   name: 'market',
@@ -10,7 +11,9 @@ module.exports = {
     const m = await ctx.market.get();
     if (!m) return 'The market is offline right now. Try again in a minute.';
 
-    const top = [m.market && m.market.text, m.crashText, m.boostText].filter(Boolean).join('\n');
+    const l = reserve.level(ctx.db);
+    const vault = `🏦 Polygon Reserve: **${Math.max(0, Math.round(l * 100))}%**${reserve.factor(ctx.db) < 1 ? ' · payouts shrunk' : ''} · \`${config.prefix}reserve\``;
+    const top = [m.market && m.market.text, m.crashText, m.boostText, vault].filter(Boolean).join('\n');
     return {
       embeds: [{
         title: 'Rend-Conomy Market',

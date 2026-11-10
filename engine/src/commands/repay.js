@@ -1,4 +1,5 @@
 const config = require('../config');
+const reserve = require('../reserve');
 const { money, have, amt, parsePolygons } = require('../format');
 
 module.exports = {
@@ -28,6 +29,7 @@ module.exports = {
     const left = p.debt - paid;
     ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -paid);
+      reserve.take(ctx.db, paid);
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { debt: left });
     });
 

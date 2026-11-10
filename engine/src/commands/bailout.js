@@ -1,4 +1,5 @@
 const config = require('../config');
+const reserve = require('../reserve');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
 
@@ -26,6 +27,7 @@ module.exports = {
 
     ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, LOAN);
+      reserve.spend(ctx.db, LOAN);
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { debt: OWED });
     });
 

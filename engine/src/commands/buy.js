@@ -1,4 +1,5 @@
 const config = require('../config');
+const reserve = require('../reserve');
 const receipts = require('../receipts');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
@@ -71,6 +72,7 @@ module.exports = {
     const held = ctx.db.tx(() => {
       const now = econ.shares(ctx, m, t) + qty;
       ctx.db.addCash(ctx.guildId, ctx.user.id, -cost);
+      reserve.take(ctx.db, cost); // the house sold you the shares
       ctx.db.updateHolding(ctx.guildId, ctx.user.id, t, { shares: now });
       ctx.db.logTrade(ctx.guildId, ctx.user.id, t, qty, q.priceCents);
       return now;

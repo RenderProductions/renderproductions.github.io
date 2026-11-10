@@ -3,6 +3,7 @@
 // exchange page reads it from raw.githubusercontent.com. Needs GITHUB_TOKEN; does nothing without it.
 const config = require('./config');
 const co = require('./companies');
+const reserve = require('./reserve');
 
 const API = 'https://api.github.com';
 const FILE = 'player-companies.json';
@@ -36,6 +37,7 @@ function snapshot(db, now = Date.now()) {
       .sort((a, b) => b.died_at - a.died_at).slice(0, 10)
       .map((c) => ({ ticker: c.ticker, name: c.name, owner: c.owner_name || 'unknown', levelName: co.level(c).name, died: new Date(c.died_at).toISOString(), cause: c.note })),
     levels: co.LEVELS.map((l) => ({ name: l.name, cost: l.cost / 100, upkeep: l.upkeep / 100, payMult: l.payMult })),
+    reserve: reserve.snapshot(db),
     rules: { ipoLevel: co.RULES.ipoLevel, listingFee: co.RULES.listingFee / 100, float: co.RULES.float, founding: co.LEVELS[0].cost / 100 }
   };
 }

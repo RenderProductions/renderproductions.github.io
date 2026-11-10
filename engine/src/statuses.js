@@ -10,6 +10,7 @@
 // Add, remove, or reorder lines freely. Keep text under about 120 characters.
 
 const co = require('./companies');
+const reserve = require('./reserve');
 
 const ROTATE_MS = 30 * 1000;
 const BREADCRUMB_CHANCE = 1 / 20; // how often the hidden frequency shows instead
@@ -44,6 +45,11 @@ const STATUSES = [
   } },
   { type: 'custom', text: ({ market: m }) => (m && m.crash && m.crash.phase === 'crash' ? '🚨 MARKET CRASH IN PROGRESS' : null) },
   { type: 'custom', text: ({ market: m }) => (m && m.boost ? '🚀 MARKET BOOM' : null) },
+  { type: 'watching', text: ({ db }) => {
+    if (!db) return null;
+    const l = reserve.level(db);
+    return l <= 0 ? '💀 the Polygon Reserve: EMPTY' : `the Polygon Reserve: ${Math.round(l * 100)}%${l < 0.25 ? ' ⚠️' : ''}`;
+  } },
   { type: 'watching', text: ({ db }) => {
     const n = co.list(db, ['public', 'private']).length;
     return n ? `${n} player compan${n === 1 ? 'y' : 'ies'}` : null;

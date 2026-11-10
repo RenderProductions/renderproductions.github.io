@@ -2,6 +2,7 @@ const config = require('../config');
 const { money, have, amt } = require('../format');
 const econ = require('../economy');
 const loans = require('../loans');
+const reserve = require('../reserve');
 
 // What r!balance shows when you look up the bot itself
 function housePortfolio(bot, m, ctx) {
@@ -9,8 +10,8 @@ function housePortfolio(bot, m, ctx) {
   return {
     embeds: [{
       title: `${bot.username}'s portfolio`,
-      description: `🏷️ *The House*\nPolygons: **⬢ ${INF}**\nStocks: **⬢ ${INF}**\nNet worth: **⬢ ${INF}**\n\n` +
-        '*The house always wins.*',
+      description: `🏷️ *The House*\nPolygons: **${have(reserve.get(ctx.db))}** (the Polygon Reserve)\nStocks: **⬢ ${INF}**\nNet worth: **⬢ ${INF}** (probably)\n\n` +
+        `*The house always wins. Until it runs out.* See \`${config.prefix}reserve\`.`,
       fields: m.companies.map((c) => {
         const q = ctx.market.quote(m, c.id);
         return { name: `${q.name} (${q.id})`, value: `${INF} shares, worth ⬢ ${INF}` };
@@ -34,7 +35,7 @@ module.exports = {
     const m = await ctx.market.get();
     if (!m) return 'The market is offline right now. Try again in a minute.';
 
-    // Easter egg: the bot is the house, and the house has infinite Polygons
+    // Easter egg: the bot is the house. Its Polygons are the Polygon Reserve; its shares are endless
     const botId = (ctx.client && ctx.client.user && ctx.client.user.id) || config.clientId;
     if (target.id === botId) return housePortfolio(target, m, ctx);
     if (target.bot) return `🤖 **${target.username}** is a bot. Bots don't play the market. (Well. Most of them.)`;

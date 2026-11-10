@@ -10,6 +10,7 @@
 // so a company nobody keeps afloat slides to 0 and dies.
 
 const config = require('./config');
+const reserve = require('./reserve');
 const { money, have, amt } = require('./format');
 
 const LEVELS = [
@@ -137,12 +138,15 @@ function ipo(db, ticker, now = Date.now()) {
   update(db, ticker, {
     status: 'public', treasury: after.treasury, price, offering_left: RULES.float, ipo_at: now, history: [price]
   });
+  reserve.take(db, RULES.listingFee);
   return price;
 }
 
 function die(db, ticker, reason, now = Date.now()) {
   db.tx(() => {
-    update(db, ticker, { status: 'dead', price: 0, died_at: now, note: reason });
+    const left = get(db, ticker).treasury;
+    if (left > 0) reserve.take(db, left); // whatever it had left goes to the house
+    update(db, ticker, { status: 'dead', price: 0, died_at: now, note: reason, treasury: 0 });
     db.raw.prepare('DELETE FROM pc_holdings WHERE ticker = ?').run(ticker);
     db.raw.prepare('UPDATE players SET job = NULL, shifts = 0 WHERE job = ?').run(ticker);
   });
@@ -164,6 +168,7 @@ function buy(db, { guildId, user, ticker, n }) {
     const fromOffering = Math.min(n, c.offering_left);
     const held = holding(db, guildId, user.id, ticker) + n;
     db.addCash(guildId, user.id, -cost);
+    reserve.take(db, cost - fromOffering * priceCents); // shares not from the offering are bought from the house
     setHolding(db, guildId, user.id, ticker, held);
     const price = Math.round(c.price * (1 + RULES.impact * n / RULES.float) * 100) / 100;
     update(db, ticker, {
@@ -187,6 +192,7 @@ function sell(db, { guildId, user, ticker, n }) {
   return db.tx(() => {
     db.player(guildId, user);
     db.addCash(guildId, user.id, proceeds);
+    reserve.spend(db, proceeds); // the house buys them back
     setHolding(db, guildId, user.id, ticker, owned - n);
     const price = Math.max(0.01, Math.round(c.price * (1 - RULES.impact * n / RULES.float) * 100) / 100);
     update(db, ticker, { price });
@@ -221,7 +227,7 @@ function tick(db, now = Date.now(), random = Math.random) {
     let days = 0;
     while (now >= lastUpkeep + RULES.dayMs && days < 7) {
       const due = level(c).upkeep;
-      if (treasury >= due) { treasury -= due; strikes = 0; }
+      if (treasury >= due) { treasury -= due; strikes = 0; reserve.take(db, due); }
       else {
         strikes += 1;
         events.push({ ticker: c.ticker, type: 'missed', strikes });

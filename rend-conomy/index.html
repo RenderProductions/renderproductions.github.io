@@ -50,6 +50,16 @@
   .boost-banner { border: 1px solid #57f287; border-left: 4px solid #57f287; background: repeating-linear-gradient(-45deg, rgba(87,242,135,0.07) 0 12px, transparent 12px 24px), #06100a; padding: 1rem 1.25rem; margin-bottom: 2.5rem; }
   .boost-banner .boost-title { font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: 3px; color: #57f287; text-shadow: 0 0 12px rgba(87,242,135,0.4); }
   .boost-banner .boost-line { margin-top: 0.5rem; font-size: 14px; color: #b8f5cb; max-width: 68ch; }
+  .reserve { border: 1px solid #2a2a2a; padding: 0.9rem 1.25rem; margin-bottom: 2.5rem; }
+  .reserve .reserve-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; align-items: baseline; }
+  .reserve .reserve-title { font-family: var(--display); font-size: 24px; letter-spacing: 2px; color: var(--bright); }
+  .reserve .reserve-amount { font-size: 14px; color: #bbb; overflow-wrap: anywhere; }
+  .reserve .meter { height: 12px; background: #161616; border: 1px solid #333; margin-top: 0.6rem; overflow: hidden; }
+  .reserve .meter-fill { height: 100%; width: 0; background: #57f287; transition: width 0.6s ease; }
+  .reserve.is-low .meter-fill { background: #f0b232; }
+  .reserve.is-critical .meter-fill { background: #ff6b6b; }
+  .reserve.is-critical .reserve-title { color: #ff6b6b; }
+  .reserve .reserve-line { margin-top: 0.5rem; font-size: 13px; color: #999; max-width: 72ch; }
   @keyframes crashflash { 50% { opacity: 0.55; } }
   .board .tag.bk { margin-left: 0.5rem; color: #fff; background: #ff6b6b; border-color: #ff6b6b; font-weight: 600; }
   .board .tag.brink { margin-left: 0.5rem; color: #f0b232; border-color: rgba(240,178,50,0.6); }
@@ -87,6 +97,11 @@
   <div class="crash-banner" id="crash" role="status" hidden>
     <div class="crash-title"></div>
     <p class="crash-line"></p>
+  </div>
+  <div class="reserve" id="reserve" hidden>
+    <div class="reserve-head"><div class="reserve-title">POLYGON RESERVE</div><div class="reserve-amount"></div></div>
+    <div class="meter" role="meter" aria-label="Polygon Reserve" aria-valuemin="0" aria-valuemax="100"><div class="meter-fill"></div></div>
+    <p class="reserve-line"></p>
   </div>
   <div class="boost-banner" id="boost" role="status" hidden>
     <div class="boost-title">MARKET BOOM</div>
@@ -376,6 +391,32 @@
       var who = b.tickers && b.tickers.length && b.tickers.length < (data.companies || []).length ? b.tickers.join(', ') + (b.tickers.length === 1 ? ' is' : ' are') : 'The whole board is';
       boostEl.querySelector('.boost-line').textContent = who + ' climbing. The boom is expected to cool off around ' + fmtTime(b.until) + '.';
     }
+
+    // Polygon Reserve meter: the bot publishes it with the player companies every 10 minutes.
+    var RESERVE_URL = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/player-companies.json';
+    var reserveEl = document.getElementById('reserve');
+    function loadReserve() {
+      fetch(RESERVE_URL + '?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (d) {
+          var r = d.reserve;
+          if (!r) { reserveEl.hidden = true; return; }
+          var pct = Math.max(0, Math.round(r.level * 100));
+          reserveEl.hidden = false;
+          reserveEl.className = 'reserve' + (r.level < 0.1 ? ' is-critical' : r.level < 0.25 ? ' is-low' : '');
+          reserveEl.querySelector('.meter-fill').style.width = Math.min(100, pct) + '%';
+          reserveEl.querySelector('.meter').setAttribute('aria-valuenow', pct);
+          reserveEl.querySelector('.reserve-amount').textContent = '⬢ ' + Math.max(0, r.polygons).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' · ' + pct + '%';
+          reserveEl.querySelector('.reserve-line').textContent = (r.polygons <= 0
+            ? 'EMPTY. The house is out of Polygons, and the market is going down with it.'
+            : r.payouts < 1 ? 'Running low: payouts are at ' + Math.round(r.payouts * 100) + '%. If it hits zero, the market crashes.'
+            : 'Every Polygon the bot pays out comes from here, and every Polygon you pay it goes back in. If it hits zero, the market crashes.') +
+            ' Check it in Discord with r!reserve.';
+        })
+        .catch(function () { reserveEl.hidden = true; });
+    }
+    loadReserve();
+    setInterval(loadReserve, 60 * 1000);
 
     function showFallback() {
       var list = FALLBACK.map(function (c) {

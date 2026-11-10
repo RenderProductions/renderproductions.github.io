@@ -1,5 +1,6 @@
 const config = require('../config');
 const co = require('../companies');
+const reserve = require('../reserve');
 const { money, have, amt } = require('../format');
 
 module.exports = {
@@ -18,7 +19,10 @@ module.exports = {
       return `🏢 Becoming a **${next.name}** costs **${amt(next.cost)}** from the treasury, which has ${have(c.treasury)}. Try \`${P}invest\`.`;
     }
 
-    co.update(ctx.db, c.ticker, { level: c.level + 1, treasury: c.treasury - next.cost });
+    ctx.db.tx(() => {
+      co.update(ctx.db, c.ticker, { level: c.level + 1, treasury: c.treasury - next.cost });
+      reserve.take(ctx.db, next.cost); // expansion costs go to the house
+    });
     const extra = c.level + 1 === co.RULES.ipoLevel && c.status === 'private'
       ? `\nYou can go public now with \`${P}ipo\`.` : '';
     return `🎉 **${c.name}** is now a **${next.name}**! Upkeep is ${amt(next.upkeep)} a day and employees earn ${next.payMult}x.${extra}`;

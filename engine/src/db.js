@@ -226,6 +226,7 @@ function wrap(db, file = ':memory:') {
       if (!p) {
         st('INSERT INTO players (guild_id, user_id, username, cash, created_at) VALUES (?, ?, ?, ?, ?)')
           .run(guildId, user.id, user.username || null, config.startingCash, Date.now());
+        require('./reserve').spend(api, config.startingCash); // starting Polygons come out of the reserve
         p = st('SELECT * FROM players WHERE guild_id = ? AND user_id = ?').get(guildId, user.id);
       } else if (user.username && p.username !== user.username) {
         api.updatePlayer(guildId, user.id, { username: user.username });

@@ -42,6 +42,10 @@ module.exports = {
   // Economy numbers. Money is stored in cents so nothing gets rounded away.
   startingCash: 500_00,        // new players start with 500 Polygons
   dailyAmount: 250_00,         // r!daily gives 250 Polygons
+  // The Polygon Reserve (src/reserve.js): how many Polygons the house starts with, shared by every server
+  reserveStart: Math.round((Number(process.env.RESERVE_START) || 250_000) * 100),
+  // Optional: a channel ID where the bot posts Polygon Reserve warnings
+  announceChannelId: process.env.ANNOUNCE_CHANNEL_ID || '',
 
   color: 0xffe600,             // site yellow
   colorTodd: 0xff6b6b,         // TODD red

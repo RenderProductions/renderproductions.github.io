@@ -21,6 +21,7 @@ module.exports = {
           `\`${P}compare <ticker> <ticker>\` compares two companies\n` +
           `\`${P}balance\` shows your cash, shares, and net worth\n` +
           `\`${P}daily\` gives free Polygons once a day (resets at midnight Eastern)\n` +
+          `\`${P}reserve\` shows how many Polygons the house has left\n` +
           `\`${P}dividends\` collects what your shares have earned\n\n` +
           '**Jobs**\n' +
           `\`${P}apply <ticker>\` joins a company as an Intern\n` +
