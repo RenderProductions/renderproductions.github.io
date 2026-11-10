@@ -34,6 +34,7 @@ const list = [
   require('./loan'),
   require('./payback'),
   require('./loans'),
+  require('./forgive'),
   require('./bailout'),
   require('./repay'),
   require('./404')

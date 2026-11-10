@@ -40,7 +40,7 @@ module.exports = {
           'Anyone can `buy`, `sell`, and `apply` to public player companies.\n\n' +
           '**Loans between players**\n' +
           `\`${P}loan @player <amount> <interest>\` asks someone for a loan (interest is % a day)\n` +
-          `\`${P}payback @player <amount or all>\` · \`${P}loans\` see what you owe and are owed\n\n` +
+          `\`${P}payback @player <amount or all>\` · \`${P}loans\` · \`${P}forgive @player\` lets someone off\n\n` +
           '**TODD**\n' +
           `\`${P}bailout\` borrow ⬡ 500 when you're broke (you owe ⬡ 600)\n` +
           `\`${P}repay <amount or all>\` pay TODD back\n\n` +

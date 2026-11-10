@@ -121,6 +121,17 @@ const cash = (u) => db.player(G, u).cash;
   loans.requests.get(id4.split(':')[2]).expires = Date.now() - 1;
   assert.ok(text((await button(id4, OTHER)).update).includes('expired'));
 
+  // Forgiving
+  const r5 = await run({ lender: OTHER, amount: '80', interest: '3' });
+  await button(r5.components[0].components[0].custom_id, OTHER);
+  const fg = router.parsePrefix('r!forgive @x');
+  assert.ok(text(await router.runCommand(fg.cmd, ctxFor(KORB), { borrower: NACHO })).includes("doesn't owe you"));
+  const forgiven = await router.runCommand(fg.cmd, ctxFor(OTHER), { borrower: NACHO });
+  assert.ok(forgiven.content.includes('forgave') && forgiven.content.includes('⬡ 80.00'), forgiven.content);
+  assert.deepStrictEqual(forgiven.allowedMentions, { users: [NACHO.id] });
+  assert.strictEqual(loans.active(db, G, { borrower: NACHO.id }).length, 0);
+  assert.ok(text(await run({ lender: OTHER, amount: '5', interest: '1' })).includes('Loan request'), 'can borrow again after');
+
   // Help still fits in one Discord embed
   const help = await router.runCommand(require('../src/commands/help'), ctxFor(NACHO), {});
   assert.ok(help.embeds[0].description.length < 4096, 'help is ' + help.embeds[0].description.length + ' characters');

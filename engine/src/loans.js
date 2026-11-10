@@ -91,6 +91,11 @@ function pay(db, loan, cents, now = Date.now(), { fromWallet = true } = {}) {
   return amount;
 }
 
+// The lender lets it go: nothing more is owed
+function forgive(db, loan, now = Date.now()) {
+  db.raw.prepare("UPDATE loans SET status = 'forgiven', owed = 0, paid_at = ? WHERE id = ?").run(now, loan.id);
+}
+
 // Earnings with overdue loans get split: half goes to lenders (oldest first), the rest is kept.
 // Call this instead of adding the cents yourself. Returns { kept, taken, note }.
 function garnish(db, guildId, userId, cents, now = Date.now()) {
@@ -108,4 +113,4 @@ function garnish(db, guildId, userId, cents, now = Date.now()) {
   return { kept: cents - taken, taken, paidTo };
 }
 
-module.exports = { RULES, requests, addRequest, takeRequest, accrue, active, between, totalOwed, totalLent, overdue, create, pay, garnish };
+module.exports = { RULES, requests, addRequest, takeRequest, accrue, active, between, totalOwed, totalLent, overdue, create, pay, forgive, garnish };
