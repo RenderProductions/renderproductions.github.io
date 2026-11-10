@@ -1,13 +1,27 @@
 // Every command lives in its own file in this folder.
-// To add one: copy a simple command (daily.js is a good template), then add it to this list.
-// Each command works as both r!name and /name automatically.
+// To add one: copy a simple command (apply.js is a good template), then add it to this list.
+// Each command works as both r!name and /name automatically (unless it's marked hidden).
 const list = [
+  require('./help'),
+  require('./balance'),
+  require('./daily'),
   require('./market'),
   require('./buy'),
   require('./sell'),
-  require('./portfolio'),
-  require('./daily'),
-  require('./help')
+  require('./chart'),
+  require('./compare'),
+  require('./dividends'),
+  require('./apply'),
+  require('./quit'),
+  require('./work'),
+  require('./shop'),
+  require('./purchase'),
+  require('./settitle'),
+  require('./cleartitle'),
+  require('./slots'),
+  require('./bailout'),
+  require('./repay'),
+  require('./404')
 ];
 
 const byName = new Map();

@@ -1,28 +1,28 @@
 const config = require('../config');
-const { poly, duration } = require('../format');
+const { money, relTime, day, nextMidnight } = require('../format');
 
 module.exports = {
   name: 'daily',
-  description: 'Claim your free daily Polygons',
+  description: 'Claim your free daily Polygons (resets at midnight Eastern)',
   options: [],
 
   async run(ctx) {
     const p = ctx.db.player(ctx.guildId, ctx.user);
     const now = Date.now();
-    const readyAt = p.last_daily + config.dailyCooldownMs;
-    if (now < readyAt) {
-      return `You already claimed today. Come back in ${duration(readyAt - now)} (<t:${Math.floor(readyAt / 1000)}:R>).`;
+    const today = day(now);
+    if (p.daily_day === today) {
+      return `You already claimed your daily. Come back ${relTime(nextMidnight(now))}.`;
     }
 
     ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, config.dailyAmount);
-      ctx.db.setDaily(ctx.guildId, ctx.user.id, now);
+      ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { daily_day: today });
     });
 
     return {
       embeds: [{
         title: 'Daily claimed',
-        description: `+**${poly(config.dailyAmount)}**\nCash: ${poly(p.cash + config.dailyAmount)}`,
+        description: `You received **${money(config.dailyAmount)}** Polygons.\nCash now: **${money(p.cash + config.dailyAmount)}** Polygons.`,
         color: config.color
       }]
     };

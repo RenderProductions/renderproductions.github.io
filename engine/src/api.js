@@ -9,14 +9,14 @@ const ALLOWED_ORIGINS = ['https://renderproductions.github.io', 'http://localhos
 
 function leaderboard(db, market, m, guildId) {
   const worth = new Map();
-  for (const p of db.guildPlayers(guildId)) worth.set(p.user_id, { name: p.username || 'Unknown', cash: p.cash, stocks: 0 });
+  for (const p of db.guildPlayers(guildId)) worth.set(p.user_id, { name: p.username || 'Unknown', cents: p.cash - p.debt });
   for (const h of db.guildHoldings(guildId)) {
     const row = worth.get(h.user_id);
     const q = m && market.quote(m, h.ticker);
-    if (row && q) row.stocks += h.shares * q.priceCents;
+    if (row && q && q.wipes <= h.wipe_seen) row.cents += h.shares * q.priceCents; // wiped shares count as 0
   }
   return [...worth.values()]
-    .map((r) => ({ name: r.name, netWorth: (r.cash + r.stocks) / 100 }))
+    .map((r) => ({ name: r.name, netWorth: r.cents / 100 }))
     .sort((a, b) => b.netWorth - a.netWorth)
     .slice(0, 10);
 }
@@ -34,8 +34,7 @@ function start({ db, market }, status = () => ({})) {
       if (url.pathname === '/api/leaderboard') {
         const guild = url.searchParams.get('guild');
         if (!/^\d{5,25}$/.test(guild || '')) return send(400, { error: 'guild must be a server ID' });
-        let m = null;
-        try { m = await market.get(); } catch (e) { /* cash-only ranking */ }
+        const m = await market.get(); // null = cash-only ranking
         return send(200, { guild, players: leaderboard(db, market, m, guild) });
       }
       send(404, { error: 'not found' });

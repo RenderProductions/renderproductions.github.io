@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rend-Conomy Bot | Render Productions</title>
-<meta name="description" content="Rend-Conomy is a Discord bot with a fictional stock market, jobs, a shop, daily rewards, and AI features. Add it to your server.">
+<meta name="description" content="Rend-Conomy is a Discord bot with a fictional stock market, jobs, a shop, and daily rewards. Add it to your server.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Render Productions">
 <meta property="og:title" content="Rend-Conomy Bot | Render Productions">
-<meta property="og:description" content="Rend-Conomy is a Discord bot with a fictional stock market, jobs, a shop, daily rewards, and AI features. Add it to your server.">
+<meta property="og:description" content="Rend-Conomy is a Discord bot with a fictional stock market, jobs, a shop, and daily rewards. Add it to your server.">
 <meta property="og:url" content="https://renderproductions.github.io/bot/">
 <meta property="og:image" content="https://renderproductions.github.io/og/bot.png">
 <meta property="og:image:width" content="1200">
@@ -36,7 +36,7 @@
 
   <header class="hero">
     <h1>REND-CONOMY<br>BOT</h1>
-    <p class="tagline">A Discord bot with a fictional stock market, company jobs, a shop, daily rewards, and built-in AI features. Add it to your server in a couple of clicks.</p>
+    <p class="tagline">A Discord bot with a fictional stock market, company jobs, a shop, and daily rewards. Add it to your server in a couple of clicks.</p>
     <div class="btns">
       <a class="btn primary" href="https://discord.com/oauth2/authorize?client_id=1557561329273929800" target="_blank" rel="noopener">Add to your server</a>
       <a class="btn" href="https://discord.gg/D2v4EsuZBU">Join the Render Room</a>
@@ -98,20 +98,13 @@
           <span class="tag">REWARDS</span>
         </div>
       </li>
-      <li>
-        <div class="project">
-          <h3>AI features</h3>
-          <p>The bot can use AI to generate replies. AI answers can be wrong, so don't rely on them for anything important.</p>
-          <span class="tag live">AI</span>
-        </div>
-      </li>
     </ul>
   </section>
 
   <section aria-labelledby="commands-title" style="margin-top: 2.5rem;">
     <div class="section-head">
       <h2 id="commands-title">Commands</h2>
-      <span>Prefix: r!</span>
+      <span>Prefix: r! · or use / slash commands</span>
     </div>
 
     <table class="board" aria-label="Bot commands">
@@ -127,8 +120,9 @@
         <tr><td class="name">r!buy &lt;ticker&gt; &lt;amount&gt;</td><td>Buys shares, for example <code>r!buy RRM 5</code>.</td></tr>
         <tr><td class="name">r!sell &lt;ticker&gt; &lt;amount or all&gt;</td><td>Sells shares you own.</td></tr>
         <tr><td class="name">r!chart &lt;ticker&gt;</td><td>Shows a price chart for one company, for example <code>r!chart BLU</code>.</td></tr>
-        <tr><td class="name">r!portfolio [@user]</td><td>Shows your cash, shares, debt, net worth, and title. Mention someone to see theirs.</td></tr>
-        <tr><td class="name">r!daily</td><td>Claims your free daily Polygons.</td></tr>
+        <tr><td class="name">r!compare &lt;ticker&gt; &lt;ticker&gt;</td><td>Puts two companies side by side, for example <code>r!compare RRM BLU</code>.</td></tr>
+        <tr><td class="name">r!balance [@user]</td><td>Shows your cash, shares, debt, net worth, and title. Mention someone to see theirs. <code>r!bal</code> and <code>r!portfolio</code> work too.</td></tr>
+        <tr><td class="name">r!daily</td><td>Claims your free daily Polygons. Resets at midnight Eastern.</td></tr>
         <tr><td class="name">r!dividends</td><td>Collects the dividends your shares have earned. Shares you buy start earning after your next claim.</td></tr>
       </tbody>
       <tbody>
@@ -150,12 +144,7 @@
       </tbody>
       <tbody>
         <tr><th scope="rowgroup" colspan="2">GAMES OF CHANCE</th></tr>
-        <tr><td class="name">r!slots</td><td>Try your luck at the slot machine. Not available while you owe TODD.</td></tr>
-      </tbody>
-      <tbody>
-        <tr><th scope="rowgroup" colspan="2">AI</th></tr>
-        <tr><td class="name">r!setai</td><td>Sets the AI's personality in its replies to you. Each user has their own.</td></tr>
-        <tr><td class="name">r!ai</td><td>Talks to the AI using your chosen personality. Don't share private or sensitive information.</td></tr>
+        <tr><td class="name">r!slots &lt;amount&gt;</td><td>Try your luck at the slot machine. Bets from 10 to 1000. Not available while you owe TODD.</td></tr>
       </tbody>
       <tbody>
         <tr><th scope="rowgroup" colspan="2">OTHER</th></tr>

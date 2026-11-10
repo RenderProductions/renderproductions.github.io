@@ -1,4 +1,5 @@
-// Small helpers for showing money and numbers the same way everywhere.
+// Helpers for showing money, times, and text the same way everywhere.
+const config = require('./config');
 
 // 123456 cents -> "1,234.56"
 function money(cents) {
@@ -11,16 +12,32 @@ function money(cents) {
 // "1,234.56 Polygons"
 const poly = (cents) => money(cents) + ' Polygons';
 
-function pct(n) {
-  const v = Number(n) || 0;
-  return (v >= 0 ? '▲ +' : '▼ ') + v.toFixed(2) + '%';
+// Discord timestamp that shows as "in 3 hours" for each viewer
+const relTime = (ms) => `<t:${Math.floor(ms / 1000)}:R>`;
+
+// Parses a Polygon amount typed by a player ("12.5") into cents, or null if it isn't a number.
+function parsePolygons(text) {
+  const s = String(text || '').trim();
+  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  return Math.round(Number(s) * 100);
 }
 
-// "in 3h 12m"
-function duration(ms) {
-  const m = Math.ceil(ms / 60000);
-  const h = Math.floor(m / 60);
-  return h ? `${h}h ${m % 60}m` : `${m}m`;
+// Eastern date like "2026-11-09" for a timestamp
+function day(ms) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: config.timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date(ms));
 }
 
-module.exports = { money, poly, pct, duration };
+// The next midnight in the market's time zone, as a ms timestamp
+function nextMidnight(ms) {
+  const [y, mo, d] = day(ms).split('-').map(Number);
+  const target = day(Date.UTC(y, mo - 1, d + 1, 12)); // tomorrow's date there
+  // Midnight Eastern is 4 or 5 hours after midnight UTC depending on daylight saving.
+  for (let h = 0; h <= 14; h++) {
+    const t = Date.UTC(y, mo - 1, d + 1, h);
+    if (day(t) === target && day(t - 1) !== target) return t;
+  }
+  return ms + 24 * 60 * 60 * 1000;
+}
+
+module.exports = { money, poly, relTime, parsePolygons, day, nextMidnight };

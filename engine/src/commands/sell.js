@@ -1,5 +1,6 @@
 const config = require('../config');
-const { poly, money } = require('../format');
+const { money } = require('../format');
+const econ = require('../economy');
 
 module.exports = {
   name: 'sell',
@@ -12,32 +13,42 @@ module.exports = {
 
   async run(ctx, args) {
     const m = await ctx.market.get();
-    const q = ctx.market.quote(m, args.ticker);
-    if (!q) return `Unknown ticker. Try one of: ${m.companies.map((c) => c.id).join(', ')}`;
-    if (!q.canTrade) return q.whyNot;
-
-    ctx.db.player(ctx.guildId, ctx.user);
-    const owned = ctx.db.shares(ctx.guildId, ctx.user.id, q.id);
-    if (owned <= 0) return `You don't own any ${q.id}.`;
-
-    const raw = String(args.amount || '').toLowerCase();
-    const n = raw === 'all' ? owned : Number(raw);
-    if (!Number.isInteger(n) || n <= 0) {
-      return `Amount has to be a whole number above 0, or "all". Example: \`${config.prefix}sell ${q.id} all\``;
+    const t = String(args.ticker || '').toUpperCase();
+    if (!ctx.market.ids(m).includes(t)) {
+      return `Usage: \`${config.prefix}sell <ticker> <amount or all>\`, for example \`${config.prefix}sell RRM 5\`. Tickers: ${ctx.market.tickerList(m)}.`;
     }
-    if (n > owned) return `You only own ${owned} ${q.id}.`;
+    if (!m) return 'The market is offline right now. Try again shortly.';
 
-    const gain = n * q.priceCents;
-    ctx.db.tx(() => {
-      ctx.db.addShares(ctx.guildId, ctx.user.id, q.id, -n);
-      ctx.db.addCash(ctx.guildId, ctx.user.id, gain);
-      ctx.db.logTrade(ctx.guildId, ctx.user.id, q.id, -n, q.priceCents);
+    const closed = ctx.market.closedReason(m);
+    if (closed) return closed;
+    const q = ctx.market.quote(m, t);
+    ctx.db.player(ctx.guildId, ctx.user);
+    const owned = econ.shares(ctx, m, t);
+    if (q.status === 'bankrupt') {
+      return `${q.statusText}\nNobody will buy shares in a bankrupt company. You're holding the bag until it's bailed out or climbs back.`;
+    }
+    if (q.priceCents <= 0) return `${t} is worth nothing right now. Trading is paused.`;
+
+    const raw = String(args.amount || '').trim().toLowerCase();
+    const qty = raw === 'all' ? owned : Number(raw);
+    if (raw === '' || Number.isNaN(qty)) return 'The amount must be a whole number, or `all`.';
+    if (qty <= 0) return `The amount must be at least 1. You own ${owned} shares of ${t}.`;
+    if (!Number.isInteger(qty)) return 'You can only sell whole shares.';
+    if (owned < qty) return `You only own ${owned} shares of ${t}.`;
+
+    const proceeds = qty * q.priceCents;
+    const cash = ctx.db.tx(() => {
+      ctx.db.updateHolding(ctx.guildId, ctx.user.id, t, { shares: owned - qty });
+      ctx.db.addCash(ctx.guildId, ctx.user.id, proceeds);
+      ctx.db.logTrade(ctx.guildId, ctx.user.id, t, -qty, q.priceCents);
+      return ctx.db.player(ctx.guildId, ctx.user).cash;
     });
 
     return {
       embeds: [{
-        title: `Sold ${n} ${q.id}`,
-        description: `${n} × ${money(q.priceCents)} = **${poly(gain)}**\nYou still own ${owned - n} ${q.id}.`,
+        title: `Order filled: sold ${qty} ${t}`,
+        description: `Price per share: **${money(q.priceCents)}**\nTotal received: **${money(proceeds)}** Polygons\n` +
+          `Cash now: **${money(cash)}** Polygons\nYou now own **${owned - qty}** shares of ${t}.`,
         color: config.color
       }]
     };

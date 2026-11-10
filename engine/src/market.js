@@ -1,6 +1,5 @@
 // Reads live market data from prices.json (written by the price workflow).
 // The bot keeps a cached copy and refreshes it in the background.
-// Later, the engine in .github/scripts/market can move in here so the bot ticks prices itself.
 const config = require('./config');
 
 const REFRESH_MS = 60 * 1000;
@@ -28,42 +27,49 @@ async function refresh() {
   return inflight;
 }
 
-// Returns market data, refreshing if the cache is stale. Throws if nothing has ever loaded.
+// Returns market data, refreshing if the cache is stale. Returns null if nothing has ever loaded.
 async function get() {
   if (!data || Date.now() - fetchedAt > REFRESH_MS) await refresh();
-  if (!data) throw new Error('Market data is unavailable right now. Try again in a minute.');
   return data;
 }
 
-// Lets tests (or a future in-process engine) supply data directly.
-function set(json) { data = json; fetchedAt = Date.now(); }
+// Lets tests supply data directly.
+function set(json) { data = json; fetchedAt = json ? Date.now() : 0; }
 
 function startAutoRefresh() {
   refresh();
   return setInterval(refresh, REFRESH_MS).unref();
 }
 
-const toCents = (polygons) => Math.round(Number(polygons) * 100);
+const ids = (m) => (m && m.companies ? m.companies.map((c) => c.id) : config.tickers);
+const tickerList = (m) => ids(m).join(', ');
 
-// Everything a command needs to know about one ticker.
+// Everything a command needs to know about one ticker, or null if it doesn't exist.
 function quote(m, ticker) {
   const id = String(ticker || '').toUpperCase();
-  const c = (m.companies || []).find((x) => x.id === id);
+  const c = m && (m.companies || []).find((x) => x.id === id);
   if (!c) return null;
-  const marketOpen = !m.market || m.market.open !== false;
-  const tradable = m.tradable ? m.tradable[id] !== false : true;
+  const price = Number(m.prices && m.prices[id] !== undefined ? m.prices[id] : c.price);
   return {
     id,
-    name: c.name,
-    priceCents: toCents(c.price),
-    change: c.change,
-    bankrupt: c.status === 'bankrupt' || !!c.bankrupt,
+    name: (m.names && m.names[id]) || c.name,
+    price,
+    priceCents: Math.round(price * 100),
+    change: m.changes && m.changes[id] !== undefined ? m.changes[id] : c.change,
+    status: (m.statuses && m.statuses[id]) || c.status || 'ok',
     statusText: (m.statusText && m.statusText[id]) || '',
-    canTrade: marketOpen && tradable && c.status !== 'bankrupt',
-    whyNot: !marketOpen ? 'The market is closed right now.'
-      : c.status === 'bankrupt' ? `${c.name} is bankrupt. Trading is frozen.`
-      : !tradable ? `${id} can't be traded right now.` : ''
+    spark: (m.sparks && m.sparks[id]) || '',
+    chart: (m.charts && m.charts[id]) || '',
+    wipes: Number((m.wipes && m.wipes[id]) || 0)
   };
 }
 
-module.exports = { get, set, refresh, startAutoRefresh, quote, toCents };
+// The market-wide reason trading is blocked, or '' if it's open (same checks as BDFD).
+function closedReason(m) {
+  const mk = m.market || {};
+  if (mk.status && mk.status !== 'open') return mk.text || 'The market is closed right now.';
+  if (mk.halted === true) return mk.text || 'Trading is halted right now.';
+  return '';
+}
+
+module.exports = { get, set, refresh, startAutoRefresh, quote, closedReason, ids, tickerList };

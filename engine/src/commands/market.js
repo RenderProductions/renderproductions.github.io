@@ -1,31 +1,28 @@
 const config = require('../config');
-const { money, pct } = require('../format');
+const { money } = require('../format');
 
 module.exports = {
   name: 'market',
-  description: 'Show current prices and changes',
+  description: 'Show current prices',
   options: [],
 
   async run(ctx) {
     const m = await ctx.market.get();
-    const lines = m.companies.map((c) => {
-      const status = m.statusText && m.statusText[c.id] ? ' · ' + m.statusText[c.id] : '';
-      return `**${c.name}** \`${c.id}\`\n${money(Math.round(c.price * 100))} · ${pct(c.change)}${status}`;
-    });
+    if (!m) return 'The market is offline right now. Try again in a minute.';
 
-    const parts = [];
-    if (m.market && m.market.text) parts.push(m.market.text);
-    if (m.crashText) parts.push(m.crashText);
-    parts.push(lines.join('\n\n'));
-    if (m.headlineText) parts.push('**Latest news**\n' + m.headlineText);
-
+    const top = [m.market && m.market.text, m.crashText].filter(Boolean).join('\n');
     return {
       embeds: [{
-        title: '📈 Rend-Conomy Market',
-        description: parts.join('\n\n').slice(0, 4000),
+        title: 'Rend-Conomy Market',
+        description: `${top}\nPrices are fictional and update every few minutes. Change is over the last 24 hours.`,
         color: config.color,
-        footer: { text: 'Fictional companies. Live board: renderproductions.github.io/rend-conomy' },
-        timestamp: m.updated
+        fields: [
+          ...m.companies.map((c) => {
+            const q = ctx.market.quote(m, c.id);
+            return { name: `${q.name} (${q.id})`, value: `**${money(q.priceCents)}**  (${q.change}%)\n${q.spark || ' '}` };
+          }),
+          { name: 'View in detail at:', value: `${config.siteUrl}/rend-conomy` }
+        ]
       }]
     };
   }

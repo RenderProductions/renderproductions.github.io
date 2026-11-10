@@ -2,7 +2,9 @@
 
 The Rend-Conomy Discord bot in JavaScript, living next to the site. Every command works both as `r!name` and `/name`.
 
-**Status:** scaffold. Core commands only (market, buy, sell, portfolio, daily, help). The BDFD bot keeps running until this one is ready to replace it.
+**Status:** full port of the BDFD bot (minus the AI commands), hosted on Bot-Hosting.net. The BDFD bot keeps running until the "Crash the Rend-Conomy" update swaps them, which also wipes balances.
+
+Commands: help, balance (bal, portfolio, pf), daily, market, buy, sell, chart, compare, dividends, apply, quit, work, shop, purchase, settitle, cleartitle (mods), slots, bailout, repay, and the secret 404 (prefix only, not in help or the slash list).
 
 ## Folder map
 
@@ -17,6 +19,10 @@ engine/
     api.js         small web API for the site (/health, /api/leaderboard)
     register.js    tells Discord about the slash commands
     format.js      money/percent formatting
+    economy.js     shares (with bankruptcy wipes) and net worth
+    jobs.js        companies, ranks, and r!work's tasks
+    shop.js        shop items, prices, and hourly restocks
+    slash.js       turns the command files into slash commands
     commands/      one file per command; add new ones to commands/index.js
   test/            offline tests, no Discord needed
 ```
@@ -49,7 +55,16 @@ npm start
 3. Bot tab: switch on **Message Content Intent** (needed for `r!`). Under 100 servers it's just a toggle.
 4. OAuth2 > URL Generator: scopes `bot` and `applications.commands`, permissions Send Messages, Embed Links, Read Message History. Invite it to a test server.
 
-## Hosting on Fly.io
+## Hosting on Bot-Hosting.net (current)
+
+The server clones this repo and runs `npm install` from the top-level `package.json`, which points at this folder.
+
+- Entry file: `engine/src/index.js`, Node 22 or newer
+- `engine/.env` on the server holds `DISCORD_TOKEN` and `DISCORD_CLIENT_ID` (never commit it)
+- Restart the server to pull new code. Slash commands re-register on every start.
+- Renew the free server in the panel every 4 days.
+
+## Hosting on Fly.io (not used: needs a card)
 
 `fly.toml` and `Dockerfile` in this folder are already set up: one always-on machine in Chicago, the database on a volume at `/data`, and the web API on HTTPS. Pushing changes to `engine/` deploys automatically once step 5 is done.
 
@@ -74,11 +89,15 @@ The API lives at `https://<app name>.fly.dev/health`.
 
 ## Data
 
-Money is stored in cents (500 Polygons = `50000`), so balances keep their decimals. Balances are per server, like the BDFD bot. Trades are logged in the `trades` table.
+Money is stored in cents (500 Polygons = `50000`), so balances keep their decimals. Balances are per server and shop stock is shared by every server, like the BDFD bot. Trades are logged in the `trades` table. When a company goes bankrupt, prices.json bumps its `wipes` count and holders' shares are zeroed the next time they're read.
+
+The database upgrades itself on start (see `MIGRATIONS` in `src/db.js`). To change the layout later, add a new entry rather than editing an old one.
+
+**Placeholders to check:** shop prices in `src/shop.js` (the BDFD prices weren't in the export), and `r!purchase`, `r!settitle` and `r!cleartitle`, which were rebuilt from their descriptions.
 
 ## Next steps
 
-- Jobs (`r!apply`, `r!quit`, `r!work`), shop, slots, bailouts, dividends, `r!chart`, `r!redeem`
+- `r!redeem` for frequency-scanner phrases
 - Move the market engine from `.github/scripts/market` into the bot so prices tick here instead of in Actions
 - Decide how to carry BDFD balances over (export command or a new season)
-- Update the Privacy Policy once data lives here instead of BDFD
+- On swap day: update the Privacy Policy and Terms (no AI, data stored on Bot-Hosting.net instead of BDFD, r!work reads your next message as the answer)

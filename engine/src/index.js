@@ -8,7 +8,7 @@ const router = require('./router');
 const api = require('./api');
 const { slashCommands } = require('./slash');
 
-const deps = { db, market };
+const deps = { db, market }; // the Discord client is added once it exists
 
 // Start the web API first, so the host's health check passes even if Discord has trouble.
 // /health reports whether the bot is actually connected.
@@ -22,6 +22,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent // needed for r! commands; switch it on in the Developer Portal
   ]
 });
+deps.client = client; // lets commands look up users (r!balance @someone)
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Online as ${c.user.tag} in ${c.guilds.cache.size} server(s)`);
