@@ -18,6 +18,8 @@ module.exports = {
 
   async run(ctx, args) {
     const p = ctx.db.player(ctx.guildId, ctx.user);
+    const ban = casino.bannedUntil(ctx.db, ctx.guildId, ctx.user.id);
+    if (ban) return casino.banMessage(ban);
     if (p.debt > 0) {
       return `🖥️ GAMBLING?!? With MY money?! NOT a CHANCE. You owe me **${amt(p.debt)}**. (\`${config.prefix}repay\`)`;
     }
@@ -49,6 +51,7 @@ module.exports = {
       return net;
     });
     const bal = p.cash + got;
+    casino.streak(ctx, win > bet ? 'win' : win === bet ? 'push' : 'loss');
 
     return {
       embeds: [{

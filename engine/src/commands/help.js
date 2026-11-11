@@ -50,10 +50,11 @@ const PAGES = {
     ['gig', "Quick freelance work when you don't have a job"],
     ['quit', 'Leave your job (24h after hiring)']
   ], note: '📋 A performance review every 10 shifts: **8+** right gets you promoted, **4 or fewer** demoted.' },
-  casino: { label: 'Rend-Sino', emoji: '🎰', color: 0xeb459e, blurb: 'Ten games and a weekly lottery', cmds: [
+  casino: { label: 'Rend-Sino', emoji: '🎰', color: 0xeb459e, blurb: 'Eleven games and a weekly lottery', cmds: [
     ['slots <bet>', 'The slot machine'],
     ['coinflip <bet> heads|tails', 'Call it right for 1.95x'],
     ['dice <bet> over|under <5-95>', 'Roll 1 to 100. Riskier calls pay more'],
+    ['roulette <bet> red|black|odd|even|1st|17', 'The wheel: 2x, 3x, or 36x on a single number'],
     ['blackjack <bet>', 'Against TODD. Hit, Stand or Double'],
     ['bus <bet>', 'Ride the Bus: four card guesses, cash out between them'],
     ['hilo <bet>', 'Higher or Lower: build a streak, cash out before you miss'],
@@ -62,7 +63,7 @@ const PAGES = {
     ['derby <horse> <bet>', 'The Polygon Derby. The whole channel can bet'],
     ['lottery [buy <tickets>]', 'The weekly draw, Sunday 8 PM Eastern'],
     ['gambling', 'Your record at every game']
-  ], note: "🖥️ No gambling while you owe TODD. Every bet goes into the Polygon Reserve." },
+  ], note: "🖥️ No gambling while you owe TODD. Win 10 in a row and TODD throws you out for 3 hours. Every bet goes into the Polygon Reserve." },
   shop: { label: 'Shop', emoji: '🛒', color: 0xf0b232, blurb: 'Items and your inventory', cmds: [
     ['shop', 'Items, stock, and the next restock'],
     ['purchase <item>', 'Buy coffee, overtime, mystery, resume, or title'],

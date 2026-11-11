@@ -53,6 +53,8 @@ const LIST = [
   ['natural', 'Natural', 'Get a blackjack', 'casino', 'rare'],
   ['bus_driver', 'Bus Driver', 'Ride the Bus all four rounds', 'casino', 'epic'],
   ['field_cleared', 'Field Cleared', 'Clear a whole Minesweeper field', 'casino', 'epic'],
+  ['straight_up', 'Straight Up', 'Win a roulette bet on a single number', 'casino', 'rare'],
+  ['escorted_out', 'Escorted Out', `Win so many games in a row that TODD throws you out of the Rend-Sino`, 'casino', 'epic'],
   ['moon_shot', 'Moon Shot', 'Cash out a Rocket at 10x or more', 'casino', 'epic'],
   ['photo_finish', 'Photo Finish', 'Win a Polygon Derby bet', 'casino', 'rare'],
   ['jackpot', 'Jackpot', 'Win the lottery', 'casino', 'legendary'],

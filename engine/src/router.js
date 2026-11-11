@@ -8,7 +8,7 @@ const commands = require('./commands');
 const pending = new Map();
 
 function toPayload(out) {
-  const { later, after, ...payload } = typeof out === 'string' ? { content: out } : out;
+  const { later, after, _final, ...payload } = typeof out === 'string' ? { content: out } : out;
   // Never ping anyone by accident. A command can ping specific users on purpose (r!loan pings the lender).
   return { ...payload, allowedMentions: payload.allowedMentions || { parse: [] } };
 }

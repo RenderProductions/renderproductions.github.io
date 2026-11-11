@@ -46,6 +46,7 @@ const list = [
   require('./reject'),
   require('./slots'),
   require('./coinflip'),
+  require('./roulette'),
   require('./dice'),
   require('./blackjack'),
   require('./bus'),
