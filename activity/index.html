@@ -103,7 +103,7 @@
   .welcome b { color: var(--text); }
 
   /* ---- right side ---- */
-  .right { border-left: 1px solid var(--line); background: var(--bg-2); display: flex; flex-direction: column; min-height: 0; }
+  .right { border-left: 1px solid var(--line); background: var(--bg-2); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
   .card { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
   .worth { font-family: var(--display); font-size: 40px; color: var(--gold); line-height: 0.9; text-shadow: 0 0 14px rgba(255, 230, 0, 0.3); }
   .kv { display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px; } .kv span:first-child { color: var(--dim); }
@@ -112,7 +112,7 @@
   .casino img { width: 44px; height: 44px; }
   .casino-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
   .log-head { margin: 14px 12px 6px; display: flex; justify-content: space-between; align-items: baseline; }
-  .log { flex: 1; overflow: auto; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .log { flex: 1 0 auto; min-height: 160px; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold-2); border-radius: 6px; padding: 8px 10px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; animation: pop .2s ease-out; }
   @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
   .msg .cmd { display: flex; justify-content: space-between; color: var(--faint); font-size: 10.5px; margin-bottom: 4px; }
@@ -120,12 +120,13 @@
   .msg .sub { color: var(--dim); font-size: 10.5px; display: block; }
   .msg code { background: rgba(255, 255, 255, 0.07); padding: 0 4px; border-radius: 3px; }
   .msg .ft { color: var(--faint); font-size: 10.5px; margin-top: 4px; }
-  form.cl { display: flex; align-items: center; border-top: 1px solid var(--line); background: var(--bg); }
+  form.cl { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; border-top: 1px solid var(--line); background: var(--bg); }
   form.cl span { padding-left: 12px; color: var(--gold); font-family: var(--display); font-size: 20px; }
   form.cl input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; padding: 12px 12px 12px 6px; outline: none; }
   .gate { margin: auto; max-width: 460px; text-align: center; padding: 24px; color: var(--dim); }
   .gate img { width: 96px; } .gate b { color: var(--text); display: block; font-family: var(--display); font-size: 28px; color: var(--gold); margin: 8px 0; }
 
+  @media (max-height: 640px) { header { padding: 6px 14px; } header img { width: 32px; height: 32px; } .title b { font-size: 24px; } .card { margin-top: 8px; padding: 9px 10px; } .worth { font-size: 32px; } .casino img { width: 34px; height: 34px; } .chart svg { height: 150px; } }
   @media (max-width: 1050px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); } .detail { grid-template-columns: 1fr; } }
   @media (max-width: 760px) { main { display: block; flex: none; } body { overflow: auto; } .left { overflow: visible; } .right { border-left: 0; border-top: 1px solid var(--line); } .log { max-height: 50vh; } .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } .status .light { display: none; } }
   @media (prefers-reduced-motion: reduce) { .tape-in, .msg { animation: none; } .tk { transition: none; } }
