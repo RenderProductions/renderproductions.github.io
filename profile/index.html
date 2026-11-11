@@ -158,7 +158,7 @@
   var CLIENT_ID = '1569206837352337609';
   var REDIRECT = location.origin + '/profile/';
   var DATA = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/profiles.json';
-  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', secret: '❓ Secret' };
+  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', heists: '🦹 Heists & Schemes', fishing: '🎣 Fishing', secret: '❓ Secret' };
   var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
   var $ = function (id) { return document.getElementById(id); };
   var store = {
@@ -289,10 +289,14 @@
     var total = data.achievements.length;
     $('p-ach-meter').style.width = Math.round((got.size / total) * 100) + '%';
     if (got.size || !$('p-ach-count').textContent) $('p-ach-count').textContent = got.size + ' of ' + total + ' unlocked · % = share of players who have it';
-    Object.keys(CATS).forEach(function (cat) {
+    // Known categories in order, then any new ones the bot adds (secrets stay last)
+    var cats = Object.keys(CATS).filter(function (c) { return c !== 'secret'; });
+    data.achievements.forEach(function (a) { if (cats.indexOf(a.cat) < 0 && a.cat !== 'secret') cats.push(a.cat); });
+    cats.push('secret');
+    cats.forEach(function (cat) {
       var list = data.achievements.filter(function (a) { return a.cat === cat; });
       if (!list.length) return;
-      box.appendChild(el('p', 'cat', CATS[cat]));
+      box.appendChild(el('p', 'cat', CATS[cat] || ('🏆 ' + cat.charAt(0).toUpperCase() + cat.slice(1))));
       var grid = el('div', 'grid');
       list.forEach(function (a) {
         var mine = got.get(a.id);
