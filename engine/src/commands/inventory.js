@@ -43,6 +43,9 @@ module.exports = {
     if (fx.chip) status.push(`💿 Platinum Chip: ${fx.chip} game${fx.chip === 1 ? '' : 's'} left`);
     if (fx.stopwatch) status.push(`⏱️ Stopwatch: ${fx.stopwatch} shift${fx.stopwatch === 1 ? '' : 's'} left`);
     if (fx.fuel) status.push('⛽ Rocket Fuel is in the tank');
+    if (fx.lure) status.push(`🪝 Lure: ${fx.lure} cast${fx.lure === 1 ? '' : 's'} left`);
+    const catches = require('../fishing').bag(ctx.db, ctx.guildId, target.id);
+    if (catches.length) status.push(`**🎣 Catch** (\`${P}fish sell\` to sell)\n` + catches.map((r) => `${r.emoji} ${r.name}${r.qty > 1 ? ` × ${r.qty}` : ''}`).join(' · '));
     if (fx.wrap) status.push('🎀 Your next gift is wrapped (no fee)');
     if ((fx.divBoostUntil || 0) > Date.now()) status.push(`📈 Dividend Booster until <t:${Math.floor(fx.divBoostUntil / 1000)}:t>`);
     if (cols.length) status.push('**Collectibles**\n' + cols.map((r) => `${shop.COLLECTIBLES[r.item].emoji} **${shop.COLLECTIBLES[r.item].name}**${r.qty > 1 ? ` × ${r.qty}` : ''}`).join('\n'));

@@ -25,6 +25,8 @@ const ITEMS = {
   wrap:      { emoji: '🎀', name: 'Gift Wrap',        price: 75_00,   stock: 5, cat: 'fun',    desc: 'Your next r!gift has no fee.' },
   megaphone: { emoji: '📣', name: 'Megaphone',        price: 1000_00, stock: 1, cat: 'fun',    desc: 'An ad for your player company in the market news feed. `r!use megaphone <your ad>`' },
   title:     { emoji: '🏷️', name: 'Title',            price: 5000_00, stock: 1, cat: 'fun',    desc: 'A custom title on your profile. Set it with `r!settitle`.' },
+  rod:       { emoji: '🎣', name: 'Fishing Rod',      price: 300_00,  stock: 5, cat: 'tackle', passive: true, desc: 'Lets you `r!fish`. Yours for good. Each cast costs ⬡ 5 of bait.' },
+  lure:      { emoji: '🪝', name: 'Lure',             price: 300_00,  stock: 4, cat: 'tackle', desc: 'No bait needed for 25 casts, and bigger fish bite more often.' },
   kit:       { emoji: '🎨', name: 'Profile Customizer Kit', price: 1500_00, stock: 3, cat: 'style', desc: 'Unlocks customizing your profile, for good: any color, the preset themes and banners. `r!use kit`, then `r!profile customize`.' }
 };
 // Profile Paint: fancy themes for your profile card (see src/styles.js)
@@ -50,6 +52,7 @@ const SHELVES = {
   market: { label: 'Market',   emoji: '📈' },
   casino: { label: 'Rend-Sino', emoji: '🎰' },
   fun:    { label: 'Odds & Ends', emoji: '🎀' },
+  tackle: { label: 'Bait & Tackle', emoji: '🎣' },
   style:  { label: 'Profile', emoji: '🎨' },
   rare:   { label: 'Collectible', emoji: '🗃️' }
 };

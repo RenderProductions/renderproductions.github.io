@@ -6,8 +6,8 @@ const { have, amt, relTime } = require('../format');
 const { button, rows } = require('../buttons');
 const { ComponentType } = require('discord.js');
 
-const ORDER = ['work', 'market', 'casino', 'fun', 'style', 'rare'];
-const ALIAS = { profile: 'style', paint: 'style', customize: 'style', jobs: 'work', stocks: 'market', casino: 'casino', gambling: 'casino', rendsino: 'casino', odds: 'fun', other: 'fun', collectible: 'rare', collectibles: 'rare' };
+const ORDER = ['work', 'market', 'casino', 'tackle', 'fun', 'style', 'rare'];
+const ALIAS = { fishing: 'tackle', fish: 'tackle', bait: 'tackle', tackle: 'tackle', profile: 'style', paint: 'style', customize: 'style', jobs: 'work', stocks: 'market', casino: 'casino', gambling: 'casino', rendsino: 'casino', odds: 'fun', other: 'fun', collectible: 'rare', collectibles: 'rare' };
 
 function view(ctx, shelf) {
   const p = ctx.db.player(ctx.guildId, ctx.user);
@@ -40,7 +40,7 @@ function view(ctx, shelf) {
       footer: { text: `Buy with the buttons or ${config.prefix}purchase <item> · Use items with ${config.prefix}use <item>` },
       color: 0xf0b232
     }],
-    components: [...rows(tabs, 3), ...rows(buys)].slice(0, 5)
+    components: [...rows(tabs, 4), ...rows(buys)].slice(0, 5)
   };
 }
 
@@ -49,7 +49,7 @@ module.exports = {
   aliases: ['marquez', 'store'],
   description: "Marquez's shop: items, stock, and this week's collectible",
   usage: '[shelf]',
-  options: [{ name: 'shelf', type: 'string', description: 'work, market, casino, fun, profile, or collectible' }],
+  options: [{ name: 'shelf', type: 'string', description: 'work, market, casino, fishing, fun, profile, or collectible' }],
 
   async run(ctx, args = {}) {
     const t = String(args.shelf || '').trim().toLowerCase().replace(/[^a-z]/g, '');

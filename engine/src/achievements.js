@@ -19,6 +19,7 @@ const CATEGORIES = {
   casino:    { label: 'Rend-Sino',       emoji: '🎰' },
   social:    { label: 'Social',          emoji: '🤝' },
   companies: { label: 'Companies',       emoji: '🏢' },
+  fishing:   { label: 'Fishing',         emoji: '🎣' },
   secret:    { label: 'Secret',          emoji: '❓' }
 };
 
@@ -54,6 +55,9 @@ const LIST = [
   ['bus_driver', 'Bus Driver', 'Ride the Bus all four rounds', 'casino', 'epic'],
   ['field_cleared', 'Field Cleared', 'Clear a whole Minesweeper field', 'casino', 'epic'],
   ['straight_up', 'Straight Up', 'Win a roulette bet on a single number', 'casino', 'rare'],
+  ['first_catch', 'Gone Fishin\'', 'Catch your first fish', 'fishing', 'common'],
+  ['bigger_fish', "There's Always a Bigger Fish", 'Use a fish as bait and catch a bigger one', 'fishing', 'rare'],
+  ['fish_in_the_sea', 'Plenty of Fish in the Sea', 'Catch 200 fish', 'fishing', 'epic'],
   ['escorted_out', 'Escorted Out', `Win so many games in a row that TODD throws you out of the Rend-Sino`, 'casino', 'epic'],
   ['moon_shot', 'Moon Shot', 'Cash out a Rocket at 10x or more', 'casino', 'epic'],
   ['photo_finish', 'Photo Finish', 'Win a Polygon Derby bet', 'casino', 'rare'],

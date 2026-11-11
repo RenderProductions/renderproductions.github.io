@@ -47,7 +47,8 @@ const PAGES = {
     ['work', 'A shift every 15 minutes. Fast answers earn tips, coworkers earn a team bonus'],
     ['job', 'Your rank, next review, accuracy and earnings'],
     ['job remind on', 'A DM when your next shift is ready'],
-    ['gig', "Quick freelance work when you don't have a job"],
+    ['gig', "Quick freelance work, job or not (also `sidehustle`)"],
+    ['fish', 'Go fishing (needs a Fishing Rod from Marquez): `fish bag`, `fish sell`, `fish <small fish>` for big bait'],
     ['quit', 'Leave your job (24h after hiring)']
   ], note: '📋 A performance review every 10 shifts: **8+** right gets you promoted, **4 or fewer** demoted.' },
   casino: { label: 'Rend-Sino', emoji: '🎰', color: 0xeb459e, blurb: 'Eleven games and a weekly lottery', cmds: [
