@@ -1,3 +1,4 @@
+require('../src/config').achievementPay = false; // these tests count exact balances
 // Runs every command against a throwaway database and the repo's prices.json.
 // No Discord connection needed:  npm test
 const assert = require('assert');

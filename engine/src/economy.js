@@ -25,7 +25,9 @@ function worth(ctx, m, player, userId = ctx.user.id) {
   let total = player.cash;
   for (const c of m.companies) total += shares(ctx, m, c.id, userId) * Math.round(Number(m.prices[c.id]) * 100);
   // Shares a broker is holding for them count too (src/trading.js)
-  return total + playerCompanyValue(ctx, userId).total + require('./trading').value(ctx.db, ctx.guildId, userId, m);
+  // and so do Polygons locked in savings accounts (src/savings.js)
+  return total + playerCompanyValue(ctx, userId).total + require('./trading').value(ctx.db, ctx.guildId, userId, m)
+    + require('./savings').total(ctx.db, ctx.guildId, userId);
 }
 
 // Value of a player's shares in player companies: { total cents, rows: [{ ticker, name, shares, value }] }

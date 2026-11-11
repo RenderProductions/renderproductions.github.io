@@ -119,7 +119,13 @@ async function handleMessage(message, deps) {
     if (out != null) { const sent = await sendSafe((p) => message.reply(p), toPayload(out)); afterSend(out, (p) => sent.edit(p)); return sent; }
     return;
   }
-  if (!parsed) return;
+  if (!parsed) {
+    // Ordinary chat: chat pay, and TODD's drop-ins (src/chatter.js)
+    const ctx = makeCtx({ guildId: message.guildId, channelId: message.channelId, user: message.author, message, guildName: message.guild && message.guild.name }, deps);
+    const out = await require('./chatter').onMessage(message, deps, ctx);
+    if (out != null) return sendSafe((p) => message.reply(p), toPayload(out));
+    return;
+  }
 
   const { cmd, args } = parsed;
   for (const o of cmd.options || []) {

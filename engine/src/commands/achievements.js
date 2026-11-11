@@ -26,7 +26,9 @@ function view(ctx, who, cat) {
         return `${A.CATEGORIES[c].emoji} **${A.CATEGORIES[c].label}** · ${n}/${list.length}`;
       }).join('\n') +
         (mine.size ? `\n\n**Latest:** ${[...mine.keys()].slice(-3).reverse().map((id) => `${A.RARITY[A.BY_ID[id].rarity].emoji} ${A.BY_ID[id].name}`).join(' · ')}` : '') +
-        `\n\n-# Achievements follow you to every server. Legendary ones come with a free Title.`,
+        (who.id === ctx.user.id && A.backPay(ctx.db, who.id).cents ? `\n\n💼 **You have ${require('../format').amt(A.backPay(ctx.db, who.id).cents)} in back pay waiting.** Claim it with \`${config.prefix}backpay\`.` : '') +
+        `\n\n-# Achievements follow you to every server and pay out once when you unlock them: ` +
+        Object.values(A.RARITY).map((r) => `${r.emoji} ${require('../format').amt(r.pay)}`).join(' · ') + '. Legendary ones also come with a free Title.',
       color: 0xffe600
     };
   } else {

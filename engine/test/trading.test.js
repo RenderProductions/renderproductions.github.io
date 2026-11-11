@@ -2,6 +2,7 @@
 const assert = require('assert');
 const path = require('path');
 const config = require('../src/config');
+config.achievementPay = false; // these tests count exact balances
 config.githubToken = '';
 const db = require('../src/db').open(':memory:');
 const market = require('../src/market');
@@ -160,6 +161,7 @@ const settle = () => new Promise((r) => setTimeout(r, 10));
   const c = trading.candidates(BEN.id)[0];
   trading.hire(ctxFor(BEN), c);
   assert.strictEqual(trading.nextBonus(db, G, BEN.id), 1250_00);
+  db.raw.prepare("UPDATE brokers SET trait = 'steady' WHERE user_id = ?").run(BEN.id); // a cautious one would wait a tick
   trading.setRule(db, G, BEN.id, 'BNW', 'buy', 50_00);
   tick({ BNW: 10 });
   const fireAsk = await say('r!broker fire', BEN);

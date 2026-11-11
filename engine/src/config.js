@@ -46,6 +46,7 @@ module.exports = {
 
   // Economy numbers. Money is stored in cents so nothing gets rounded away.
   startingCash: 500_00,        // new players start with 500 Polygons
+  achievementPay: true,        // achievements pay out by rarity (off in the older tests, which count exact balances)
   dailyAmount: 250_00,         // r!daily gives 250 Polygons
   // The Polygon Reserve (src/reserve.js): how many Polygons the house starts with, shared by every server
   reserveStart: Math.round((Number(process.env.RESERVE_START) || 250_000) * 100),
