@@ -137,5 +137,19 @@ const cash = (u = ANA) => db.player(G, u).cash;
   await router.runCommand(require('../src/commands/dropin'), mod, { action: 'on' });
   assert.ok(!C.off(db, G));
 
+  // Mods can keep TODD to one channel
+  await router.runCommand(require('../src/commands/dropin'), mod, { action: 'here' });
+  assert.strictEqual(C.home(db, G), 'chan');
+  C.lastDrop.set(G, 0);
+  const posted = [];
+  const m2 = (channelId) => ({ guildId: G, channelId, channel: { send: async (p) => { posted.push(channelId); } } });
+  assert.strictEqual(await C.maybeDrop(m2('elsewhere'), deps, Date.now(), () => 0), null, 'not in other channels');
+  assert.ok(await C.maybeDrop(m2('chan'), deps, Date.now(), () => 0), 'drops into the home channel');
+  assert.deepStrictEqual(posted, ['chan']);
+  C.active.clear();
+  assert.ok(text(await router.runCommand(require('../src/commands/dropin'), router.makeCtx({ guildId: G, channelId: 'other', user: ANA, isMod: true }, deps), { action: 'now' })).includes('only drops in at'));
+  await router.runCommand(require('../src/commands/dropin'), mod, { action: 'anywhere' });
+  assert.strictEqual(C.home(db, G), '');
+
   console.log('All payday tests passed.');
 })().catch((e) => { console.error(e); process.exit(1); });

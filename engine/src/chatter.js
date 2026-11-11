@@ -107,6 +107,9 @@ function question(m, rand = Math.random) {
 }
 
 const off = (db, guildId) => db.meta(`dropins_off:${guildId}`) === '1';
+// The one channel TODD drops into (set by a mod with r!dropin here). Empty = any channel.
+const home = (db, guildId) => db.meta(`dropins_channel:${guildId}`) || '';
+function setHome(db, guildId, channelId) { db.setMeta(`dropins_channel:${guildId}`, channelId || ''); }
 function setOff(db, guildId, isOff) { db.setMeta(`dropins_off:${guildId}`, isOff ? '1' : '0'); }
 
 // Starts a drop-in in a channel. send(payload) posts in it. Returns the drop-in, or null.
@@ -150,6 +153,14 @@ function answer(ctx, text) {
   return A.attach(ctx, { content: `🎉 **${ctx.user.username}** got it! The answer was **${drop.shown}**. **+${amt(got)}**${reserve.note(ctx.db)}` });
 }
 
+// Any message (chat or a command) might bring TODD in, if this is a channel he's allowed in
+async function maybeDrop(message, deps, now = Date.now(), rand = Math.random) {
+  const h = home(deps.db, message.guildId);
+  if (off(deps.db, message.guildId) || (h && h !== message.channelId)) return null;
+  if (now - (lastDrop.get(message.guildId) || 0) < RULES.drop.gapMs || rand() >= RULES.drop.chance) return null;
+  return startDrop(deps, message.guildId, message.channelId, (p) => message.channel.send(p), now, rand).catch((e) => { console.error('[dropin]', e.message); return null; });
+}
+
 // Called for every ordinary (non-command) message. Pays chat pay, and maybe starts a drop-in.
 async function onMessage(message, deps, ctx, now = Date.now(), rand = Math.random) {
   const won = answer(ctx, message.content);
@@ -159,12 +170,10 @@ async function onMessage(message, deps, ctx, now = Date.now(), rand = Math.rando
     const total = A.bump(ctx, 'chat_pay', got);
     if (total >= 2500_00) A.award(ctx, 'chatterbox');
   }
-  if (!off(deps.db, message.guildId) && now - (lastDrop.get(message.guildId) || 0) >= RULES.drop.gapMs && rand() < RULES.drop.chance) {
-    await startDrop(deps, message.guildId, message.channelId, (p) => message.channel.send(p), now, rand).catch((e) => console.error('[dropin]', e.message));
-  }
+  await maybeDrop(message, deps, now, rand);
   // Achievements earned by chatting get announced quietly in a reply
   if (ctx.notes.length) return A.attach(ctx, null);
   return null;
 }
 
-module.exports = { RULES, chatPay, chatToday, question, startDrop, answer, onMessage, off, setOff, active, lastDrop, lastPaid, norm };
+module.exports = { RULES, chatPay, chatToday, question, startDrop, answer, onMessage, maybeDrop, off, setOff, home, setHome, active, lastDrop, lastPaid, norm };

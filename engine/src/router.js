@@ -134,7 +134,10 @@ async function handleMessage(message, deps) {
   const isMod = !!(message.member && message.member.permissions.has(PermissionFlagsBits.ManageMessages));
   const ctx = makeCtx({ guildId: message.guildId, channelId: message.channelId, user: message.author, message, isMod, guildName: message.guild && message.guild.name }, deps);
   const out = await runCommand(cmd, ctx, args);
-  if (out) { const sent = await sendSafe((p) => message.reply(p), out); afterSend(out, (p) => sent.edit(p)); return sent; }
+  let sent;
+  if (out) { sent = await sendSafe((p) => message.reply(p), out); afterSend(out, (p) => sent.edit(p)); }
+  if (cmd.name !== 'dropin') await require('./chatter').maybeDrop(message, deps); // commands count as a busy channel too
+  return sent;
 }
 
 // Buttons: custom ids look like "loan:accept:abc123". The command whose buttonPrefix matches handles it.

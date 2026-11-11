@@ -93,6 +93,7 @@ const PAGES = {
     ['review', 'Companies waiting for approval'],
     ['approve <ticker>', 'Approve a company'],
     ['reject <ticker> [reason]', 'Turn one down (the founder gets a refund)'],
+    ['dropin here', "TODD only drops in to this channel (`dropin anywhere` undoes it)"],
     ['dropin off|on|now', "Switch TODD's drop-ins off for this server, or start one now"],
     ['crash', 'Bot owner: start, end or cancel a market crash'],
     ['boost', 'Bot owner: boost the market for an event'],
