@@ -74,6 +74,8 @@ async function publish(db) {
   // Public player profiles for the site's profile page
   files['profiles.json'] = JSON.stringify({ updated: new Date().toISOString(), ...require('./profiles').snapshot(db, prices || await require('./market').get().catch(() => null)) });
   if (prices) files['prices.json'] = JSON.stringify(prices);
+  // Hourly prices for the last 7 days (the company pages' 7D charts) and the world event
+  files['history-7d.json'] = JSON.stringify({ ...require('./priceHistory').snapshot(db), event: require('./worldEvents').active(db) });
 
   const tree = await gh(`/repos/${repo}/git/trees`, {
     method: 'POST',

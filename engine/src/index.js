@@ -70,6 +70,11 @@ setInterval(async () => {
     lastTick = m.updated;
     const r = trading.tick(deps, m);
     if (r.orders.length) console.log(`[trading] ${r.orders.length} order(s) filled`);
+    // World events and the 7-day price history (Heists & Schemes)
+    const W = require('./worldEvents');
+    const e = W.tick(db, m);
+    if (e) { console.log('[event] Started', e.id, e.ticker || ''); W.announce(e); }
+    require('./priceHistory').record(db, m);
   } catch (e) { console.error('[trading]', e); }
 }, 30 * 1000).unref();
 require('./publish').start(db);

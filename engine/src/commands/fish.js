@@ -63,7 +63,8 @@ module.exports = {
     // ---- a cast ----
     if (ctx.db.itemCount(ctx.guildId, ctx.user.id, 'rod') <= 0) return `🎣 You need a **Fishing Rod**. Marquez sells them: \`${P}shop fishing\`.`;
     const key = `${ctx.guildId}:${ctx.user.id}`;
-    const wait = (lastCast.get(key) || 0) + F.RULES.cooldownMs - Date.now();
+    const frenzy = require('../worldEvents').fishFrenzy(ctx.db);
+    const wait = (lastCast.get(key) || 0) + (frenzy ? 90_000 : F.RULES.cooldownMs) - Date.now();
     if (wait > 0) return `🎣 The fish need a minute to forget about you. Cast again ${relTime(Date.now() + wait)}.`;
     if (F.bagCount(ctx.db, ctx.guildId, ctx.user.id) >= F.RULES.bagMax) return `🎣 Your bag is full (${F.RULES.bagMax}). Sell some with \`${P}fish sell\`.`;
 
@@ -79,7 +80,7 @@ module.exports = {
     else if (p.cash < F.RULES.bait) return `🎣 Bait costs ${amt(F.RULES.bait)}. You have ${have(p.cash)}.`;
 
     lastCast.set(key, Date.now());
-    const res = F.cast(using, ctx.random || Math.random);
+    const res = F.cast(using === 'bait' && frenzy ? 'lure' : using, ctx.random || Math.random); // a Fish Frenzy makes plain bait work like a lure
     ctx.db.tx(() => {
       if (using === 'bait') { ctx.db.addCash(ctx.guildId, ctx.user.id, -F.RULES.bait); reserve.take(ctx.db, F.RULES.bait); line = `🪱 Bait: −${amt(F.RULES.bait)}`; }
       else if (using === 'lure') { effects.take(ctx.db, ctx.guildId, ctx.user.id, 'lure'); }

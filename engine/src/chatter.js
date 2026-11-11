@@ -37,9 +37,10 @@ function chatPay(db, guildId, user, text, now = Date.now(), rand = Math.random) 
   if (!p) return 0; // hasn't used the bot here yet
   const today = day(now);
   const earned = p.chat_day === today ? p.chat_earned : 0;
-  if (earned >= R.perDay) return 0;
+  const x = require('./worldEvents').chatMult(db); // Gossip Hour: double pay, double cap
+  if (earned >= R.perDay * x) return 0;
   lastPaid.set(key, { at: now, text: clean });
-  const got = reserve.pay(db, Math.min(R.perDay - earned, between(R.min / 100, R.max / 100, rand) * 100));
+  const got = reserve.pay(db, Math.min(R.perDay * x - earned, between(R.min / 100, R.max / 100, rand) * 100 * x));
   if (!got) return 0;
   db.tx(() => {
     db.addCash(guildId, user.id, got);

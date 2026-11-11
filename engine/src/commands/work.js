@@ -89,7 +89,7 @@ async function answer(ctx, text) {
 
   // ---------------- gigs ----------------
   if (st.mode === 'gig') {
-    let pay = jobs.BASE_PAY * jobs.GIG_PAY * (result === 'pass' ? 1 : 0.4);
+    let pay = jobs.BASE_PAY * jobs.GIG_PAY * (result === 'pass' ? 1 : 0.4) * require('../worldEvents').workMult(ctx.db);
     const tip = pay * speed;
     const shrink = reserve.factor(ctx.db);
     const total = Math.round((pay + tip) * 100 * shrink);
@@ -140,6 +140,8 @@ async function answer(ctx, text) {
     if (p.overtime) { pay *= 2; update.overtime = 0; extras.push('☕ Overtime x2'); }
     if (c && isBoomed(m, st.job)) { pay *= 2; extras.push('🚀 Boom overtime x2'); }
     if (st.scab) { pay *= 0.9; extras.push('🪧 Crossed the picket line (-10%)'); }
+    const ev = require('../worldEvents').workMult(ctx.db, st.job);
+    if (ev > 1) { pay *= ev; extras.push(`🌍 World event x${ev}`); }
     tip = pay * speed;
     // Coworkers who just worked a shift in this channel
     const tk = `${ctx.guildId}:${ctx.channelId}:${st.job}`;

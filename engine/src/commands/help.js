@@ -33,6 +33,17 @@ const PAGES = {
     ['broker clear <ticker|all>', 'Forget your rules'],
     ['broker fire', 'Let them go; what they hold comes back to you']
   ], note: '💼 Brokers cost a daily salary plus a cut of their profits. Miss a payday and they quit. Each hire costs 1.25x more, easing back for every week you keep one.' },
+  schemes: { label: 'Heists & Schemes', emoji: '🦹', color: 0x8c6239, blurb: 'Shorts, heists, takeovers', cmds: [
+    ['short <ticker> <shares>', 'Bet a stock falls. Half its value is set aside as margin'],
+    ['cover <ticker|all>', 'Close a short. Price fell? You keep the difference'],
+    ['short', 'Your shorts, and where each one gets margin-called'],
+    ['heist vault <ticker>|stash|reserve', 'Plan a heist. A crew of 3 to 5 joins with buttons and splits the haul'],
+    ['heist', 'How heists work, and recent heists in this server'],
+    ['takeover <ticker>', 'Own half a player company\'s public shares? Bid to take it over'],
+    ['takeover accept|defend', 'Owners: take the premium, or fight it off with a poison pill'],
+    ['merge <ticker>', 'Merge your company with another (both owners agree)'],
+    ['event', 'The world event running now. A new one every few hours']
+  ] },
   profile: { label: 'Profile', emoji: '🏆', color: 0xffe600, blurb: 'Your card and achievements', cmds: [
     ['profile [@player]', 'A player card: title, rarest achievements, net worth, job and more'],
     ['achievements [@player]', 'Every achievement, by category, and how rare each one is'],
@@ -103,8 +114,8 @@ const PAGES = {
   ] }
 };
 for (const pg of Object.values(PAGES)) pg.body = (P) => pg.cmds.map(([u, d]) => `${P}${u} ${d}`);
-const ORDER = ['market', 'trading', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
-const ALIAS = { stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
+const ORDER = ['market', 'trading', 'schemes', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
+const ALIAS = { heist: 'schemes', heists: 'schemes', short: 'schemes', shorts: 'schemes', stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
   orders: 'trading', order: 'trading', broker: 'trading', brokers: 'trading', items: 'shop', achievements: 'profile', badges: 'profile', me: 'profile', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
 
 const avatar = () => `${config.siteUrl}/bot/avatar.png`;
