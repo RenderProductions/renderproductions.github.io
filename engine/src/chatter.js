@@ -153,10 +153,23 @@ function answer(ctx, text) {
   return A.attach(ctx, { content: `🎉 **${ctx.user.username}** got it! The answer was **${drop.shown}**. **+${amt(got)}**${reserve.note(ctx.db)}` });
 }
 
+// TODD only drops into channels where everyone can talk back: never announcements, rules, or anything
+// read-only, threads included (they follow their parent channel's permissions).
+function openToAll(message) {
+  const ch = message.channel, g = message.guild;
+  if (!ch || !g || !g.roles || typeof ch.permissionsFor !== 'function') return !!ch; // tests and odd channels
+  const { ChannelType, PermissionFlagsBits } = require('discord.js');
+  if (ch.type === ChannelType.GuildAnnouncement || ch.type === ChannelType.AnnouncementThread) return false;
+  const perms = ch.permissionsFor(g.roles.everyone);
+  const need = ch.isThread && ch.isThread() ? PermissionFlagsBits.SendMessagesInThreads : PermissionFlagsBits.SendMessages;
+  return !!perms && perms.has(PermissionFlagsBits.ViewChannel) && perms.has(need);
+}
+
 // Any message (chat or a command) might bring TODD in, if this is a channel he's allowed in
 async function maybeDrop(message, deps, now = Date.now(), rand = Math.random) {
   const h = home(deps.db, message.guildId);
   if (off(deps.db, message.guildId) || (h && h !== message.channelId)) return null;
+  if (!openToAll(message)) return null;
   if (now - (lastDrop.get(message.guildId) || 0) < RULES.drop.gapMs || rand() >= RULES.drop.chance) return null;
   return startDrop(deps, message.guildId, message.channelId, (p) => message.channel.send(p), now, rand).catch((e) => { console.error('[dropin]', e.message); return null; });
 }
@@ -176,4 +189,4 @@ async function onMessage(message, deps, ctx, now = Date.now(), rand = Math.rando
   return null;
 }
 
-module.exports = { RULES, chatPay, chatToday, question, startDrop, answer, onMessage, maybeDrop, off, setOff, home, setHome, active, lastDrop, lastPaid, norm };
+module.exports = { RULES, chatPay, chatToday, question, startDrop, answer, onMessage, maybeDrop, openToAll, off, setOff, home, setHome, active, lastDrop, lastPaid, norm };

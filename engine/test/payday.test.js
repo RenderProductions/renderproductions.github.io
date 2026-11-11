@@ -137,6 +137,17 @@ const cash = (u = ANA) => db.player(G, u).cash;
   await router.runCommand(require('../src/commands/dropin'), mod, { action: 'on' });
   assert.ok(!C.off(db, G));
 
+  // Never in announcements or read-only channels
+  const { ChannelType, PermissionFlagsBits } = require('discord.js');
+  const everyone = { id: 'everyone' };
+  const chan = (type, allowed) => ({ type, isThread: () => false, permissionsFor: () => ({ has: (f) => allowed.includes(f) }) });
+  const g = { roles: { everyone } };
+  const all = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages];
+  assert.ok(C.openToAll({ guild: g, channel: chan(ChannelType.GuildText, all) }));
+  assert.ok(!C.openToAll({ guild: g, channel: chan(ChannelType.GuildAnnouncement, all) }), 'announcements');
+  assert.ok(!C.openToAll({ guild: g, channel: chan(ChannelType.GuildText, [PermissionFlagsBits.ViewChannel]) }), 'read-only');
+  assert.ok(!C.openToAll({ guild: g, channel: chan(ChannelType.GuildText, [PermissionFlagsBits.SendMessages]) }), 'hidden');
+
   // Mods can keep TODD to one channel
   await router.runCommand(require('../src/commands/dropin'), mod, { action: 'here' });
   assert.strictEqual(C.home(db, G), 'chan');
