@@ -6,95 +6,180 @@
 <title>Rend-Conomy Trading Floor</title>
 <!-- The Discord Activity. Runs inside Discord (through the Cloudflare Worker in worker.js), not on the site.
      Everything it does goes through the bot, as you, in the server you opened it in. -->
+<link rel="stylesheet" href="fonts.css">
 <style>
   :root {
-    --bg: #030d08; --panel: #07150e; --panel-2: #0b1d14; --line: rgba(61, 220, 132, 0.18); --line-strong: rgba(61, 220, 132, 0.45);
-    --text: #dff5e8; --dim: #8aa596; --accent: #3ddc84; --down: #ff6b6b; --gold: #ffe600;
-    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+    --bg: #060a18; --bg-2: #0a1026; --panel: #0d1430; --panel-2: #121b3d; --line: rgba(255, 230, 0, 0.14); --line-2: rgba(255, 230, 0, 0.32);
+    --text: #e8ecff; --dim: #8e97bd; --faint: #5a6390; --gold: #ffe600; --gold-2: #c9a800; --up: #3ddc84; --down: #ff5c61;
+    --c: var(--gold); --c-rgb: 255, 230, 0; /* the selected company's color */
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace; --display: 'VT323', ui-monospace, monospace;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--mono); height: 100%; }
-  body { display: flex; flex-direction: column; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.45 var(--mono); }
+  body { display: flex; flex-direction: column; overflow: hidden;
+    background: radial-gradient(1200px 500px at 20% -10%, rgba(255, 230, 0, 0.06), transparent 60%), var(--bg); }
   button { font: inherit; color: inherit; cursor: pointer; }
-  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-  .brand { color: var(--gold); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; }
-  .brand small { color: var(--dim); font-weight: 400; letter-spacing: 0.04em; }
-  .who { margin-left: auto; color: var(--dim); font-size: 12px; }
-  .event { padding: 6px 16px; background: rgba(255, 230, 0, 0.07); border-bottom: 1px solid rgba(255, 230, 0, 0.25); color: #fff3a6; font-size: 12.5px; }
+  .disp { font-family: var(--display); letter-spacing: 0.04em; line-height: 1; }
+  .hx { font-family: var(--mono); font-size: 0.5em; color: var(--dim); margin-right: 0.15em; vertical-align: 0.35em; text-shadow: none; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .label { color: var(--dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em; }
+
+  /* ---- top bar ---- */
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--bg-2), var(--bg)); }
+  header img { width: 40px; height: 40px; filter: drop-shadow(0 0 10px rgba(255, 230, 0, 0.25)); }
+  .title b { display: block; font-family: var(--display); font-size: 30px; color: var(--gold); line-height: 0.85; letter-spacing: 0.06em; text-shadow: 0 0 14px rgba(255, 230, 0, 0.35); }
+  .title span { font-size: 10.5px; color: var(--dim); letter-spacing: 0.24em; text-transform: uppercase; }
+  .status { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .light { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+  .light::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .light.open { color: var(--up); } .light.open::before { background: var(--up); box-shadow: 0 0 8px var(--up); }
+  .light.closed { color: var(--down); } .light.closed::before { background: var(--down); }
+  .who { display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel); font-size: 12px; }
+  .who i { width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: var(--bg); display: grid; place-items: center; font-style: normal; font-weight: 600; }
+
+  /* ---- ticker tape ---- */
+  .tape { overflow: hidden; border-bottom: 1px solid var(--line); background: #04071199; white-space: nowrap; font-size: 12px; }
+  .tape-in { display: inline-block; padding: 5px 0; animation: tape 40s linear infinite; }
+  .tape-in span { margin: 0 18px; } .tape-in b { color: var(--text); margin-right: 6px; }
+  @keyframes tape { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .event { padding: 7px 16px; background: linear-gradient(90deg, rgba(255, 230, 0, 0.14), rgba(255, 230, 0, 0.03)); border-bottom: 1px solid var(--line-2); color: #fff4a3; font-size: 12px; }
   .event[hidden] { display: none; }
-  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
-  .left { display: flex; flex-direction: column; min-height: 0; overflow: auto; padding: 14px 16px; gap: 14px; }
-  .right { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
-  .tickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .tk { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 2px; }
-  .tk:hover { border-color: var(--line-strong); }
-  .tk[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-  .tk .t { font-weight: 700; }
-  .tk .n { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tk .p { font-size: 16px; }
-  .up { color: var(--accent); } .down { color: var(--down); }
-  .tk svg { width: 100%; height: 28px; display: block; margin-top: 4px; }
-  .detail { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 10px; }
-  .detail h2 { margin: 0; font-size: 15px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-  .detail h2 .p { font-size: 20px; }
-  .ranges { display: flex; gap: 4px; margin-left: auto; }
-  .ranges button, .act, .qty button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; font-size: 12px; }
-  .ranges button[aria-pressed="true"] { background: var(--accent); color: #032; border-color: var(--accent); }
-  .big { width: 100%; height: 180px; display: block; }
-  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .qty { display: flex; align-items: center; gap: 4px; }
-  .qty input { width: 64px; background: var(--bg); border: 1px solid var(--line-strong); color: var(--text); font: inherit; padding: 4px 6px; border-radius: 4px; }
-  .act.buy { border-color: var(--accent); color: var(--accent); }
-  .act.sell { border-color: var(--down); color: var(--down); }
-  .act:disabled { opacity: 0.5; cursor: wait; }
-  .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
-  .desk { padding: 12px; border-bottom: 1px solid var(--line); overflow: auto; max-height: 45%; }
-  .log { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-  .msg { background: var(--panel-2); border-left: 3px solid var(--line-strong); border-radius: 4px; padding: 8px 10px; font-size: 12.5px; white-space: pre-wrap; word-wrap: break-word; }
-  .msg .cmd { color: var(--dim); font-size: 11px; margin-bottom: 4px; }
-  .msg h4 { margin: 0 0 4px; font-size: 13px; }
-  .msg .sub { color: var(--dim); font-size: 11px; display: block; }
-  .msg code { background: rgba(255, 255, 255, 0.06); padding: 0 3px; border-radius: 3px; }
-  .msg .ft { color: var(--dim); font-size: 11px; margin-top: 4px; }
-  form.cl { display: flex; border-top: 1px solid var(--line); }
-  form.cl span { padding: 10px 0 10px 12px; color: var(--accent); }
-  form.cl input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; padding: 10px 12px 10px 4px; outline: none; }
+
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: 0; }
+  .left { overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+
+  /* ---- the board ---- */
+  .board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .tk { --c-rgb: 255, 230, 0; position: relative; text-align: left; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid rgba(var(--c-rgb), 0.22); border-radius: 10px; padding: 10px 10px 8px; display: grid; gap: 4px; overflow: hidden; transition: transform .12s, border-color .12s, box-shadow .12s; }
+  .tk:hover { transform: translateY(-2px); border-color: rgba(var(--c-rgb), 0.55); }
+  .tk[aria-pressed="true"] { border-color: rgb(var(--c-rgb)); box-shadow: 0 0 0 1px rgb(var(--c-rgb)) inset, 0 8px 24px rgba(var(--c-rgb), 0.18); background: linear-gradient(180deg, rgba(var(--c-rgb), 0.14), var(--panel)); }
+  .tk .top { display: flex; align-items: center; gap: 8px; }
+  .tk img { width: 34px; height: 34px; }
+  .tk .t { font-family: var(--display); font-size: 26px; color: rgb(var(--c-rgb)); line-height: 0.9; }
+  .tk .n { color: var(--dim); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tk .p { font-family: var(--display); font-size: 30px; line-height: 0.9; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 99px; background: rgba(61, 220, 132, 0.12); color: var(--up); }
+  .pill.down { background: rgba(255, 92, 97, 0.13); color: var(--down); }
+  .tk svg { width: 100%; height: 30px; display: block; }
+  .tk .bk { position: absolute; top: 8px; right: 8px; font-size: 10px; color: var(--down); letter-spacing: 0.1em; }
+
+  /* ---- the selected company ---- */
+  .detail { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 14px; background: linear-gradient(180deg, rgba(var(--c-rgb), 0.08), var(--panel) 40%); border: 1px solid rgba(var(--c-rgb), 0.35); border-radius: 12px; padding: 14px; }
+  .detail[hidden] { display: none; }
+  .d-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .d-head img { width: 60px; height: 60px; filter: drop-shadow(0 0 12px rgba(var(--c-rgb), 0.35)); }
+  .d-name .t { font-family: var(--display); font-size: 34px; color: rgb(var(--c-rgb)); line-height: 0.85; }
+  .d-name .n { color: var(--dim); font-size: 12px; }
+  .d-price { margin-left: auto; text-align: right; }
+  .d-price .p { font-family: var(--display); font-size: 52px; line-height: 0.8; text-shadow: 0 0 18px rgba(var(--c-rgb), 0.25); }
+  .ranges { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-top: 10px; }
+  .ranges button { background: transparent; border: 0; padding: 4px 10px; font-size: 11px; color: var(--dim); }
+  .ranges button[aria-pressed="true"] { background: rgb(var(--c-rgb)); color: var(--bg); font-weight: 600; }
+  .chart { position: relative; margin-top: 8px; }
+  .chart svg { width: 100%; height: 200px; display: block; }
+  .chart .ylab { position: absolute; right: 4px; font-size: 10px; color: var(--faint); transform: translateY(-50%); }
+  .d-status { margin-top: 6px; color: var(--dim); font-size: 11.5px; }
+
+  .ticket { background: var(--bg-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .ticket h3 { margin: 0; font-family: var(--display); font-size: 22px; color: var(--gold); font-weight: 400; letter-spacing: 0.06em; }
+  .stepper { display: grid; grid-template-columns: 34px 1fr 34px; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+  .stepper button { background: var(--panel-2); border: 0; font-size: 18px; }
+  .stepper input { width: 100%; background: transparent; border: 0; color: var(--text); text-align: center; font-family: var(--display); font-size: 30px; padding: 2px 0; -moz-appearance: textfield; }
+  .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .chips { display: flex; gap: 4px; } .chips button { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 3px 0; font-size: 11px; color: var(--dim); }
+  .chips button:hover { color: var(--text); border-color: var(--line-2); }
+  .est { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--dim); } .est b { color: var(--text); font-weight: 600; }
+  .bs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .big-btn { border: 0; border-radius: 8px; padding: 9px 0; font-family: var(--display); font-size: 24px; letter-spacing: 0.08em; color: #04120a; background: var(--up); box-shadow: 0 4px 0 #22844f; }
+  .big-btn.sell { background: var(--down); color: #1a0405; box-shadow: 0 4px 0 #9c363a; }
+  .big-btn:active { transform: translateY(2px); box-shadow: none; }
+  .small-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .sbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 0; font-size: 11px; }
+  .sbtn:hover { border-color: var(--line-2); }
+  button:disabled { opacity: 0.5; cursor: wait; }
+  .hint { color: var(--faint); font-size: 10.5px; text-align: center; }
+
+  .welcome { text-align: center; padding: 26px; color: var(--dim); border: 1px dashed var(--line); border-radius: 12px; }
+  .welcome b { color: var(--text); }
+
+  /* ---- right side ---- */
+  .right { border-left: 1px solid var(--line); background: var(--bg-2); display: flex; flex-direction: column; min-height: 0; }
+  .card { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .worth { font-family: var(--display); font-size: 40px; color: var(--gold); line-height: 0.9; text-shadow: 0 0 14px rgba(255, 230, 0, 0.3); }
+  .kv { display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px; } .kv span:first-child { color: var(--dim); }
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .casino { display: flex; align-items: center; gap: 10px; }
+  .casino img { width: 44px; height: 44px; }
+  .casino-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .log-head { margin: 14px 12px 6px; display: flex; justify-content: space-between; align-items: baseline; }
+  .log { flex: 1; overflow: auto; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold-2); border-radius: 6px; padding: 8px 10px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; animation: pop .2s ease-out; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  .msg .cmd { display: flex; justify-content: space-between; color: var(--faint); font-size: 10.5px; margin-bottom: 4px; }
+  .msg h4 { margin: 0 0 4px; font-size: 12.5px; color: var(--text); }
+  .msg .sub { color: var(--dim); font-size: 10.5px; display: block; }
+  .msg code { background: rgba(255, 255, 255, 0.07); padding: 0 4px; border-radius: 3px; }
+  .msg .ft { color: var(--faint); font-size: 10.5px; margin-top: 4px; }
+  form.cl { display: flex; align-items: center; border-top: 1px solid var(--line); background: var(--bg); }
+  form.cl span { padding-left: 12px; color: var(--gold); font-family: var(--display); font-size: 20px; }
+  form.cl input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; padding: 12px 12px 12px 6px; outline: none; }
   .gate { margin: auto; max-width: 460px; text-align: center; padding: 24px; color: var(--dim); }
-  .gate b { color: var(--text); }
-  @media (max-width: 760px) { main { grid-template-columns: 1fr; } .right { border-left: 0; border-top: 1px solid var(--line); min-height: 50vh; } }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  .gate img { width: 96px; } .gate b { color: var(--text); display: block; font-family: var(--display); font-size: 28px; color: var(--gold); margin: 8px 0; }
+
+  @media (max-width: 1050px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); } .detail { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { main { display: block; flex: none; } body { overflow: auto; } .left { overflow: visible; } .right { border-left: 0; border-top: 1px solid var(--line); } .log { max-height: 50vh; } .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } .status .light { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .tape-in, .msg { animation: none; } .tk { transition: none; } }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">◆ Render's Vision <small>· Trading Floor</small></div>
-  <div class="who" id="who">Connecting…</div>
+  <img src="art-rend-conomy.png" alt="">
+  <div class="title"><b>RENDER'S VISION</b><span>Rend-Conomy · Trading Floor</span></div>
+  <div class="status"><span class="light" id="light">Market</span><div class="who"><i id="who-i">?</i><span id="who">Connecting…</span></div></div>
 </header>
+<div class="tape" aria-hidden="true"><div class="tape-in" id="tape"></div></div>
 <div class="event" id="event" hidden></div>
 <main id="main">
   <section class="left">
-    <div class="tickers" id="tickers" role="group" aria-label="Companies"></div>
+    <div class="board" id="board" role="group" aria-label="Companies"></div>
+    <div class="welcome" id="welcome"><b>Pick a company</b> to see its chart and trade it.<br>Everything you do here runs through Render's Vision, as you, in this server.</div>
     <div class="detail" id="detail" hidden>
-      <h2><span id="d-name"></span><span class="p" id="d-price"></span><span id="d-chg"></span>
-        <span class="ranges"><button type="button" data-r="24" aria-pressed="true">24H</button><button type="button" data-r="168" aria-pressed="false">7D</button></span></h2>
-      <svg class="big" id="d-chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
-      <div class="row">
-        <span class="qty"><span class="label">Shares</span><button type="button" data-q="-1" aria-label="One fewer">−</button><input id="qty" type="number" min="1" value="5" aria-label="Shares"><button type="button" data-q="1" aria-label="One more">+</button></span>
-        <button class="act buy" type="button" data-a="buy">Buy</button>
-        <button class="act sell" type="button" data-a="sell">Sell</button>
-        <button class="act sell" type="button" data-a="sell all">Sell all</button>
-        <button class="act" type="button" data-a="short">🐻 Short</button>
-        <button class="act" type="button" data-a="cover">Cover</button>
+      <div>
+        <div class="d-head">
+          <img id="d-art" alt="">
+          <div class="d-name"><div class="t" id="d-t"></div><div class="n" id="d-n"></div></div>
+          <div class="d-price"><div class="p" id="d-p"></div><span class="pill" id="d-c"></span></div>
+        </div>
+        <div class="ranges" role="group" aria-label="Chart range"><button type="button" data-r="6" aria-pressed="false">6H</button><button type="button" data-r="24" aria-pressed="true">24H</button><button type="button" data-r="168" aria-pressed="false">7D</button></div>
+        <div class="chart"><svg id="d-chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg><div id="d-ylabs"></div></div>
+        <div class="d-status" id="d-status"></div>
       </div>
-      <div class="label" id="d-status"></div>
+      <div class="ticket">
+        <h3>ORDER TICKET</h3>
+        <div class="label">Shares</div>
+        <div class="stepper"><button type="button" data-q="-1" aria-label="One fewer">−</button><input id="qty" type="number" min="1" value="5" aria-label="Shares"><button type="button" data-q="1" aria-label="One more">+</button></div>
+        <div class="chips"><button type="button" data-set="1">1</button><button type="button" data-set="5">5</button><button type="button" data-set="10">10</button><button type="button" data-set="25">25</button><button type="button" data-set="50">50</button></div>
+        <div class="est"><span>Estimated</span><b id="est">—</b></div>
+        <div class="bs"><button class="big-btn" type="button" data-a="buy">BUY</button><button class="big-btn sell" type="button" data-a="sell">SELL</button></div>
+        <div class="small-btns"><button class="sbtn" type="button" data-a="sell all">Sell all</button><button class="sbtn" type="button" data-a="short">🐻 Short</button><button class="sbtn" type="button" data-a="cover">Cover</button></div>
+        <div class="hint">Shorts profit when the price falls</div>
+      </div>
     </div>
   </section>
   <aside class="right">
-    <div class="desk"><div class="label">Your desk</div><div id="desk">…</div>
-      <div class="row" style="margin-top:8px"><button class="act" type="button" data-cmd="daily">Daily</button><button class="act" type="button" data-cmd="dividends">Dividends</button><button class="act" type="button" data-cmd="short">Shorts</button><button class="act" type="button" data-cmd="event">Event</button></div>
+    <div class="card" id="desk-card">
+      <div class="label">Net worth</div>
+      <div class="worth" id="worth">—</div>
+      <div id="desk-lines"></div>
+      <div class="quick"><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="daily">🎁 Daily</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="dividends">💸 Dividends</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="short">🐻 Shorts</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="savings">🐖 Savings</button></div>
     </div>
+    <div class="card">
+      <div class="casino"><img src="art-rendsino.png" alt=""><div><div class="disp" style="font-size:24px;color:var(--gold)">THE REND-SINO</div><div class="label">Quick bets · ⬡ <span id="bet-v">25</span></div></div></div>
+      <div class="casino-btns"><button class="sbtn" type="button" data-game="coinflip {b} heads">🪙 Flip</button><button class="sbtn" type="button" data-game="roulette {b} red">🎡 Red</button><button class="sbtn" type="button" data-game="dice {b} over 50">🎲 Over 50</button></div>
+    </div>
+    <div class="log-head"><span class="label">The tape</span><span class="label" style="text-transform:none;letter-spacing:0">type any command below</span></div>
     <div class="log" id="log" aria-live="polite"></div>
-    <form class="cl" id="cl"><span>r!</span><input id="line" autocomplete="off" placeholder="balance, buy RRM 5, roulette 50 red…" aria-label="Command"></form>
+    <form class="cl" id="cl"><span>r!</span><input id="line" autocomplete="off" placeholder="balance · buy RRM 5 · roulette 50 red" aria-label="Command"></form>
   </aside>
 </main>
 
@@ -106,8 +191,11 @@ const API = (p) => '/.proxy/api/' + p;
 const fmt = (n) => '⬡ ' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const started = Date.now();
-
-// The world events (the bot's src/worldEvents.js)
+// Each company's color (the site's section colors) and art
+const COLORS = { RRM: '255, 92, 97', NACH: '255, 159, 28', BLU: '77, 163, 255', BNW: '46, 230, 197', BSTG: '180, 108, 255' };
+// Big numbers in the display font, with a small polygon sign in front
+const big = (n) => '<span class="hx">⬡</span>' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const ART = (t) => `art-${String(t).toLowerCase()}.png`;
 const EVENTS = {
   labor_shortage: () => '👷 Labor Shortage: shifts and gigs pay 1.5x',
   fish_frenzy: () => '🎣 Fish Frenzy: cast every 90 seconds, and bait works like a lure',
@@ -118,6 +206,7 @@ const EVENTS = {
   fire_sale: (t) => `🔥 Fire Sale: shorts on ${t} open with no fee`
 };
 let sdk = null, token = null, me = null, market = null, week = null, pick = null, range = 24;
+const nameOf = (c) => (market.names && market.names[c.id]) || c.name;
 
 // ---------- Discord's little markdown, for the bot's replies ----------
 function md(text) {
@@ -128,7 +217,7 @@ function md(text) {
       .replace(/&lt;t:(\d+)(?::([A-Za-z]))?&gt;/g, (_, s, f) => { const d = new Date(Number(s) * 1000); if (f === 'R') { const m = Math.round((d - Date.now()) / 60000); return Math.abs(m) < 60 ? (m >= 0 ? `in ${m}m` : `${-m}m ago`) : (m >= 0 ? `in ${Math.round(m / 60)}h` : `${Math.round(-m / 60)}h ago`); } return d.toLocaleString(); })
       .replace(/&lt;#\d+&gt;/g, '#channel').replace(/&lt;@!?\d+&gt;/g, '@someone')
       .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/^# (.*)$/, '<b style="font-size:16px">$1</b>');
+      .replace(/^# (.*)$/, '<b style="font-family:var(--display);font-size:24px">$1</b>');
     return small ? `<span class="sub">${line}</span>` : line;
   }).join('\n');
 }
@@ -147,7 +236,7 @@ function render(result) {
 // ---------- talking to the bot (through the Worker) ----------
 let gambling = 0; // when they last played a Rend-Sino game (for Rich Presence)
 async function run(line, quiet) {
-  if (!token || !sdk || !sdk.guildId) return null;
+  if (!token || !sdk || !sdk.guildId) { if (!quiet) log(line, { content: 'Open the Trading Floor from Discord to trade.' }); return null; }
   if (/^(coinflip|cf|flip|dice|roulette|wheel|rl)\b/i.test(line)) { gambling = Date.now(); presence(); }
   const r = await fetch(API('run'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ guild_id: sdk.guildId, line }) });
   const { id, error } = await r.json().catch(() => ({}));
@@ -165,75 +254,115 @@ function log(line, result) {
   d.className = 'msg';
   const color = result && result.embeds && result.embeds[0] && result.embeds[0].color;
   if (color) d.style.borderLeftColor = '#' + color.toString(16).padStart(6, '0');
-  d.innerHTML = `<div class="cmd">r!${esc(line)}</div>` + render(result);
+  const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  d.innerHTML = `<div class="cmd"><span>r!${esc(line)}</span><span>${time}</span></div>` + render(result);
   $('log').prepend(d);
   while ($('log').children.length > 40) $('log').lastChild.remove();
 }
+// Your desk: pulls the numbers out of r!balance
 async function refreshDesk() {
   const r = await run('balance', true);
-  if (r) $('desk').innerHTML = render(r);
+  const e = r && r.embeds && r.embeds[0];
+  if (!e || !e.description) return;
+  const pick = (label) => { const m = e.description.match(new RegExp(label + ':\\s*\\*\\*([^*]+)\\*\\*')); return m ? m[1].trim() : null; };
+  const nw = pick('Net worth');
+  $('worth').innerHTML = nw ? '<span class="hx">⬡</span>' + esc(nw.replace(/^[⬡⬢]\s*/, '')) : '—';
+  const rows = [['Polygons', pick('Polygons')], ['Stocks', pick('Stocks')], ['In savings', pick('In savings')], ['Shorts', pick('Shorts')], ['Owed to TODD', pick('Owed to TODD')]].filter((x) => x[1]);
+  $('desk-lines').innerHTML = rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`).join('');
 }
 
 // ---------- the market ----------
-function spark(svg, h, opts = {}) {
-  if (!h || h.length < 2) { svg.innerHTML = ''; return; }
-  const min = Math.min(...h), max = Math.max(...h), pad = (max - min) * 0.08 || 1;
-  const pts = h.map((v, i) => `${(i / (h.length - 1)) * 100},${100 - ((v - min + pad) / (max - min + pad * 2)) * 100}`).join(' ');
-  const up = opts.up != null ? opts.up : h[h.length - 1] >= h[0];
-  svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none');
-  svg.innerHTML = (opts.area ? `<polygon points="0,100 ${pts} 100,100" fill="${up ? 'rgba(61,220,132,.12)' : 'rgba(255,107,107,.12)'}"/>` : '') +
-    `<polyline points="${pts}" fill="none" stroke="${up ? '#3ddc84' : '#ff6b6b'}" stroke-width="${opts.area ? 1.2 : 2}" vector-effect="non-scaling-stroke"/>`;
+function line(svg, h, rgb, opts = {}) {
+  if (!h || h.length < 2) { svg.innerHTML = ''; return null; }
+  const min = Math.min(...h), max = Math.max(...h), pad = (max - min) * 0.1 || Math.abs(max) * 0.02 || 1;
+  const lo = min - pad, hi = max + pad;
+  const Y = (v) => 100 - ((v - lo) / (hi - lo)) * 100;
+  const pts = h.map((v, i) => `${((i / (h.length - 1)) * 100).toFixed(2)},${Y(v).toFixed(2)}`).join(' ');
+  const id = 'g' + Math.random().toString(36).slice(2, 7);
+  const grid = opts.grid ? [0.25, 0.5, 0.75].map((f) => `<line x1="0" x2="100" y1="${f * 100}" y2="${f * 100}" stroke="rgba(255,255,255,.06)" stroke-width="1" vector-effect="non-scaling-stroke"/>`).join('') : '';
+  svg.innerHTML = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(${rgb})" stop-opacity="${opts.grid ? 0.35 : 0.25}"/><stop offset="1" stop-color="rgb(${rgb})" stop-opacity="0"/></linearGradient></defs>` + grid +
+    `<polygon points="0,100 ${pts} 100,100" fill="url(#${id})"/>` +
+    `<polyline points="${pts}" fill="none" stroke="rgb(${rgb})" stroke-width="${opts.grid ? 2 : 1.6}" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+  return { lo, hi, Y };
 }
 function seriesOf(c) {
   const h = c.history || [], t = c.times || [];
-  if (range <= 24 || !week || !week.hourly || !week.hourly[c.id] || !t.length) return h;
-  return week.hourly[c.id].filter((p) => p[0] / 1000 < t[0]).map((p) => p[1]).concat(h);
+  if (range > 24 && week && week.hourly && week.hourly[c.id] && t.length) return week.hourly[c.id].filter((p) => p[0] / 1000 < t[0]).map((p) => p[1]).concat(h);
+  if (range < 24) return h.slice(-Math.round(range * 12));
+  return h;
 }
 function drawMarket() {
-  if (!market) return;
-  const box = $('tickers');
-  if (!box.children.length) {
+  if (!market || !market.companies) return;
+  const board = $('board');
+  if (!board.children.length) {
     for (const c of market.companies) {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'tk'; b.dataset.t = c.id; b.setAttribute('aria-pressed', 'false');
-      b.innerHTML = `<span class="t"></span><span class="n"></span><span class="p"></span><svg aria-hidden="true"></svg>`;
+      b.style.setProperty('--c-rgb', COLORS[c.id] || '255, 230, 0');
+      b.innerHTML = `<div class="top"><img src="${ART(c.id)}" alt=""><div style="min-width:0"><div class="t">${esc(c.id)}</div><div class="n"></div></div></div><div class="p"></div><div><span class="pill"></span></div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>`;
       b.addEventListener('click', () => select(c.id));
-      box.appendChild(b);
+      board.appendChild(b);
     }
   }
-  for (const b of box.children) {
+  const tape = [];
+  for (const b of board.children) {
     const c = market.companies.find((x) => x.id === b.dataset.t);
-    const ch = Number(market.changes[c.id] || 0);
-    b.querySelector('.t').innerHTML = `${esc(c.id)} <span class="${ch >= 0 ? 'up' : 'down'}" style="font-weight:400;font-size:12px">${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)}%</span>`;
-    b.querySelector('.n').textContent = (market.names && market.names[c.id]) || c.name;
-    b.querySelector('.p').textContent = fmt(market.prices[c.id]);
-    spark(b.querySelector('svg'), (c.history || []).slice(-96), { up: ch >= 0 });
+    const ch = Number(market.changes[c.id] || 0), price = market.prices[c.id];
+    const bk = market.statuses && market.statuses[c.id] === 'bankrupt';
+    b.querySelector('.n').textContent = nameOf(c);
+    b.querySelector('.p').innerHTML = big(price);
+    const pill = b.querySelector('.pill');
+    pill.className = 'pill' + (ch < 0 ? ' down' : '');
+    pill.textContent = `${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)}%`;
+    line(b.querySelector('svg'), (c.history || []).slice(-96), COLORS[c.id] || '255, 230, 0');
     b.setAttribute('aria-pressed', String(c.id === pick));
+    let tag = b.querySelector('.bk');
+    if (bk && !tag) { tag = document.createElement('span'); tag.className = 'bk'; tag.textContent = 'BANKRUPT'; b.appendChild(tag); }
+    if (!bk && tag) tag.remove();
+    tape.push(`<span><b>${esc(c.id)}</b>${fmt(price)} <span class="${ch >= 0 ? 'up' : 'down'}">${ch >= 0 ? '▲' : '▼'}${Math.abs(ch).toFixed(2)}%</span></span>`);
   }
-  const ev = market.event || (week && week.event);
+  $('tape').innerHTML = tape.join('') + tape.join(''); // twice, so it loops seamlessly
+  const mk = market.market || {};
+  const open = !mk.status || mk.status === 'open';
+  $('light').className = 'light ' + (open ? 'open' : 'closed');
+  $('light').textContent = open ? 'Market open' : 'Market closed';
+  const ev = market.event;
   $('event').hidden = !ev;
-  if (ev) $('event').textContent = '🌍 ' + (EVENTS[ev.id] ? EVENTS[ev.id](ev.ticker) : ev.id.replace(/_/g, ' ')) + ' · r!event for more';
+  if (ev) $('event').textContent = '🌍 WORLD EVENT · ' + (EVENTS[ev.id] ? EVENTS[ev.id](ev.ticker) : ev.id.replace(/_/g, ' ')) + ' · r!event for more';
   if (pick) drawDetail();
 }
 function drawDetail() {
   const c = market.companies.find((x) => x.id === pick);
   if (!c) return;
+  const rgb = COLORS[c.id] || '255, 230, 0';
+  $('detail').style.setProperty('--c-rgb', rgb);
   $('detail').hidden = false;
-  $('d-name').textContent = `${c.id} · ${(market.names && market.names[c.id]) || c.name}`;
-  $('d-price').textContent = fmt(market.prices[c.id]);
+  $('welcome').hidden = true;
+  $('d-art').src = ART(c.id);
+  $('d-t').textContent = c.id;
+  $('d-n').textContent = nameOf(c);
+  $('d-p').innerHTML = big(market.prices[c.id]);
   const ch = Number(market.changes[c.id] || 0);
-  $('d-chg').className = ch >= 0 ? 'up' : 'down';
-  $('d-chg').textContent = `${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)}%`;
-  spark($('d-chart'), seriesOf(c), { area: true });
+  $('d-c').className = 'pill' + (ch < 0 ? ' down' : '');
+  $('d-c').textContent = `${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)}% today`;
+  const g = line($('d-chart'), seriesOf(c), rgb, { grid: true });
+  $('d-ylabs').innerHTML = g ? [0, 0.5, 1].map((f) => { const v = g.hi - (g.hi - g.lo) * f; return `<span class="ylab" style="top:${Math.min(96, Math.max(4, f * 100))}%">${fmt(v)}</span>`; }).join('') : '';
   const st = (market.statusText && market.statusText[c.id]) || '';
-  const closed = market.market && market.market.status && market.market.status !== 'open';
-  $('d-status').textContent = closed ? (market.market.text || 'The market is closed.') : st;
+  const mk = market.market || {};
+  $('d-status').textContent = mk.status && mk.status !== 'open' ? (mk.text || 'The market is closed.') : st;
+  estimate();
+}
+function estimate() {
+  if (!market || !pick) return;
+  const q = Math.max(1, Math.floor(Number($('qty').value) || 1));
+  $('est').textContent = fmt(q * Number(market.prices[pick] || 0));
 }
 function select(t) { pick = t; drawMarket(); presence(); }
 async function loadMarket() {
-  market = await fetch(API('market')).then((r) => r.json()).catch(() => market);
+  const m = await fetch(API('market')).then((r) => r.json()).catch(() => null);
+  if (m && m.companies) market = m;
   week = await fetch(API('week')).then((r) => r.json()).catch(() => week);
-  if (week && week.event && market) market.event = { id: week.event.id, ticker: week.event.ticker };
+  if (market && week && week.event) market.event = { id: week.event.id, ticker: week.event.ticker };
   drawMarket();
 }
 
@@ -255,35 +384,36 @@ function presence() {
     assets: { large_image: 'rend_conomy', large_text: "Render's Vision · Rend-Conomy" }
   };
   if (casino) Object.assign(activity.assets, { small_image: 'rendsino', small_text: 'The Rend-Sino' });
-  else if (c) Object.assign(activity.assets, { small_image: c.id.toLowerCase(), small_text: (market.names && market.names[c.id]) || c.name });
+  else if (c) Object.assign(activity.assets, { small_image: c.id.toLowerCase(), small_text: nameOf(c) });
   if (casino) setTimeout(presence, 5 * 60000 + 1000); // back to the Trading Floor afterwards
   sdk.commands.setActivity({ activity }).catch((e) => console.warn('presence', e));
 }
 
 // ---------- buttons and the command line ----------
+const busy = async (fn) => { document.querySelectorAll('.big-btn, .sbtn').forEach((x) => (x.disabled = true)); try { await fn(); } finally { document.querySelectorAll('.big-btn, .sbtn').forEach((x) => (x.disabled = false)); } };
 document.querySelectorAll('.ranges button').forEach((b) => b.addEventListener('click', () => {
   range = Number(b.dataset.r);
   document.querySelectorAll('.ranges button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   drawDetail();
 }));
-document.querySelectorAll('.qty button').forEach((b) => b.addEventListener('click', () => { $('qty').value = Math.max(1, (Number($('qty').value) || 1) + Number(b.dataset.q)); }));
-document.querySelectorAll('.act[data-a]').forEach((b) => b.addEventListener('click', async () => {
+document.querySelectorAll('.stepper button').forEach((b) => b.addEventListener('click', () => { $('qty').value = Math.max(1, (Number($('qty').value) || 1) + Number(b.dataset.q)); estimate(); }));
+document.querySelectorAll('.chips button').forEach((b) => b.addEventListener('click', () => { $('qty').value = b.dataset.set; estimate(); }));
+$('qty').addEventListener('input', estimate);
+document.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => busy(async () => {
   if (!pick) return;
   const q = Math.max(1, Math.floor(Number($('qty').value) || 1));
   const a = b.dataset.a;
-  const line = a === 'sell all' ? `sell ${pick} all` : a === 'cover' ? `cover ${pick}` : `${a} ${pick} ${q}`;
-  document.querySelectorAll('.act').forEach((x) => (x.disabled = true));
-  await run(line);
-  document.querySelectorAll('.act').forEach((x) => (x.disabled = false));
+  await run(a === 'sell all' ? `sell ${pick} all` : a === 'cover' ? `cover ${pick}` : `${a} ${pick} ${q}`);
   refreshDesk();
-}));
-document.querySelectorAll('.act[data-cmd]').forEach((b) => b.addEventListener('click', async () => { await run(b.dataset.cmd); refreshDesk(); }));
+})));
+document.querySelectorAll('[data-cmd]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.cmd); refreshDesk(); })));
+document.querySelectorAll('[data-game]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.game.replace('{b}', $('bet-v').textContent)); refreshDesk(); })));
 $('cl').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const line = $('line').value.trim().replace(/^r!/i, '');
-  if (!line) return;
+  const text = $('line').value.trim().replace(/^[rt]!/i, '');
+  if (!text) return;
   $('line').value = '';
-  await run(line);
+  await run(text);
   refreshDesk();
 });
 
@@ -293,7 +423,7 @@ async function start() {
   loadMarket();
   setInterval(loadMarket, 60000);
   const inDiscord = new URLSearchParams(location.search).has('frame_id');
-  if (!inDiscord) { $('who').textContent = 'Preview: open this from Discord to trade'; return; }
+  if (!inDiscord) { $('who').textContent = 'Preview · open from Discord'; return; }
   try {
     const cfg = await fetch(API('config')).then((r) => r.json());
     sdk = new DiscordSDK(cfg.clientId);
@@ -304,12 +434,14 @@ async function start() {
     token = t.access_token;
     const auth = await sdk.commands.authenticate({ access_token: token });
     me = auth.user;
-    $('who').textContent = `${me.global_name || me.username}` + (sdk.guildId ? '' : ' · open me in a server to trade');
-    if (!sdk.guildId) { gate('<b>The Trading Floor works in servers.</b><br>Open it from a voice channel or chat in a server with Render\'s Vision.'); return; }
+    const name = me.global_name || me.username;
+    $('who').textContent = name;
+    $('who-i').textContent = name.slice(0, 1).toUpperCase();
+    if (!sdk.guildId) { gate('<img src="art-rend-conomy.png" alt=""><b>THE FLOOR IS IN SERVERS</b>Open the Trading Floor from a voice channel or chat in a server with Render\'s Vision.'); return; }
     presence();
     refreshDesk();
     setInterval(refreshDesk, 60000);
-    log('help', { content: "Welcome to the **Trading Floor**. Pick a company to trade it, or type any command below: `balance`, `buy RRM 5`, `roulette 50 red`, `savings`…\n-# Everything here runs through Render's Vision, as you, in this server." });
+    log('welcome', { content: "**Welcome to the Trading Floor.** Pick a company to trade it, try a quick bet at the Rend-Sino, or type any command below.\n-# Everything here runs through Render's Vision, as you, in this server." });
   } catch (e) {
     console.error(e);
     $('who').textContent = 'Could not log in';
