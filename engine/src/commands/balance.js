@@ -57,16 +57,20 @@ module.exports = {
     const titleLine = p.title ? `🏷️ *${p.title}*\n` : '';
     const owedLoans = loans.totalOwed(ctx.db, ctx.guildId, target.id);
     const lentLoans = loans.totalLent(ctx.db, ctx.guildId, target.id);
-    if (target.id === ctx.user.id && p.cash + stocks - p.debt - owedLoans + lentLoans >= 1_000_000_00) require('../achievements').award(ctx, 'millionaire');
+    if (target.id === ctx.user.id && p.cash + stocks + require('../savings').total(ctx.db, ctx.guildId, target.id) - p.debt - owedLoans + lentLoans >= 1_000_000_00) require('../achievements').award(ctx, 'millionaire');
     const debtLine = (p.debt > 0 ? `\n🖥️ Owed to TODD: **${amt(p.debt)}**` : '') +
       (owedLoans > 0 ? `\n🏦 Owed to players: **${amt(owedLoans)}**` : '') +
       (lentLoans > 0 ? `\n🏦 Lent out: **${have(lentLoans)}**` : '');
+    const saved = require('../savings').total(ctx.db, ctx.guildId, target.id);
+    const savedLine = saved > 0 ? `\n🐖 In savings: **${have(saved)}**` : '';
+    const chat = require('../chatter');
+    const chatLine = target.id === ctx.user.id ? `\n-# 💬 Chat pay today: ${amt(chat.chatToday(ctx.db, ctx.guildId, target.id))} / ${amt(chat.RULES.chat.perDay)}` : '';
 
     return {
       embeds: [{
         title: `${target.username}'s portfolio`,
-        description: `${titleLine}Polygons: **${have(p.cash)}**\nStocks: **${have(stocks)}**${debtLine}\n` +
-          `Net worth: **${have(p.cash + stocks - p.debt - owedLoans + lentLoans)}**`,
+        description: `${titleLine}Polygons: **${have(p.cash)}**\nStocks: **${have(stocks)}**${savedLine}${debtLine}\n` +
+          `Net worth: **${have(p.cash + stocks + saved - p.debt - owedLoans + lentLoans)}**${chatLine}`,
         fields,
         footer: { text: 'Prices as of' },
         timestamp: m.updated,

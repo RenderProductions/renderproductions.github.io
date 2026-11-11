@@ -105,6 +105,8 @@ const cash = (u = ANA) => db.player(G, u).cash;
   assert.strictEqual(paid, C.RULES.chat.perDay, 'daily cap');
   assert.strictEqual(C.chatToday(db, G, ANA.id, t + 60 * 61_000), C.RULES.chat.perDay);
   assert.ok(text(await say('r!dropin')).includes('Chat pay'));
+  const bal = text(await say('r!balance'));
+  assert.ok(bal.includes('Chat pay today') && bal.includes('In savings'), bal);
 
   // ---- drop-ins ----
   const q = C.question(m, () => 0); // first kind: maths with the smallest numbers
