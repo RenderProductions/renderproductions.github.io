@@ -164,5 +164,21 @@ const cash = (u = ANA) => db.player(G, u).cash;
   await router.runCommand(require('../src/commands/dropin'), mod, { action: 'anywhere' });
   assert.strictEqual(C.home(db, G), '');
 
+  // ---- Completionist: every other achievement, its own rarity, 250,000 ----
+  const ZED = { id: '930000000000000009', username: 'zed' };
+  db.player(G, ZED);
+  const others = A.LIST.filter((x) => x.id !== 'completionist');
+  const ins = db.raw.prepare('INSERT OR IGNORE INTO achievements (user_id, id, guild_id, unlocked_at) VALUES (?, ?, ?, ?)');
+  for (const x of others.slice(0, -1)) ins.run(ZED.id, x.id, G, Date.now());
+  assert.ok(!A.has(db, ZED.id, 'completionist'), 'not yet');
+  const z0 = cash(ZED);
+  const f0 = reserve.factor(db);
+  const last = others[others.length - 1];
+  const zline = A.award(ctxFor(ZED), last.id);
+  assert.ok(A.has(db, ZED.id, 'completionist') && zline.includes('Completionist') && zline.includes('⬡ 250,000.00'), zline);
+  assert.strictEqual(cash(ZED), z0 + Math.round((A.RARITY[last.rarity].pay + 250000_00) * f0));
+  assert.strictEqual(A.RARITY[A.BY_ID.completionist.rarity].label, 'Mythic');
+  assert.ok(db.itemCount(G, ZED.id, 'title') >= 1, 'a free Title too');
+
   console.log('All payday tests passed.');
 })().catch((e) => { console.error(e); process.exit(1); });

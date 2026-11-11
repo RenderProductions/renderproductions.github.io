@@ -52,7 +52,7 @@ const PAGES = {
     ['profile customize', 'Your color, theme, banner and frame on the site (needs a Customizer Kit from Marquez)'],
     ['profile color #ff4fd8', 'Any color you like · `profile theme <name>` for a preset or Profile Paint'],
     ['profile pin <collectible>', 'Show off a collectible on your card']
-  ], note: '🏆 Achievements follow you to every server and pay out once: ⚪ ⬡250 · 🔵 ⬡1,000 · 🟣 ⬡2,500 · 🟡 ⬡7,500 (plus a free Title).' },
+  ], note: '🏆 Achievements follow you to every server and pay out once: ⚪ ⬡250 · 🔵 ⬡1,000 · 🟣 ⬡2,500 · 🟡 ⬡7,500 (plus a free Title). Unlock them all for 🌈 **Completionist**: ⬡250,000.' },
   jobs: { label: 'Jobs', emoji: '💼', color: 0x5865f2, blurb: 'Shifts, ranks, reviews, gigs', cmds: [
     ['apply <ticker>', 'Join a company. Your rank there is saved if you leave'],
     ['work', 'A shift every 15 minutes. Fast answers earn tips, coworkers earn a team bonus'],

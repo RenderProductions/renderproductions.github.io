@@ -67,6 +67,12 @@ const seq = (...xs) => { let i = 0; return () => (i < xs.length ? xs[i++] : 0); 
   random = seq(slot('lure', 'snag')); await go();
   assert.strictEqual(effects.get(db, G, ANA.id).lure, 22, 'a snag costs an extra cast');
 
+  // The White Whale: Moby Dick
+  db.updatePlayer(G, ANA.id, { cash: cash() + 100_00 });
+  random = seq(slot('lure', 4), 0.99); // a legendary catch (the lure is on), the second one: the whale
+  out = text(await go());
+  assert.ok(out.includes('White Whale') && out.includes('Moby Dick'), out);
+
   // The bag and selling
   out = text(await go('bag'));
   assert.ok(out.includes('Northern Pike') && out.includes('Marquez would pay'), out);

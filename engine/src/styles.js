@@ -29,7 +29,7 @@ function get(db, userId) { try { return JSON.parse(db.meta(key(userId)) || '{}')
 function save(db, userId, s) { db.setMeta(key(userId), JSON.stringify(s)); }
 const hasKit = (db, userId) => A.get(db, userId, KIT) > 0;
 const ownsPaint = (db, userId, id) => A.get(db, userId, `paint_${id}`) > 0;
-const legendary = (db, userId) => A.unlocked(db, userId).some((r) => A.BY_ID[r.id] && A.BY_ID[r.id].rarity === 'legendary');
+const legendary = (db, userId) => A.unlocked(db, userId).some((r) => A.BY_ID[r.id] && (A.BY_ID[r.id].rarity === 'legendary' || A.BY_ID[r.id].rarity === 'mythic'));
 
 // The accent color as a number, for Discord embeds
 function color(db, userId, fallback) {

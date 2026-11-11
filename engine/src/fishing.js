@@ -27,7 +27,8 @@ const CATCH = {
   pike:      { emoji: '🦈', name: 'Northern Pike',     size: 3, value: 80_00 },
   salmon:    { emoji: '🦈', name: 'King Salmon',       size: 3, value: 110_00 },
   sturgeon:  { emoji: '🦈', name: 'Lake Sturgeon',     size: 3, value: 160_00 },
-  koi:       { emoji: '✨', name: 'Golden Polygon Koi', size: 4, value: 1000_00 }
+  koi:       { emoji: '✨', name: 'Golden Polygon Koi', size: 4, value: 1000_00 },
+  whale:     { emoji: '🐋', name: 'White Whale',       size: 4, value: 1500_00 }
 };
 const SIZE = ['Junk', 'Small', 'Medium', 'Large', 'Legendary'];
 const BY_SIZE = (n) => Object.keys(CATCH).filter((k) => CATCH[k].size === n);

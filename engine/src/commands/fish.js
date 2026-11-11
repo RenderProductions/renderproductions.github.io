@@ -109,6 +109,7 @@ module.exports = {
         A.award(ctx, 'first_catch');
         if (A.bump(ctx, 'fish_caught') >= 200) A.award(ctx, 'fish_in_the_sea');
         if (baitFish && c.size > F.CATCH[baitFish].size) A.award(ctx, 'bigger_fish');
+        if (res.id === 'whale') A.award(ctx, 'moby_dick');
       }
     }
     const fx = effects.get(ctx.db, ctx.guildId, ctx.user.id);

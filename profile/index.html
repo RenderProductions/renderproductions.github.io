@@ -70,7 +70,7 @@
   .big-count small { font-size: 24px; color: var(--grey); }
   .meter { height: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); margin: 0.5rem 0 0.8rem; overflow: hidden; }
   .meter div { height: 100%; background: linear-gradient(90deg, var(--dim), var(--bright)); box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6); }
-  .rar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+  .rar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
   .rar div { border: 1px solid var(--line); border-top: 3px solid var(--rc); padding: 0.4rem 0.6rem; font-size: 12px; color: var(--grey); }
   .rar b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1; color: var(--rc); }
   .filters { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; position: sticky; top: 0; z-index: 2; padding: 0.5rem 0; background: var(--panel); }
@@ -92,6 +92,9 @@
   .ach.locked { opacity: 0.5; } .ach.locked .m { background: #2a2d33; filter: grayscale(1); } .ach.locked .r { color: var(--grey); }
   .ach.legendary:not(.locked) { border-color: rgba(255, 210, 63, 0.55); box-shadow: 0 0 16px rgba(255, 210, 63, 0.15); }
   .ach.epic:not(.locked) { border-color: rgba(181, 126, 220, 0.45); }
+  .ach.mythic { --rc: #ff6ad5; } .ach.mythic .m, .medal .m.mythic, .rar .mythic b { background: linear-gradient(135deg, #ff6ad5, #c774e8, #94d0ff, #7dffb0, #ffe600); }
+  .ach.mythic:not(.locked) { border-color: #ff6ad5; box-shadow: 0 0 22px rgba(255, 106, 213, 0.35); }
+  .rar .mythic b { -webkit-background-clip: text; background-clip: text; color: transparent; }
   .empty { padding: 1rem 0; }
   /* ---- Player styles (r!profile customize). Names only: the bot never sends CSS. ---- */
   [data-theme="holo"]     { --accent-rgb: 201, 167, 255; --bright: #c9a7ff; --lime: #b9a3e8; --dim: #7d6aa8; --grey: #a49cb8; --bg: #07050d; --panel: #0e0a19; --panel-2: #151024; }
@@ -210,10 +213,10 @@
   var CLIENT_ID = '1569206837352337609';
   var REDIRECT = location.origin + '/profile/';
   var DATA = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/profiles.json';
-  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', heists: '🦹 Heists & Schemes', fishing: '🎣 Fishing', secret: '❓ Secret' };
-  var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
-  var RC = { common: '#8e9297', rare: '#3ba7f2', epic: '#b57edc', legendary: '#ffd23f' };
-  var ICON = { start: '🌱', market: '📈', jobs: '💼', casino: '🎰', social: '🤝', companies: '🏢', heists: '🦹', fishing: '🎣', secret: '❓' };
+  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', heists: '🦹 Heists & Schemes', fishing: '🎣 Fishing', mastery: '🌈 Mastery', secret: '❓ Secret' };
+  var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
+  var RC = { common: '#8e9297', rare: '#3ba7f2', epic: '#b57edc', legendary: '#ffd23f', mythic: '#ff6ad5' };
+  var ICON = { start: '🌱', market: '📈', jobs: '💼', casino: '🎰', social: '🤝', companies: '🏢', heists: '🦹', fishing: '🎣', mastery: '🌈', secret: '❓' };
   var filter = 'all'; // all | got | locked | a category
   var $ = function (id) { return document.getElementById(id); };
   var store = {
@@ -332,7 +335,7 @@
     $('p-show-section').hidden = !mineList.length;
     mineList.forEach(function (o) {
       var m = el('div', 'medal'); m.style.setProperty('--rc', RC[o.d.rarity]);
-      m.appendChild(el('div', 'm', ICON[o.d.cat] || '🏆'));
+      m.appendChild(el('div', 'm ' + o.d.rarity, ICON[o.d.cat] || '🏆'));
       var t = el('div'); t.appendChild(el('div', 'mt', o.d.secret ? o.x[2] : o.d.name)); t.appendChild(el('div', 'ms', RARITY[o.d.rarity] + ' · ' + o.d.pct + '% of players'));
       m.appendChild(t); show.appendChild(m);
     });
@@ -389,7 +392,7 @@
     Object.keys(RARITY).forEach(function (k) {
       var all = data.achievements.filter(function (a) { return a.rarity === k; });
       var have = all.filter(function (a) { return got.has(a.id); }).length;
-      var d = el('div'); d.style.setProperty('--rc', RC[k]);
+      var d = el('div', k); d.style.setProperty('--rc', RC[k]);
       d.appendChild(el('b', null, have + '/' + all.length)); d.appendChild(document.createTextNode(RARITY[k]));
       rar.appendChild(d);
     });

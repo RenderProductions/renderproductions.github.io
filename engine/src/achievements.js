@@ -9,7 +9,9 @@ const RARITY = {
   common:    { label: 'Common',    emoji: '⚪', order: 0, pay: 250_00 },
   rare:      { label: 'Rare',      emoji: '🔵', order: 1, pay: 1000_00 },
   epic:      { label: 'Epic',      emoji: '🟣', order: 2, pay: 2500_00 },
-  legendary: { label: 'Legendary', emoji: '🟡', order: 3, pay: 7500_00 }
+  legendary: { label: 'Legendary', emoji: '🟡', order: 3, pay: 7500_00 },
+  // Its own rarity, for one achievement: every other one
+  mythic:    { label: 'Mythic',    emoji: '🌈', order: 4, pay: 250000_00 }
 };
 
 const CATEGORIES = {
@@ -21,6 +23,7 @@ const CATEGORIES = {
   companies: { label: 'Companies',       emoji: '🏢' },
   heists:    { label: 'Heists & Schemes', emoji: '🦹' },
   fishing:   { label: 'Fishing',         emoji: '🎣' },
+  mastery:   { label: 'Mastery',         emoji: '🌈' },
   secret:    { label: 'Secret',          emoji: '❓' }
 };
 
@@ -57,6 +60,7 @@ const LIST = [
   ['field_cleared', 'Field Cleared', 'Clear a whole Minesweeper field', 'casino', 'epic'],
   ['straight_up', 'Straight Up', 'Win a roulette bet on a single number', 'casino', 'rare'],
   ['first_catch', 'Gone Fishin\'', 'Catch your first fish', 'fishing', 'common'],
+  ['moby_dick', 'Moby Dick', 'Catch a whale', 'fishing', 'epic'],
   ['bigger_fish', "There's Always a Bigger Fish", 'Use a fish as bait and catch a bigger one', 'fishing', 'rare'],
   ['fish_in_the_sea', 'Plenty of Fish in the Sea', 'Catch 200 fish', 'fishing', 'epic'],
   ['bear', 'Bear', 'Open a short', 'market', 'common'],
@@ -93,7 +97,8 @@ const LIST = [
 
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],
   ['tip_the_house', 'Tip the House', 'Try to give the house a gift', 'secret', 'rare', true],
-  ['retirement_plan', 'Retirement Plan', 'Have a broker make ⬡ 10,000 in profit', 'secret', 'legendary', true]
+  ['retirement_plan', 'Retirement Plan', 'Have a broker make ⬡ 10,000 in profit', 'secret', 'legendary', true],
+  ['completionist', 'Completionist', 'Unlock every other achievement', 'mastery', 'mythic']
 ].map(([id, name, desc, cat, rarity, secret = false]) => ({ id, name, desc, cat, rarity, secret }));
 const BY_ID = Object.fromEntries(LIST.map((a) => [a.id, a]));
 
@@ -113,12 +118,17 @@ function award(ctx, id, userId = ctx.user && ctx.user.id) {
     ctx.db.addCash(ctx.guildId, userId, got);
     if (got) line += ` **+${require('./format').amt(got)}**`;
   }
-  if (a.rarity === 'legendary' && ctx.guildId) {
+  if ((a.rarity === 'legendary' || a.rarity === 'mythic') && ctx.guildId) {
     ctx.db.player(ctx.guildId, { id: userId });
     ctx.db.addItem(ctx.guildId, userId, 'title', 1);
     line += '\n🏷️ Legendary reward: a free **Title**. Set it with `r!settitle`.';
   }
   if (ctx.notes && (!ctx.user || ctx.user.id === userId)) ctx.notes.push(line);
+  // Every other achievement unlocked? Completionist.
+  if (id !== 'completionist') {
+    const n = ctx.db.raw.prepare("SELECT COUNT(*) AS n FROM achievements WHERE user_id = ? AND id != 'completionist'").get(userId).n;
+    if (n >= LIST.length - 1) { const more = award(ctx, 'completionist', userId); if (more) line += '\n' + more; }
+  }
   return line;
 }
 
