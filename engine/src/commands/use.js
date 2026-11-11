@@ -23,6 +23,9 @@ module.exports = {
     if (!item) return `🎒 Use what? Try \`${P}use <item>\`, or check \`${P}inventory\`.`;
     if (shop.isCollectible(id)) return `${item.emoji} **${item.name}** is a collectible. It doesn't do anything, it just looks great on your profile.`;
     if (item.passive) return `${item.emoji} **${item.name}** works on its own. Just keep it in your inventory.`;
+    const styles = require('../styles');
+    if (id === 'kit' && styles.hasKit(ctx.db, ctx.user.id)) return `🎨 You already have the Customizer unlocked. Try \`${P}profile customize\`.`;
+    if (id.startsWith('paint_') && styles.ownsPaint(ctx.db, ctx.user.id, id.slice(6))) return `${item.emoji} You already own **${item.name}**. Use it with \`${P}profile theme ${id.slice(6)}\`.`;
     if (ctx.db.itemCount(ctx.guildId, ctx.user.id, id) <= 0) {
       return `${item.emoji} You don't have a **${item.name}**. Get one in \`${P}shop\`.`;
     }
@@ -69,6 +72,8 @@ module.exports = {
         ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { hired_at: 0 });
         return `📄 Resume polished. You can \`${P}quit\` right away.${left(n)}`;
       }
+      if (id === 'kit') { require('../achievements').set(ctx, require('../styles').KIT, 1); return `🎨 **Customizer unlocked**, for good, in every server. See your options with \`${P}profile customize\`.${left(n)}`; }
+      if (id.startsWith('paint_')) { require('../achievements').set(ctx, id, 1); return `${item.emoji} **${item.name}** is yours. Put it on with \`${P}profile theme ${id.slice(6)}\`.${left(n)}`; }
       if (id === 'stopwatch') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'stopwatch', 3); return `⏱️ Stopwatch wound up. Your next 3 shifts get **10 extra seconds**.${left(n)}`; }
       if (id === 'chip') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'chip', 5); return `💿 Platinum Chip in hand. Your next **5** Rend-Sino games pay 4% more.${left(n)}`; }
       if (id === 'fuel') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'fuel', 1); return `⛽ Tank's full. Your next \`${P}rocket\` flies **20% higher** before it crashes.${left(n)}`; }

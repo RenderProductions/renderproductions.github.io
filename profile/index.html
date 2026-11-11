@@ -56,6 +56,30 @@
   .cols { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .col { padding: 0.45rem 0.7rem; border: 1px solid var(--line-strong); font-size: 13px; color: var(--lime); }
   .note { color: var(--grey); font-size: 13px; }
+  /* ---- Player styles (r!profile customize). Names only: the bot never sends CSS. ---- */
+  [data-theme="holo"]     { --accent-rgb: 201, 167, 255; --bright: #c9a7ff; --lime: #b9a3e8; --dim: #7d6aa8; --grey: #a49cb8; --bg: #07050d; --panel: #0e0a19; --panel-2: #151024; }
+  [data-theme="terminal"] { --accent-rgb: 51, 255, 102;  --bright: #33ff66; --lime: #2bd957; --dim: #1c8f39; --grey: #6f9a7a; --bg: #000000; --panel: #020a04; --panel-2: #041207; }
+  [data-theme="sunset"]   { --accent-rgb: 255, 122, 89;  --bright: #ff7a59; --lime: #f2a07a; --dim: #a8543e; --grey: #b8989a; --bg: #12060a; --panel: #1c0a10; --panel-2: #260e16; }
+  [data-theme="void"]     { --accent-rgb: 232, 232, 232; --bright: #e8e8e8; --lime: #bdbdbd; --dim: #777777; --grey: #8c8c8c; --bg: #000000; --panel: #0a0a0a; --panel-2: #121212; }
+  [data-theme="goldrush"] { --accent-rgb: 255, 207, 51;  --bright: #ffcf33; --lime: #e6b82e; --dim: #a0801f; --grey: #b0a585; --bg: #0b0802; --panel: #151005; --panel-2: #1d1608; }
+  [data-theme="terminal"] .profile-name { text-shadow: 0 0 10px rgba(51, 255, 102, 0.6); }
+  [data-theme="holo"] .profile-name { background: linear-gradient(90deg, #ff6ad5, #c774e8, #ad8cff, #8795e8, #94d0ff, #ff6ad5); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: holo 6s linear infinite; }
+  [data-theme="holo"] .profile-banner { background: linear-gradient(120deg, #ff6ad5, #c774e8, #ad8cff, #8795e8, #94d0ff, #ff6ad5); background-size: 400% 400%; animation: holo 10s ease infinite; }
+  [data-theme="sunset"] .profile-banner { background: linear-gradient(180deg, #ff7a59 0%, #ff4f8b 55%, #3a0f2e 100%); }
+  [data-theme="goldrush"] .profile-banner { background: linear-gradient(110deg, #3b2a00 20%, #ffcf33 40%, #fff2b0 50%, #ffcf33 60%, #3b2a00 80%); background-size: 250% 100%; animation: shimmer 4s linear infinite; }
+  [data-theme="void"] .profile-banner { background: #000; border-bottom-color: #333; }
+  @keyframes holo { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  .profile-banner.b-scanlines { background-image: repeating-linear-gradient(0deg, rgba(var(--accent-rgb), 0.18) 0 2px, transparent 2px 6px), linear-gradient(135deg, var(--panel-2), var(--bg)); }
+  .profile-banner.b-grid { background-image: linear-gradient(rgba(var(--accent-rgb), 0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--accent-rgb), 0.18) 1px, transparent 1px), linear-gradient(135deg, var(--panel-2), var(--bg)); background-size: 22px 22px, 22px 22px, auto; }
+  .profile-banner.b-honeycomb { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'><path d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z' fill='%23ffffff' fill-opacity='0.08'/></svg>"), linear-gradient(135deg, var(--panel-2), var(--bg)); }
+  .profile-banner.b-stars { background-image: radial-gradient(1px 1px at 10% 30%, #fff, transparent), radial-gradient(1.5px 1.5px at 30% 70%, #fff, transparent), radial-gradient(1px 1px at 50% 20%, #fff, transparent), radial-gradient(2px 2px at 70% 60%, rgba(var(--accent-rgb), 0.9), transparent), radial-gradient(1px 1px at 85% 35%, #fff, transparent), radial-gradient(1.5px 1.5px at 92% 80%, #fff, transparent), radial-gradient(1px 1px at 20% 85%, #fff, transparent), linear-gradient(180deg, #02030a, var(--panel-2)); }
+  .profile-banner.b-crown { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='40'><path d='M10 30 L14 14 L22 22 L30 10 L38 22 L46 14 L50 30 Z' fill='%23ffd700' fill-opacity='0.16'/></svg>"), radial-gradient(circle at 50% 120%, rgba(255, 215, 0, 0.35), transparent 70%), linear-gradient(135deg, #1c1500, var(--bg)); }
+  .profile.f-glow { box-shadow: 0 0 0 1px var(--bright), 0 0 28px rgba(var(--accent-rgb), 0.45); animation: glow 3s ease-in-out infinite; }
+  @keyframes glow { 50% { box-shadow: 0 0 0 1px var(--bright), 0 0 42px rgba(var(--accent-rgb), 0.7); } }
+  .pin { display: inline-block; margin-left: 0.5rem; padding: 2px 8px; font-size: 13px; vertical-align: middle; color: var(--bright); border: 1px solid var(--line-strong); }
+  @media (prefers-reduced-motion: reduce) { .profile-name, .profile-banner, .profile.f-glow { animation: none !important; } }
+
   @media (max-width: 560px) {
     .profile-body, .login { padding-left: 1rem; padding-right: 1rem; }
     .profile-avatar { width: 88px; height: 88px; top: -44px; left: 0.9rem; border-width: 6px; }
@@ -201,6 +225,7 @@
       return;
     }
     $('p-name').textContent = u.name;
+    applyStyle(u.style || {}, data);
     $('p-avatar').src = u.avatar || (mine && me.avatar) || '/bot/avatar.png';
     $('p-avatar').alt = u.name + "'s picture";
     var top = u.servers[0] || {};
@@ -230,6 +255,32 @@
     var owned = data.collectibles.filter(function (c) { return have[c.id]; });
     if (!owned.length) cols.appendChild(el('p', 'note', 'None yet. Marquez stocks one each week.'));
     owned.forEach(function (c) { var d = el('span', 'col', c.emoji + ' ' + c.name); d.title = c.desc; cols.appendChild(d); });
+  }
+
+  // A player's chosen look: a theme name, or their own color, plus a banner, a frame and a pinned collectible
+  var PRESETS = ['market', 'rrm', 'nach', 'blu', 'bnw', 'bstg', 'bot', 'games', 'notes', 'holo', 'terminal', 'sunset', 'void', 'goldrush'];
+  function mix(hex, into, amount) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(into.slice(1), 16);
+    var c = [16, 8, 0].map(function (s) { var x = (a >> s) & 255, y = (b >> s) & 255; return Math.round(y + (x - y) * amount); });
+    return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
+  }
+  function applyStyle(st, data) {
+    var root = document.documentElement;
+    if (st.theme && PRESETS.indexOf(st.theme) >= 0) root.setAttribute('data-theme', st.theme);
+    else if (st.theme === 'gold') root.removeAttribute('data-theme');
+    if (st.color && /^#[0-9a-f]{6}$/.test(st.color)) {
+      var h = st.color, n = parseInt(h.slice(1), 16);
+      var vars = { '--accent-rgb': [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(', '), '--bright': h, '--lime': mix(h, '#000000', 0.82), '--dim': mix(h, '#000000', 0.55),
+        '--bg': mix(h, '#030407', 0.05), '--panel': mix(h, '#06080d', 0.08), '--panel-2': mix(h, '#0a0c12', 0.11), '--grey': mix(h, '#8a8f9c', 0.18) };
+      Object.keys(vars).forEach(function (k) { root.style.setProperty(k, vars[k]); });
+    }
+    var banner = document.querySelector('.profile-banner');
+    if (st.banner && /^[a-z]+$/.test(st.banner)) banner.classList.add('b-' + st.banner);
+    if (st.frame === 'glow') $('card').classList.add('f-glow');
+    if (st.pin) {
+      var c = (data.collectibles || []).filter(function (x) { return x.id === st.pin; })[0];
+      if (c) { var pin = el('span', 'pin', c.emoji + ' ' + c.name); pin.title = c.desc; $('p-name').appendChild(pin); }
+    }
   }
 
   function renderAchievements(data, got) {

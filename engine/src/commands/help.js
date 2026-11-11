@@ -34,7 +34,10 @@ const PAGES = {
   profile: { label: 'Profile', emoji: '🏆', color: 0xffe600, blurb: 'Your card and achievements', cmds: [
     ['profile [@player]', 'A player card: title, rarest achievements, net worth, job and more'],
     ['achievements [@player]', 'Every achievement, by category, and how rare each one is'],
-    ['profile private', 'Hide your profile from the site (public to show it again)']
+    ['profile private', 'Hide your profile from the site (public to show it again)'],
+    ['profile customize', 'Your color, theme, banner and frame on the site (needs a Customizer Kit from Marquez)'],
+    ['profile color #ff4fd8', 'Any color you like · `profile theme <name>` for a preset or Profile Paint'],
+    ['profile pin <collectible>', 'Show off a collectible on your card']
   ], note: '🏆 Achievements follow you to every server. Legendary ones come with a free Title.' },
   jobs: { label: 'Jobs', emoji: '💼', color: 0x5865f2, blurb: 'Shifts, ranks, reviews, gigs', cmds: [
     ['apply <ticker>', 'Join a company. Your rank there is saved if you leave'],

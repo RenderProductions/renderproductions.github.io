@@ -24,8 +24,13 @@ const ITEMS = {
   floppy:    { emoji: '💾', name: "TODD's Floppy Disk", price: 150_00, stock: 3, cat: 'fun',   desc: 'Does... something. TODD won\'t say what.' },
   wrap:      { emoji: '🎀', name: 'Gift Wrap',        price: 75_00,   stock: 5, cat: 'fun',    desc: 'Your next r!gift has no fee.' },
   megaphone: { emoji: '📣', name: 'Megaphone',        price: 1000_00, stock: 1, cat: 'fun',    desc: 'An ad for your player company in the market news feed. `r!use megaphone <your ad>`' },
-  title:     { emoji: '🏷️', name: 'Title',            price: 5000_00, stock: 1, cat: 'fun',    desc: 'A custom title on your profile. Set it with `r!settitle`.' }
+  title:     { emoji: '🏷️', name: 'Title',            price: 5000_00, stock: 1, cat: 'fun',    desc: 'A custom title on your profile. Set it with `r!settitle`.' },
+  kit:       { emoji: '🎨', name: 'Profile Customizer Kit', price: 1500_00, stock: 3, cat: 'style', desc: 'Unlocks customizing your profile, for good: any color, the preset themes and banners. `r!use kit`, then `r!profile customize`.' }
 };
+// Profile Paint: fancy themes for your profile card (see src/styles.js)
+for (const [id, p] of Object.entries(require('./styles').PAINTS)) {
+  ITEMS[`paint_${id}`] = { emoji: p.emoji, name: `${p.label} Paint`, price: p.price, stock: 2, cat: 'style', desc: `${p.desc} A profile theme, yours forever.` };
+}
 
 // Collectibles: no effect, pure bragging rights. One is on sale each week, 3 for everyone.
 const COLLECTIBLES = {
@@ -45,6 +50,7 @@ const SHELVES = {
   market: { label: 'Market',   emoji: '📈' },
   casino: { label: 'Rend-Sino', emoji: '🎰' },
   fun:    { label: 'Odds & Ends', emoji: '🎀' },
+  style:  { label: 'Profile', emoji: '🎨' },
   rare:   { label: 'Collectible', emoji: '🗃️' }
 };
 
@@ -96,7 +102,10 @@ function find(text) {
   if (any(t)) return t;
   const all = { ...ITEMS, ...COLLECTIBLES };
   const norm = (s) => s.toLowerCase().replace(/^the\s+/, '').replace(/['’]s\b/g, '').replace(/[^a-z0-9 ]/g, '');
-  return Object.keys(all).find((id) => norm(all[id].name) === t || norm(all[id].name).split(' ').includes(t)) || null;
+  const paint = 'paint_' + t.replace(/\s*paint$/, '');
+  if (all[paint]) return paint;
+  return Object.keys(all).find((id) => norm(all[id].name) === t || norm(all[id].name).split(' ').includes(t))
+    || Object.keys(all).find((id) => t.length >= 4 && norm(all[id].name).includes(t)) || null;
 }
 
 module.exports = { ITEMS, COLLECTIBLES, COLLECTIBLE_STOCK, SHELVES, MARQUEZ, RESTOCK_MS, WEEK_MS, restock, price, find, any, isCollectible, collectibleOfWeek };
