@@ -61,12 +61,17 @@ const LIST = [
   ['debt_free', 'Debt Free', 'Pay TODD back in full', 'social', 'common'],
   ['merciful', 'Merciful', 'Forgive a loan', 'social', 'rare'],
 
+  ['hired_help', 'Hired Help', 'Hire a broker', 'market', 'common'],
+  ['set_and_forget', 'Set It and Forget It', 'Have a limit order fill', 'market', 'common'],
+  ['youre_fired', "You're Fired", "Have a broker quit because you couldn't pay them", 'market', 'rare'],
+
   ['founder', 'Founder', 'Found a company', 'companies', 'rare'],
   ['going_public', 'Going Public', 'Take your company public', 'companies', 'epic'],
   ['conglomerate', 'Conglomerate', 'Grow your company into a Conglomerate', 'companies', 'legendary'],
 
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],
-  ['tip_the_house', 'Tip the House', 'Try to give the house a gift', 'secret', 'rare', true]
+  ['tip_the_house', 'Tip the House', 'Try to give the house a gift', 'secret', 'rare', true],
+  ['retirement_plan', 'Retirement Plan', 'Have a broker make ⬡ 10,000 in profit', 'secret', 'legendary', true]
 ].map(([id, name, desc, cat, rarity, secret = false]) => ({ id, name, desc, cat, rarity, secret }));
 const BY_ID = Object.fromEntries(LIST.map((a) => [a.id, a]));
 
