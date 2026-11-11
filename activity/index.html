@@ -171,11 +171,11 @@
       <div class="label">Net worth</div>
       <div class="worth" id="worth">—</div>
       <div id="desk-lines"></div>
-      <div class="quick"><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="daily">🎁 Daily</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="dividends">💸 Dividends</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="short">🐻 Shorts</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="savings">🐖 Savings</button></div>
+      <div class="quick"><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="daily">🎁 Daily</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="dividends">💸 Dividends</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="short">🐻 Shorts</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="savings">🐖 Savings</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="fish">🎣 Fish</button><button class="sbtn" style="padding:5px 9px" type="button" data-cmd="fish sell">🧺 Sell catch</button></div>
     </div>
     <div class="card">
       <div class="casino"><img src="art-rendsino.png" alt=""><div><div class="disp" style="font-size:24px;color:var(--gold)">THE REND-SINO</div><div class="label">Quick bets · ⬡ <span id="bet-v">25</span></div></div></div>
-      <div class="casino-btns"><button class="sbtn" type="button" data-game="coinflip {b} heads">🪙 Flip</button><button class="sbtn" type="button" data-game="roulette {b} red">🎡 Red</button><button class="sbtn" type="button" data-game="dice {b} over 50">🎲 Over 50</button></div>
+      <div class="casino-btns"><button class="sbtn" type="button" data-game="slots {b}">🎰 Slots</button><button class="sbtn" type="button" data-game="coinflip {b} heads">🪙 Flip</button><button class="sbtn" type="button" data-game="roulette {b} red">🎡 Red</button><button class="sbtn" type="button" data-game="dice {b} over 50">🎲 Over 50</button><button class="sbtn" type="button" data-game="roulette {b} 17">🎡 Lucky 17</button><button class="sbtn" type="button" data-game="gambling">📊 Record</button></div>
     </div>
     <div class="log-head"><span class="label">The tape</span><span class="label" style="text-transform:none;letter-spacing:0">type any command below</span></div>
     <div class="log" id="log" aria-live="polite"></div>
@@ -237,7 +237,7 @@ function render(result) {
 let gambling = 0; // when they last played a Rend-Sino game (for Rich Presence)
 async function run(line, quiet) {
   if (!token || !sdk || !sdk.guildId) { if (!quiet) log(line, { content: 'Open the Trading Floor from Discord to trade.' }); return null; }
-  if (/^(coinflip|cf|flip|dice|roulette|wheel|rl)\b/i.test(line)) { gambling = Date.now(); presence(); }
+  if (/^(coinflip|cf|flip|dice|roulette|wheel|rl|slots)\b/i.test(line)) { gambling = Date.now(); presence(); }
   const r = await fetch(API('run'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ guild_id: sdk.guildId, line }) });
   const { id, error } = await r.json().catch(() => ({}));
   if (!id) { if (!quiet) log(line, { content: error === 'slow down' ? 'Slow down a little.' : 'Could not reach the bot.' }); return null; }

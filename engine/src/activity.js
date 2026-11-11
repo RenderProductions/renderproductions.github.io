@@ -6,7 +6,9 @@ const config = require('./config');
 
 // What the Activity is allowed to run
 const ALLOWED = new Set(['balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard',
-  'reserve', 'orders', 'order', 'gambling', 'coinflip', 'dice', 'roulette', 'achievements', 'backpay', 'market']);
+  'reserve', 'orders', 'order', 'gambling', 'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'backpay', 'market']);
+// Games that need live buttons in chat, with a friendlier no
+const CHAT_ONLY = { rocket: '🚀 Rocket', blackjack: '🃏 Blackjack', bus: '🚌 Ride the Bus', hilo: '🔼 Higher or Lower', mines: '💣 Minesweeper', derby: '🏇 The Derby', heist: '🦹 Heists', work: '💼 Work', gig: '🧰 Gigs' };
 const POLL_MS = 2000;
 
 // Turns a command's reply into plain data the Activity can draw (no buttons)
@@ -28,6 +30,7 @@ async function runOne(deps, a) {
   if (!member) return { content: "🖥️ You're not a member of this server." };
   const parsed = router.parsePrefix(config.prefix + String(a.line).replace(new RegExp('^' + config.prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), ''));
   if (!parsed) return { content: '🖥️ Unknown command.' };
+  if (CHAT_ONLY[parsed.cmd.name]) return { content: `${CHAT_ONLY[parsed.cmd.name]} needs live buttons, so play it in chat for now: \`${config.prefix}${parsed.cmd.name}\`.` };
   if (!ALLOWED.has(parsed.cmd.name)) return { content: `🖥️ \`${parsed.cmd.name}\` doesn't work from the Trading Floor. Use it in chat.` };
   const user = member.user;
   const ctx = router.makeCtx({ guildId: a.guild_id, channelId: 'activity', user, isMod: false, guildName: guild.name }, deps);
