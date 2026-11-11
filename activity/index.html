@@ -145,8 +145,10 @@ function render(result) {
 }
 
 // ---------- talking to the bot (through the Worker) ----------
+let gambling = 0; // when they last played a Rend-Sino game (for Rich Presence)
 async function run(line, quiet) {
   if (!token || !sdk || !sdk.guildId) return null;
+  if (/^(coinflip|cf|flip|dice|roulette|wheel|rl)\b/i.test(line)) { gambling = Date.now(); presence(); }
   const r = await fetch(API('run'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ guild_id: sdk.guildId, line }) });
   const { id, error } = await r.json().catch(() => ({}));
   if (!id) { if (!quiet) log(line, { content: error === 'slow down' ? 'Slow down a little.' : 'Could not reach the bot.' }); return null; }
@@ -244,14 +246,17 @@ function presence() {
   if (wait > 0) { presenceTimer = setTimeout(presence, wait); return; }
   lastPresence = Date.now();
   const c = pick && market && market.companies.find((x) => x.id === pick);
+  const casino = Date.now() - gambling < 5 * 60000; // played in the last 5 minutes
   const activity = {
     type: 0,
-    details: 'On the Trading Floor',
-    state: c ? `Watching ${c.id} at ${fmt(market.prices[c.id])}` : 'Reading the market',
+    details: casino ? 'At the Rend-Sino' : 'On the Trading Floor',
+    state: casino ? 'Feeling lucky' : c ? `Watching ${c.id} at ${fmt(market.prices[c.id])}` : 'Reading the market',
     timestamps: { start: started },
     assets: { large_image: 'rend_conomy', large_text: "Render's Vision · Rend-Conomy" }
   };
-  if (c) Object.assign(activity.assets, { small_image: c.id.toLowerCase(), small_text: (market.names && market.names[c.id]) || c.name });
+  if (casino) Object.assign(activity.assets, { small_image: 'rendsino', small_text: 'The Rend-Sino' });
+  else if (c) Object.assign(activity.assets, { small_image: c.id.toLowerCase(), small_text: (market.names && market.names[c.id]) || c.name });
+  if (casino) setTimeout(presence, 5 * 60000 + 1000); // back to the Trading Floor afterwards
   sdk.commands.setActivity({ activity }).catch((e) => console.warn('presence', e));
 }
 
