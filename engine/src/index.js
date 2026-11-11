@@ -78,6 +78,8 @@ setInterval(async () => {
   } catch (e) { console.error('[trading]', e); }
 }, 30 * 1000).unref();
 require('./publish').start(db);
+// The Discord Activity (Trading Floor): picks up commands from the Cloudflare Worker (src/activity.js)
+require('./activity').start(deps);
 
 // Start the web API first, so the host's health check passes even if Discord has trouble.
 // /health reports whether the bot is actually connected.

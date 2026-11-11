@@ -53,6 +53,9 @@ module.exports = {
   // Optional: the market news webhook URL (the same one as the DISCORD_WEBHOOK secret on GitHub),
   // so Polygon Reserve warnings post in the market news feed
   newsWebhook: process.env.NEWS_WEBHOOK || '',
+  // The Discord Activity's Cloudflare Worker (activity/worker.js) and the secret the bot uses with it
+  activityUrl: (process.env.ACTIVITY_URL || '').replace(/\/+$/, ''),
+  activitySecret: process.env.ACTIVITY_SECRET || '',
 
   color: 0xffe600,             // site yellow
   colorTodd: 0xff6b6b,         // TODD red

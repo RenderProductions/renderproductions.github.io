@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rend-Conomy Trading Floor</title>
+<!-- The Discord Activity. Runs inside Discord (through the Cloudflare Worker in worker.js), not on the site.
+     Everything it does goes through the bot, as you, in the server you opened it in. -->
+<style>
+  :root {
+    --bg: #030d08; --panel: #07150e; --panel-2: #0b1d14; --line: rgba(61, 220, 132, 0.18); --line-strong: rgba(61, 220, 132, 0.45);
+    --text: #dff5e8; --dim: #8aa596; --accent: #3ddc84; --down: #ff6b6b; --gold: #ffe600;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--mono); height: 100%; }
+  body { display: flex; flex-direction: column; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  .brand { color: var(--gold); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; }
+  .brand small { color: var(--dim); font-weight: 400; letter-spacing: 0.04em; }
+  .who { margin-left: auto; color: var(--dim); font-size: 12px; }
+  .event { padding: 6px 16px; background: rgba(255, 230, 0, 0.07); border-bottom: 1px solid rgba(255, 230, 0, 0.25); color: #fff3a6; font-size: 12.5px; }
+  .event[hidden] { display: none; }
+  main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
+  .left { display: flex; flex-direction: column; min-height: 0; overflow: auto; padding: 14px 16px; gap: 14px; }
+  .right { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+  .tickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tk { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 2px; }
+  .tk:hover { border-color: var(--line-strong); }
+  .tk[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .tk .t { font-weight: 700; }
+  .tk .n { color: var(--dim); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tk .p { font-size: 16px; }
+  .up { color: var(--accent); } .down { color: var(--down); }
+  .tk svg { width: 100%; height: 28px; display: block; margin-top: 4px; }
+  .detail { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; display: grid; gap: 10px; }
+  .detail h2 { margin: 0; font-size: 15px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .detail h2 .p { font-size: 20px; }
+  .ranges { display: flex; gap: 4px; margin-left: auto; }
+  .ranges button, .act, .qty button { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; font-size: 12px; }
+  .ranges button[aria-pressed="true"] { background: var(--accent); color: #032; border-color: var(--accent); }
+  .big { width: 100%; height: 180px; display: block; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .qty { display: flex; align-items: center; gap: 4px; }
+  .qty input { width: 64px; background: var(--bg); border: 1px solid var(--line-strong); color: var(--text); font: inherit; padding: 4px 6px; border-radius: 4px; }
+  .act.buy { border-color: var(--accent); color: var(--accent); }
+  .act.sell { border-color: var(--down); color: var(--down); }
+  .act:disabled { opacity: 0.5; cursor: wait; }
+  .label { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .desk { padding: 12px; border-bottom: 1px solid var(--line); overflow: auto; max-height: 45%; }
+  .log { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { background: var(--panel-2); border-left: 3px solid var(--line-strong); border-radius: 4px; padding: 8px 10px; font-size: 12.5px; white-space: pre-wrap; word-wrap: break-word; }
+  .msg .cmd { color: var(--dim); font-size: 11px; margin-bottom: 4px; }
+  .msg h4 { margin: 0 0 4px; font-size: 13px; }
+  .msg .sub { color: var(--dim); font-size: 11px; display: block; }
+  .msg code { background: rgba(255, 255, 255, 0.06); padding: 0 3px; border-radius: 3px; }
+  .msg .ft { color: var(--dim); font-size: 11px; margin-top: 4px; }
+  form.cl { display: flex; border-top: 1px solid var(--line); }
+  form.cl span { padding: 10px 0 10px 12px; color: var(--accent); }
+  form.cl input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; padding: 10px 12px 10px 4px; outline: none; }
+  .gate { margin: auto; max-width: 460px; text-align: center; padding: 24px; color: var(--dim); }
+  .gate b { color: var(--text); }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } .right { border-left: 0; border-top: 1px solid var(--line); min-height: 50vh; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">◆ Render's Vision <small>· Trading Floor</small></div>
+  <div class="who" id="who">Connecting…</div>
+</header>
+<div class="event" id="event" hidden></div>
+<main id="main">
+  <section class="left">
+    <div class="tickers" id="tickers" role="group" aria-label="Companies"></div>
+    <div class="detail" id="detail" hidden>
+      <h2><span id="d-name"></span><span class="p" id="d-price"></span><span id="d-chg"></span>
+        <span class="ranges"><button type="button" data-r="24" aria-pressed="true">24H</button><button type="button" data-r="168" aria-pressed="false">7D</button></span></h2>
+      <svg class="big" id="d-chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="row">
+        <span class="qty"><span class="label">Shares</span><button type="button" data-q="-1" aria-label="One fewer">−</button><input id="qty" type="number" min="1" value="5" aria-label="Shares"><button type="button" data-q="1" aria-label="One more">+</button></span>
+        <button class="act buy" type="button" data-a="buy">Buy</button>
+        <button class="act sell" type="button" data-a="sell">Sell</button>
+        <button class="act sell" type="button" data-a="sell all">Sell all</button>
+        <button class="act" type="button" data-a="short">🐻 Short</button>
+        <button class="act" type="button" data-a="cover">Cover</button>
+      </div>
+      <div class="label" id="d-status"></div>
+    </div>
+  </section>
+  <aside class="right">
+    <div class="desk"><div class="label">Your desk</div><div id="desk">…</div>
+      <div class="row" style="margin-top:8px"><button class="act" type="button" data-cmd="daily">Daily</button><button class="act" type="button" data-cmd="dividends">Dividends</button><button class="act" type="button" data-cmd="short">Shorts</button><button class="act" type="button" data-cmd="event">Event</button></div>
+    </div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <form class="cl" id="cl"><span>r!</span><input id="line" autocomplete="off" placeholder="balance, buy RRM 5, roulette 50 red…" aria-label="Command"></form>
+  </aside>
+</main>
+
+<script type="module">
+import { DiscordSDK } from './sdk.js';
+
+const $ = (id) => document.getElementById(id);
+const API = (p) => '/.proxy/api/' + p;
+const fmt = (n) => '⬡ ' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const started = Date.now();
+
+// The world events (the bot's src/worldEvents.js)
+const EVENTS = {
+  labor_shortage: () => '👷 Labor Shortage: shifts and gigs pay 1.5x',
+  fish_frenzy: () => '🎣 Fish Frenzy: cast every 90 seconds, and bait works like a lure',
+  police_strike: () => '🚔 Police Strike: heists get +15% odds',
+  bear_rumors: () => '🐻 Bear Rumors: shorts open with no fee',
+  chatty: () => '💬 Gossip Hour: chat pay is doubled',
+  spotlight: (t) => `🔦 Hiring Spree: ${t} shifts pay 2x`,
+  fire_sale: (t) => `🔥 Fire Sale: shorts on ${t} open with no fee`
+};
+let sdk = null, token = null, me = null, market = null, week = null, pick = null, range = 24;
+
+// ---------- Discord's little markdown, for the bot's replies ----------
+function md(text) {
+  return esc(text).split('\n').map((line) => {
+    let small = false;
+    if (line.startsWith('-# ')) { small = true; line = line.slice(3); }
+    line = line
+      .replace(/&lt;t:(\d+)(?::([A-Za-z]))?&gt;/g, (_, s, f) => { const d = new Date(Number(s) * 1000); if (f === 'R') { const m = Math.round((d - Date.now()) / 60000); return Math.abs(m) < 60 ? (m >= 0 ? `in ${m}m` : `${-m}m ago`) : (m >= 0 ? `in ${Math.round(m / 60)}h` : `${Math.round(-m / 60)}h ago`); } return d.toLocaleString(); })
+      .replace(/&lt;#\d+&gt;/g, '#channel').replace(/&lt;@!?\d+&gt;/g, '@someone')
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^# (.*)$/, '<b style="font-size:16px">$1</b>');
+    return small ? `<span class="sub">${line}</span>` : line;
+  }).join('\n');
+}
+function render(result) {
+  if (!result) return '';
+  let h = result.content ? md(result.content) : '';
+  for (const e of result.embeds || []) {
+    if (e.title) h += `<h4>${md(e.title)}</h4>`;
+    if (e.description) h += md(e.description);
+    for (const f of e.fields || []) h += `\n<b>${md(f.name)}</b>\n${md(f.value)}`;
+    if (e.footer) h += `<div class="ft">${md(e.footer)}</div>`;
+  }
+  return h;
+}
+
+// ---------- talking to the bot (through the Worker) ----------
+async function run(line, quiet) {
+  if (!token || !sdk || !sdk.guildId) return null;
+  const r = await fetch(API('run'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ guild_id: sdk.guildId, line }) });
+  const { id, error } = await r.json().catch(() => ({}));
+  if (!id) { if (!quiet) log(line, { content: error === 'slow down' ? 'Slow down a little.' : 'Could not reach the bot.' }); return null; }
+  for (let i = 0; i < 40; i++) {
+    await new Promise((res) => setTimeout(res, i < 5 ? 500 : 1000));
+    const x = await fetch(API('result?id=' + id), { headers: { Authorization: 'Bearer ' + token } }).then((r) => r.json()).catch(() => null);
+    if (x && x.status === 'done') { if (!quiet) log(line, x.result); return x.result; }
+  }
+  if (!quiet) log(line, { content: "The bot didn't answer. It might be restarting." });
+  return null;
+}
+function log(line, result) {
+  const d = document.createElement('div');
+  d.className = 'msg';
+  const color = result && result.embeds && result.embeds[0] && result.embeds[0].color;
+  if (color) d.style.borderLeftColor = '#' + color.toString(16).padStart(6, '0');
+  d.innerHTML = `<div class="cmd">r!${esc(line)}</div>` + render(result);
+  $('log').prepend(d);
+  while ($('log').children.length > 40) $('log').lastChild.remove();
+}
+async function refreshDesk() {
+  const r = await run('balance', true);
+  if (r) $('desk').innerHTML = render(r);
+}
+
+// ---------- the market ----------
+function spark(svg, h, opts = {}) {
+  if (!h || h.length < 2) { svg.innerHTML = ''; return; }
+  const min = Math.min(...h), max = Math.max(...h), pad = (max - min) * 0.08 || 1;
+  const pts = h.map((v, i) => `${(i / (h.length - 1)) * 100},${100 - ((v - min + pad) / (max - min + pad * 2)) * 100}`).join(' ');
+  const up = opts.up != null ? opts.up : h[h.length - 1] >= h[0];
+  svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none');
+  svg.innerHTML = (opts.area ? `<polygon points="0,100 ${pts} 100,100" fill="${up ? 'rgba(61,220,132,.12)' : 'rgba(255,107,107,.12)'}"/>` : '') +
+    `<polyline points="${pts}" fill="none" stroke="${up ? '#3ddc84' : '#ff6b6b'}" stroke-width="${opts.area ? 1.2 : 2}" vector-effect="non-scaling-stroke"/>`;
+}
+function seriesOf(c) {
+  const h = c.history || [], t = c.times || [];
+  if (range <= 24 || !week || !week.hourly || !week.hourly[c.id] || !t.length) return h;
+  return week.hourly[c.id].filter((p) => p[0] / 1000 < t[0]).map((p) => p[1]).concat(h);
+}
+function drawMarket() {
+  if (!market) return;
+  const box = $('tickers');
+  if (!box.children.length) {
+    for (const c of market.companies) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tk'; b.dataset.t = c.id; b.setAttribute('aria-pressed', 'false');
+      b.innerHTML = `<span class="t"></span><span class="n"></span><span class="p"></span><svg aria-hidden="true"></svg>`;
+      b.addEventListener('click', () => select(c.id));
+      box.appendChild(b);
+    }
+  }
+  for (const b of box.children) {
+    const c = market.companies.find((x) => x.id === b.dataset.t);
+    const ch = Number(market.changes[c.id] || 0);
+    b.querySelector('.t').innerHTML = `${esc(c.id)} <span class="${ch >= 0 ? 'up' : 'down'}" style="font-weight:400;font-size:12px">${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)}%</span>`;
+    b.querySelector('.n').textContent = (market.names && market.names[c.id]) || c.name;
+    b.querySelector('.p').textContent = fmt(market.prices[c.id]);
+    spark(b.querySelector('svg'), (c.history || []).slice(-96), { up: ch >= 0 });
+    b.setAttribute('aria-pressed', String(c.id === pick));
+  }
+  const ev = market.event || (week && week.event);
+  $('event').hidden = !ev;
+  if (ev) $('event').textContent = '🌍 ' + (EVENTS[ev.id] ? EVENTS[ev.id](ev.ticker) : ev.id.replace(/_/g, ' ')) + ' · r!event for more';
+  if (pick) drawDetail();
+}
+function drawDetail() {
+  const c = market.companies.find((x) => x.id === pick);
+  if (!c) return;
+  $('detail').hidden = false;
+  $('d-name').textContent = `${c.id} · ${(market.names && market.names[c.id]) || c.name}`;
+  $('d-price').textContent = fmt(market.prices[c.id]);
+  const ch = Number(market.changes[c.id] || 0);
+  $('d-chg').className = ch >= 0 ? 'up' : 'down';
+  $('d-chg').textContent = `${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)}%`;
+  spark($('d-chart'), seriesOf(c), { area: true });
+  const st = (market.statusText && market.statusText[c.id]) || '';
+  const closed = market.market && market.market.status && market.market.status !== 'open';
+  $('d-status').textContent = closed ? (market.market.text || 'The market is closed.') : st;
+}
+function select(t) { pick = t; drawMarket(); presence(); }
+async function loadMarket() {
+  market = await fetch(API('market')).then((r) => r.json()).catch(() => market);
+  week = await fetch(API('week')).then((r) => r.json()).catch(() => week);
+  if (week && week.event && market) market.event = { id: week.event.id, ticker: week.event.ticker };
+  drawMarket();
+}
+
+// ---------- Rich Presence: what your friends see on your profile ----------
+let lastPresence = 0, presenceTimer = null;
+function presence() {
+  if (!sdk || !token) return;
+  const wait = 15000 - (Date.now() - lastPresence); // Discord only takes so many updates
+  clearTimeout(presenceTimer);
+  if (wait > 0) { presenceTimer = setTimeout(presence, wait); return; }
+  lastPresence = Date.now();
+  const c = pick && market && market.companies.find((x) => x.id === pick);
+  const activity = {
+    type: 0,
+    details: 'On the Trading Floor',
+    state: c ? `Watching ${c.id} at ${fmt(market.prices[c.id])}` : 'Reading the market',
+    timestamps: { start: started },
+    assets: { large_image: 'rend_conomy', large_text: "Render's Vision · Rend-Conomy" }
+  };
+  if (c) Object.assign(activity.assets, { small_image: c.id.toLowerCase(), small_text: (market.names && market.names[c.id]) || c.name });
+  sdk.commands.setActivity({ activity }).catch((e) => console.warn('presence', e));
+}
+
+// ---------- buttons and the command line ----------
+document.querySelectorAll('.ranges button').forEach((b) => b.addEventListener('click', () => {
+  range = Number(b.dataset.r);
+  document.querySelectorAll('.ranges button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  drawDetail();
+}));
+document.querySelectorAll('.qty button').forEach((b) => b.addEventListener('click', () => { $('qty').value = Math.max(1, (Number($('qty').value) || 1) + Number(b.dataset.q)); }));
+document.querySelectorAll('.act[data-a]').forEach((b) => b.addEventListener('click', async () => {
+  if (!pick) return;
+  const q = Math.max(1, Math.floor(Number($('qty').value) || 1));
+  const a = b.dataset.a;
+  const line = a === 'sell all' ? `sell ${pick} all` : a === 'cover' ? `cover ${pick}` : `${a} ${pick} ${q}`;
+  document.querySelectorAll('.act').forEach((x) => (x.disabled = true));
+  await run(line);
+  document.querySelectorAll('.act').forEach((x) => (x.disabled = false));
+  refreshDesk();
+}));
+document.querySelectorAll('.act[data-cmd]').forEach((b) => b.addEventListener('click', async () => { await run(b.dataset.cmd); refreshDesk(); }));
+$('cl').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const line = $('line').value.trim().replace(/^r!/i, '');
+  if (!line) return;
+  $('line').value = '';
+  await run(line);
+  refreshDesk();
+});
+
+// ---------- start ----------
+function gate(html) { $('main').innerHTML = `<div class="gate">${html}</div>`; }
+async function start() {
+  loadMarket();
+  setInterval(loadMarket, 60000);
+  const inDiscord = new URLSearchParams(location.search).has('frame_id');
+  if (!inDiscord) { $('who').textContent = 'Preview: open this from Discord to trade'; return; }
+  try {
+    const cfg = await fetch(API('config')).then((r) => r.json());
+    sdk = new DiscordSDK(cfg.clientId);
+    await sdk.ready();
+    const { code } = await sdk.commands.authorize({ client_id: cfg.clientId, response_type: 'code', state: '', prompt: 'none', scope: ['identify', 'guilds', 'rpc.activities.write'] });
+    const t = await fetch(API('token'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }).then((r) => r.json());
+    if (!t.access_token) throw new Error('login failed');
+    token = t.access_token;
+    const auth = await sdk.commands.authenticate({ access_token: token });
+    me = auth.user;
+    $('who').textContent = `${me.global_name || me.username}` + (sdk.guildId ? '' : ' · open me in a server to trade');
+    if (!sdk.guildId) { gate('<b>The Trading Floor works in servers.</b><br>Open it from a voice channel or chat in a server with Render\'s Vision.'); return; }
+    presence();
+    refreshDesk();
+    setInterval(refreshDesk, 60000);
+    log('help', { content: "Welcome to the **Trading Floor**. Pick a company to trade it, or type any command below: `balance`, `buy RRM 5`, `roulette 50 red`, `savings`…\n-# Everything here runs through Render's Vision, as you, in this server." });
+  } catch (e) {
+    console.error(e);
+    $('who').textContent = 'Could not log in';
+    log('login', { content: "Couldn't log you in. Close the Activity and try again.\n-# " + (e && e.message ? e.message : e) });
+  }
+}
+start();
+</script>
+</body>
+</html>
