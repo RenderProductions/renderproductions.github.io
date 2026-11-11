@@ -87,10 +87,6 @@
     <p>Your Rend-Conomy profile: achievements, collectibles, net worth, and where you work. Log in with Discord to see yours.</p>
     <a class="btn discord" id="login-btn" href="#">Log in with Discord</a>
     <p class="note">This only tells the site your Discord name and picture, nothing else. It never sees your password or messages.</p>
-    <div class="find">
-      <input id="find" type="search" placeholder="Or look someone up by name" aria-label="Look someone up by name" autocomplete="off">
-    </div>
-    <ul class="results" id="results"></ul>
   </section>
 
   <!-- A profile -->
@@ -118,6 +114,16 @@
       </div>
     </div>
   </article>
+
+  <!-- Everyone else: search, or browse the top collectors -->
+  <section class="login" id="players" hidden aria-labelledby="players-h">
+    <h2 id="players-h" style="margin:0;font-family:var(--display);font-weight:400;font-size:32px;letter-spacing:2px;color:var(--bright)">PLAYERS</h2>
+    <div class="find">
+      <input id="find" type="search" placeholder="Look someone up by name" aria-label="Look someone up by name" autocomplete="off">
+    </div>
+    <p class="note" id="players-note"></p>
+    <ul class="results" id="results"></ul>
+  </section>
 
   <p class="note" id="status" aria-live="polite">Loading profiles…</p>
 </div>
@@ -171,6 +177,9 @@
     document.title = (mine ? 'My Profile' : (u ? u.name : 'Profile')) + ' | Render Productions';
     var actions = $('p-actions');
     actions.textContent = '';
+    var find = el('a', 'btn', 'Find players'); find.href = '#players';
+    find.onclick = function (e) { e.preventDefault(); $('players').scrollIntoView({ behavior: 'smooth' }); setTimeout(function () { $('find').focus({ preventScroll: true }); }, 400); };
+    actions.appendChild(find);
     if (mine) {
       var out = el('a', 'btn', 'Log out'); out.href = '#';
       out.onclick = function (e) { e.preventDefault(); store.del('rv_me'); location.href = '/profile/'; };
@@ -251,13 +260,21 @@
     $('login').hidden = false;
     $('card').hidden = true;
     $('login-btn').href = loginUrl();
+  }
+
+  // Search by name; with nothing typed, the players with the most achievements
+  function showPlayers(data, current) {
+    if (!data) return;
+    $('players').hidden = false;
     var input = $('find');
     var list = $('results');
     function search() {
       var q = input.value.trim().toLowerCase();
       list.textContent = '';
-      if (!data || q.length < 2) return;
-      Object.keys(data.users).filter(function (id) { return data.users[id].name.toLowerCase().indexOf(q) >= 0; }).slice(0, 12).forEach(function (id) {
+      var ids = Object.keys(data.users).filter(function (id) { return id !== current && (!q || data.users[id].name.toLowerCase().indexOf(q) >= 0); });
+      if (!q) ids.sort(function (a, b) { return data.users[b].achievements.length - data.users[a].achievements.length; });
+      $('players-note').textContent = q ? (ids.length ? '' : 'Nobody by that name.') : 'Top collectors:';
+      ids.slice(0, q ? 24 : 12).forEach(function (id) {
         var u = data.users[id];
         var li = el('li'); var a = el('a'); a.href = '/profile/?id=' + id;
         if (u.avatar) { var img = el('img'); img.src = u.avatar; img.alt = ''; a.appendChild(img); }
@@ -266,6 +283,7 @@
       });
     }
     input.oninput = search;
+    search();
   }
 
   // ---- Start ----
@@ -285,6 +303,7 @@
       return;
     }
     if (id) show(data, id, me); else showLogin(data);
+    showPlayers(data, id);
   });
 })();
 </script>

@@ -46,6 +46,7 @@ module.exports = {
     return { embeds: [{
       author: { name: `${who.username}${isPrivate(ctx.db, who.id) ? ' · 🔒 private' : ''}`, ...(avatar ? { icon_url: avatar } : {}) },
       title: p.title ? `🏷️ ${p.title}` : `${who.username}'s profile`,
+      url: isPrivate(ctx.db, who.id) ? undefined : `${config.siteUrl}/profile/?id=${who.id}`, // the title links to their page on the site
       thumbnail: avatar ? { url: avatar } : undefined,
       description: best.length ? best.map((a) => `${A.RARITY[a.rarity].emoji} **${a.name}**`).join(' · ') : '-# No achievements yet.',
       fields: [
@@ -56,7 +57,7 @@ module.exports = {
         { name: '🎰 Best casino hit', value: casinoBest ? amt(casinoBest) : '—', inline: true },
         { name: '🗃️ Collectibles', value: String(collectibles), inline: true }
       ],
-      footer: { text: `${P}achievements${who.id === ctx.user.id ? '' : ' @' + who.username} for the full list · Profiles are on the site too` },
+      footer: { text: `${P}achievements${who.id === ctx.user.id ? '' : ' @' + who.username} for the full list · Click the title for their page on the site` },
       color: 0xffe600
     }] };
   }
