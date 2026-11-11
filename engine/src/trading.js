@@ -302,6 +302,24 @@ function work(deps, b, m, random = Math.random) {
 function tick(deps, m, random = Math.random) {
   if (!m || !m.prices) return { orders: [], brokers: 0 };
   const orders = isOpen(deps.market, m) ? checkOrders(deps, m) : [];
+  // Takeover bids whose 24 hours are up (src/takeovers.js)
+  for (const r of require('./takeovers').tick(deps.db)) {
+    const b = r.bid;
+    const tell = (id, text) => deps.client && deps.client.users && deps.client.users.fetch(id).then((u) => u.send(text)).catch(() => {});
+    if (r.done) {
+      A.award(fake(deps, b.guild_id, b.bidder_id), 'hostile');
+      tell(b.bidder_id, `🦈 **Your takeover of ${b.ticker} went through.** It's your company now.`);
+      tell(r.oldOwner, `🦈 **${b.bidder} took over ${b.ticker}.** You got the ${amt(b.premium)} premium.`);
+    } else tell(b.bidder_id, `🦈 Your takeover of ${b.ticker} fell through. Your ${amt(b.premium)} premium is back.`);
+  }
+  // Shorts: margin calls and bankruptcies (src/shorts.js)
+  for (const r of require('./shorts').tick(deps.db, m, require('./market').quote)) {
+    const ctx = fake(deps, r.s.guild_id, r.s.user_id);
+    if (r.why === 'call') A.award(ctx, 'margin_call');
+    if (r.pnl >= 1000_00) A.award(ctx, 'big_short');
+    receipts.send(ctx, { title: r.why === 'call' ? `Margin call: ${r.ticker} covered` : `${r.ticker} went bankrupt: your short paid out`, userId: r.s.user_id, lines: [
+      ['Shares', r.shares], ['Shorted at', amt(r.entry)], ['Covered at', amt(r.price)], [r.pnl >= 0 ? 'Profit' : 'Loss', amt(Math.abs(r.pnl))], ['Back to you', amt(r.back)]] });
+  }
   let n = 0;
   for (const b of deps.db.raw.prepare('SELECT * FROM brokers WHERE active = 1').all()) {
     try { work(deps, b, m, random); n++; } catch (e) { console.error('[broker]', e); }

@@ -164,7 +164,7 @@ const has = async (line, needle, user) => {
   assert.ok(q.includes('order up') && q.includes('20 seconds'), q);
   await has('r!work', 'mid-shift');
   const ans = work.active.get(`${G}:${ALICE.id}`).ans;
-  assert.ok((await reply(ans)).includes('Nice work, Dishwasher! **+⬡ 35.00**'));
+  { const out = await reply(ans); assert.ok(out.includes('Nice work, Dishwasher!') && out.includes('Shift pay: **+⬡ 35.00**') && out.includes('You have'), out); }
   assert.strictEqual(cash(), before + 35_00);
   await has('r!work', "Shift's over");
 
@@ -209,7 +209,7 @@ const has = async (line, needle, user) => {
 
   // ---- gigs ----
   await has('r!gig', 'Gig:');
-  assert.ok((await reply(work.active.get(`${G}:${ALICE.id}`).ans)).includes('Gig done! **+⬡ 14.00**'));
+  assert.ok((await reply(work.active.get(`${G}:${ALICE.id}`).ans)).includes('Gig pay: **+⬡ 14.00**'));
   await has('r!gig', 'No gigs right now');
   await has('r!job', 'between jobs');
 
@@ -223,7 +223,7 @@ const has = async (line, needle, user) => {
   db.updatePlayer(G, ALICE.id, { last_work: 0 });
   await say('r!work');
   const tipped = await reply(work.active.get(`${G}:${ALICE.id}`).ans);
-  assert.ok(/Speed tip \*\*\+⬡ 2[01]\.\d\d\*\*/.test(tipped), tipped); // 35 * 1.25 = 43.75, instant answer: up to +21.88
+  assert.ok(/Speed tip: \*\*\+⬡ 2[01]\.\d\d\*\*/.test(tipped) && tipped.includes('💰 Total: +⬡ 6'), tipped); // 35 * 1.25 = 43.75, instant answer: up to +21.88
   work.TUNING.tipMax = 0;
 
   // ---- team shifts: a coworker in the same channel ----

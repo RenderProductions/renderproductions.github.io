@@ -24,6 +24,7 @@ const fresh = () => { casino.last.clear(); casino.sessions.clear(); };
 // A fixed sequence of random numbers, then Math.random
 const seq = (...xs) => { let i = 0; return () => (i < xs.length ? xs[i++] : Math.random()); };
 
+let rtp_roulette;
 (async () => {
   for (const u of [ANA, BEN]) { db.player(G, u); db.updatePlayer(G, u.id, { cash: 100000_00 }); }
 
@@ -229,10 +230,49 @@ const seq = (...xs) => { let i = 0; return () => (i < xs.length ? xs[i++] : Math
   assert.ok(posted[0].content.includes('**ana** wins the pot of **⬡ 180.00**'));
   assert.strictEqual((await lotto.tick({ db }, Date.parse('2026-11-16T01:02:00Z'))).length, 0, 'drawn once');
 
+  // ---- roulette ----
+  const roulette = require('../src/commands/roulette');
+  const spinR = (line) => { const [amount, bet] = line.split(' ').slice(1); return roulette.run(ctxFor(ANA), { amount, bet }); };
+  assert.strictEqual(roulette.colorOf(0), 'green');
+  assert.strictEqual(roulette.colorOf(1), 'red');
+  assert.strictEqual(roulette.colorOf(2), 'black');
+  assert.ok(text(await say('r!roulette 100 purple')).includes('Bets:'));
+  fresh(); random = seq(1.5 / 37); // lands on 1: red, odd, low, 1st dozen
+  let rc = cash();
+  let rl = await spinR('r!roulette 100 red');
+  assert.ok(rl.after && text(rl._final).includes('You win ⬡ 200.00'), text(rl._final));
+  assert.strictEqual(cash(), rc + 100_00);
+  fresh(); random = seq(1.5 / 37);
+  rl = await spinR('r!roulette 10 1');
+  assert.ok(text(rl._final).includes('⬡ 360.00') && text(rl._final).includes('Straight Up'), 'a straight bet pays 36x');
+  // zero loses everything else
+  for (const b of ['red', 'black', 'odd', 'even', 'low', 'high', '1st']) { fresh(); random = seq(0.1 / 37); assert.ok(text((await spinR('r!roulette 10 ' + b))._final).includes('You lose'), b); }
+  fresh(); random = seq(30.5 / 37);
+  assert.ok(text((await spinR('r!roulette 10 3rd'))._final).includes('You win ⬡ 30.00'), 'dozens pay 3x');
+  rtp_roulette = 36 / 37;
+
+  // ---- hot streak: 10 wins in a row and TODD throws you out ----
+  db.setMeta(`casino_streak:${G}:${ANA.id}`, '0');
+  let hot;
+  for (let i = 0; i < 10; i++) { fresh(); random = () => 0; hot = await say('r!coinflip 10 heads'); }
+  assert.ok(text(hot).includes('drags you out of the Rend-Sino') && text(hot).includes('Escorted Out'), text(hot));
+  assert.ok(casino.bannedUntil(db, G, ANA.id) > Date.now() + 2.9 * 3600000);
+  fresh();
+  assert.ok(text(await say('r!dice 10 over 50')).includes('thrown out'));
+  assert.ok(text(await say('r!slots 10')).includes('thrown out'));
+  assert.ok(text(await say('r!gambling')).includes('Thrown out by TODD'));
+  db.setMeta(`casino_ban:${G}:${ANA.id}`, '0');
+  // A loss resets the streak, a push (your bet back) doesn't count either way
+  for (let i = 0; i < 9; i++) { fresh(); random = () => 0; await say('r!coinflip 10 heads'); }
+  assert.strictEqual(casino.winStreak(db, G, ANA.id), 9);
+  fresh(); random = () => 0.9; await say('r!coinflip 10 heads');
+  assert.strictEqual(casino.winStreak(db, G, ANA.id), 0, 'a loss resets it');
+  random = Math.random;
+
   // ---- stats ----
   const stats = await say('r!gambling');
   const desc = stats.embeds[0].description;
-  assert.ok(desc.includes('🪙 Coinflip: 2 played') && desc.includes('🎟️ Lottery'), desc);
+  assert.ok(/🪙 Coinflip: \d+ played/.test(desc) && desc.includes('🎡 Roulette') && desc.includes('🎟️ Lottery'), desc);
 
   // ---- one game at a time ----
   fresh();
@@ -241,7 +281,7 @@ const seq = (...xs) => { let i = 0; return () => (i < xs.length ? xs[i++] : Math
   assert.ok(text(await say('r!hilo 100')).includes('Finish your 💣 Minesweeper game'));
 
   // ---- every game keeps a house edge (simulated) ----
-  const rtp = {};
+  const rtp = { roulette: rtp_roulette };
   // coinflip and dice: exact
   rtp.coinflip = 0.5 * 1.95;
   rtp.dice = (0.30) * Math.floor((0.96 / 0.30) * 100) / 100;

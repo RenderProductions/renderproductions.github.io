@@ -87,7 +87,7 @@ const press = (cmd, id, user, extra) => cmd.onButton(ctxFor(user, extra), id.spl
 
   // ---- shop: Buy buttons ----
   const shown = await shopCmd.run(ctxFor(ANA));
-  assert.strictEqual(ids(shown).length, 6 + 6, 'six shelf tabs and the Work shelf\'s six Buy buttons');
+  assert.strictEqual(ids(shown).length, 7 + 6, 'seven shelf tabs and the Work shelf\'s six Buy buttons');
   const flip = await press(shopCmd, 'shop:shelf:rare', BEN);
   assert.ok(flip.update.embeds[0].title.includes('Collectible'), 'shelf tabs flip the page');
   const bought = await press(shopCmd, 'shop:buy:coffee', BEN);

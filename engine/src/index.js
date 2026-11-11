@@ -70,9 +70,16 @@ setInterval(async () => {
     lastTick = m.updated;
     const r = trading.tick(deps, m);
     if (r.orders.length) console.log(`[trading] ${r.orders.length} order(s) filled`);
+    // World events and the 7-day price history (Heists & Schemes)
+    const W = require('./worldEvents');
+    const e = W.tick(db, m);
+    if (e) { console.log('[event] Started', e.id, e.ticker || ''); W.announce(e); }
+    require('./priceHistory').record(db, m);
   } catch (e) { console.error('[trading]', e); }
 }, 30 * 1000).unref();
 require('./publish').start(db);
+// The Discord Activity (Trading Floor): picks up commands from the Cloudflare Worker (src/activity.js)
+require('./activity').start(deps);
 
 // Start the web API first, so the host's health check passes even if Discord has trouble.
 // /health reports whether the bot is actually connected.

@@ -215,6 +215,11 @@
         <tr><td class="name">r!leaderboard [category]</td><td>This server's top 10 by net worth, Polygons, shifts worked, or casino winnings, with your own spot at the bottom.</td></tr>
         <tr><td class="name">r!order buy|sell &lt;ticker&gt; &lt;amount&gt; at &lt;price&gt;</td><td>Limit orders that fill on their own when the price gets there, like <code>r!order buy RRM 10 at 2.00</code>. Use <code>below</code> instead of <code>at</code> for a stop-loss sell. <code>r!orders</code> lists yours.</td></tr>
         <tr><td class="name">r!broker</td><td>Hire a broker to trade for you (idea by KorbedOut). Give them rules like <code>r!broker buy RRM until 2.50</code> and <code>r!broker sell RRM at 4</code>. They manage up to 25 shares per company, cost a daily salary plus a cut of their profits, and quit if you miss a payday. Every broker has a trait: Steady, Cautious, Aggressive, or Gambler.</td></tr>
+        <tr><td class="name">r!short &lt;ticker&gt; &lt;shares&gt;</td><td>Bet a stock falls. Half its value is set aside as margin, plus a 1% fee. <code>r!cover &lt;ticker&gt;</code> closes it: if the price dropped, you keep the difference. Climb too far and it's covered for you.</td></tr>
+        <tr><td class="name">r!heist vault &lt;ticker&gt; | stash | reserve</td><td>Plan a heist. A crew of 3 to 5 joins with buttons as Hacker, Driver, Lookout or Muscle, pays a stake, and splits the haul. Get caught and TODD fines you.</td></tr>
+        <tr><td class="name">r!takeover &lt;ticker&gt;</td><td>Own half of a player company's public shares? Bid to take it over. The owner can accept your premium or fight it off with a poison pill. <code>r!merge &lt;ticker&gt;</code> combines two companies when both owners agree.</td></tr>
+        <tr><td class="name">r!event</td><td>The world event running now. Every few hours something shakes up the whole Rend-Conomy for an hour.</td></tr>
+        <tr><td class="name">r!savings deposit &lt;amount&gt; &lt;3|7|14&gt;</td><td>Lock Polygons away for 2%, 6% or 15% interest. Take them out early and you skip the interest.</td></tr>
         <tr><td class="name">r!gift @player &lt;amount&gt; [note]</td><td>Sends Polygons to another player, with a note if you like. A 5% fee goes to the Polygon Reserve, and you can send up to ⬡ 5,000 a day. Not while you owe TODD or have an overdue loan.</td></tr>
         <tr><td class="name">r!reserve</td><td>The house isn't infinite. Shows the Polygon Reserve every payout comes from. Under 25%, payouts shrink. At zero, the market crashes.</td></tr>
         <tr><td class="name">r!dividends</td><td>Collects the dividends your shares have earned. Shares you buy start earning after your next claim.</td></tr>
@@ -225,6 +230,9 @@
         <tr><td class="name">r!work</td><td>Starts a shift. Answer the task within 20 seconds for full pay, and fast answers earn a speed tip on top. Wrong or slow answers still earn 40%. Coworkers working in the same channel get a team bonus. Every 15 minutes.</td></tr>
         <tr><td class="name">r!job</td><td>Your rank, next performance review, accuracy, earnings and cooldown, plus what's happening at your company. <code>r!job remind on</code> DMs you when your next shift is ready.</td></tr>
         <tr><td class="name">r!gig</td><td>No job? Quick freelance tasks for a little pay, every 10 minutes.</td></tr>
+        <tr><td class="name">r!fish</td><td>Go fishing with a Fishing Rod from Marquez (idea by NachoBellGrande1065). Catch fish, junk or a lost wallet, then <code>r!fish sell</code>. A Lure skips the bait. A small fish as bait hooks the big ones.</td></tr>
+        <tr><td class="name">r!dropin</td><td>Chat pay (talking in the server pays a little, up to ⬡300 a day) and TODD's drop-in questions. Mods: <code>r!dropin off</code> or <code>r!dropin here</code>.</td></tr>
+        <tr><td class="name">r!backpay</td><td>Get paid once for the achievements you unlocked before they paid out.</td></tr>
         <tr><td class="name">r!quit</td><td>Leaves your job. Locked for 24 hours after you're hired. Your rank there is saved if you come back.</td></tr>
       </tbody>
       <tbody>
@@ -261,6 +269,7 @@
         <tr><th scope="rowgroup" colspan="2">GAMES OF CHANCE</th></tr>
         <tr><td class="name">r!slots &lt;amount&gt;</td><td>Try your luck at the slot machine. Bets from ⬡ 10 to ⬡ 1,000. The whole Rend-Sino is off limits while you owe TODD.</td></tr>
         <tr><td class="name">r!coinflip &lt;amount&gt; heads|tails</td><td>Call it right for 1.95x.</td></tr>
+        <tr><td class="name">r!roulette &lt;amount&gt; &lt;bet&gt;</td><td>The wheel: red, black, odd, even, low, high (2x), a dozen (3x), or one number (36x). Idea by NachoBellGrande1065.</td></tr>
         <tr><td class="name">r!dice &lt;amount&gt; over|under &lt;n&gt;</td><td>Roll 1 to 100. The riskier your number, the bigger the payout.</td></tr>
         <tr><td class="name">r!blackjack &lt;amount&gt;</td><td>Blackjack against TODD with Hit, Stand and Double buttons. Blackjack pays 2.5x.</td></tr>
         <tr><td class="name">r!bus &lt;amount&gt;</td><td>Ride the Bus: red or black, higher or lower, inside or outside, then the suit. Every button shows what it pays, and you can cash out between rounds.</td></tr>
@@ -269,7 +278,7 @@
         <tr><td class="name">r!rocket &lt;amount&gt;</td><td>The multiplier climbs live until the rocket crashes. Cash out before it does.</td></tr>
         <tr><td class="name">r!derby &lt;horse&gt; &lt;amount&gt;</td><td>The Polygon Derby. The first bet opens 45 seconds of betting for the whole channel, then the race runs live.</td></tr>
         <tr><td class="name">r!lottery [buy &lt;tickets&gt;]</td><td>The weekly lottery. Tickets are ⬡ 50, up to 20 per draw, and the pot is drawn Sunday at 8 PM Eastern.</td></tr>
-        <tr><td class="name">r!gambling</td><td>Your record at every game: played, won or lost, and your biggest hit.</td></tr>
+        <tr><td class="name">r!gambling</td><td>Your record at every game: played, won or lost, and your biggest hit. Win 10 in a row and TODD throws you out for 3 hours.</td></tr>
       </tbody>
       <tbody>
         <tr><th scope="rowgroup" colspan="2">OTHER</th></tr>

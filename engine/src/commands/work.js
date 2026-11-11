@@ -14,7 +14,7 @@ const reminders = require('../reminders');
 const marketEngine = require('../marketEngine');
 const A = require('../achievements');
 const effects = require('../effects');
-const { relTime, amt } = require('../format');
+const { relTime, amt, have } = require('../format');
 const { button, rows, nonce } = require('../buttons');
 
 // Tasks waiting for an answer: "guild:user" -> task state
@@ -39,6 +39,12 @@ function taskStyle(ticker) {
 }
 
 // "🏦 ⬡ 17.50 went to KorbedOut for an overdue loan." (empty when nothing was taken)
+// The payslip: each part of the pay on its own line, then the total, so it's clear what you earned
+function payslip(head, parts, total, cash) {
+  const lines = parts.filter(([, c]) => c > 0).map(([label, c, why]) => `${label}: **+${amt(c)}**${why ? ` (${why})` : ''}`);
+  return `${head}\n${lines.join('\n')}${lines.length > 1 ? `\n**💰 Total: +${amt(total)}**` : ''}\n-# You have ${have(cash)} now.`;
+}
+
 function garnishNote(g) {
   if (!g.taken) return '';
   return '\n' + g.paidTo.map((p) => `🏦 ${amt(p.cents)} went to **${p.name}** for an overdue loan${p.cleared ? ' (paid off!)' : ''}.`).join('\n');
@@ -83,7 +89,7 @@ async function answer(ctx, text) {
 
   // ---------------- gigs ----------------
   if (st.mode === 'gig') {
-    let pay = jobs.BASE_PAY * jobs.GIG_PAY * (result === 'pass' ? 1 : 0.4);
+    let pay = jobs.BASE_PAY * jobs.GIG_PAY * (result === 'pass' ? 1 : 0.4) * require('../worldEvents').workMult(ctx.db);
     const tip = pay * speed;
     const shrink = reserve.factor(ctx.db);
     const total = Math.round((pay + tip) * 100 * shrink);
@@ -93,10 +99,11 @@ async function answer(ctx, text) {
       ctx.db.updatePlayer(ctx.guildId, ctx.user.id, { gig_earned: (p.gig_earned || 0) + total });
       return split;
     });
-    let out = result === 'pass' ? `🧰 Gig done! **+${amt(Math.round(pay * 100 * shrink))}**`
-      : result === 'slow' ? `🐢 Too slow, but the client paid something: **+${amt(total)}**`
-      : `❌ Not quite, it was ${shown}. The client paid a little anyway: **+${amt(total)}**`;
-    if (tip > 0) out += `\n⚡ Speed tip **+${amt(Math.round(tip * 100 * shrink))}** (${Math.max(0, elapsed).toFixed(1)}s)`;
+    const head = result === 'pass' ? '🧰 Gig done!'
+      : result === 'slow' ? '🐢 Too slow, but the client paid something.'
+      : `❌ Not quite, it was ${shown}. The client paid a little anyway.`;
+    const tipC = tip > 0 ? Math.round(tip * 100 * shrink) : 0;
+    let out = payslip(head, [['💵 Gig pay', total - tipC], ['⚡ Speed tip', tipC, `${Math.max(0, elapsed).toFixed(1)}s`]], total, ctx.db.player(ctx.guildId, ctx.user).cash);
     out += garnishNote(g);
     if (shrink < 1) out += reserve.note(ctx.db);
     if (A.bump(ctx, 'gigs') >= 25) A.award(ctx, 'gig_economy');
@@ -133,6 +140,8 @@ async function answer(ctx, text) {
     if (p.overtime) { pay *= 2; update.overtime = 0; extras.push('☕ Overtime x2'); }
     if (c && isBoomed(m, st.job)) { pay *= 2; extras.push('🚀 Boom overtime x2'); }
     if (st.scab) { pay *= 0.9; extras.push('🪧 Crossed the picket line (-10%)'); }
+    const ev = require('../worldEvents').workMult(ctx.db, st.job);
+    if (ev > 1) { pay *= ev; extras.push(`🌍 World event x${ev}`); }
     tip = pay * speed;
     // Coworkers who just worked a shift in this channel
     const tk = `${ctx.guildId}:${ctx.channelId}:${st.job}`;
@@ -160,12 +169,10 @@ async function answer(ctx, text) {
     cu.rev_right = career.rev_right + (result === 'pass' ? 1 : 0);
     update.shifts = cu.shifts;
     A.award(ctx, 'first_paycheck');
-    if (result === 'pass') out = `✅ Nice work, ${r.name}! **+${amt(cents(pay))}**`;
-    else if (result === 'slow') out = `🐢 Too slow! You still clocked in for **+${amt(cents(pay))}**`;
-    else out = `❌ Not quite, it was ${shown}. You still get **+${amt(cents(pay))}**`;
-    if (extras.length) out += `\n${extras.join(' · ')}`;
-    if (tip > 0) out += `\n⚡ Speed tip **+${amt(cents(tip))}** (${Math.max(0, elapsed).toFixed(1)}s)`;
-    if (team > 0) out += ` · 👥 **+${amt(cents(team))}**`;
+    if (result === 'pass') out = `✅ Nice work, ${r.name}!`;
+    else if (result === 'slow') out = '🐢 Too slow! You still clocked in, for less.';
+    else out = `❌ Not quite, it was ${shown}. You still get paid, just less.`;
+    if (extras.length) out += `\n-# ${extras.join(' · ')}`;
 
     // Performance review every 10 shifts
     if (cu.rev_total >= jobs.REVIEW.every) {
@@ -200,6 +207,7 @@ async function answer(ctx, text) {
   const bonus = cu._bonus || 0;
   delete cu._bonus;
   cu.earned = career.earned + total + bonus;
+  const slipParts = [['💵 Shift pay', cents(pay)], ['⚡ Speed tip', cents(tip), `${Math.max(0, elapsed).toFixed(1)}s`], ['👥 Team bonus', cents(team)], ['⭐ Review bonus', bonus]];
   const g = ctx.db.tx(() => {
     const split = loans.garnish(ctx.db, ctx.guildId, ctx.user.id, total + bonus); // overdue loans take half
     ctx.db.updatePlayer(ctx.guildId, ctx.user.id, update);
@@ -215,6 +223,8 @@ async function answer(ctx, text) {
     if (st.scab) marketEngine.nudge(ctx.db, st.job, NUDGE.scab);
     else if (result === 'pass') marketEngine.nudge(ctx.db, st.job, NUDGE.good);
   }
+  if (st.rush === 0) out = payslip(out, slipParts, total + bonus, ctx.db.player(ctx.guildId, ctx.user).cash);
+  else if (result === 'pass') out += `\n-# You have ${have(ctx.db.player(ctx.guildId, ctx.user).cash)} now.`;
   out += review + garnishNote(g);
   if (shrink < 1) out += reserve.note(ctx.db);
 

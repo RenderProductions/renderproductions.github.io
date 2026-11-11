@@ -62,7 +62,8 @@ module.exports = {
       (owedLoans > 0 ? `\n🏦 Owed to players: **${amt(owedLoans)}**` : '') +
       (lentLoans > 0 ? `\n🏦 Lent out: **${have(lentLoans)}**` : '');
     const saved = require('../savings').total(ctx.db, ctx.guildId, target.id);
-    const savedLine = saved > 0 ? `\n🐖 In savings: **${have(saved)}**` : '';
+    const shorted = require('../shorts').value(ctx.db, ctx.guildId, target.id, m, ctx.market.quote);
+    const savedLine = (saved > 0 ? `\n🐖 In savings: **${have(saved)}**` : '') + (require('../shorts').list(ctx.db, ctx.guildId, target.id).length ? `\n🐻 Shorts: **${have(shorted)}**` : '');
     const chat = require('../chatter');
     const chatLine = target.id === ctx.user.id ? `\n-# 💬 Chat pay today: ${amt(chat.chatToday(ctx.db, ctx.guildId, target.id))} / ${amt(chat.RULES.chat.perDay)}` : '';
 
@@ -70,7 +71,7 @@ module.exports = {
       embeds: [{
         title: `${target.username}'s portfolio`,
         description: `${titleLine}Polygons: **${have(p.cash)}**\nStocks: **${have(stocks)}**${savedLine}${debtLine}\n` +
-          `Net worth: **${have(p.cash + stocks + saved - p.debt - owedLoans + lentLoans)}**${chatLine}`,
+          `Net worth: **${have(p.cash + stocks + saved + shorted - p.debt - owedLoans + lentLoans)}**${chatLine}`,
         fields,
         footer: { text: 'Prices as of' },
         timestamp: m.updated,

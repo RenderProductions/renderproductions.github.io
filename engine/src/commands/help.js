@@ -33,6 +33,17 @@ const PAGES = {
     ['broker clear <ticker|all>', 'Forget your rules'],
     ['broker fire', 'Let them go; what they hold comes back to you']
   ], note: '💼 Brokers cost a daily salary plus a cut of their profits. Miss a payday and they quit. Each hire costs 1.25x more, easing back for every week you keep one.' },
+  schemes: { label: 'Heists & Schemes', emoji: '🦹', color: 0x8c6239, blurb: 'Shorts, heists, takeovers', cmds: [
+    ['short <ticker> <shares>', 'Bet a stock falls. Half its value is set aside as margin'],
+    ['cover <ticker|all>', 'Close a short. Price fell? You keep the difference'],
+    ['short', 'Your shorts, and where each one gets margin-called'],
+    ['heist vault <ticker>|stash|reserve', 'Plan a heist. A crew of 3 to 5 joins with buttons and splits the haul'],
+    ['heist', 'How heists work, and recent heists in this server'],
+    ['takeover <ticker>', 'Own half a player company\'s public shares? Bid to take it over'],
+    ['takeover accept|defend', 'Owners: take the premium, or fight it off with a poison pill'],
+    ['merge <ticker>', 'Merge your company with another (both owners agree)'],
+    ['event', 'The world event running now. A new one every few hours']
+  ] },
   profile: { label: 'Profile', emoji: '🏆', color: 0xffe600, blurb: 'Your card and achievements', cmds: [
     ['profile [@player]', 'A player card: title, rarest achievements, net worth, job and more'],
     ['achievements [@player]', 'Every achievement, by category, and how rare each one is'],
@@ -47,13 +58,15 @@ const PAGES = {
     ['work', 'A shift every 15 minutes. Fast answers earn tips, coworkers earn a team bonus'],
     ['job', 'Your rank, next review, accuracy and earnings'],
     ['job remind on', 'A DM when your next shift is ready'],
-    ['gig', "Quick freelance work when you don't have a job"],
+    ['gig', "Quick freelance work, job or not (also `sidehustle`)"],
+    ['fish', 'Go fishing (needs a Fishing Rod from Marquez): `fish bag`, `fish sell`, `fish <small fish>` for big bait'],
     ['quit', 'Leave your job (24h after hiring)']
   ], note: '📋 A performance review every 10 shifts: **8+** right gets you promoted, **4 or fewer** demoted.' },
-  casino: { label: 'Rend-Sino', emoji: '🎰', color: 0xeb459e, blurb: 'Ten games and a weekly lottery', cmds: [
+  casino: { label: 'Rend-Sino', emoji: '🎰', color: 0xeb459e, blurb: 'Eleven games and a weekly lottery', cmds: [
     ['slots <bet>', 'The slot machine'],
     ['coinflip <bet> heads|tails', 'Call it right for 1.95x'],
     ['dice <bet> over|under <5-95>', 'Roll 1 to 100. Riskier calls pay more'],
+    ['roulette <bet> red|black|odd|even|1st|17', 'The wheel: 2x, 3x, or 36x on a single number'],
     ['blackjack <bet>', 'Against TODD. Hit, Stand or Double'],
     ['bus <bet>', 'Ride the Bus: four card guesses, cash out between them'],
     ['hilo <bet>', 'Higher or Lower: build a streak, cash out before you miss'],
@@ -62,7 +75,7 @@ const PAGES = {
     ['derby <horse> <bet>', 'The Polygon Derby. The whole channel can bet'],
     ['lottery [buy <tickets>]', 'The weekly draw, Sunday 8 PM Eastern'],
     ['gambling', 'Your record at every game']
-  ], note: "🖥️ No gambling while you owe TODD. Every bet goes into the Polygon Reserve." },
+  ], note: "🖥️ No gambling while you owe TODD. Win 10 in a row and TODD throws you out for 3 hours. Every bet goes into the Polygon Reserve." },
   shop: { label: 'Shop', emoji: '🛒', color: 0xf0b232, blurb: 'Items and your inventory', cmds: [
     ['shop', 'Items, stock, and the next restock'],
     ['purchase <item>', 'Buy coffee, overtime, mystery, resume, or title'],
@@ -101,8 +114,8 @@ const PAGES = {
   ] }
 };
 for (const pg of Object.values(PAGES)) pg.body = (P) => pg.cmds.map(([u, d]) => `${P}${u} ${d}`);
-const ORDER = ['market', 'trading', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
-const ALIAS = { stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
+const ORDER = ['market', 'trading', 'schemes', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
+const ALIAS = { heist: 'schemes', heists: 'schemes', short: 'schemes', shorts: 'schemes', stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
   orders: 'trading', order: 'trading', broker: 'trading', brokers: 'trading', items: 'shop', achievements: 'profile', badges: 'profile', me: 'profile', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
 
 const avatar = () => `${config.siteUrl}/bot/avatar.png`;

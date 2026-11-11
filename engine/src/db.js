@@ -288,6 +288,43 @@ const MIGRATIONS = [
     ALTER TABLE players ADD COLUMN chat_earned INTEGER NOT NULL DEFAULT 0;
     -- Achievements unlocked before this moment are back pay (claimed once with r!backpay)
     INSERT OR IGNORE INTO meta (key, value) VALUES ('ach_pay_since', CAST(strftime('%s', 'now') AS INTEGER) * 1000);
+  `,
+  `
+    -- Version 12: Heists & Schemes. Short positions, heists, takeover bids, and 7 days of hourly prices.
+    CREATE TABLE shorts (
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      ticker    TEXT NOT NULL,
+      shares    INTEGER NOT NULL,
+      entry     INTEGER NOT NULL,        -- cents per share when it was opened
+      margin    INTEGER NOT NULL,        -- cents set aside to cover losses
+      wipe_seen INTEGER NOT NULL DEFAULT 0,
+      opened_at INTEGER NOT NULL,
+      PRIMARY KEY (guild_id, user_id, ticker)
+    );
+    CREATE TABLE heist_log (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id  TEXT NOT NULL,
+      target    TEXT NOT NULL,
+      crew      TEXT NOT NULL,           -- JSON [[userId, role, name]]
+      outcome   TEXT NOT NULL,           -- clean | messy | caught
+      haul      INTEGER NOT NULL,        -- cents taken in total
+      at        INTEGER NOT NULL
+    );
+    CREATE TABLE takeovers (
+      ticker    TEXT PRIMARY KEY,
+      bidder_id TEXT NOT NULL,
+      bidder    TEXT NOT NULL,
+      guild_id  TEXT NOT NULL,
+      premium   INTEGER NOT NULL,        -- cents paid to the owner if it goes through (held now)
+      ends_at   INTEGER NOT NULL
+    );
+    CREATE TABLE price_history (
+      ticker    TEXT NOT NULL,
+      hour      INTEGER NOT NULL,        -- ms at the start of the hour
+      price     REAL NOT NULL,
+      PRIMARY KEY (ticker, hour)
+    );
   `
 ];
 

@@ -10,7 +10,10 @@
   var REFRESH_MS = 60 * 1000;
   var TZ = 'America/Detroit';
   var OPEN_HOUR = 3, CLOSE_HOUR = 21;
-  var RANGES = [['1H', 1], ['6H', 6], ['12H', 12], ['24H', 24]];
+  var RANGES = [['1H', 1], ['6H', 6], ['12H', 12], ['24H', 24], ['7D', 168]];
+  // Hourly prices for the past week, published by the bot (Heists & Schemes)
+  var WEEK_URL = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/history-7d.json';
+  var week = null;
   var ticker = (document.body.getAttribute('data-ticker') || '').toUpperCase();
   var top = document.getElementById('co-top');
   var bottom = document.getElementById('co-bottom');
@@ -172,6 +175,12 @@
   function windowOf(c) {
     var h = c.history || [], t = c.times || [];
     if (t.length !== h.length || !t.length) return { h: h, t: h.map(function (_, i) { return i; }) };
+    // 7D: the hourly week before the 24 hours of 5-minute prices
+    if (range > 24 && week && week.hourly && week.hourly[c.id]) {
+      var older = week.hourly[c.id].filter(function (p) { return p[0] / 1000 < t[0]; });
+      h = older.map(function (p) { return p[1]; }).concat(h);
+      t = older.map(function (p) { return p[0] / 1000; }).concat(t);
+    }
     var cut = t[t.length - 1] - range * 3600, i = 0;
     while (i < t.length - 2 && t[i] < cut) i++;
     return { h: h.slice(i), t: t.slice(i) };
@@ -550,7 +559,15 @@
     });
   }
 
+  function loadWeek() {
+    return fetch(WEEK_URL + '?t=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (w) { if (w) { week = w; if (range > 24 && last) drawChart(last.c); } })
+      .catch(function () {});
+  }
+
   function load() {
+    loadWeek();
     newestPrices(DATA_URL)
       .then(show)
       .catch(function () { $('.co-note', top).textContent = 'Live prices could not be loaded right now.'; })

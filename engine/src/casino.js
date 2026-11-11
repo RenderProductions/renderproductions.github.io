@@ -7,20 +7,54 @@ const { amt, have, parsePolygons } = require('./format');
 
 const RULES = {
   minBet: 10_00,
-  maxBet: { coinflip: 2500_00, dice: 2500_00, blackjack: 2500_00, bus: 2500_00, hilo: 2500_00, mines: 2500_00, rocket: 2500_00, derby: 1000_00 },
+  maxBet: { coinflip: 2500_00, dice: 2500_00, blackjack: 2500_00, bus: 2500_00, hilo: 2500_00, mines: 2500_00, rocket: 2500_00, derby: 1000_00, roulette: 2500_00 },
   cooldownMs: 3000,        // between games, per player
-  sessionMs: 2 * 60 * 1000 // an unfinished game is forfeited after this
+  sessionMs: 2 * 60 * 1000, // an unfinished game is forfeited after this
+  hotStreak: 10,            // win this many in a row and TODD drags you out...
+  banMs: 3 * 60 * 60 * 1000 // ...for 3 hours
 };
 const NAMES = { slots: '🎰 Slots', coinflip: '🪙 Coinflip', dice: '🎲 Dice', blackjack: '🃏 Blackjack', bus: '🚌 Ride the Bus',
-  hilo: '🔼 Higher or Lower', mines: '💣 Minesweeper', rocket: '🚀 Rocket', derby: '🏇 Polygon Derby', lottery: '🎟️ Lottery' };
+  hilo: '🔼 Higher or Lower', mines: '💣 Minesweeper', rocket: '🚀 Rocket', derby: '🏇 Polygon Derby', lottery: '🎟️ Lottery', roulette: '🎡 Roulette' };
 
 const last = new Map();     // "guild:user" -> ms of the last game
 const sessions = new Map(); // "guild:user" -> the game in progress
+const lastBet = new Map();  // "guild:user" -> the last bet taken (to tell a win from getting your bet back)
+
+// ---- Hot streaks: win too many in a row and TODD throws you out for a while ----
+// Kept in meta so a restart doesn't let anyone back in early.
+const streakKey = (guildId, userId) => `casino_streak:${guildId}:${userId}`;
+const banKey = (guildId, userId) => `casino_ban:${guildId}:${userId}`;
+const winStreak = (db, guildId, userId) => Number(db.meta(streakKey(guildId, userId))) || 0;
+function bannedUntil(db, guildId, userId, now = Date.now()) {
+  const until = Number(db.meta(banKey(guildId, userId))) || 0;
+  return until > now ? until : 0;
+}
+function banMessage(until) {
+  return `🖥️ **TODD has his eye on you.** You were thrown out of the Rend-Sino for winning too much. Come back <t:${Math.floor(until / 1000)}:R>.`;
+}
+// result: 'win' | 'loss' | 'push'. Returns true if this win got them thrown out.
+function streak(ctx, result, now = Date.now()) {
+  if (!ctx.guildId || !ctx.user || result === 'push') return false;
+  const db = ctx.db, k = streakKey(ctx.guildId, ctx.user.id);
+  if (result === 'loss') { if (winStreak(db, ctx.guildId, ctx.user.id)) db.setMeta(k, '0'); return false; }
+  const n = winStreak(db, ctx.guildId, ctx.user.id) + 1;
+  if (n < RULES.hotStreak) { db.setMeta(k, String(n)); return false; }
+  const until = now + RULES.banMs;
+  db.setMeta(k, '0');
+  db.setMeta(banKey(ctx.guildId, ctx.user.id), String(until));
+  sessions.delete(`${ctx.guildId}:${ctx.user.id}`);
+  require('./achievements').award(ctx, 'escorted_out');
+  if (ctx.notes) ctx.notes.unshift(`🖥️ **TODD grabs you by the collar and drags you out of the Rend-Sino.** ${RULES.hotStreak} wins in a row? Nobody is THAT lucky. ` +
+    `You keep your winnings, but you're banned from gambling until <t:${Math.floor(until / 1000)}:t> (<t:${Math.floor(until / 1000)}:R>).`);
+  return true;
+}
 
 // Checks a bet and takes it. Returns { bet } or { error }.
 function takeBet(ctx, game, raw) {
   const P = config.prefix;
   const p = ctx.db.player(ctx.guildId, ctx.user);
+  const ban = bannedUntil(ctx.db, ctx.guildId, ctx.user.id);
+  if (ban) return { error: banMessage(ban) };
   if (p.debt > 0) return { error: `🖥️ GAMBLING?!? With MY money?! NOT a CHANCE. You owe me **${amt(p.debt)}**. (\`${P}repay\`)` };
   const key = `${ctx.guildId}:${ctx.user.id}`;
   const s = sessions.get(key);
@@ -38,6 +72,7 @@ function takeBet(ctx, game, raw) {
     stat(ctx.db, ctx.guildId, ctx.user.id, game, { played: 1, wagered: bet });
   });
   last.set(key, Date.now());
+  lastBet.set(key, bet);
   if (bet === RULES.maxBet[game]) require('./achievements').award(ctx, 'high_roller');
   return { bet };
 }
@@ -45,6 +80,9 @@ function takeBet(ctx, game, raw) {
 // Pays out (the bet included, if it's coming back). Returns the player's Polygons after.
 function payout(ctx, game, cents) {
   cents = Math.max(0, Math.round(cents));
+  // The hot streak counts wins against the bet (before any chip bonus). The derby pays out for others: skip it.
+  const bet = lastBet.get(`${ctx.guildId}:${ctx.user.id}`);
+  if (game !== 'derby' && ctx.notes && bet) streak(ctx, cents > bet ? 'win' : cents === bet ? 'push' : 'loss');
   // A Platinum Chip charge: this game pays 4% more (no house edge)
   if (ctx.guildId && require('./effects').take(ctx.db, ctx.guildId, ctx.user.id, 'chip') && cents > 0) cents = Math.round(cents * 1.04);
   ctx.db.tx(() => {
@@ -94,4 +132,4 @@ const mult = (x) => `${(Math.floor(x * 100) / 100).toFixed(2)}x`;
 const usage = (game, how) => `${NAMES[game]} Usage: \`${config.prefix}${how}\``;
 const footer = () => ({ text: `Max bet per game shown in ${config.prefix}gambling · Bets fill the Polygon Reserve` });
 
-module.exports = { RULES, NAMES, takeBet, payout, stat, stats, start, get, end, sessions, last, deck, card, mult, usage, footer, SUITS };
+module.exports = { RULES, NAMES, streak, winStreak, bannedUntil, banMessage, lastBet, takeBet, payout, stat, stats, start, get, end, sessions, last, deck, card, mult, usage, footer, SUITS };

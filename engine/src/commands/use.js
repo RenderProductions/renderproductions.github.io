@@ -44,6 +44,7 @@ module.exports = {
     }
     const fx = effects.get(ctx.db, ctx.guildId, ctx.user.id);
     if (id === 'booster' && (fx.divBoostUntil || 0) > now) return `📈 Your Dividend Booster is already running until <t:${Math.floor(fx.divBoostUntil / 1000)}:t>.`;
+    if (id === 'lure' && fx.lure) return `🪝 You already have a Lure on, with ${fx.lure} cast${fx.lure === 1 ? '' : 's'} left.`;
     if (id === 'fuel' && fx.fuel) return '⛽ The tank is already full. Fly a Rocket first.';
     if (id === 'wrap' && fx.wrap) return '🎀 Your next gift is already wrapped.';
     let pc = null;
@@ -76,6 +77,7 @@ module.exports = {
       if (id.startsWith('paint_')) { require('../achievements').set(ctx, id, 1); return `${item.emoji} **${item.name}** is yours. Put it on with \`${P}profile theme ${id.slice(6)}\`.${left(n)}`; }
       if (id === 'stopwatch') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'stopwatch', 3); return `⏱️ Stopwatch wound up. Your next 3 shifts get **10 extra seconds**.${left(n)}`; }
       if (id === 'chip') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'chip', 5); return `💿 Platinum Chip in hand. Your next **5** Rend-Sino games pay 4% more.${left(n)}`; }
+      if (id === 'lure') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'lure', require('../fishing').RULES.lureCasts); return `🪝 Lure tied on. Your next **${require('../fishing').RULES.lureCasts}** casts need no bait, and the big ones bite more.${left(n)}`; }
       if (id === 'fuel') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'fuel', 1); return `⛽ Tank's full. Your next \`${P}rocket\` flies **20% higher** before it crashes.${left(n)}`; }
       if (id === 'wrap') { effects.add(ctx.db, ctx.guildId, ctx.user.id, 'wrap', 1); return `🎀 Wrapped! Your next \`${P}gift\` has no fee.${left(n)}`; }
       if (id === 'booster') {

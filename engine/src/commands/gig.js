@@ -14,7 +14,7 @@ const GIGS = {
 
 module.exports = {
   name: 'gig',
-  aliases: ['freelance'],
+  aliases: ['freelance', 'sidehustle', 'hustle'],
   description: 'No job? Do a quick freelance task (every 10 minutes)',
   options: [],
 
