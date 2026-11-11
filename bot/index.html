@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bot">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +14,7 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#ffe600">
+<meta name="theme-color" content="#8c9bff">
 <link rel="icon" type="image/x-icon" href="../favicon.ico">
 <link rel="stylesheet" href="../style.css">
 <style>
@@ -24,13 +24,13 @@
   .profile-body { position: relative; padding: 0 1.5rem 1.5rem; }
   .profile-avatar {
     position: absolute; top: -64px; left: 1.25rem; width: 128px; height: 128px; border-radius: 50%;
-    border: 8px solid var(--panel); background: var(--panel); box-shadow: 0 0 24px rgba(255, 230, 0, 0.18);
+    border: 8px solid var(--panel); background: var(--panel); box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.18);
   }
   .profile-actions { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; padding-top: 1rem; min-height: 56px; }
   .profile-name { margin: 1.25rem 0 0; font-family: var(--display); font-weight: 400; font-size: 48px; line-height: 1; letter-spacing: 2px; color: var(--bright); }
   .app-badge {
     display: inline-block; vertical-align: middle; margin-left: 0.4rem; padding: 2px 7px; font-family: var(--mono);
-    font-size: 12px; font-weight: 600; letter-spacing: 1px; color: #050810; background: var(--bright);
+    font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--on-accent); background: var(--bright);
   }
   .profile-handle { margin: 0.35rem 0 0; font-size: 14px; color: var(--grey); }
   .profile-handle code, .try code { color: var(--bright); }
@@ -38,7 +38,7 @@
   .profile-section h2 { margin: 0 0 0.5rem; font-size: 12px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--grey); }
   .profile-section p { margin: 0; color: var(--lime); max-width: 60ch; }
   .roles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .roles li { display: flex; align-items: center; gap: 0.45rem; padding: 3px 10px; font-size: 13px; color: var(--lime); border: 1px solid var(--line-strong); background: rgba(255, 230, 0, 0.04); }
+  .roles li { display: flex; align-items: center; gap: 0.45rem; padding: 3px 10px; font-size: 13px; color: var(--lime); border: 1px solid var(--line-strong); background: rgba(var(--accent-rgb), 0.04); }
   .roles .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bright); }
   .roles .dot.red { background: #ff6b6b; }
   .try { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }

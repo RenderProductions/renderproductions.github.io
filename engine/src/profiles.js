@@ -4,6 +4,7 @@ const A = require('./achievements');
 const jobs = require('./jobs');
 const shop = require('./shop');
 const botstats = require('./botstats');
+const styles = require('./styles');
 
 function snapshot(db, prices = null) {
   const client = botstats.client();
@@ -54,6 +55,15 @@ function snapshot(db, prices = null) {
     const cached = client && client.users ? client.users.cache.get(id) : null;
     if (cached) { u.avatar = cached.displayAvatarURL({ size: 128 }); u.name = cached.globalName || cached.username || u.name; }
     u.servers.sort((a, b) => b.worth - a.worth);
+    // Their profile look, as checked names only (the site maps them to its own CSS)
+    const st = styles.get(db, id), S = styles;
+    const style = {};
+    if (st.theme && (S.PRESETS[st.theme] || S.PAINTS[st.theme])) style.theme = st.theme;
+    if (st.color && /^#[0-9a-f]{6}$/.test(st.color)) style.color = st.color;
+    if (st.banner && S.BANNERS[st.banner]) style.banner = st.banner;
+    if (st.frame && S.FRAMES[st.frame] && st.frame !== 'none') style.frame = st.frame;
+    if (st.pin && shop.COLLECTIBLES[st.pin]) style.pin = st.pin;
+    if (Object.keys(style).length) u.style = style;
   }
   const collectibles = Object.entries(shop.COLLECTIBLES).map(([id, c]) => ({ id, name: c.name, emoji: c.emoji, desc: c.desc }));
   return { achievements, collectibles, players: rar.players, users };

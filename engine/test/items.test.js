@@ -151,8 +151,35 @@ const fx = (u = ANA) => effects.get(db, G, u.id);
   db.updatePlayer(G, BEN.id, { daily_day: '' });
   assert.ok(text(await say('r!daily', BEN)).includes('⬡ 500.00'), 'the next daily pays double');
 
+  // ---- Profile customizing ----
+  const styles = require('../src/styles');
+  assert.ok(text(await say('r!profile color #ff4fd8')).includes('Customizer Kit'), 'needs the kit first');
+  await buy('customizer kit');
+  assert.ok(text(await say('r!use kit')).includes('Customizer unlocked'));
+  assert.ok(text(await say('r!profile color #ff4fd8')).includes('#ff4fd8'));
+  assert.strictEqual(styles.get(db, ANA.id).color, '#ff4fd8');
+  assert.ok(text(await say('r!profile color pink')).includes('six-digit'));
+  assert.ok(text(await say('r!profile theme market')).includes('Market green'));
+  assert.ok(text(await say('r!profile theme holo')).includes('Profile Paint'), 'paints have to be bought');
+  db.setStock('paint_holo', 2); await buy('holo paint');
+  assert.ok(text(await say('r!use holo paint')).includes('is yours'));
+  assert.ok(text(await say('r!profile theme holo')).includes('Holographic'));
+  assert.ok(text(await say('r!profile banner stars')).includes('Stars'));
+  assert.ok(text(await say('r!profile banner crown')).includes('legendary'), 'crown is for legendary achievers');
+  require('../src/achievements').award({ db, guildId: G, user: ANA, notes: [] }, 'jackpot');
+  assert.ok(text(await say('r!profile frame glow')).includes('Glow'));
+  assert.ok(text(await say(`r!profile pin ${shop.COLLECTIBLES[col].name}`)).includes('pinned'));
+  assert.ok(text(await say('r!profile pin golden toaster')).includes('only pin a collectible you own'));
+  const card = await say('r!profile');
+  assert.strictEqual(card.embeds[0].color, parseInt('c9a7ff', 16), 'Discord shows your color too');
+  assert.ok(JSON.stringify((await say('r!profile customize')).embeds[0]).includes('Holographic** ✅'));
+  // The site gets the style (as names only)
+  const pub = require('../src/profiles').snapshot(db, null).users[ANA.id];
+  assert.deepStrictEqual(Object.keys(pub.style).sort(), ['banner', 'frame', 'pin', 'theme']);
+  assert.ok(text(await say('r!profile reset')).includes('default'));
+
   // ---- the shop itself ----
-  for (const shelf of ['work', 'market', 'casino', 'fun', 'rare']) {
+  for (const shelf of ['work', 'market', 'casino', 'fun', 'style', 'rare']) {
     const out = await say(`r!shop ${shelf}`);
     assert.ok(out.embeds[0].author.name === "Marquez's Shop" && out.components.length <= 5 && JSON.stringify(out.embeds[0]).length < 6000, shelf);
   }

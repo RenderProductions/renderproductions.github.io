@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="notes">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +14,7 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#ffe600">
+<meta name="theme-color" content="#38e1ff">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="stylesheet" href="/style.css">
 <style>
@@ -29,7 +29,7 @@
   .release li + li { border-top: 1px dotted var(--line); }
   .release li .tag { justify-self: start; align-self: start; margin-top: 2px; }
   .release code { color: var(--bright); }
-  .tag.new { color: #050810; background: var(--bright); border-color: var(--bright); }
+  .tag.new { color: var(--on-accent); background: var(--bright); border-color: var(--bright); }
   .tag.fix { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
   @media (max-width: 640px) {
     .release li { grid-template-columns: 1fr; gap: 0.3rem; }
@@ -62,8 +62,27 @@
     <span class="tag">CHANGED</span>, <span class="tag fix">FIXED</span>.
   -->
 
+  <article class="log release" id="fresh-coat" aria-labelledby="r-fresh-coat">
+    <div class="label"><span class="tag live">LATEST</span><span>November 2026</span><a href="#fresh-coat">#</a></div>
+    <h2 id="r-fresh-coat">A Fresh Coat</h2>
+
+    <h3>SITE</h3>
+    <ul>
+      <li><span class="tag">CHANGED</span><span><strong>Every part of the site has its own colors now.</strong> You voted, we listened. Rend-Conomy is market green, every company page wears its own color, the bot and profiles are blurple, Games is arcade pink and the patch notes are cyan. Home stays gold.</span></li>
+      <li><span class="tag">FIXED</span><span>The top bar is the same on every page, with Profile everywhere.</span></li>
+    </ul>
+
+    <h3>CUSTOMIZE YOUR PROFILE</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span><strong>Make your profile yours.</strong> Buy a <strong>Profile Customizer Kit</strong> from Marquez (<code>r!shop profile</code>), then pick any color (<code>r!profile color #ff4fd8</code>), a theme, and a banner. See everything with <code>r!profile customize</code>.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Profile Paint:</strong> fancy themes from Marquez. 🌈 Holographic, 🖥️ TODD Terminal, 🌇 Sunset, 🕳️ Void and 🪙 Gold Rush. Buy once, wear forever.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Legendary perks:</strong> anyone with a legendary achievement unlocks the crown banner and a glowing frame.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Pin a collectible</strong> to your name with <code>r!profile pin &lt;collectible&gt;</code>. Your color shows up in <code>r!profile</code> too.</span></li>
+    </ul>
+  </article>
+
   <article class="log release" id="sit-back-and-relax" aria-labelledby="r-sit-back-and-relax">
-    <div class="label"><span class="tag live">LATEST</span><span>November 10, 2026</span><a href="#sit-back-and-relax">#</a></div>
+    <div class="label"><span>November 10, 2026</span><a href="#sit-back-and-relax">#</a></div>
     <h2 id="r-sit-back-and-relax">Sit Back and Relax</h2>
 
     <h3>LIMIT ORDERS</h3>
