@@ -18,6 +18,19 @@ const PAGES = {
     ['leaderboard [worth|polygons|shifts|casino]', "This server's top players"],
     ['gift @player <amount> [note]', 'Send Polygons to someone (5% fee)']
   ] },
+  trading: { label: 'Orders & Brokers', emoji: '📋', color: 0x3ba7f2, blurb: 'Trade while you sit back', cmds: [
+    ['order buy <ticker> <amount> at <price>', 'Buys on its own once the price drops that low (the Polygons are set aside)'],
+    ['order sell <ticker> <amount|all> at <price>', 'Sells on its own once the price climbs that high'],
+    ['order sell <ticker> <amount|all> below <price>', 'A stop-loss: sells if the price falls that far'],
+    ['orders', 'Your open orders · `order cancel <#>` cancels one'],
+    ['broker hire', 'Meet the brokers looking for work, and hire one (sign-on bonus)'],
+    ['broker', "Your broker's report: holdings, rules, profit and recent trades"],
+    ['broker buy <ticker> until <price>', 'Keep buying while the price is at or under this (up to 25 shares per company)'],
+    ['broker sell <ticker> at <price>', 'Sell all of it once the price gets here'],
+    ['broker stop <ticker> at <price>', 'Sell all of it if the price falls here'],
+    ['broker clear <ticker|all>', 'Forget your rules'],
+    ['broker fire', 'Let them go; what they hold comes back to you']
+  ], note: '💼 Brokers cost a daily salary plus a cut of their profits. Miss a payday and they quit. Each hire costs 1.25x more, easing back for every week you keep one.' },
   profile: { label: 'Profile', emoji: '🏆', color: 0xffe600, blurb: 'Your card and achievements', cmds: [
     ['profile [@player]', 'A player card: title, rarest achievements, net worth, job and more'],
     ['achievements [@player]', 'Every achievement, by category, and how rare each one is'],
@@ -80,9 +93,9 @@ const PAGES = {
   ] }
 };
 for (const pg of Object.values(PAGES)) pg.body = (P) => pg.cmds.map(([u, d]) => `${P}${u} ${d}`);
-const ORDER = ['market', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
+const ORDER = ['market', 'trading', 'profile', 'jobs', 'casino', 'shop', 'companies', 'money', 'mods'];
 const ALIAS = { stocks: 'market', trading: 'market', work: 'jobs', job: 'jobs', gambling: 'casino', games: 'casino', rendsino: 'casino',
-  items: 'shop', achievements: 'profile', badges: 'profile', me: 'profile', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
+  orders: 'trading', order: 'trading', broker: 'trading', brokers: 'trading', items: 'shop', achievements: 'profile', badges: 'profile', me: 'profile', company: 'companies', loans: 'money', todd: 'money', mod: 'mods' };
 
 const avatar = () => `${config.siteUrl}/bot/avatar.png`;
 

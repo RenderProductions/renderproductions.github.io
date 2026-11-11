@@ -86,7 +86,7 @@ const cash = (u) => db.player(G, u).cash;
 
   // ---- help looks the part ----
   const h = await say('r!help');
-  assert.ok(h.embeds[0].thumbnail && h.embeds[0].fields.length >= 9 && h.components.length === 3);
+  assert.ok(h.embeds[0].thumbnail && h.embeds[0].fields.length >= 10 && h.components.length === 3);
   const casino = await say('r!help casino');
   assert.ok(casino.embeds[0].fields.some((f) => f.name === 'r!rocket <bet>') && casino.embeds[0].color === 0xeb459e);
   for (const k of Object.keys(require('../src/commands/help').PAGES)) {

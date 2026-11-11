@@ -220,6 +220,56 @@ const MIGRATIONS = [
     );
     CREATE INDEX lots_holder ON lots (guild_id, user_id, ticker);
     ALTER TABLE players ADD COLUMN effects TEXT NOT NULL DEFAULT '{}'; -- item effects in play, as JSON
+  `,
+  `
+    -- Version 10: Sit Back and Relax. Limit orders, and brokers who trade for you.
+    CREATE TABLE orders (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id   TEXT NOT NULL,
+      user_id    TEXT NOT NULL,
+      ticker     TEXT NOT NULL,
+      side       TEXT NOT NULL,             -- buy | sell
+      kind       TEXT NOT NULL,             -- limit (buy at or below / sell at or above) | stop (sell at or below)
+      qty        INTEGER,                   -- NULL = all (sells only)
+      price      INTEGER NOT NULL,          -- trigger price, cents
+      reserved   INTEGER NOT NULL DEFAULT 0, -- Polygons set aside for a buy, cents
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX orders_ticker ON orders (ticker);
+    CREATE TABLE brokers (
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      active    INTEGER NOT NULL DEFAULT 0,
+      name      TEXT,
+      trait     TEXT,
+      hired_at  INTEGER,
+      paid_day  TEXT,                       -- Eastern date of the last payday
+      hires     INTEGER NOT NULL DEFAULT 0, -- how far the sign-on bonus has grown
+      loyal_at  INTEGER,                    -- when the bonus last eased back for loyalty
+      profit    INTEGER NOT NULL DEFAULT 0, -- cents, this broker's trading profit (before fees)
+      fees      INTEGER NOT NULL DEFAULT 0, -- cents paid in salary and cuts
+      log       TEXT NOT NULL DEFAULT '[]', -- recent trades, JSON
+      PRIMARY KEY (guild_id, user_id)
+    );
+    CREATE TABLE broker_rules (
+      guild_id TEXT NOT NULL,
+      user_id  TEXT NOT NULL,
+      ticker   TEXT NOT NULL,
+      buy      INTEGER,                     -- keep buying while the price is at or under this (cents)
+      sell     INTEGER,                     -- sell everything at or over this
+      stop     INTEGER,                     -- sell everything at or under this
+      waiting  INTEGER NOT NULL DEFAULT 0,  -- ticks a cautious broker has been waiting
+      PRIMARY KEY (guild_id, user_id, ticker)
+    );
+    CREATE TABLE broker_holdings (
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      ticker    TEXT NOT NULL,
+      shares    INTEGER NOT NULL DEFAULT 0,
+      cost      INTEGER NOT NULL DEFAULT 0, -- cents paid for the shares held
+      wipe_seen INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (guild_id, user_id, ticker)
+    );
   `
 ];
 

@@ -59,6 +59,19 @@ const tickReserve = async () => {
   } catch (e) { console.error('[reserve] Tick failed:', e.message); }
 };
 setInterval(tickReserve, 5 * 60 * 1000).unref();
+
+// Limit orders and brokers act once per market tick (whenever new prices arrive)
+const trading = require('./trading');
+let lastTick = null;
+setInterval(async () => {
+  try {
+    const m = await market.get();
+    if (!m || m.updated === lastTick) return;
+    lastTick = m.updated;
+    const r = trading.tick(deps, m);
+    if (r.orders.length) console.log(`[trading] ${r.orders.length} order(s) filled`);
+  } catch (e) { console.error('[trading]', e); }
+}, 30 * 1000).unref();
 require('./publish').start(db);
 
 // Start the web API first, so the host's health check passes even if Discord has trouble.
