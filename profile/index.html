@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="bot">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +11,7 @@
 <meta property="og:description" content="Your Rend-Conomy profile: achievements, collectibles, net worth and more.">
 <meta property="og:url" content="https://renderproductions.github.io/profile/">
 <meta property="og:image" content="https://renderproductions.github.io/og/bot.png">
-<meta name="theme-color" content="#ffe600">
+<meta name="theme-color" content="#8c9bff">
 <meta name="referrer" content="no-referrer">
 <link rel="icon" type="image/x-icon" href="../favicon.ico">
 <link rel="stylesheet" href="../style.css">
@@ -29,7 +29,7 @@
   .results img { width: 18px; height: 18px; border-radius: 50%; }
 
   .profile { max-width: 720px; margin: 1.5rem 0 2.5rem; background: var(--panel); border: 1px solid var(--line-strong); overflow: hidden; }
-  .profile-banner { height: 120px; background: radial-gradient(circle at 20% 30%, rgba(255, 230, 0, 0.25), transparent 60%), linear-gradient(135deg, #10172a, #050810); border-bottom: 1px solid var(--line); }
+  .profile-banner { height: 120px; background: radial-gradient(circle at 20% 30%, rgba(var(--accent-rgb), 0.25), transparent 60%), linear-gradient(135deg, var(--panel-2), var(--bg)); border-bottom: 1px solid var(--line); }
   .profile-body { position: relative; padding: 0 1.5rem 1.5rem; }
   .profile-avatar { overflow: hidden; color: transparent; position: absolute; top: -56px; left: 1.25rem; width: 112px; height: 112px; border-radius: 50%; border: 8px solid var(--panel); background: var(--panel-2); object-fit: cover; }
   .profile-actions { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; padding-top: 1rem; min-height: 56px; }
@@ -46,13 +46,13 @@
   .meter div { height: 100%; background: var(--bright); }
   .cat { margin: 1rem 0 0.4rem; font-size: 13px; color: var(--lime); }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.5rem; }
-  .ach { padding: 0.55rem 0.7rem; border: 1px solid var(--line); background: rgba(255, 230, 0, 0.03); min-width: 0; }
+  .ach { padding: 0.55rem 0.7rem; border: 1px solid var(--line); background: rgba(var(--accent-rgb), 0.03); min-width: 0; }
   .ach .n { font-size: 14px; color: var(--bright); overflow-wrap: anywhere; }
   .ach .d { font-size: 12px; color: var(--grey); margin-top: 0.2rem; }
   .ach .r { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-top: 0.35rem; }
   .ach.locked { opacity: 0.38; filter: grayscale(1); }
   .ach.common .r { color: #b9bbbe; } .ach.rare .r { color: #3ba7f2; } .ach.epic .r { color: #b57edc; } .ach.legendary .r { color: var(--bright); }
-  .ach.legendary:not(.locked) { border-color: var(--line-strong); box-shadow: 0 0 14px rgba(255, 230, 0, 0.12); }
+  .ach.legendary:not(.locked) { border-color: var(--line-strong); box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.12); }
   .cols { display: flex; flex-wrap: wrap; gap: 0.5rem; }
   .col { padding: 0.45rem 0.7rem; border: 1px solid var(--line-strong); font-size: 13px; color: var(--lime); }
   .note { color: var(--grey); font-size: 13px; }
