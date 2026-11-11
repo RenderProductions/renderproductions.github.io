@@ -3,6 +3,7 @@
 const assert = require('assert');
 const path = require('path');
 const config = require('../src/config');
+config.achievementPay = false; // these tests count exact balances
 const db = require('../src/db').open(':memory:');
 const market = require('../src/market');
 const router = require('../src/router');

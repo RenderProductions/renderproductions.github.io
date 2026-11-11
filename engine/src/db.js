@@ -270,11 +270,29 @@ const MIGRATIONS = [
       wipe_seen INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (guild_id, user_id, ticker)
     );
+  `,
+  `
+    -- Version 11: Payday. Savings accounts, chat pay, and achievement payouts.
+    CREATE TABLE savings (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id  TEXT NOT NULL,
+      user_id   TEXT NOT NULL,
+      amount    INTEGER NOT NULL,          -- cents locked away
+      rate      INTEGER NOT NULL,          -- interest at the end, basis points (600 = 6%)
+      days      INTEGER NOT NULL,
+      opened_at INTEGER NOT NULL,
+      ends_at   INTEGER NOT NULL
+    );
+    CREATE INDEX savings_owner ON savings (guild_id, user_id);
+    ALTER TABLE players ADD COLUMN chat_day TEXT;
+    ALTER TABLE players ADD COLUMN chat_earned INTEGER NOT NULL DEFAULT 0;
+    -- Achievements unlocked before this moment are back pay (claimed once with r!backpay)
+    INSERT OR IGNORE INTO meta (key, value) VALUES ('ach_pay_since', CAST(strftime('%s', 'now') AS INTEGER) * 1000);
   `
 ];
 
 const PLAYER_COLUMNS = new Set(['effects', 'receipts', 'remind', 'last_gig', 'gig_earned', 'username', 'cash', 'debt', 'title', 'title_credit', 'daily_day', 'job',
-  'shifts', 'hired_at', 'overtime', 'last_work', 'div_carry']);
+  'shifts', 'hired_at', 'overtime', 'last_work', 'div_carry', 'chat_day', 'chat_earned']);
 const HOLDING_COLUMNS = new Set(['shares', 'div_index', 'div_shares', 'wipe_seen']);
 const CAREER_COLUMNS = new Set(['shifts', 'rank', 'rev_right', 'rev_total', 'correct', 'total', 'earned']);
 

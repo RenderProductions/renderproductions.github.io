@@ -2,6 +2,7 @@
 const assert = require('assert');
 const path = require('path');
 const config = require('../src/config');
+config.achievementPay = false; // these tests count exact balances
 config.githubToken = ''; // never call GitHub from tests
 const db = require('../src/db').open(':memory:');
 const market = require('../src/market');

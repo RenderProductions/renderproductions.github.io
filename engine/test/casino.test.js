@@ -1,6 +1,7 @@
 // The Rend-Sino: every game plays through, pays right, keeps a house edge, and moves the reserve. Offline:  npm test
 const assert = require('assert');
 const config = require('../src/config');
+config.achievementPay = false; // these tests count exact balances
 config.githubToken = '';
 const db = require('../src/db').open(':memory:');
 const market = require('../src/market');

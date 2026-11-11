@@ -1,3 +1,4 @@
+require('../src/config').achievementPay = false; // these tests count exact balances
 // Loans between players: request, buttons, interest, payback, garnishing. Offline:  npm test
 const assert = require('assert');
 const path = require('path');

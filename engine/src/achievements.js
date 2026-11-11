@@ -2,12 +2,14 @@
 // award(ctx, id) unlocks one and queues an announcement on the reply (ctx.notes), which the router adds.
 // bump(ctx, key, by) counts things toward an achievement ("25 gigs") and returns the new total.
 // Legendary ones come with a free Title for the server you unlocked them in.
+// Every achievement pays out once, by rarity, in the server you unlock it in (out of the Polygon Reserve).
+// Ones unlocked before payouts existed are back pay: claimed once with r!backpay, from outside the reserve.
 
 const RARITY = {
-  common:    { label: 'Common',    emoji: '⚪', order: 0 },
-  rare:      { label: 'Rare',      emoji: '🔵', order: 1 },
-  epic:      { label: 'Epic',      emoji: '🟣', order: 2 },
-  legendary: { label: 'Legendary', emoji: '🟡', order: 3 }
+  common:    { label: 'Common',    emoji: '⚪', order: 0, pay: 250_00 },
+  rare:      { label: 'Rare',      emoji: '🔵', order: 1, pay: 1000_00 },
+  epic:      { label: 'Epic',      emoji: '🟣', order: 2, pay: 2500_00 },
+  legendary: { label: 'Legendary', emoji: '🟡', order: 3, pay: 7500_00 }
 };
 
 const CATEGORIES = {
@@ -60,6 +62,9 @@ const LIST = [
   ['loan_shark', 'Loan Shark', 'Lend Polygons at 25% a day', 'social', 'rare'],
   ['debt_free', 'Debt Free', 'Pay TODD back in full', 'social', 'common'],
   ['merciful', 'Merciful', 'Forgive a loan', 'social', 'rare'],
+  ['quick_draw', 'Quick Draw', 'Win a TODD drop-in', 'social', 'common'],
+  ['chatterbox', 'Chatterbox', 'Earn ⬡ 2,500 from chat pay', 'social', 'rare'],
+  ['nest_egg', 'Nest Egg', 'Let a savings account run to the end', 'market', 'common'],
 
   ['hired_help', 'Hired Help', 'Hire a broker', 'market', 'common'],
   ['set_and_forget', 'Set It and Forget It', 'Have a limit order fill', 'market', 'common'],
@@ -85,6 +90,12 @@ function award(ctx, id, userId = ctx.user && ctx.user.id) {
   const r = ctx.db.raw.prepare('INSERT OR IGNORE INTO achievements (user_id, id, guild_id, unlocked_at) VALUES (?, ?, ?, ?)').run(userId, id, ctx.guildId || null, Date.now());
   if (!r.changes) return '';
   let line = `🏆 **Achievement unlocked:** ${RARITY[a.rarity].emoji} **${a.name}**: ${a.desc}`;
+  if (ctx.guildId && RARITY[a.rarity].pay && require('./config').achievementPay) {
+    ctx.db.player(ctx.guildId, { id: userId });
+    const got = require('./reserve').pay(ctx.db, RARITY[a.rarity].pay);
+    ctx.db.addCash(ctx.guildId, userId, got);
+    if (got) line += ` **+${require('./format').amt(got)}**`;
+  }
   if (a.rarity === 'legendary' && ctx.guildId) {
     ctx.db.player(ctx.guildId, { id: userId });
     ctx.db.addItem(ctx.guildId, userId, 'title', 1);
@@ -92,6 +103,14 @@ function award(ctx, id, userId = ctx.user && ctx.user.id) {
   }
   if (ctx.notes && (!ctx.user || ctx.user.id === userId)) ctx.notes.push(line);
   return line;
+}
+
+// Back pay: what a player's achievements from before payouts are worth, if they haven't claimed it yet
+function backPay(db, userId) {
+  if (get(db, userId, 'backpay_claimed')) return { cents: 0, count: 0, claimed: true };
+  const since = Number(db.meta('ach_pay_since')) || 0;
+  const old = unlocked(db, userId).filter((r) => r.unlocked_at < since);
+  return { cents: old.reduce((t, r) => t + RARITY[BY_ID[r.id].rarity].pay, 0), count: old.length, claimed: false };
 }
 
 // Counters toward achievements
@@ -133,4 +152,4 @@ function attach(ctx, out) {
   return { ...out, content: out.content ? `${out.content}\n\n${text}` : text };
 }
 
-module.exports = { LIST, BY_ID, RARITY, CATEGORIES, award, bump, set, get, has, unlocked, rarity, lastCrash, attach };
+module.exports = { LIST, BY_ID, RARITY, CATEGORIES, award, backPay, bump, set, get, has, unlocked, rarity, lastCrash, attach };

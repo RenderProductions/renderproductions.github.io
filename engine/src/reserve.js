@@ -2,6 +2,7 @@
 // Every Polygon the bot hands out comes out of one global reserve (shared by every server), and every
 // Polygon a player pays the bot goes back in:
 //   out  work, daily, dividends, mystery box prizes, slots wins, TODD bailouts, starting Polygons,
+//        achievement payouts, savings interest, chat pay, TODD drop-in pots,
 //        selling stock (the bot buys it back), and the money a shift earns a player company
 //   in   buying stock, shop items, slots bets, bailout repayments, company upkeep, listing and upgrade
 //        fees, and whatever a dead company had left in its treasury

@@ -14,6 +14,8 @@ const PAGES = {
     ['balance [@player]', 'Polygons, shares and net worth'],
     ['daily', 'Free Polygons once a day (resets at midnight Eastern)'],
     ['dividends', "Collect what your shares have earned"],
+    ['savings [deposit <amount> <3|7|14>]', 'Lock Polygons away and get them back with interest (2%, 6% or 15%)'],
+    ['dropin', "Chat pay (talking pays a little) and TODD's drop-in questions"],
     ['reserve', "How many Polygons the house has left. At zero, the market crashes"],
     ['leaderboard [worth|polygons|shifts|casino]', "This server's top players"],
     ['gift @player <amount> [note]', 'Send Polygons to someone (5% fee)']
@@ -34,11 +36,12 @@ const PAGES = {
   profile: { label: 'Profile', emoji: '🏆', color: 0xffe600, blurb: 'Your card and achievements', cmds: [
     ['profile [@player]', 'A player card: title, rarest achievements, net worth, job and more'],
     ['achievements [@player]', 'Every achievement, by category, and how rare each one is'],
+    ['backpay', 'Get paid for the achievements you unlocked before they paid out (once)'],
     ['profile private', 'Hide your profile from the site (public to show it again)'],
     ['profile customize', 'Your color, theme, banner and frame on the site (needs a Customizer Kit from Marquez)'],
     ['profile color #ff4fd8', 'Any color you like · `profile theme <name>` for a preset or Profile Paint'],
     ['profile pin <collectible>', 'Show off a collectible on your card']
-  ], note: '🏆 Achievements follow you to every server. Legendary ones come with a free Title.' },
+  ], note: '🏆 Achievements follow you to every server and pay out once: ⚪ ⬡250 · 🔵 ⬡1,000 · 🟣 ⬡2,500 · 🟡 ⬡7,500 (plus a free Title).' },
   jobs: { label: 'Jobs', emoji: '💼', color: 0x5865f2, blurb: 'Shifts, ranks, reviews, gigs', cmds: [
     ['apply <ticker>', 'Join a company. Your rank there is saved if you leave'],
     ['work', 'A shift every 15 minutes. Fast answers earn tips, coworkers earn a team bonus'],
@@ -90,6 +93,7 @@ const PAGES = {
     ['review', 'Companies waiting for approval'],
     ['approve <ticker>', 'Approve a company'],
     ['reject <ticker> [reason]', 'Turn one down (the founder gets a refund)'],
+    ['dropin off|on|now', "Switch TODD's drop-ins off for this server, or start one now"],
     ['crash', 'Bot owner: start, end or cancel a market crash'],
     ['boost', 'Bot owner: boost the market for an event'],
     ['reserve fund <amount>', 'Bot owner: top up the Polygon Reserve']
