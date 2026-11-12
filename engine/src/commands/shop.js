@@ -13,7 +13,7 @@ function view(ctx, shelf) {
   const p = ctx.db.player(ctx.guildId, ctx.user);
   const since = shop.restock(ctx.db, Date.now(), ctx.random);
   const random = ctx.random || Math.random;
-  const greet = shop.MARQUEZ[Math.floor(random() * shop.MARQUEZ.length)];
+  const greet = shop.marquez('greet', random);
   let ids, body;
   if (shelf === 'rare') {
     const id = shop.collectibleOfWeek();

@@ -19,18 +19,19 @@ module.exports = {
 
     const hourly = shop.restock(ctx.db, Date.now(), ctx.random);
     const col = shop.isCollectible(id);
-    if (col && shop.collectibleOfWeek() !== id) return `🗃️ Marquez doesn't have **${item.name}** this week. Check \`${config.prefix}shop\` for this week's collectible.`;
+    const say = (kind) => `\n-# ${shop.marquez(kind, ctx.random || Math.random)}`;
+    if (col && shop.collectibleOfWeek() !== id) return `🗃️ Marquez doesn't have **${item.name}** this week. Check \`${config.prefix}shop\` for this week's collectible.${say('notThisWeek')}`;
     // Collectibles are one per player per week; everything else one per restock
     const since = col ? Math.floor(Date.now() / shop.WEEK_MS) * shop.WEEK_MS : hourly;
     const next = col ? relTime(since + shop.WEEK_MS) : relTime(hourly + shop.RESTOCK_MS);
     const cost = shop.price(ctx.db, id);
     const p = ctx.db.player(ctx.guildId, ctx.user);
 
-    if (ctx.db.stock(id) <= 0) return `${item.emoji} **${item.name}** is sold out. Restocks ${next}.`;
+    if (ctx.db.stock(id) <= 0) return `${item.emoji} **${item.name}** is sold out. Restocks ${next}.${say('soldOut')}`;
     if (ctx.db.boughtThisRestock(ctx.guildId, ctx.user.id, id, since)) {
-      return `${item.emoji} You already bought a **${item.name}** this restock. Restocks ${next}.`;
+      return `${item.emoji} You already bought a **${item.name}** this restock. Restocks ${next}.${say('once')}`;
     }
-    if (p.cash < cost) return `Not enough Polygons. **${item.name}** costs ${amt(cost)} and you have ${have(p.cash)}.`;
+    if (p.cash < cost) return `Not enough Polygons. **${item.name}** costs ${amt(cost)} and you have ${have(p.cash)}.${say('broke')}`;
 
     const owned = ctx.db.tx(() => {
       ctx.db.addCash(ctx.guildId, ctx.user.id, -cost);
@@ -45,6 +46,6 @@ module.exports = {
       ['Item', `${item.emoji} ${item.name}`], ['Price', amt(cost)], ['Polygons left', have(p.cash - cost)], ['In your inventory', owned]] });
     const how = id === 'title' ? `Use it with \`${config.prefix}settitle <text>\`.` : col ? 'It\'s on your profile now. Marquez won\'t restock this one for a while.'
       : item.passive ? 'It works on its own while it\'s in your inventory.' : `Use it with \`${config.prefix}use ${id}\`.`;
-    return `${item.emoji} Bought ${col ? '' : 'a '}**${item.name}** for ${amt(cost)}. You have ${owned} in your inventory. ${how}`;
+    return `${item.emoji} Bought ${col ? '' : 'a '}**${item.name}** for ${amt(cost)}. You have ${owned} in your inventory. ${how}${say('thanks')}`;
   }
 };

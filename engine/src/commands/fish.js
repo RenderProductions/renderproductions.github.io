@@ -57,7 +57,7 @@ module.exports = {
       if (!which) return `🎣 You don't have that. See your catch with \`${P}fish bag\`.`;
       const r = F.sell(ctx.db, ctx.guildId, ctx.user.id, which);
       if (!r.count) return `🎣 Nothing to sell${which === 'all' ? '' : ' there'}. Go catch something!`;
-      return `🧺 Marquez looks over your catch. "Fresh enough." He pays **${amt(r.cents)}** for ${r.count} thing${r.count === 1 ? '' : 's'}.\n-# You have ${have(ctx.db.player(ctx.guildId, ctx.user).cash)} now.${reserve.note(ctx.db)}`;
+      return `🧺 ${require('../shop').marquez('catch', ctx.random || Math.random)} He pays **${amt(r.cents)}** for ${r.count} thing${r.count === 1 ? '' : 's'}.\n-# You have ${have(ctx.db.player(ctx.guildId, ctx.user).cash)} now.${reserve.note(ctx.db)}`;
     }
 
     // ---- a cast ----
@@ -110,6 +110,7 @@ module.exports = {
         if (A.bump(ctx, 'fish_caught') >= 200) A.award(ctx, 'fish_in_the_sea');
         if (baitFish && c.size > F.CATCH[baitFish].size) A.award(ctx, 'bigger_fish');
         if (res.id === 'whale') A.award(ctx, 'moby_dick');
+        if (c.size === 4) text += `\n-# Word travels fast. ${require('../shop').marquez(res.id === 'whale' ? 'whale' : 'koi', ctx.random || Math.random)}`;
       }
     }
     const fx = effects.get(ctx.db, ctx.guildId, ctx.user.id);

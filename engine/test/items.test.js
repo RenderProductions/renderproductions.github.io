@@ -185,5 +185,7 @@ const fx = (u = ANA) => effects.get(db, G, u.id);
   }
   for (const [id, it] of Object.entries({ ...shop.ITEMS, ...shop.COLLECTIBLES })) assert.strictEqual(shop.find(it.name), id, `"${it.name}" finds ${id}`);
 
+  // Marquez's lines always fill in what he calls you
+  for (const k of ['greet', 'thanks', 'soldOut', 'broke', 'once', 'catch', 'whale', 'koi']) for (let i = 0; i < 30; i++) assert.ok(!shop.marquez(k).includes('{n}'), k);
   console.log('All item tests passed.');
 })().catch((e) => { console.error(e); process.exit(1); });

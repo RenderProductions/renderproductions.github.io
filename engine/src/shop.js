@@ -58,14 +58,37 @@ const SHELVES = {
 };
 
 // Marquez behind the counter. One line is picked each time the shop opens.
+// Marquez: reserved, kind, a man of few words. He calls everyone friend, pal, kiddo and the like.
+// ({n} is where he calls you something.) Don't use his real name anywhere players can see it.
+const PET = ['friend', 'pal', 'kiddo', 'bud', 'champ', 'sport', 'my friend'];
 const MARQUEZ = [
-  'Marquez looks up from the counter. "Welcome in! Take a look around."',
-  'Marquez is restocking a shelf. "Back again? Good taste."',
-  '"Everything\'s fair price," Marquez says. "Mostly."',
-  'Marquez polishes a Platinum Chip. "Don\'t tell TODD what\'s in the back."',
-  '"New stock every hour," Marquez says. "And something special every week."',
-  'Marquez slides a coffee across the counter. "On the house. Kidding. That\'s ⬡ 100."'
+  'Marquez nods from behind the counter. "Evening, {n}. Take your time."',
+  'Marquez looks up from his ledger. "Oh. Hello, {n}. Have a look around."',
+  'Marquez is quietly restocking a shelf. "Good to see you, {n}."',
+  '"No rush, {n}," Marquez says. "The shelves aren\'t going anywhere."',
+  'Marquez sets down his coffee. "Something catch your eye, {n}?"',
+  'Marquez gives a small wave. "Welcome back, {n}."',
+  '"Stay out of trouble out there, {n}," Marquez says, straightening a display.',
+  'Marquez polishes a Platinum Chip and says nothing for a moment. "...Holler if you need me, {n}."',
+  '"Fair prices, honest goods," Marquez says. "That\'s all I\'ve got, {n}."',
+  'Marquez glances at the clock, then at you. "Long day, {n}? Have a look. No pressure."'
 ];
+const LINES = {
+  thanks: ['"Thank you, {n}. Take care of it."', '"Good choice, {n}."', '"Pleasure doing business, {n}."', 'Marquez wraps it up carefully. "There you go, {n}."', '"Use it well, {n}."', 'Marquez nods. "Thanks, {n}."'],
+  soldOut: ['"Sorry, {n}. That one\'s all gone for now."', 'Marquez shakes his head. "Sold the last one, {n}. Check back soon."'],
+  broke: ['"Ah. Not quite enough, {n}. No shame in it. Come back when you\'re ready."', 'Marquez looks at the Polygons, then at you, kindly. "Not today, {n}. It\'ll keep."'],
+  once: ['"One per customer, {n}. Gotta leave some for the others."', 'Marquez smiles a little. "Already got yours, {n}."'],
+  catch: ['Marquez looks over your catch. "Nice haul, {n}."', '"These\'ll do fine, {n}," Marquez says, weighing them.', 'Marquez nods at the bucket. "Fresh. Thank you, {n}."', 'Marquez holds one up to the light. "Not bad at all, {n}."'],
+  notThisWeek: ['"Not this week, {n}. Something else is on the special shelf."'],
+  whale: ['Marquez stares at the White Whale for a long moment. "...Well. I\'ll be. Good work, {n}."'],
+  koi: ['Marquez sets down his coffee. "That\'s the real thing, {n}. Careful with it."']
+};
+// A Marquez line, with whatever he calls you this time
+function marquez(kind, random = Math.random) {
+  const list = kind === 'greet' ? MARQUEZ : LINES[kind] || MARQUEZ;
+  return list[Math.floor(random() * list.length)].replace(/\{n\}/g, () => PET[Math.floor(random() * PET.length)]);
+}
+
 
 const week = (now = Date.now()) => Math.floor(now / WEEK_MS);
 const collectibleOfWeek = (now = Date.now()) => { const ids = Object.keys(COLLECTIBLES); return ids[week(now) % ids.length]; };
@@ -111,4 +134,4 @@ function find(text) {
     || Object.keys(all).find((id) => t.length >= 4 && norm(all[id].name).includes(t)) || null;
 }
 
-module.exports = { ITEMS, COLLECTIBLES, COLLECTIBLE_STOCK, SHELVES, MARQUEZ, RESTOCK_MS, WEEK_MS, restock, price, find, any, isCollectible, collectibleOfWeek };
+module.exports = { ITEMS, COLLECTIBLES, COLLECTIBLE_STOCK, SHELVES, MARQUEZ, LINES, PET, marquez, RESTOCK_MS, WEEK_MS, restock, price, find, any, isCollectible, collectibleOfWeek };
