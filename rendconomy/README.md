@@ -32,6 +32,11 @@ rendconomy/
       rng.ts          the one source of luck
       errors.ts       GameError
       backups.ts      one backup per day, last 7 kept
+    market/
+      engine/         the price engine (carried over from .github/scripts/market, plain JS; starting prices live here)
+      engine.ts       typed doorway to it
+      market.ts       runs a tick every 5 minutes, stores prices + hidden state, quotes
+      trading.ts      buy/sell against the Reserve, lots (oldest first), bankruptcy wipes, portfolio
     commands/         one file per command, plus shared helpers
     discord/          router (slash + r! into one call), style (colors, narrator voice)
   start.js            the host's startup file: install, build, run
@@ -40,7 +45,7 @@ rendconomy/
 
 ## Commands so far
 
-`/daily`, `/balance` (`r!bal`), `/history` (`r!tx`), `/reserve`, `/ping`, `/help`. Every command works as `/name` and `r!name`.
+`/daily`, `/balance` (`r!bal`), `/history` (`r!tx`), `/market` (`r!m`), `/buy`, `/sell`, `/portfolio` (`r!pf`), `/reserve`, `/ping`, `/help`. Every command works as `/name` and `r!name`.
 Commands are plain functions in `src/commands/` (see `types.ts`); add new ones to `src/commands/index.ts`.
 
 ## Hosting on Bot-Hosting.net

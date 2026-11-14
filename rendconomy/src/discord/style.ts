@@ -7,6 +7,7 @@ import type { System } from '../commands/types';
 export const COLORS: Record<System | 'error', number> = {
   general: 0x5865f2,  // Discord blurple
   wallet: 0x2ecc71,   // green
+  market: 0x3498db,   // blue
   reserve: 0xd4a017,  // gold
   error: 0xc0392b     // red
 };

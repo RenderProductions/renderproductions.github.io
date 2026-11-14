@@ -40,7 +40,7 @@ export interface ReplyObject {
 export type Reply = string | ReplyObject;
 
 /** Which part of the bot a command belongs to: decides its embed color and where /help lists it. */
-export type System = 'general' | 'wallet' | 'reserve';
+export type System = 'general' | 'wallet' | 'market' | 'reserve';
 
 export interface Command {
   name: string;

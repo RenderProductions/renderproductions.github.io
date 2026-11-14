@@ -27,6 +27,8 @@ export function me(ctx: Ctx): { player: Player; wallet: string; guildId: string 
 export const REASONS: Record<string, string> = {
   start: 'Starting balance',
   daily: 'Daily allowance',
+  'stock.buy': 'Shares bought',
+  'stock.sell': 'Shares sold',
   'reserve.fund': 'Reserve funded',
   'mod.give': 'Moderator grant',
   'mod.take': 'Moderator removal'

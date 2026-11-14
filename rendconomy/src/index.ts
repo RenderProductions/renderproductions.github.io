@@ -9,6 +9,7 @@ import { format } from './core/money';
 import { cryptoRng } from './core/rng';
 import { HOUR, pruneCooldowns } from './core/time';
 import { onMessage, onSlash, slashBody, type Deps } from './discord/router';
+import * as market from './market/market';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -32,8 +33,13 @@ async function main(): Promise<void> {
     return;
   }
 
+  const rng = cryptoRng();
+  // The market runs in the bot. News posts (to the market news channel) come back with the news module.
+  market.start(db, rng);
+  console.log(`[${config.name}] market running (${market.TICKERS.join(', ')})`);
+
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-  const deps: Deps = { db, config, rng: cryptoRng(), ping: () => client.ws.ping };
+  const deps: Deps = { db, config, rng, ping: () => client.ws.ping };
 
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);

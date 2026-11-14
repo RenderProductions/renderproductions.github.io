@@ -3,8 +3,12 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
-    "types": ["node"],
+    "lib": [
+      "ES2022"
+    ],
+    "types": [
+      "node"
+    ],
     "rootDir": ".",
     "outDir": "dist",
     "strict": true,
@@ -14,7 +18,13 @@
     "exactOptionalPropertyTypes": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "allowJs": true,
+    "checkJs": false
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.js",
+    "test/**/*.ts"
+  ]
 }

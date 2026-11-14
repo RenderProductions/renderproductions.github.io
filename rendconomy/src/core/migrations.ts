@@ -54,5 +54,27 @@ export const MIGRATIONS: readonly string[] = [
     until   INTEGER NOT NULL,
     PRIMARY KEY (name, subject)
   );
+  `,
+
+  /* v2: the stock market. Holdings per server, and lots (what each batch of shares cost, and when). */ `
+  CREATE TABLE holdings (
+    guild_id   TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    ticker     TEXT NOT NULL,
+    shares     INTEGER NOT NULL DEFAULT 0 CHECK (shares >= 0),
+    wipes_seen INTEGER NOT NULL DEFAULT 0,   -- bankruptcies already applied to these shares
+    PRIMARY KEY (guild_id, user_id, ticker)
+  );
+
+  CREATE TABLE lots (
+    id          INTEGER PRIMARY KEY,
+    guild_id    TEXT NOT NULL,
+    user_id     TEXT NOT NULL,
+    ticker      TEXT NOT NULL,
+    qty         INTEGER NOT NULL CHECK (qty > 0),
+    price_cents INTEGER NOT NULL,
+    bought_at   INTEGER NOT NULL
+  );
+  CREATE INDEX lots_owner ON lots (guild_id, user_id, ticker, id);
   `
 ];

@@ -8,6 +8,7 @@ import { audit, balance, RESERVE, wallet } from '../src/core/ledger';
 import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import { execute, parsePrefix, slashBody } from '../src/discord/router';
+import { tick } from '../src/market/market';
 
 const G = 'guild1';
 const db = freshDb();
@@ -94,4 +95,19 @@ test('slash definitions are valid for Discord', () => {
     assert.ok(!names.has(n), `duplicate command name or alias: ${n}`);
     names.add(n);
   }
+});
+
+test('market commands: view, buy, sell, portfolio', async () => {
+  const noon = eastern('2026-11-13T12:00', -5);
+  tick(db, seededRng(3), noon);
+  const u = '444444444444444444';
+  const view = text(await run('r!market', u, noon));
+  for (const t of ['RRM', 'NACH', 'BLU', 'BNW', 'BSTG']) assert.ok(view.includes(`**${t}**`), `market shows ${t}`);
+  assert.match(text(await run('r!buy blu 2', u, noon)), /Purchase complete: 2 BLU/);
+  assert.match(text(await run('r!buy RRM max', u, noon)), /Purchase complete: \d+ RRM/);
+  assert.match(text(await run('r!pf', u, noon)), /Net worth/);
+  assert.match(text(await run('r!sell blu all', u, noon)), /Sale complete: 2 BLU[\s\S]*Gain against purchase price: ⬡0\.00/);
+  assert.match(text(await run('r!sell blu 1', u, noon)), /hold 0 shares of BLU/);
+  assert.match(text(await run('r!buy blu 1.5', u, noon)), /whole numbers/);
+  assert.ok(audit(db).ok);
 });
