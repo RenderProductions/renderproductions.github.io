@@ -17,5 +17,8 @@ export const COLORS: Record<System | 'error', number> = {
 };
 
 export function embed(system: System, title: string, lines: (string | false | null | undefined)[], extra: Partial<APIEmbed> = {}): APIEmbed {
-  return { color: COLORS[system], title, description: lines.filter(Boolean).join('\n'), ...extra };
+  let description = lines.filter(Boolean).join('\n');
+  // Discord refuses the whole message over 4,096 characters: cut it short instead
+  if (description.length > 4096) description = description.slice(0, 4080).replace(/\n[^\n]*$/, '') + '\n…';
+  return { color: COLORS[system], title, description, ...extra };
 }

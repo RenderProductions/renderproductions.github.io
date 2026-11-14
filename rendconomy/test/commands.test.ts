@@ -9,7 +9,7 @@ import { botConfig } from '../src/config';
 import { audit, balance, RESERVE, wallet } from '../src/core/ledger';
 import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
-import { execute, parsePrefix, slashBody } from '../src/discord/router';
+import { execute, parsePrefix, press, slashBody } from '../src/discord/router';
 import { tick } from '../src/market/market';
 
 const G = 'guild1';
@@ -70,10 +70,22 @@ test('server-only commands are refused in DMs', async () => {
   assert.match(text(await run('r!ping', 'alice', Date.now(), null)), /Online/);
 });
 
-test('help lists every command', async () => {
-  const t = text(await run('r!help'));
-  for (const c of commands.filter((x) => x.system !== 'admin' && !x.hidden)) assert.ok(t.includes(`/${c.name}`), `help is missing ${c.name}`);
-  assert.ok(!t.includes('/wipe'), 'moderator commands are hidden from players');
+test('help: every command is on a section page, and every page fits in a Discord embed', async () => {
+  const r = await run('r!help');
+  assert.ok(r.session && r.buttons?.length);
+  const pressButton = (id: string) => press(ctx('alice', eastern('2026-11-13T22:00', -5)), id);
+  let all = '';
+  for (const row of r.buttons!) for (const b of row) {
+    const page = pressButton(b.id);
+    const d = page.update?.embeds?.[0]?.description ?? '';
+    assert.ok(d.length <= 4096, `${b.label} page is ${d.length} characters`);
+    all += d;
+  }
+  for (const c of commands.filter((x) => x.system !== 'admin' && !x.hidden)) assert.ok(all.includes(`/${c.name}`), `help is missing ${c.name}`);
+  assert.ok(!all.includes('/wipe'), 'moderator commands are hidden from players');
+  assert.match(text(await run('r!help w')), /\/work[\s\S]*r!w/);
+  assert.match(text(await run('r!help stock')), /Stock market[\s\S]*\/buy/);
+  assert.match(text(await run('r!help nonsense')), /no command or section/);
 });
 
 test('prefix parsing', () => {
