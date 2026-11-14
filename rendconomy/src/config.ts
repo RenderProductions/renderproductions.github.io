@@ -32,8 +32,10 @@ export function botConfig() {
     /** Register slash commands to one server only (fast, for the test bot). Empty = everywhere. */
     devGuildId: env('DEV_GUILD_ID'),
     prefix: env('PREFIX', 'r!'),
+    // Deliberately not the old bot's DB_PATH: the rewrite must never open the old bot's database
     dbFile: env('DB_FILE', path.join(__dirname, '..', '..', 'data', 'rendconomy.db')),
-    ownerIds: env('OWNER_IDS').split(',').map((s) => s.trim()).filter(Boolean)
+    // OWNER_IDS, or the old bot's BOT_OWNER_ID so its .env can be pasted in as-is
+    ownerIds: (env('OWNER_IDS') || env('BOT_OWNER_ID')).split(',').map((s) => s.trim()).filter(Boolean)
   };
 }
 
