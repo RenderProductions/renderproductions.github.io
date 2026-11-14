@@ -224,5 +224,14 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX loans_borrower ON loans (guild_id, borrower_id, status);
   CREATE INDEX loans_lender ON loans (guild_id, lender_id, status);
+  `,
+
+  /* v10: hourly closing prices for the last 7 days (the site's 7-day charts). */ `
+  CREATE TABLE price_history (
+    ticker TEXT NOT NULL,
+    hour   INTEGER NOT NULL,
+    price  REAL NOT NULL,
+    PRIMARY KEY (ticker, hour)
+  );
   `
 ];

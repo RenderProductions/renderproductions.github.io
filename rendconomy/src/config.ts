@@ -37,6 +37,11 @@ export function botConfig() {
     // Deliberately not the old bot's DB_PATH: the rewrite must never open the old bot's database
     dbFile: env('DB_FILE', path.join(__dirname, '..', '..', 'data', 'rendconomy.db')),
     // OWNER_IDS, or the old bot's BOT_OWNER_ID so its .env can be pasted in as-is
+    /** Publish prices, profiles and stats to the site's data branch. Only the main bot should: PUBLISH_SITE_DATA=1 */
+    publish: env('PUBLISH_SITE_DATA') === '1' && !!env('GITHUB_TOKEN'),
+    githubToken: env('GITHUB_TOKEN'),
+    githubRepo: env('GITHUB_REPO', 'RenderProductions/renderproductions.github.io'),
+    dataBranch: env('DATA_BRANCH', 'data'),
     /** Where moderator actions are posted. Empty = not posted. */
     modLogChannelId: env('MOD_LOG_CHANNEL_ID'),
     ownerIds: (env('OWNER_IDS') || env('BOT_OWNER_ID')).split(',').map((s) => s.trim()).filter(Boolean)

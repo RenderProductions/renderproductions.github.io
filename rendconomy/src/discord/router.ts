@@ -28,6 +28,7 @@ const errorReply = (e: unknown, where: string): ReplyObject => {
 export async function execute(cmd: Command, ctx: Ctx, args: Args): Promise<ReplyObject> {
   try {
     if (cmd.guildOnly && !ctx.guildId) return { content: 'This command is only available in a server.', ephemeral: true };
+    ctx.db.setMeta('commands_run', Number(ctx.db.meta('commands_run') ?? 0) + 1);
     const reply = await runInRequest(requestOf(ctx), () => cmd.run(ctx, args));
     return withNotes(normalize(reply), ctx.notes);
   } catch (e) {

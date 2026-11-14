@@ -37,6 +37,10 @@ export function tick(db: Db, rng: Rng, now = Date.now()): MarketPost[] {
     writeJson(db, KEY.data, r.data);
     writeJson(db, KEY.state, r.state);
     db.setMeta(KEY.nudges, '{}');
+    // This hour's closing price, kept for 7 days
+    const hour = Math.floor(now / 3_600_000) * 3_600_000;
+    for (const [t, p] of Object.entries(r.data.prices)) if (Number.isFinite(Number(p))) db.run('INSERT OR REPLACE INTO price_history (ticker, hour, price) VALUES (?, ?, ?)', t, hour, Number(p));
+    db.run('DELETE FROM price_history WHERE hour < ?', now - 7 * 24 * 3_600_000);
   });
   return r.posts;
 }

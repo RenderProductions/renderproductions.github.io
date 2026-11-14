@@ -12,6 +12,7 @@ import { onButton, onMessage, onSlash, slashBody, type Deps } from './discord/ro
 import { prune as pruneSessions } from './core/sessions';
 import * as market from './market/market';
 import { on } from './core/events';
+import { startPublishing } from './site/publish';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -45,6 +46,12 @@ async function main(): Promise<void> {
 
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);
+    startPublishing(db, config, {
+      serverName: (id) => c.guilds.cache.get(id)?.name ?? null,
+      user: (id) => { const u = c.users.cache.get(id); return u ? { name: u.globalName ?? u.username, avatar: u.displayAvatarURL({ size: 128 }) } : null; },
+      servers: () => c.guilds.cache.size,
+      botId: () => c.user.id
+    });
     try {
       const body = slashBody();
       if (config.devGuildId) await c.application.commands.set(body, config.devGuildId);
