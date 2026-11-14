@@ -71,7 +71,15 @@ export function payFromReserve(db: Db, fullSize: Cents, p: Payout): Cents {
   return db.tx(() => {
     const want = Math.floor(p.cents * payoutFactor(db, fullSize));
     const paid = Math.min(want, balance(db, RESERVE));
-    if (paid > 0) transfer(db, { from: RESERVE, ...p, cents: paid });
+    if (paid > 0) {
+      transfer(db, { from: RESERVE, ...p, cents: paid });
+      for (const fn of payoutHooks) fn(db, p, paid);
+    }
     return paid;
   });
 }
+
+/** Runs after every Reserve payout (loans use it to garnish earnings for overdue debts). */
+type PayoutHook = (db: Db, p: Payout, paid: Cents) => void;
+const payoutHooks: PayoutHook[] = [];
+export const onPayout = (fn: PayoutHook): void => { payoutHooks.push(fn); };

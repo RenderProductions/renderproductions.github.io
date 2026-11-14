@@ -26,6 +26,7 @@ export function erasePlayer(db: Db, guildId: string, userId: string, now = Date.
     }
     for (const t of PLAYER_TABLES) db.run(`DELETE FROM ${t} WHERE guild_id = ? AND user_id = ?`, guildId, userId);
     db.run('DELETE FROM cooldowns WHERE subject = ? OR subject LIKE ?', `${guildId}:${userId}`, `${guildId}:${userId}:%`);
+    db.run('DELETE FROM loans WHERE guild_id = ? AND (lender_id = ? OR borrower_id = ?)', guildId, userId, userId);
     for (const fn of extraErasers) fn(db, guildId, userId);
   });
 }

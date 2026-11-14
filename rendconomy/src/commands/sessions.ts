@@ -6,6 +6,7 @@ import { onAchievementsButton } from './achievements';
 import { onLeaderboardButton } from './social';
 import { onShopButton } from './shop';
 import { casinoHandlers } from './casino';
+import { onLoanButton } from './loans';
 import { onQuitButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
 
@@ -22,5 +23,6 @@ export const handlers: Record<string, SessionHandler> = {
   leaderboard: { onButton: onLeaderboardButton },
   achievements: { onButton: onAchievementsButton },
   shop: { onButton: onShopButton },
+  loan: { onButton: onLoanButton },
   ...Object.fromEntries(Object.entries(casinoHandlers).map(([k, fn]) => [k, { onButton: fn as SessionHandler['onButton'] }]))
 };

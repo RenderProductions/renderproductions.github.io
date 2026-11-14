@@ -47,6 +47,13 @@ export const REASONS: Record<string, string> = {
   'savings.return': 'Savings returned',
   'savings.interest': 'Savings interest',
   wipe: 'Account erased',
+  'todd.bailout': 'TODD bailout',
+  'todd.repay': 'Repaid TODD',
+  'loan.issued': 'Loan',
+  'loan.repay': 'Loan repayment',
+  'loan.garnish': 'Overdue loan (garnished)',
+  'casino.bet': 'Rend-Sino bet',
+  'casino.win': 'Rend-Sino winnings',
   'reserve.fund': 'Reserve funded',
   'mod.give': 'Moderator grant',
   'mod.take': 'Moderator removal'

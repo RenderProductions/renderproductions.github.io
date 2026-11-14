@@ -11,6 +11,7 @@ import { load as loadMarket } from '../market/market';
 import { SAVINGS, close, collect, deposit, interestOf, list } from '../social/savings';
 import { netWorth } from '../social/worth';
 import { charges, useEffect } from '../shop/inventory';
+import { activeLoans, overdue, toddDebt } from '../loans/loans';
 import { guildOf, me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
 
@@ -42,6 +43,8 @@ export const gift: Command = {
     const to = String(args.player ?? '');
     if (!/^\d{5,22}$/.test(to)) throw new GameError('gift.target', `Name a player, for example \`${ctx.config.prefix}gift @someone 100\`.`);
     if (to === ctx.user.id) throw new GameError('gift.self', 'You cannot send a gift to yourself.');
+    if (toddDebt(ctx.db, guildId, ctx.user.id) > 0) throw new GameError('gift.todd', `TODD: "Giving away MY Polygons? Pay me back first." (\`${ctx.config.prefix}repay\`)`);
+    if (activeLoans(ctx.db, guildId, { borrower: ctx.user.id }, ctx.now).some((l) => overdue(l, ctx.now))) throw new GameError('gift.overdue', 'You have an overdue loan. Repay it before sending gifts.');
     const cents = parseAmount(args.amount, { min: GIFT.min });
     const sent = giftedToday(ctx, guildId);
     if (sent + cents > GIFT.perDay) throw new GameError('gift.limit', `The daily gift limit is ${format(GIFT.perDay)}. Remaining today: ${format(Math.max(0, GIFT.perDay - sent))}.`);

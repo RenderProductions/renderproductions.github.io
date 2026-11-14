@@ -204,5 +204,25 @@ export const MIGRATIONS: readonly string[] = [
     biggest  INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (guild_id, user_id, game)
   );
+  `,
+
+  /* v9: TODD's bailouts and loans between players. */ `
+  ALTER TABLE players ADD COLUMN todd_debt INTEGER NOT NULL DEFAULT 0;   -- cents owed to TODD
+  CREATE TABLE loans (
+    id           INTEGER PRIMARY KEY,
+    guild_id     TEXT NOT NULL,
+    lender_id    TEXT NOT NULL,
+    borrower_id  TEXT NOT NULL,
+    principal    INTEGER NOT NULL,
+    rate         REAL NOT NULL,              -- percent per day, compounding until due
+    owed         INTEGER NOT NULL,
+    created_at   INTEGER NOT NULL,
+    due_at       INTEGER NOT NULL,
+    last_accrual INTEGER NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'active',   -- active | paid | forgiven
+    closed_at    INTEGER
+  );
+  CREATE INDEX loans_borrower ON loans (guild_id, borrower_id, status);
+  CREATE INDEX loans_lender ON loans (guild_id, lender_id, status);
   `
 ];
