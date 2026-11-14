@@ -44,7 +44,7 @@ test('buying from the shop: stock is shared and restocks hourly; Marquez explain
   assert.match(text(await run('purchase', { item: 'coffee' }, B)), /sold out/, 'stock is shared by everyone');
   later(HOUR);
   assert.match(text(await run('purchase', { item: 'coffee' }, B)), /Purchase complete/, 'restocked');
-  assert.match(text(await run('purchase', { item: 'fishing rod' })), /not on sale yet/);
+  assert.match(text(await run('purchase', { item: 'megaphone' })), /not on sale yet/);
   assert.ok(audit(db).ok);
 });
 
@@ -133,4 +133,22 @@ test('titles: set with a Title item, cleared by moderators', async () => {
   addItem(db, G, A, 'title');
   assert.match(text(await run('settitle', { title: 'Nacho **Baron**' })), /Nacho Baron/);
   assert.equal(db.get<{ title: string }>('SELECT title FROM players WHERE user_id = ?', A)!.title, 'Nacho Baron');
+});
+
+test('fishing: needs a rod, costs bait, fills the bag, sells to Marquez', async () => {
+  const { db, run, later } = setup();
+  await run('balance');
+  assert.match(text(await run('fish')), /Fishing Rod is required/);
+  addItem(db, G, A, 'rod');
+  let caught = 0;
+  for (let i = 0; i < 40; i++) {
+    const r = text(await run('fish'));
+    assert.match(r, /Fishing/);
+    if (/Caught:/.test(r)) caught++;
+    later(3 * 60_000);
+  }
+  assert.ok(caught > 10, `caught ${caught} in 40 casts`);
+  assert.match(text(await run('sellfish')), /Catch sold[\s\S]*Paid: ⬡/);
+  assert.match(text(await run('sellfish')), /bag is empty/);
+  assert.ok(audit(db).ok);
 });

@@ -20,6 +20,7 @@ const USES: Record<string, Use> = {
   booster: (ctx, g) => `Dividend Booster active until ${discordTime(startTimed(ctx.db, g, ctx.user.id, 'divBoost', 24 * HOUR, ctx.now))}. Dividends collected meanwhile pay 50% more.`,
   chip: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'chip', 5); return 'Platinum Chip loaded. Your next 5 Rend-Sino games pay 4% more.'; },
   fuel: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'fuel', 1); return 'Rocket Fuel loaded. Your next Rocket flies 20% higher before it crashes.'; },
+  lure: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'lure', 25); return 'Lure attached. No bait is needed for the next 25 casts, and bigger fish bite more often.'; },
   wrap: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'wrap', 1); return 'Gift Wrap ready. Your next gift has no fee.'; },
   mystery: (ctx, g) => {
     const w = wallet(g, ctx.user.id);
