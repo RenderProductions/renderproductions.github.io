@@ -120,6 +120,29 @@
   .pin { display: inline-block; margin-left: 0.5rem; padding: 2px 8px; font-size: 13px; vertical-align: middle; color: var(--bright); border: 1px solid var(--line-strong); }
   @media (prefers-reduced-motion: reduce) { .profile-name, .profile-banner, .profile.f-glow { animation: none !important; } }
 
+  /* ---- the customizer ---- */
+  .editor { border-top: 1px solid var(--line); padding: 1.1rem 1.75rem 1.4rem; background: rgba(var(--accent-rgb), 0.04); }
+  .editor h2 { margin: 0 0 0.25rem; font-family: var(--display); font-weight: 400; font-size: 30px; letter-spacing: 2px; color: var(--bright); }
+  .ed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem 1.5rem; margin-top: 0.8rem; }
+  .ed-group h3 { margin: 0 0 0.45rem; font-size: 11.5px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--grey); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+  .sw { position: relative; width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line-strong); cursor: pointer; padding: 0; background: var(--c); }
+  .sw[aria-pressed="true"] { outline: 2px solid var(--bright); outline-offset: 3px; }
+  .sw.paint { border-radius: 8px; }
+  .sw.locked, .opt.locked { opacity: 0.35; cursor: not-allowed; }
+  .sw.locked::after { content: '🔒'; position: absolute; right: -6px; bottom: -6px; font-size: 12px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .opt { font: inherit; font-size: 12px; padding: 5px 10px; background: transparent; color: var(--lime); border: 1px solid var(--line); cursor: pointer; }
+  .opt[aria-pressed="true"] { color: var(--bg); background: var(--bright); border-color: var(--bright); }
+  .colorrow { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem; font-size: 12px; color: var(--lime); }
+  .colorrow input[type=color] { width: 44px; height: 32px; padding: 0; border: 1px solid var(--line-strong); background: none; cursor: pointer; }
+  .colorrow input:disabled { opacity: 0.35; cursor: not-allowed; }
+  .ed-note { font-size: 12px; color: var(--grey); margin: 0.35rem 0 0; }
+  .ed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin-top: 1.1rem; }
+  .ed-msg { font-size: 12.5px; color: var(--lime); }
+  .ed-msg.bad { color: #ff6b6b; }
+  .switch { display: flex; align-items: center; gap: 0.5rem; font-size: 12.5px; color: var(--lime); cursor: pointer; }
+
   @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .side { border-right: 0; border-bottom: 1px solid var(--line); } }
   @media (max-width: 560px) {
     .login { padding-left: 1rem; padding-right: 1rem; }
@@ -169,6 +192,7 @@
       </div>
       <div class="profile-actions" id="p-actions"></div>
     </div>
+    <section class="editor" id="editor" hidden aria-labelledby="ed-h"></section>
     <div class="layout">
       <aside class="side">
         <div class="profile-section" id="p-servers-section">
@@ -246,6 +270,8 @@
       .then(function (u) {
         var me = { id: u.id, name: u.global_name || u.username, avatar: u.avatar ? 'https://cdn.discordapp.com/avatars/' + u.id + '/' + u.avatar + '.png?size=128' : null };
         store.set('rv_me', me);
+        // kept for this browser session only, so the customizer can act as you
+        try { sessionStorage.setItem('rv_token', JSON.stringify({ t: h.get('access_token'), until: Date.now() + (Number(h.get('expires_in')) || 3600) * 1000 })); } catch (e) {}
         return me;
       })
       .catch(function () { $('status').textContent = "Discord didn't log you in. Try again?"; return null; });
@@ -263,9 +289,14 @@
     var find = el('a', 'btn', 'Find players'); find.href = '#players';
     find.onclick = function (e) { e.preventDefault(); $('players').scrollIntoView({ behavior: 'smooth' }); setTimeout(function () { $('find').focus({ preventScroll: true }); }, 400); };
     actions.appendChild(find);
+    if (mine && u) {
+      var cz = el('a', 'btn', 'Customize'); cz.href = '#';
+      cz.onclick = function (e) { e.preventDefault(); openEditor(data, u); };
+      actions.insertBefore(cz, actions.firstChild);
+    }
     if (mine) {
       var out = el('a', 'btn', 'Log out'); out.href = '#';
-      out.onclick = function (e) { e.preventDefault(); store.del('rv_me'); location.href = '/profile/'; };
+      out.onclick = function (e) { e.preventDefault(); store.del('rv_me'); try { sessionStorage.removeItem('rv_token'); } catch (x) {} location.href = '/profile/'; };
       actions.appendChild(out);
     } else {
       var back = el('a', 'btn', me ? 'My profile' : 'Log in'); back.href = '/profile/';
@@ -358,7 +389,17 @@
     var c = [16, 8, 0].map(function (s) { var x = (a >> s) & 255, y = (b >> s) & 255; return Math.round(y + (x - y) * amount); });
     return '#' + c.map(function (v) { return ('0' + v.toString(16)).slice(-2); }).join('');
   }
+  function clearStyle() {
+    var root = document.documentElement;
+    root.setAttribute('data-theme', 'bot');
+    ['--accent-rgb', '--bright', '--lime', '--dim', '--bg', '--panel', '--panel-2', '--grey'].forEach(function (k) { root.style.removeProperty(k); });
+    var banner = document.querySelector('.profile-banner');
+    banner.className = 'profile-banner';
+    $('card').classList.remove('f-glow');
+    var pin = $('p-name').querySelector('.pin'); if (pin) pin.remove();
+  }
   function applyStyle(st, data) {
+    clearStyle();
     var root = document.documentElement;
     if (st.theme && PRESETS.indexOf(st.theme) >= 0) root.setAttribute('data-theme', st.theme);
     else if (st.theme === 'gold') root.removeAttribute('data-theme');
@@ -375,6 +416,143 @@
       var c = (data.collectibles || []).filter(function (x) { return x.id === st.pin; })[0];
       if (c) { var pin = el('span', 'pin', c.emoji + ' ' + c.name); pin.title = c.desc; $('p-name').appendChild(pin); }
     }
+  }
+
+  // ---- The customizer: picks a look, previews it on the card, and sends it to the bot through the relay ----
+  var RELAY = 'https://rend-conomy.lowrendergaming.workers.dev';
+  var THEMES = [['gold', 'Gold', '#ffe600'], ['market', 'Market green', '#3ddc84'], ['rrm', 'Render Room red', '#ff5c61'], ['nach', 'Nacho orange', '#ff9f1c'], ['blu', 'BLU blue', '#4da3ff'],
+    ['bnw', 'BNW teal', '#2ee6c5'], ['bstg', 'BSTG purple', '#b46cff'], ['bot', 'Blurple', '#8c9bff'], ['games', 'Arcade pink', '#ff4fd8'], ['notes', 'Cyan', '#38e1ff']];
+  var PAINT_LIST = [['holo', 'Holographic', 'linear-gradient(135deg,#ff6ad5,#ad8cff,#94d0ff)'], ['terminal', 'TODD Terminal', '#33ff66'], ['sunset', 'Sunset', 'linear-gradient(180deg,#ff7a59,#ff4f8b)'],
+    ['void', 'Void', '#111'], ['goldrush', 'Gold Rush', 'linear-gradient(110deg,#3b2a00,#ffcf33,#fff2b0)']];
+  var BANNER_LIST = [['gradient', 'Gradient'], ['scanlines', 'Scanlines'], ['honeycomb', 'Honeycomb'], ['grid', 'Grid'], ['stars', 'Stars'], ['crown', 'Crown']];
+  function token() {
+    try { var t = JSON.parse(sessionStorage.getItem('rv_token')); return t && t.until > Date.now() + 60000 ? t.t : null; } catch (e) { return null; }
+  }
+  function relay(guild, line) {
+    var headers = { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' };
+    return fetch(RELAY + '/api/run', { method: 'POST', headers: headers, body: JSON.stringify({ guild_id: guild, line: line }) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(r.status === 401 ? 'login' : j.error || r.status); return j.id; }); })
+      .then(function (id) {
+        var tries = 0;
+        return new Promise(function (resolve, reject) {
+          (function poll() {
+            if (++tries > 20) return reject(new Error('The bot did not answer. It may be offline; try again in a minute.'));
+            fetch(RELAY + '/api/result?id=' + id, { headers: { Authorization: headers.Authorization } }).then(function (r) { return r.json(); }).then(function (j) {
+              if (j.status !== 'done') return setTimeout(poll, 1200);
+              // the bot answers a change in plain text, and a refusal as an embed
+              var res = j.result || {};
+              resolve(res.content ? { ok: true, text: res.content } : { ok: false, text: (res.embeds && res.embeds[0] && res.embeds[0].description) || 'The bot could not make that change.' });
+            }).catch(function () { setTimeout(poll, 1500); });
+          })();
+        });
+      });
+  }
+  function openEditor(data, u) {
+    var ed = $('editor');
+    if (!ed.hidden) { ed.hidden = true; applyStyle(u.style || {}, data); return; }
+    if (!token()) { try { sessionStorage.setItem('rv_edit', '1'); } catch (e) {} location.href = loginUrl(); return; }
+    var looks = u.looks || { kit: false, paints: [], legendary: false };
+    var cur = u.style || {};
+    var draft = { theme: cur.color ? null : (cur.theme || null), color: cur.color || null, banner: cur.banner || 'gradient', frame: cur.frame || 'none', pin: cur.pin || '', hidden: false };
+    var owned = {};
+    u.servers.forEach(function (s) { (s.collectibles || []).forEach(function (c) { owned[c] = true; }); });
+    var cols = (data.collectibles || []).filter(function (c) { return owned[c.id]; });
+
+    ed.textContent = '';
+    var h = el('h2', null, 'CUSTOMIZE'); h.id = 'ed-h'; ed.appendChild(h);
+    ed.appendChild(el('p', 'ed-note', looks.kit
+      ? 'Pick a look; the card above shows it as you go. Nothing changes until you save.'
+      : 'Themes, colors, banners and frames need a Profile Customizer Kit from Marquez (r!shop profile). Pinning a collectible works without one.'));
+    var grid = el('div', 'ed-grid'); ed.appendChild(grid);
+    var group = function (title) { var g = el('div', 'ed-group'); g.appendChild(el('h3', null, title)); grid.appendChild(g); return g; };
+    var preview = function () { applyStyle({ theme: draft.color ? null : draft.theme, color: draft.color, banner: draft.banner, frame: draft.frame, pin: draft.pin }, data); refresh(); };
+    var refreshers = [];
+    var refresh = function () { refreshers.forEach(function (f) { f(); }); };
+
+    // Theme swatches, then the paints
+    var tg = group('Theme');
+    var sws = el('div', 'swatches'); tg.appendChild(sws);
+    THEMES.concat(PAINT_LIST.map(function (p) { return [p[0], p[1], p[2], true]; })).forEach(function (t) {
+      var paint = !!t[3], locked = !looks.kit || (paint && looks.paints.indexOf(t[0]) < 0);
+      var b = el('button', 'sw' + (paint ? ' paint' : '') + (locked ? ' locked' : '')); b.type = 'button';
+      b.style.setProperty('--c', t[2]); b.style.background = t[2];
+      b.title = t[1] + (locked ? (paint && looks.kit ? ' (a Profile Paint: buy it from Marquez)' : ' (needs a Customizer Kit)') : '');
+      b.setAttribute('aria-label', b.title);
+      b.onclick = function () { if (locked) return; draft.theme = t[0]; draft.color = null; preview(); };
+      refreshers.push(function () { b.setAttribute('aria-pressed', String(!draft.color && (draft.theme || 'gold') === t[0])); });
+      sws.appendChild(b);
+    });
+    var row = el('label', 'colorrow'); var pick = el('input'); pick.type = 'color'; pick.value = draft.color || '#ffe600'; pick.disabled = !looks.kit;
+    row.appendChild(pick); row.appendChild(document.createTextNode('Or any color of your own'));
+    pick.oninput = function () { draft.color = pick.value.toLowerCase(); preview(); };
+    tg.appendChild(row);
+
+    var opts = function (title, list, key, isLocked, note) {
+      var g = group(title), box = el('div', 'opts'); g.appendChild(box);
+      list.forEach(function (o) {
+        var locked = isLocked(o[0]);
+        var b = el('button', 'opt' + (locked ? ' locked' : ''), o[1]); b.type = 'button';
+        if (locked) b.title = note(o[0]);
+        b.onclick = function () { if (locked) return; draft[key] = o[0]; preview(); };
+        refreshers.push(function () { b.setAttribute('aria-pressed', String(draft[key] === o[0])); });
+        box.appendChild(b);
+      });
+      return g;
+    };
+    var legendNote = function () { return 'For players with a legendary or mythic achievement'; };
+    opts('Banner', BANNER_LIST, 'banner', function (k) { return !looks.kit || (k === 'crown' && !looks.legendary); }, function (k) { return k === 'crown' && looks.kit ? legendNote() : 'Needs a Customizer Kit'; });
+    opts('Frame', [['none', 'None'], ['glow', 'Glow']], 'frame', function (k) { return !looks.kit || (k === 'glow' && !looks.legendary); }, function (k) { return k === 'glow' && looks.kit ? legendNote() : 'Needs a Customizer Kit'; });
+    var pg = opts('Pinned collectible', [['', 'None']].concat(cols.map(function (c) { return [c.id, c.emoji + ' ' + c.name]; })), 'pin', function () { return false; }, function () { return ''; });
+    if (!cols.length) pg.appendChild(el('p', 'ed-note', 'Collectibles you own show up here. Marquez stocks a new one every week.'));
+
+    var vg = group('Visibility');
+    var sw = el('label', 'switch'); var cb = el('input'); cb.type = 'checkbox';
+    sw.appendChild(cb); sw.appendChild(document.createTextNode('Hide my profile from the site'));
+    cb.onchange = function () { draft.hidden = cb.checked; };
+    vg.appendChild(sw);
+    vg.appendChild(el('p', 'ed-note', 'Hidden profiles drop off this page at the next update. Turn it back on in Discord with r!profile private off.'));
+
+    var bar = el('div', 'ed-bar');
+    var save = el('button', 'btn', 'Save'); save.type = 'button';
+    var reset = el('button', 'btn', 'Reset to default'); reset.type = 'button';
+    var cancel = el('button', 'btn', 'Cancel'); cancel.type = 'button';
+    var msg = el('span', 'ed-msg'); msg.setAttribute('aria-live', 'polite');
+    [save, reset, cancel, msg].forEach(function (x) { bar.appendChild(x); });
+    ed.appendChild(bar);
+
+    cancel.onclick = function () { ed.hidden = true; applyStyle(cur, data); };
+    reset.onclick = function () { draft = { theme: null, color: null, banner: 'gradient', frame: 'none', pin: '', hidden: draft.hidden, reset: true }; pick.value = '#ffe600'; preview(); };
+    save.onclick = function () {
+      var lines = [];
+      if (draft.reset) lines.push('profile reset');
+      if (draft.color && draft.color !== cur.color) lines.push('profile color ' + draft.color);
+      else if (!draft.color && draft.theme && (draft.theme !== cur.theme || cur.color)) lines.push('profile theme ' + draft.theme);
+      if (draft.banner !== (cur.banner || 'gradient') && !(draft.reset && draft.banner === 'gradient')) lines.push('profile banner ' + draft.banner);
+      if (draft.frame !== (cur.frame || 'none') && !(draft.reset && draft.frame === 'none')) lines.push('profile frame ' + draft.frame);
+      if (draft.pin !== (cur.pin || '') && !(draft.reset && !draft.pin)) lines.push('profile pin ' + (draft.pin || 'none'));
+      if (draft.hidden) lines.push('profile private on');
+      if (!lines.length) { msg.textContent = 'Nothing has changed.'; return; }
+      if (!u.guild) { msg.className = 'ed-msg bad'; msg.textContent = 'Play once in Discord first, then try again.'; return; }
+      save.disabled = reset.disabled = true; msg.className = 'ed-msg'; msg.textContent = 'Saving…';
+      var answers = [];
+      lines.reduce(function (p, line) { return p.then(function () { return relay(u.guild, line).then(function (a) { answers.push(a); }); }); }, Promise.resolve())
+        .then(function () {
+          var bad = answers.filter(function (a) { return !a.ok; }).map(function (a) { return a.text; });
+          msg.className = 'ed-msg' + (bad.length ? ' bad' : '');
+          msg.textContent = bad.length ? bad.join(' ').replace(/\*\*|`/g, '') : 'Saved. Discord shows it now; this page catches up within a few minutes.';
+          if (!bad.length) { cur = { theme: draft.color ? undefined : (draft.theme || undefined), color: draft.color || undefined, banner: draft.banner, frame: draft.frame, pin: draft.pin || undefined }; u.style = cur; delete draft.reset; }
+        })
+        .catch(function (e) {
+          msg.className = 'ed-msg bad';
+          if (e.message === 'login') { try { sessionStorage.removeItem('rv_token'); } catch (x) {} msg.textContent = 'Your login ran out. Press Customize to log in again.'; }
+          else if (e instanceof TypeError) msg.textContent = "Couldn't reach the bot's relay. Try again in a minute.";
+          else msg.textContent = e.message;
+        })
+        .then(function () { save.disabled = reset.disabled = false; });
+    };
+    ed.hidden = false;
+    preview();
+    ed.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function renderAchievements(data, got) {
@@ -485,7 +663,7 @@
   ]).then(function (res) {
     var me = res[0] || store.get('rv_me');
     var data = res[1];
-    $('status').textContent = data ? 'Profiles update every few minutes · ' + data.players + ' players · ' + 'r!profile private hides yours' : "Profiles couldn't be loaded right now.";
+    $('status').textContent = data ? 'Profiles update every few minutes · ' + data.players + ' players · Customize your look from your own profile' : "Profiles couldn't be loaded right now.";
     var id = params.get('id') || (me && me.id);
     if (!data) {
       // No profile data yet (the bot hasn't published it). If they just logged in, say so instead of showing the login again.
@@ -494,6 +672,9 @@
       return;
     }
     if (id) show(data, id, me); else showLogin(data);
+    var wantEdit = false;
+    try { wantEdit = sessionStorage.getItem('rv_edit') === '1'; sessionStorage.removeItem('rv_edit'); } catch (e) {}
+    if (wantEdit && me && data.users[me.id] && id === me.id && token()) openEditor(data, data.users[me.id]);
     showPlayers(data, id);
   });
 })();

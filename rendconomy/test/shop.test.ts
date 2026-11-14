@@ -11,7 +11,8 @@ import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import * as sessions from '../src/core/sessions';
 import { cooldown, HOUR } from '../src/core/time';
-import { execute, press, typedAnswer } from '../src/discord/router';
+import { execute, parsePrefix, press, typedAnswer } from '../src/discord/router';
+import { profilesSnapshot } from '../src/site/publish';
 import { load, tick } from '../src/market/market';
 import { buy as buyShares, sharesOf } from '../src/market/trading';
 import { addItem, count } from '../src/shop/inventory';
@@ -140,6 +141,14 @@ test('profiles: the kit and paints unlock looks for good; the profile shows the 
   const card = await run('profile');
   assert.match(text(card), /Net worth:\*\* ⬡/);
   assert.equal(card.embeds![0]!.color, 0x33ff66);
+  // the site's customizer learns what this player may pick, and where to send changes
+  const u = profilesSnapshot(db).users[A] as unknown as { looks: { kit: boolean; paints: string[]; legendary: boolean }; guild: string; style: { theme: string } };
+  assert.deepEqual(u.looks, { kit: true, paints: ['terminal'], legendary: false });
+  assert.equal(u.guild, G);
+  assert.equal(u.style.theme, 'terminal');
+  // the page sends plain command lines through the relay; they parse like typed commands
+  const parsed = parsePrefix('r!profile banner stars', 'r!');
+  assert.ok(parsed && 'cmd' in parsed && parsed.cmd.name === 'profile' && parsed.args.action === 'banner stars');
 });
 
 test('titles: set with a Title item, cleared by moderators', async () => {

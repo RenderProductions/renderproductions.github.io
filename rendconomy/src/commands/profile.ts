@@ -27,7 +27,9 @@ export const profile: Command = {
       const value = rest.join(' ');
       if (v === 'pin' && value && value !== 'none') {
         const id = Object.keys(COLLECTIBLES).find((c) => c === value || COLLECTIBLES[c]!.name.toLowerCase().includes(value.toLowerCase()));
-        if (!id || !count(ctx.db, guildId, ctx.user.id, id)) throw new GameError('profile.pin', 'Pin a collectible you own in this server.');
+        // looks follow a player everywhere, so a collectible from any server can be pinned
+        const owns = id && (count(ctx.db, guildId, ctx.user.id, id) || ctx.db.get('SELECT 1 FROM inventory WHERE user_id = ? AND item = ? AND qty > 0', ctx.user.id, id));
+        if (!owns) throw new GameError('profile.pin', 'Pin a collectible you own.');
         return { content: setStyle(ctx.db, ctx.user.id, 'pin', id, ctx.config.prefix), ephemeral: true };
       }
       try { return { content: setStyle(ctx.db, ctx.user.id, v === 'colour' ? 'color' : v, value, ctx.config.prefix), ephemeral: true }; }
@@ -67,7 +69,7 @@ export const profile: Command = {
         cols.length ? `**Collectibles:** ${cols.map((c) => COLLECTIBLES[c]!.emoji).join(' ')}` : null,
         st.pin && COLLECTIBLES[st.pin] ? `**Pinned:** ${COLLECTIBLES[st.pin]!.emoji} ${COLLECTIBLES[st.pin]!.name}` : null
       ].filter(Boolean).join('\n'),
-      footer: { text: target === ctx.user.id ? `Customize: ${ctx.config.prefix}profile color|theme|banner|frame|pin|reset · ${ctx.config.prefix}profile looks` : 'View the full profile on the site' }
+      footer: { text: target === ctx.user.id ? 'Customize your look on your profile page: open the title link' : 'View the full profile on the site' }
     }] };
   }
 };

@@ -29,6 +29,11 @@ export const unlockKit = (db: Db, userId: string): void => setProgress(db, userI
 export const unlockPaint = (db: Db, userId: string, id: string): void => setProgress(db, userId, `paint_${id}`, 1);
 const legendary = (db: Db, userId: string) => unlocked(db, userId).some((r) => ['legendary', 'mythic'].includes(BY_ID[r.id]?.rarity ?? ''));
 
+/** What a player may pick from, for the site's customizer. */
+export function looksFor(db: Db, userId: string): { kit: boolean; paints: string[]; legendary: boolean } {
+  return { kit: hasKit(db, userId), paints: Object.keys(PAINTS).filter((id) => ownsPaint(db, userId, id)), legendary: legendary(db, userId) };
+}
+
 /** The accent color as a number, for embeds. */
 export function styleColor(db: Db, userId: string, fallback: number): number {
   const s = getStyle(db, userId);

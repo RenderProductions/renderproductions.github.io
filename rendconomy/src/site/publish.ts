@@ -14,7 +14,7 @@ import { COLLECTIBLES } from '../shop/items';
 import { netWorth } from '../social/worth';
 import { activeEvent } from '../events/world';
 import { rankName } from '../work/jobs';
-import { BANNERS, FRAMES, PAINTS, PRESETS, getStyle } from '../profile/styles';
+import { BANNERS, FRAMES, PAINTS, PRESETS, getStyle, looksFor } from '../profile/styles';
 import { CO, LEVELS, change, employees, listCompanies, levelOf, sharesHeld, treasury } from '../companies/companies';
 
 /** Lookups only the live Discord client can answer (server names, avatars). */
@@ -67,6 +67,10 @@ export function profilesSnapshot(db: Db, dir: Directory = {}) {
     const live = dir.user?.(id);
     if (live) { u.name = live.name; u.avatar = live.avatar; }
     (u.servers as { worth: number }[]).sort((a, b) => b.worth - a.worth);
+    // what the site's customizer may offer them, and a server to send their changes through
+    (u as { looks?: unknown }).looks = looksFor(db, id);
+    const home = db.get<{ guild_id: string }>('SELECT guild_id FROM players WHERE user_id = ? ORDER BY joined_at LIMIT 1', id);
+    if (home) (u as { guild?: string }).guild = home.guild_id;
     // Their profile look, as checked names only (the site maps them to its own CSS)
     const st = getStyle(db, id), style: Record<string, string> = {};
     if (st.theme && (PRESETS[st.theme] || PAINTS[st.theme])) style.theme = st.theme;
