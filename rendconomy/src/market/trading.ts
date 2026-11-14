@@ -3,6 +3,7 @@
 // moves the price, so buying and selling straight back can never make money.
 import type { Db } from '../core/db';
 import { GameError } from '../core/errors';
+import { emit } from '../core/events';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
 import { closedReason, quote, type Quote } from './market';
@@ -83,6 +84,7 @@ export function buy(db: Db, m: MarketData, input: TradeInput): TradeResult {
     transfer(db, { from: w, to: RESERVE, cents: total, reason: 'stock.buy', guildId: input.guildId, actorId: input.userId, now, note: { ticker: q.id, qty: input.qty, price: q.priceCents } });
     setShares(db, m, input.guildId, input.userId, q.id, shares);
     db.run('INSERT INTO lots (guild_id, user_id, ticker, qty, price_cents, bought_at) VALUES (?, ?, ?, ?, ?, ?)', input.guildId, input.userId, q.id, input.qty, q.priceCents, now);
+    emit('stock.bought', { guildId: input.guildId, userId: input.userId, ticker: q.id, qty: input.qty, priceCents: q.priceCents });
     return { quote: q, qty: input.qty, priceCents: q.priceCents, totalCents: total, shares, cash: balance(db, w) };
   });
 }
@@ -99,6 +101,7 @@ export function sell(db: Db, m: MarketData, input: TradeInput): TradeResult {
     transfer(db, { from: RESERVE, to: w, cents: total, reason: 'stock.sell', guildId: input.guildId, actorId: input.userId, now, note: { ticker: q.id, qty: input.qty, price: q.priceCents } });
     setShares(db, m, input.guildId, input.userId, q.id, owned - input.qty);
     const sold = takeLots(db, input.guildId, input.userId, q.id, input.qty);
+    emit('stock.sold', { guildId: input.guildId, userId: input.userId, ticker: q.id, qty: input.qty, priceCents: q.priceCents, costCents: sold.reduce((s, l) => s + l.qty * l.price_cents, 0) });
     return { quote: q, qty: input.qty, priceCents: q.priceCents, totalCents: total, shares: owned - input.qty, cash: balance(db, w), sold };
   });
 }

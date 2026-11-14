@@ -10,6 +10,8 @@ The rules every feature follows are on the **RendConomy Rewrite Baselines** whit
 - **All money moves through `transfer()`** in `src/core/ledger.ts`, inside a transaction, and every move is written to the ledger with a reason. Nothing else may change a balance. Balances can't go negative (the database refuses).
 - **Closed economy.** Polygons are minted only into the Reserve. Players earn from it and spend back into it. `audit()` checks that every Polygon is accounted for.
 - **Errors players should see are `GameError`s** (with a code). Anything else is a bug.
+- **Buttons and typed answers go through sessions** (`src/core/sessions.ts`), stored in the database: they survive restarts, and `sessions.end()` succeeds once, so an answer is graded exactly once. Every button press gets a response.
+- **Game events** (`src/core/events.ts`): systems announce what happened (`work.shift`, `stock.sold`...) so achievements and stats can listen instead of being called from every command.
 - **Time:** the day is Eastern. Dailies reset at 12 AM Eastern for everyone; a streak continues if the last claim was yesterday. Cooldowns are stored in the database (`takeCooldown` refuses a second click at the same moment).
 - **Luck** comes from an `Rng` (`src/core/rng.ts`): crypto randomness live, a seeded one in tests.
 - **Schema changes** are numbered migrations in `src/core/migrations.ts`. They run on startup, after a backup. Never edit one that has shipped; add a new one.
@@ -37,7 +39,11 @@ rendconomy/
       engine.ts       typed doorway to it
       market.ts       runs a tick every 5 minutes, stores prices + hidden state, quotes
       trading.ts      buy/sell against the Reserve, lots (oldest first), bankruptcy wipes, portfolio
-    commands/         one file per command, plus shared helpers
+    work/
+      jobs.ts         companies, ranks, pay, the rules (cooldowns, reviews, rushes)
+      tasks.ts        the tasks, as plain data with a grading rule (so they can be stored)
+      shift.ts        hand out a task, grade it once, pay, reviews, rush orders, layoffs
+    commands/         one file per command, plus shared helpers; sessions.ts says who answers which buttons
     discord/          router (slash + r! into one call), style (colors, narrator voice)
   start.js            the host's startup file: install, build, run
   test/               node:test, no Discord needed
@@ -45,7 +51,7 @@ rendconomy/
 
 ## Commands so far
 
-`/daily`, `/balance` (`r!bal`), `/history` (`r!tx`), `/market` (`r!m`), `/buy`, `/sell`, `/portfolio` (`r!pf`), `/reserve`, `/ping`, `/help`. Every command works as `/name` and `r!name`.
+`/daily`, `/balance` (`r!bal`), `/history` (`r!tx`), `/work`, `/gig`, `/apply`, `/quit`, `/job`, `/market` (`r!m`), `/buy`, `/sell`, `/portfolio` (`r!pf`), `/reserve`, `/ping`, `/help`. Every command works as `/name` and `r!name`.
 Commands are plain functions in `src/commands/` (see `types.ts`); add new ones to `src/commands/index.ts`.
 
 ## Hosting on Bot-Hosting.net

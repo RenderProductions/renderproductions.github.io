@@ -8,7 +8,8 @@ import { audit, balance, RESERVE } from './core/ledger';
 import { format } from './core/money';
 import { cryptoRng } from './core/rng';
 import { HOUR, pruneCooldowns } from './core/time';
-import { onMessage, onSlash, slashBody, type Deps } from './discord/router';
+import { onButton, onMessage, onSlash, slashBody, type Deps } from './discord/router';
+import { prune as pruneSessions } from './core/sessions';
 import * as market from './market/market';
 
 async function main(): Promise<void> {
@@ -24,7 +25,7 @@ async function main(): Promise<void> {
 
   const backup = dailyBackup(db);
   if (backup) console.log(`[${config.name}] daily backup: ${backup}`);
-  setInterval(() => { dailyBackup(db); pruneCooldowns(db); }, HOUR).unref();
+  setInterval(() => { dailyBackup(db); pruneCooldowns(db); pruneSessions(db); }, HOUR).unref();
 
   if (!config.token || !config.clientId) {
     console.error(`[${config.name}] DISCORD_TOKEN and DISCORD_CLIENT_ID must be set in rendconomy/.env. Not connecting to Discord.`);
@@ -55,6 +56,7 @@ async function main(): Promise<void> {
   client.on(Events.MessageCreate, (m) => { onMessage(deps, m).catch((e) => console.error('[message]', e)); });
   client.on(Events.InteractionCreate, (i) => {
     if (i.isChatInputCommand()) onSlash(deps, i).catch((e) => console.error('[slash]', e));
+    else if (i.isButton()) onButton(deps, i).catch((e) => console.error('[button]', e));
   });
 
   const stop = () => { console.log(`[${config.name}] shutting down`); client.destroy(); db.close(); process.exit(0); };

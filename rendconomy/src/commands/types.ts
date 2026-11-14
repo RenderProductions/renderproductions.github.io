@@ -21,6 +21,7 @@ export interface Ctx {
   now: number;
   /** null in DMs */
   guildId: string | null;
+  channelId: string | null;
   user: { id: string; name: string };
   isOwner: boolean;
   /** Extra lines the router adds to the reply (e.g. "Account opened"). */
@@ -31,16 +32,41 @@ export interface Ctx {
 
 export type Args = Record<string, string | number | undefined>;
 
+export interface Button {
+  label: string;
+  /** The custom id: for session buttons, sessions.buttonId(session, value). */
+  id: string;
+  style?: 'primary' | 'secondary' | 'success' | 'danger';
+  emoji?: string;
+  disabled?: boolean;
+}
+
 export interface ReplyObject {
   content?: string;
   embeds?: APIEmbed[];
+  /** Rows of buttons (up to 5 rows of 5). An empty array removes the message's buttons. */
+  buttons?: Button[][];
   /** Only the person who used the command sees it (slash commands only). */
   ephemeral?: boolean;
+  /** The session these buttons belong to: the router records which message holds them. */
+  session?: string;
+  /** Edit the message after a delay (memory tasks hide their prompt). */
+  later?: { ms: number; edit: ReplyObject };
+}
+
+/** What a button press or typed answer does to the message it belongs to. */
+export interface SessionReply {
+  /** Edit the message with the buttons. */
+  update?: ReplyObject;
+  /** Send a new message after it. */
+  followUp?: ReplyObject;
+  /** A private note to the presser only (e.g. "this isn't your task"). */
+  notice?: string;
 }
 export type Reply = string | ReplyObject;
 
 /** Which part of the bot a command belongs to: decides its embed color and where /help lists it. */
-export type System = 'general' | 'wallet' | 'market' | 'reserve';
+export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve';
 
 export interface Command {
   name: string;

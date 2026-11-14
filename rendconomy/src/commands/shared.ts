@@ -29,6 +29,11 @@ export const REASONS: Record<string, string> = {
   daily: 'Daily allowance',
   'stock.buy': 'Shares bought',
   'stock.sell': 'Shares sold',
+  'work.shift': 'Shift pay',
+  'work.rush': 'Rush order',
+  'work.review': 'Review bonus',
+  'work.gig': 'Gig pay',
+  'work.severance': 'Severance',
   'reserve.fund': 'Reserve funded',
   'mod.give': 'Moderator grant',
   'mod.take': 'Moderator removal'

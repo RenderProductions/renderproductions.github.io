@@ -1,6 +1,8 @@
 import { economy } from '../config';
 import { GameError } from '../core/errors';
-import { RESERVE, balance, transfer } from '../core/ledger';
+import { payFromReserve } from '../core/economy';
+import { emit } from '../core/events';
+import { balance } from '../core/ledger';
 import { format } from '../core/money';
 import { checkDaily, dayKey, discordTime } from '../core/time';
 import { embed } from '../discord/style';
@@ -27,10 +29,12 @@ export const daily: Command = {
       );
       if (r.changes !== 1) throw new GameError('daily.claimed', "Today's allowance has already been collected.");
 
-      transfer(ctx.db, { from: RESERVE, to: wallet, cents: economy.dailyAmount, reason: 'daily', guildId, actorId: ctx.user.id, now: ctx.now });
+      const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: economy.dailyAmount, reason: 'daily', guildId, actorId: ctx.user.id, now: ctx.now });
+      emit('daily.claimed', { guildId, userId: ctx.user.id, streak: check.streak, cents: paid });
       return {
         embeds: [embed('wallet', 'Daily allowance', [
-          `${format(economy.dailyAmount)} has been deposited.`,
+          `${format(paid)} has been deposited.`,
+          paid < economy.dailyAmount && 'The Polygon Reserve is low. Payouts are reduced.',
           `Balance: **${format(balance(ctx.db, wallet))}**`,
           `Streak: ${check.streak} ${check.streak === 1 ? 'day' : 'days'}`,
           `Next allowance: ${discordTime(check.resetsAt)}`

@@ -15,7 +15,7 @@ const db = freshDb();
 const config = { ...botConfig(), prefix: 'r!' };
 
 function ctx(userId: string, now: number, guildId: string | null = G): Ctx {
-  return { db, config, rng: seededRng(1), now, guildId, user: { id: userId, name: userId }, isOwner: false, notes: [] };
+  return { db, config, rng: seededRng(1), now, guildId, channelId: 'chan1', user: { id: userId, name: userId }, isOwner: false, notes: [] };
 }
 async function run(line: string, userId = 'alice', now = eastern('2026-11-13T22:00', -5), guildId: string | null = G): Promise<ReplyObject> {
   const p = parsePrefix(line, 'r!');

@@ -20,6 +20,9 @@ export interface Player {
   daily_day: string | null;
   daily_streak: number;
   frozen: number;
+  job: string | null;
+  hired_at: number | null;
+  quit_at: number | null;
 }
 
 /**
@@ -36,5 +39,31 @@ export function player(db: Db, guildId: string, userId: string, startingCash: Ce
       transfer(db, { from: RESERVE, to: w, cents: startingCash, reason: 'start', guildId, actorId: userId, now });
     }
     return { player: db.get<Player>('SELECT * FROM players WHERE guild_id = ? AND user_id = ?', guildId, userId)!, isNew: true };
+  });
+}
+
+// ---------------------------------------------------------------- paying out of the Reserve
+
+/** Below this share of its full size, payouts shrink. At the floor they're a tenth. */
+export const RESERVE_RULES = { shrinkBelow: 0.25, minFactor: 0.1 } as const;
+
+/** What share of a payout is actually paid right now (1 = all of it). */
+export function payoutFactor(db: Db, fullSize: Cents): number {
+  const level = balance(db, RESERVE) / fullSize;
+  return level >= RESERVE_RULES.shrinkBelow ? 1 : Math.max(RESERVE_RULES.minFactor, level / RESERVE_RULES.shrinkBelow);
+}
+
+export interface Payout { to: string; cents: Cents; reason: string; guildId?: string | null; actorId?: string | null; note?: Record<string, unknown>; now?: number }
+
+/**
+ * Pays from the Reserve, shrunk when it's running low, and never more than it holds.
+ * Returns what was actually paid (0 if the Reserve is empty).
+ */
+export function payFromReserve(db: Db, fullSize: Cents, p: Payout): Cents {
+  return db.tx(() => {
+    const want = Math.floor(p.cents * payoutFactor(db, fullSize));
+    const paid = Math.min(want, balance(db, RESERVE));
+    if (paid > 0) transfer(db, { from: RESERVE, ...p, cents: paid });
+    return paid;
   });
 }

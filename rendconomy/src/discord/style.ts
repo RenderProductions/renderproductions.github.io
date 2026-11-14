@@ -8,6 +8,7 @@ export const COLORS: Record<System | 'error', number> = {
   general: 0x5865f2,  // Discord blurple
   wallet: 0x2ecc71,   // green
   market: 0x3498db,   // blue
+  work: 0xe67e22,     // orange
   reserve: 0xd4a017,  // gold
   error: 0xc0392b     // red
 };

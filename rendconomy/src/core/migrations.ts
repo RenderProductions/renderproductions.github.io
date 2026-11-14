@@ -76,5 +76,40 @@ export const MIGRATIONS: readonly string[] = [
     bought_at   INTEGER NOT NULL
   );
   CREATE INDEX lots_owner ON lots (guild_id, user_id, ticker, id);
+  `,
+
+  /* v3: jobs and stored interactions. */ `
+  ALTER TABLE players ADD COLUMN job TEXT;            -- ticker of the company they work for
+  ALTER TABLE players ADD COLUMN hired_at INTEGER;
+  ALTER TABLE players ADD COLUMN quit_at INTEGER;     -- quitting locks applying for 24 hours
+
+  -- A player's record at each company. Kept when they quit, so coming back keeps their rank.
+  CREATE TABLE careers (
+    guild_id  TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    ticker    TEXT NOT NULL,
+    rank      INTEGER NOT NULL DEFAULT 0,
+    shifts    INTEGER NOT NULL DEFAULT 0,
+    correct   INTEGER NOT NULL DEFAULT 0,
+    rev_total INTEGER NOT NULL DEFAULT 0,   -- shifts since the last performance review
+    rev_right INTEGER NOT NULL DEFAULT 0,
+    earned    INTEGER NOT NULL DEFAULT 0,   -- cents
+    PRIMARY KEY (guild_id, user_id, ticker)
+  );
+
+  -- Anything waiting for a player's answer: a work task, later a blackjack hand or a heist.
+  -- Stored so buttons keep working after a restart; the state is JSON owned by the kind's handler.
+  CREATE TABLE sessions (
+    id         TEXT PRIMARY KEY,
+    kind       TEXT NOT NULL,
+    guild_id   TEXT,
+    channel_id TEXT,
+    user_id    TEXT NOT NULL,
+    message_id TEXT,                         -- the bot message holding its buttons, once sent
+    state      TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE INDEX sessions_user ON sessions (user_id, kind);
   `
 ];
