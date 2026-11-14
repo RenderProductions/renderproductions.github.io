@@ -18,6 +18,8 @@ const env = (key: string, fallback = ''): string => process.env[key] ?? fallback
 export const economy = {
   /** Every new player (and everyone after the reset) starts with this. */
   startingCash: polygons(500),
+  /** r!daily, once per Eastern day. */
+  dailyAmount: polygons(250),
   /** The Polygon Reserve's full size. */
   reserveStart: polygons(25_000_000),
   /** Market prices after the reset (decided Nov 13). */

@@ -31,10 +31,26 @@ rendconomy/
       time.ts         Eastern days, the daily reset, cooldowns
       rng.ts          the one source of luck
       errors.ts       GameError
+      backups.ts      one backup per day, last 7 kept
+    commands/         one file per command, plus shared helpers
+    discord/          router (slash + r! into one call), style (colors, narrator voice)
+  start.js            the host's startup file: install, build, run
   test/               node:test, no Discord needed
 ```
 
-## Running it
+## Commands so far
+
+`/daily`, `/balance` (`r!bal`), `/history` (`r!tx`), `/reserve`, `/ping`, `/help`. Every command works as `/name` and `r!name`.
+Commands are plain functions in `src/commands/` (see `types.ts`); add new ones to `src/commands/index.ts`.
+
+## Hosting on Bot-Hosting.net
+
+1. Startup tab: set the **Git branch** to `rewrite` (until switch-over day) and keep auto-update on.
+2. Set the **main file** to `rendconomy/start.js`. It installs packages, builds the TypeScript and starts the bot.
+3. Put the `.env` in `rendconomy/.env` (the old bot's `.env` can be pasted in as-is).
+4. Restart. The bot makes its own database in `rendconomy/data/` and backs it up daily (last 7 kept).
+
+## Running it locally
 
 Needs Node 22.13 or newer.
 
