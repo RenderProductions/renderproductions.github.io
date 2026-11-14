@@ -41,38 +41,58 @@
   <div class="bar" data-k="stamina"><span>STAMINA</span><i><b></b></i></div>
   <p class="air" id="air">PRESSURIZED</p>
   <h2>POWER</h2>
-  <div class="bar power" data-k="power"><span id="power-label">0 / 20</span><i><b></b></i></div>
+  <div class="bar power" data-k="power"><span id="power-label">0 / 40</span><i><b></b></i></div>
   <p class="net" id="net">+0.0/s</p>
+  <p class="net" id="storage-line"></p>
 </aside>
 
 <aside class="side panel">
   <h2>OBJECTIVE</h2>
   <p id="objective"></p>
+  <h2>CREW</h2>
+  <ul id="crew-list"></ul>
   <h2>LOG</h2>
   <ul id="log"></ul>
 </aside>
 
 <footer class="build-bar">
+  <div class="tabs" id="tabs"></div>
   <div class="hotbar" id="hotbar"></div>
-  <p class="help">WASD move &middot; Shift sprint &middot; hold click: mine / shoot &middot; 1&ndash;0 build &middot; right-click remove &middot; E harvest &middot; F eat &middot; wheel zoom &middot; Esc pause</p>
+  <p class="help" id="help"></p>
 </footer>
 
+<section class="panel window" id="panel" hidden>
+  <header><h2 id="panel-title"></h2><button class="x" id="panel-close" aria-label="Close">&times;</button></header>
+  <div id="panel-body"></div>
+</section>
+
+<section class="panel window inv" id="inv" hidden>
+  <header><h2>INVENTORY</h2><button class="x" id="inv-close" aria-label="Close">&times;</button></header>
+  <p class="muted small">The top row is your hotbar (keys 1&ndash;6). Click two slots to swap them.</p>
+  <div class="grid" id="inv-grid"></div>
+  <h3>SUIT</h3>
+  <div class="suit" id="inv-suit"></div>
+</section>
+
+<div class="tip" id="tip" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
 <div class="overlay" id="overlay">
   <div class="overlay-box">
     <h1 id="ov-title">STATIONFALL</h1>
-    <p id="ov-text">Your ship broke apart over an asteroid field. You made it down with a shelter kit and a little air. Mine the rock, seal your rooms, keep the oxygen flowing, and hold out when the scrapper drones come at night.</p>
+    <p id="ov-text">Your ship broke apart over an asteroid field. You and Ade made it down with a shelter kit. Mine the rock, smelt it into bars, build out the station, keep the air on, take in survivors, and hold out when the scrapper drones come at night.</p>
     <div class="ov-actions">
       <button class="btn primary" id="ov-continue" hidden>CONTINUE</button>
       <button class="btn primary" id="ov-new">NEW STATION</button>
       <a class="btn" href="../">BACK TO GAMES</a>
     </div>
     <p class="ov-best" id="ov-best"></p>
-    <p class="ov-note">Keyboard and mouse. Saves automatically in this browser. Inspired by Junon.io.</p>
+    <p class="ov-note">Keyboard and mouse. WASD move, click to use, E interact, B build, I inventory. Saves automatically in this browser. Inspired by Junon.io.</p>
   </div>
 </div>
 
+<script src="data.js"></script>
+<script src="sprites.js"></script>
 <script src="station.js"></script>
 <script src="/face/popup.js" data-odds="20"></script>
 </body>

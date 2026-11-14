@@ -104,9 +104,63 @@ body::after {
 .slot:hover { border-color: var(--bright); }
 .slot.on { background: rgba(255, 230, 0, 0.16); border-color: var(--bright); box-shadow: var(--glow); }
 .slot.poor { opacity: 0.45; }
+.slot.bslot { width: 104px; }
 .slot kbd { position: absolute; top: 3px; right: 5px; font: 400 16px/1 var(--display); color: var(--bright); }
 .slot .nm { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
 .slot .ct { display: block; font-size: 10px; color: var(--grey); white-space: nowrap; overflow: hidden; }
+.slot .bi { display: block; width: 32px; height: 32px; image-rendering: pixelated; margin-bottom: 2px; }
+.slot .n { position: absolute; right: 5px; bottom: 4px; font: 400 18px/1 var(--display); color: var(--text); }
+.slot.hslot { width: 78px; min-height: 64px; }
+.slot.hslot .nm { font-size: 10px; font-weight: 500; }
+.tabs { display: flex; gap: 4px; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
+.tab { cursor: pointer; background: var(--panel-2); border: 1px solid var(--line); color: var(--grey); font: 600 11px var(--mono); letter-spacing: 1px; padding: 4px 10px; text-transform: uppercase; }
+.tab.on, .tab:hover { color: var(--bright); border-color: var(--bright); }
+.ic { width: 16px; height: 16px; image-rendering: pixelated; vertical-align: -3px; margin-right: 2px; }
+.short { color: var(--red); }
+.muted { color: var(--grey); }
+.small { font-size: 11px; }
+.warn { color: var(--red); }
+
+/* ---------- windows ---------- */
+.window { right: 280px; top: 64px; width: 360px; max-height: calc(100vh - 200px); overflow: auto; z-index: 9; border-color: var(--line-strong); }
+.window.inv { right: auto; left: 250px; width: 330px; }
+.window header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.window h2 { margin: 0; }
+.window h3 { margin: 12px 0 6px; font: 400 16px/1 var(--display); letter-spacing: 2px; color: var(--bright); }
+.window p { margin: 4px 0; }
+.x { background: none; border: 1px solid var(--line); color: var(--grey); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 8px; }
+.x:hover { color: var(--bright); border-color: var(--bright); }
+.grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.cell { position: relative; aspect-ratio: 1; background: var(--panel-2); border: 1px solid var(--line); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.cell.empty { cursor: default; opacity: 0.5; }
+.cell.hot { border-color: var(--line-strong); }
+.cell.swap { border-color: var(--bright); box-shadow: var(--glow); }
+.cell:hover:not(.empty) { border-color: var(--bright); }
+.cell .ic { width: 28px; height: 28px; margin: 0; }
+.cell b { position: absolute; right: 3px; bottom: 1px; font: 400 16px/1 var(--display); color: var(--text); }
+.suit { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: var(--text); }
+.suit .ic { width: 28px; height: 28px; }
+.btn.wide { width: 100%; margin-top: 10px; }
+.btn.small { padding: 6px 9px; font-size: 11px; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.role { padding: 8px 4px; font-size: 11px; }
+.role.on { background: var(--bright); color: var(--bg); }
+.recipes { display: flex; flex-direction: column; gap: 4px; }
+.recipe { display: flex; align-items: center; gap: 6px; padding: 4px; border: 1px solid rgba(255, 230, 0, 0.08); }
+.recipe > .ic { width: 28px; height: 28px; }
+.recipe .rn { flex: 1; display: flex; flex-direction: column; font-size: 11px; }
+.recipe .rn b { color: var(--text); font-weight: 600; }
+.recipe .rn span { color: var(--grey); }
+.queue { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.qi { display: inline-flex; align-items: center; gap: 4px; }
+.qi .ic { width: 22px; height: 22px; }
+.prog { display: inline-block; width: 70px; height: 6px; background: #121a2c; border: 1px solid var(--line); }
+.prog b { display: block; height: 100%; background: var(--bright); }
+#crew-list { list-style: none; margin: 0; padding: 0; font-size: 11px; }
+#crew-list li { padding: 2px 0; color: var(--text); }
+.tip { position: fixed; z-index: 12; pointer-events: none; background: var(--panel); border: 1px solid var(--line-strong); padding: 6px 9px; font-size: 11px; color: var(--text); max-width: 220px; }
+.tip b { color: var(--bright); }
 .help { margin: 0; font-size: 10px; letter-spacing: 0.5px; color: var(--grey); text-align: center; }
 
 /* ---------- toast & overlay ---------- */
@@ -142,5 +196,6 @@ body::after {
 
 @media (max-width: 900px) {
   .side { display: none; }
+  .window { right: 14px; }
   .res { gap: 10px; }
 }
