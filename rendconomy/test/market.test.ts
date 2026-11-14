@@ -9,7 +9,7 @@ import { seededRng } from '../src/core/rng';
 import { GameError } from '../src/core/errors';
 import { TICK_MS } from '../src/market/engine';
 import { load, quote, startingPrices, tick, TICKERS } from '../src/market/market';
-import { buy, lotsOf, portfolio, sell, sharesOf } from '../src/market/trading';
+import { buy, lotsOf, pendingDividends, portfolio, sell, sharesOf } from '../src/market/trading';
 
 const G = 'guild1', A = 'alice';
 const noon = eastern('2026-11-13T12:00', -5);
@@ -98,4 +98,16 @@ test('portfolio values holdings at the current price', () => {
   assert.equal(pos!.valueCents, 2 * quote(m, 'BLU')!.priceCents);
   assert.equal(pos!.costCents, pos!.valueCents);
   assert.ok(polygons(500) >= pos!.valueCents);
+});
+
+test('dividends: shares earn from the moment they are bought, and keep what they earned when sold', () => {
+  const db = openMarket();
+  const m = load(db)!;
+  const withIndex = (idx: number) => ({ ...m, dividends: { ...m.dividends, BLU: idx } });
+  const base = m.dividends.BLU ?? 0;
+  buy(db, withIndex(base), { guildId: G, userId: A, ticker: 'BLU', qty: 4 });
+  // The index rises by ⬡0.50 per share, then half the shares are sold
+  sell(db, withIndex(base + 0.5), { guildId: G, userId: A, ticker: 'BLU', qty: 2 });
+  const p = pendingDividends(db, withIndex(base + 1.0), G, A);
+  assert.ok(Math.abs(p.total - (4 * 0.5 + 2 * 0.5)) < 1e-9, `4 shares x 0.50 then 2 shares x 0.50 = 3.00, got ${p.total}`);
 });

@@ -2,7 +2,11 @@ import { balance } from '../core/ledger';
 import { format, parseCount } from '../core/money';
 import { embed } from '../discord/style';
 import { current, quote } from '../market/market';
-import { affordable, buy as buyShares, portfolio as positions, sell as sellShares, sharesOf, tradableQuote } from '../market/trading';
+import { affordable, buy as buyShares, pendingDividends, portfolio as positions, sell as sellShares, sharesOf, tradableQuote } from '../market/trading';
+import { economy } from '../config';
+import { payFromReserve } from '../core/economy';
+import { GameError } from '../core/errors';
+import { emit } from '../core/events';
 import { me } from './shared';
 import { netWorth, savingsTotal } from '../social/worth';
 import type { Command } from './types';
@@ -116,5 +120,53 @@ export const portfolio: Command = {
         `**Net worth: ${format(netWorth(ctx.db, m, guildId, ctx.user.id))}**`
       ])]
     };
+  }
+};
+
+export const dividends: Command = {
+  name: 'dividends',
+  aliases: ['div', 'divs'],
+  description: 'Collect what your shares have earned',
+  system: 'market',
+  guildOnly: true,
+  run(ctx) {
+    const m = current(ctx.db);
+    const { wallet, guildId } = me(ctx);
+    return ctx.db.tx(() => {
+      const p = pendingDividends(ctx.db, m, guildId, ctx.user.id);
+      const cents = Math.floor(p.total * 100 + 1e-9);
+      ctx.db.run('UPDATE players SET div_pending = ? WHERE guild_id = ? AND user_id = ?', Math.max(0, p.total - cents / 100), guildId, ctx.user.id);
+      const paid = cents > 0 ? payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents, reason: 'dividends', guildId, actorId: ctx.user.id, now: ctx.now }) : 0;
+      if (paid > 0) emit('dividends.claimed', { guildId, userId: ctx.user.id, cents: paid });
+      const lines = m.companies.map((c) => {
+        const held = sharesOf(ctx.db, m, guildId, ctx.user.id, c.id);
+        const text = plain((m.divText as Record<string, string> | undefined)?.[c.id] ?? '');
+        return held > 0 ? `**${c.id}** · ${held} shares${text ? ` · ${text}` : ''}` : null;
+      }).filter(Boolean) as string[];
+      return { embeds: [embed('market', 'Dividends', [
+        paid > 0 ? `**${format(paid)}** has been collected.` : 'No dividends are due.',
+        paid > 0 && paid < cents ? 'The Polygon Reserve is low. Payouts are reduced.' : null,
+        '',
+        ...(lines.length ? lines : ['No shares held. Shares earn dividends from the moment they are bought.']),
+        '',
+        `Balance: ${format(balance(ctx.db, wallet))}`
+      ], { footer: { text: 'Dividends accumulate until collected. Smaller companies pay higher yields.' } })] };
+    });
+  }
+};
+
+export const chart: Command = {
+  name: 'chart',
+  description: 'A price chart for a company (last 24 hours)',
+  system: 'market',
+  options: [{ name: 'ticker', type: 'string', description: 'Company ticker, e.g. RRM', required: true }],
+  run(ctx, args) {
+    const m = current(ctx.db);
+    const t = String(args.ticker ?? '').trim().toUpperCase();
+    const q = quote(m, t);
+    if (!q) throw new GameError('stock.unknown', `There is no company with the ticker ${t}. Tickers: ${m.companies.map((c) => c.id).join(', ')}.`);
+    const url = (m.charts as Record<string, string> | undefined)?.[t];
+    return { embeds: [embed('market', `${q.name} (${t})`, [`**${format(q.priceCents)}**  ${pct(q.change)}`, q.spark, q.status !== 'ok' ? plain(q.statusText) : null],
+      url ? { image: { url }, footer: { text: 'Last 24 hours · prices update every 5 minutes' } } : { footer: { text: 'Last 24 hours' } })] };
   }
 };

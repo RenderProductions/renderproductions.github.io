@@ -110,5 +110,7 @@ test('market commands: view, buy, sell, portfolio', async () => {
   assert.match(text(await run('r!sell blu all', u, noon)), /Sale complete: 2 BLU[\s\S]*Gain against purchase price: ⬡0\.00/);
   assert.match(text(await run('r!sell blu 1', u, noon)), /hold 0 shares of BLU/);
   assert.match(text(await run('r!buy blu 1.5', u, noon)), /whole numbers/);
+  assert.match(text(await run('r!div', u, noon)), /Dividends/);
+  assert.match(text(await run('r!chart bstg', u, noon)), /Bastardly Glory \(BSTG\)/);
   assert.ok(audit(db).ok);
 });

@@ -128,5 +128,11 @@ export const MIGRATIONS: readonly string[] = [
     ends_at    INTEGER NOT NULL
   );
   CREATE INDEX savings_owner ON savings (guild_id, user_id);
+  `,
+
+  /* v5: dividends. Each holding remembers the company's dividend index when it was last settled;
+     earnings wait in div_pending (Polygons, with fractions) until claimed. */ `
+  ALTER TABLE holdings ADD COLUMN div_index REAL NOT NULL DEFAULT 0;
+  ALTER TABLE players ADD COLUMN div_pending REAL NOT NULL DEFAULT 0;
   `
 ];

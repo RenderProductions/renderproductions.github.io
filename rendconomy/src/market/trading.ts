@@ -34,10 +34,39 @@ export function sharesOf(db: Db, m: MarketData, guildId: string, userId: string,
 function setShares(db: Db, m: MarketData, guildId: string, userId: string, ticker: string, shares: number): void {
   const wipes = quote(m, ticker)?.wipes ?? 0;
   db.run(
-    `INSERT INTO holdings (guild_id, user_id, ticker, shares, wipes_seen) VALUES (?, ?, ?, ?, ?)
+    `INSERT INTO holdings (guild_id, user_id, ticker, shares, wipes_seen, div_index) VALUES (?, ?, ?, ?, ?, ?)
      ON CONFLICT(guild_id, user_id, ticker) DO UPDATE SET shares = excluded.shares, wipes_seen = excluded.wipes_seen`,
-    guildId, userId, ticker, shares, wipes
+    guildId, userId, ticker, shares, wipes, divIndexOf(m, ticker)
   );
+}
+
+// ---------------------------------------------------------------- dividends
+// Each company's dividend index (Polygons paid per share, ever) only goes up. A holding earns
+// (index now - index when last settled) x shares. Settling happens before every trade and on claim,
+// so new shares start earning at once and sold shares keep what they earned.
+
+export const divIndexOf = (m: MarketData, ticker: string): number => Number(m.dividends?.[ticker] ?? 0) || 0;
+
+/** Moves what a holding has earned into the player's pending dividends. Returns Polygons earned. */
+export function settleDividends(db: Db, m: MarketData, guildId: string, userId: string, ticker: string): number {
+  const shares = sharesOf(db, m, guildId, userId, ticker);
+  const h = db.get<{ div_index: number }>('SELECT div_index FROM holdings WHERE guild_id = ? AND user_id = ? AND ticker = ?', guildId, userId, ticker);
+  if (!h) return 0;
+  const now = divIndexOf(m, ticker);
+  const earned = shares > 0 ? Math.max(0, (now - h.div_index) * shares) : 0;
+  db.run('UPDATE holdings SET div_index = ? WHERE guild_id = ? AND user_id = ? AND ticker = ?', now, guildId, userId, ticker);
+  if (earned > 0) db.run('UPDATE players SET div_pending = div_pending + ? WHERE guild_id = ? AND user_id = ?', earned, guildId, userId);
+  return earned;
+}
+
+/** Unclaimed dividends in Polygons (settles every holding first). */
+export function pendingDividends(db: Db, m: MarketData, guildId: string, userId: string): { total: number; byTicker: Record<string, number> } {
+  return db.tx(() => {
+    const byTicker: Record<string, number> = {};
+    for (const c of m.companies) byTicker[c.id] = settleDividends(db, m, guildId, userId, c.id);
+    const total = db.get<{ div_pending: number }>('SELECT div_pending FROM players WHERE guild_id = ? AND user_id = ?', guildId, userId)?.div_pending ?? 0;
+    return { total, byTicker };
+  });
 }
 
 export function lotsOf(db: Db, guildId: string, userId: string, ticker: string): Lot[] {
@@ -80,6 +109,7 @@ export function buy(db: Db, m: MarketData, input: TradeInput): TradeResult {
   const total = input.qty * q.priceCents;
   const w = wallet(input.guildId, input.userId);
   return db.tx(() => {
+    settleDividends(db, m, input.guildId, input.userId, q.id);
     const shares = sharesOf(db, m, input.guildId, input.userId, q.id) + input.qty;
     transfer(db, { from: w, to: RESERVE, cents: total, reason: 'stock.buy', guildId: input.guildId, actorId: input.userId, now, note: { ticker: q.id, qty: input.qty, price: q.priceCents } });
     setShares(db, m, input.guildId, input.userId, q.id, shares);
@@ -95,6 +125,7 @@ export function sell(db: Db, m: MarketData, input: TradeInput): TradeResult {
   if (!Number.isSafeInteger(input.qty) || input.qty <= 0) throw new GameError('count.small', 'The number of shares must be at least 1.');
   const w = wallet(input.guildId, input.userId);
   return db.tx(() => {
+    settleDividends(db, m, input.guildId, input.userId, q.id);
     const owned = sharesOf(db, m, input.guildId, input.userId, q.id);
     if (owned < input.qty) throw new GameError('stock.short', `You hold ${owned} ${owned === 1 ? 'share' : 'shares'} of ${q.id}.`);
     const total = input.qty * q.priceCents;
