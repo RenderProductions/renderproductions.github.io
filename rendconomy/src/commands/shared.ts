@@ -20,6 +20,7 @@ export function me(ctx: Ctx): { player: Player; wallet: string; guildId: string 
   const { player: p, isNew } = player(ctx.db, guildId, ctx.user.id, economy.startingCash, ctx.now);
   if (isNew) ctx.notes.push(`Account opened. ${format(economy.startingCash)} has been deposited as a starting balance.`);
   if (p.frozen) throw new GameError('account.frozen', 'This account is frozen. Contact a moderator.');
+  if (p.name !== ctx.user.name) ctx.db.run('UPDATE players SET name = ? WHERE guild_id = ? AND user_id = ?', ctx.user.name, guildId, ctx.user.id);
   return { player: p, wallet: wallet(guildId, ctx.user.id), guildId };
 }
 
@@ -34,6 +35,12 @@ export const REASONS: Record<string, string> = {
   'work.review': 'Review bonus',
   'work.gig': 'Gig pay',
   'work.severance': 'Severance',
+  gift: 'Gift',
+  'gift.fee': 'Gift fee',
+  'savings.deposit': 'Savings deposit',
+  'savings.return': 'Savings returned',
+  'savings.interest': 'Savings interest',
+  wipe: 'Account erased',
   'reserve.fund': 'Reserve funded',
   'mod.give': 'Moderator grant',
   'mod.take': 'Moderator removal'

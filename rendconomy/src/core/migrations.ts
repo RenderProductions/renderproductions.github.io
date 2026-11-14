@@ -111,5 +111,22 @@ export const MIGRATIONS: readonly string[] = [
     expires_at INTEGER NOT NULL
   );
   CREATE INDEX sessions_user ON sessions (user_id, kind);
+  `,
+
+  /* v4: display names (for leaderboards), savings accounts. */ `
+  ALTER TABLE players ADD COLUMN name TEXT;
+
+  -- A savings account's Polygons sit in their own ledger account ('savings:<id>') until it closes.
+  CREATE TABLE savings (
+    id         INTEGER PRIMARY KEY,
+    guild_id   TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    amount     INTEGER NOT NULL,               -- cents put in
+    rate_bp    INTEGER NOT NULL,               -- interest at the end, basis points
+    days       INTEGER NOT NULL,
+    opened_at  INTEGER NOT NULL,
+    ends_at    INTEGER NOT NULL
+  );
+  CREATE INDEX savings_owner ON savings (guild_id, user_id);
   `
 ];

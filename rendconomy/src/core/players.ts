@@ -4,7 +4,7 @@ import type { Db } from './db';
 import { RESERVE, transfer } from './ledger';
 
 /** Tables keyed by (guild_id, user_id). Add new per-player tables here. */
-export const PLAYER_TABLES: string[] = ['holdings', 'lots', 'careers', 'sessions', 'players'];
+export const PLAYER_TABLES: string[] = ['holdings', 'lots', 'careers', 'savings', 'sessions', 'players'];
 
 /** Hooks for systems whose data isn't a simple (guild_id, user_id) table. */
 const extraErasers: ((db: Db, guildId: string, userId: string) => void)[] = [];

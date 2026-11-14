@@ -23,6 +23,7 @@ export interface Player {
   job: string | null;
   hired_at: number | null;
   quit_at: number | null;
+  name: string | null;
 }
 
 /**

@@ -4,6 +4,7 @@ import { embed } from '../discord/style';
 import { current, quote } from '../market/market';
 import { affordable, buy as buyShares, portfolio as positions, sell as sellShares, sharesOf, tradableQuote } from '../market/trading';
 import { me } from './shared';
+import { netWorth, savingsTotal } from '../social/worth';
 import type { Command } from './types';
 
 const pct = (n: number) => `${n >= 0 ? '▲' : '▼'} ${Math.abs(n).toFixed(2)}%`;
@@ -111,7 +112,8 @@ export const portfolio: Command = {
         '',
         `Cash: ${format(cash)}`,
         `Shares: ${format(stocks)}`,
-        `**Net worth: ${format(cash + stocks)}**`
+        savingsTotal(ctx.db, guildId, ctx.user.id) > 0 && `Savings: ${format(savingsTotal(ctx.db, guildId, ctx.user.id))}`,
+        `**Net worth: ${format(netWorth(ctx.db, m, guildId, ctx.user.id))}**`
       ])]
     };
   }
