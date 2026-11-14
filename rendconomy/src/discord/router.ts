@@ -12,6 +12,7 @@ import type { BotConfig } from '../config';
 import type { Db } from '../core/db';
 import { isGameError } from '../core/errors';
 import type { Rng } from '../core/rng';
+import { runInRequest } from '../core/request';
 import * as sessions from '../core/sessions';
 import { COLORS } from './style';
 
@@ -27,10 +28,20 @@ const errorReply = (e: unknown, where: string): ReplyObject => {
 export async function execute(cmd: Command, ctx: Ctx, args: Args): Promise<ReplyObject> {
   try {
     if (cmd.guildOnly && !ctx.guildId) return { content: 'This command is only available in a server.', ephemeral: true };
-    return withNotes(normalize(await cmd.run(ctx, args)), ctx.notes);
+    const reply = await runInRequest(requestOf(ctx), () => cmd.run(ctx, args));
+    return withNotes(normalize(reply), ctx.notes);
   } catch (e) {
     return errorReply(e, `command ${cmd.name}`);
   }
+}
+
+const requestOf = (ctx: Ctx) => ({ db: ctx.db, guildId: ctx.guildId, userId: ctx.user.id, now: ctx.now, notes: ctx.notes });
+
+/** Puts notes from listeners (e.g. achievements) on a button's reply. */
+function notesOnSession(r: SessionReply, notes: string[]): SessionReply {
+  if (!notes.length) return r;
+  if (r.followUp) return { ...r, followUp: withNotes(r.followUp, notes) };
+  return { ...r, followUp: { content: notes.join('\n') } };
 }
 
 /** Runs a session's button handler and always returns something. */
@@ -42,7 +53,7 @@ export function press(ctx: Ctx, customId: string): SessionReply {
   const h = handlers[s.kind];
   if (!h) return { update: { buttons: [] } };
   try {
-    return h.onButton(ctx, s, ref.value);
+    return notesOnSession(runInRequest(requestOf(ctx), () => h.onButton(ctx, s, ref.value)), ctx.notes);
   } catch (e) {
     const r = errorReply(e, `button ${s.kind}`);
     return { notice: r.embeds?.[0]?.description ?? r.content };
@@ -56,7 +67,7 @@ export function typedAnswer(ctx: Ctx, text: string): { reply: ReplyObject; sessi
     const h = handlers[s.kind];
     if (!h?.onText) continue;
     try {
-      const reply = h.onText(ctx, s, text);
+      const reply = runInRequest(requestOf(ctx), () => h.onText!(ctx, s, text));
       if (reply) return { reply: withNotes(reply, ctx.notes), session: s };
     } catch (e) {
       return { reply: errorReply(e, `answer ${s.kind}`), session: s };

@@ -6,6 +6,7 @@ import { economy } from '../config';
 import type { Db } from '../core/db';
 import { payFromReserve } from '../core/economy';
 import { GameError } from '../core/errors';
+import { emit } from '../core/events';
 import { balance, ensureAccount, transfer, wallet } from '../core/ledger';
 import { format, polygons, type Cents } from '../core/money';
 import { DAY } from '../core/time';
@@ -55,6 +56,7 @@ export function close(db: Db, a: SavingsAccount, now = Date.now()): Closed {
     if (held > 0) transfer(db, { from: accountId(a.id), to: w, cents: held, reason: 'savings.return', guildId: a.guild_id, actorId: a.user_id, now });
     db.run('DELETE FROM savings WHERE id = ?', a.id);
     const interest = early ? 0 : payFromReserve(db, economy.reserveStart, { to: w, cents: interestOf(a), reason: 'savings.interest', guildId: a.guild_id, actorId: a.user_id, now });
+    if (!early) emit('savings.matured', { guildId: a.guild_id, userId: a.user_id, cents: interest });
     return { account: a, interest, early };
   });
 }

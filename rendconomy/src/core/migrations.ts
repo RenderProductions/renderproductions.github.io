@@ -134,5 +134,22 @@ export const MIGRATIONS: readonly string[] = [
      earnings wait in div_pending (Polygons, with fractions) until claimed. */ `
   ALTER TABLE holdings ADD COLUMN div_index REAL NOT NULL DEFAULT 0;
   ALTER TABLE players ADD COLUMN div_pending REAL NOT NULL DEFAULT 0;
+  `,
+
+  /* v6: achievements. Global per player (they follow you across servers) and kept through the reset. */ `
+  CREATE TABLE achievements (
+    user_id     TEXT NOT NULL,
+    id          TEXT NOT NULL,
+    guild_id    TEXT,                          -- where it was unlocked (its payout went there)
+    unlocked_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, id)
+  );
+  -- Counters toward achievements ("25 gigs").
+  CREATE TABLE progress (
+    user_id TEXT NOT NULL,
+    key     TEXT NOT NULL,
+    value   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (user_id, key)
+  );
   `
 ];

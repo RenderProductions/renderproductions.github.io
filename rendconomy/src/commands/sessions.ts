@@ -2,6 +2,7 @@
 import type { Session } from '../core/sessions';
 import * as shift from '../work/shift';
 import { onWipeButton } from './admin';
+import { onAchievementsButton } from './achievements';
 import { onLeaderboardButton } from './social';
 import { onQuitButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
@@ -16,5 +17,6 @@ export const handlers: Record<string, SessionHandler> = {
   [shift.KIND]: { onButton: shift.onButton, onText: shift.onText },
   quit: { onButton: onQuitButton },
   wipe: { onButton: onWipeButton },
-  leaderboard: { onButton: onLeaderboardButton }
+  leaderboard: { onButton: onLeaderboardButton },
+  achievements: { onButton: onAchievementsButton }
 };

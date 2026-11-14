@@ -26,6 +26,11 @@ export interface Player {
   name: string | null;
 }
 
+/** Called once when a player's account is created in a server (inside the same transaction). */
+type NewPlayerHook = (db: Db, guildId: string, userId: string, now: number) => void;
+const newPlayerHooks: NewPlayerHook[] = [];
+export const onNewPlayer = (fn: NewPlayerHook): void => { newPlayerHooks.push(fn); };
+
 /**
  * Gets a player in a server, creating them (with a wallet and their starting Polygons, paid from
  * the Reserve) the first time. Returns the player and whether they're new.
@@ -39,6 +44,7 @@ export function player(db: Db, guildId: string, userId: string, startingCash: Ce
     if (startingCash > 0 && balance(db, RESERVE) >= startingCash) {
       transfer(db, { from: RESERVE, to: w, cents: startingCash, reason: 'start', guildId, actorId: userId, now });
     }
+    for (const fn of newPlayerHooks) fn(db, guildId, userId, now);
     return { player: db.get<Player>('SELECT * FROM players WHERE guild_id = ? AND user_id = ?', guildId, userId)!, isNew: true };
   });
 }

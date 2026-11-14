@@ -37,6 +37,8 @@ export const REASONS: Record<string, string> = {
   'work.severance': 'Severance',
   gift: 'Gift',
   dividends: 'Dividends',
+  achievement: 'Achievement reward',
+  'achievement.restart': 'Fresh-start achievement payout',
   'gift.fee': 'Gift fee',
   'savings.deposit': 'Savings deposit',
   'savings.return': 'Savings returned',

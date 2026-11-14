@@ -1,4 +1,6 @@
 import { test } from 'node:test';
+import { TUNING as ACH } from '../src/achievements/achievements';
+ACH.pay = false; // these tests check exact balances
 import assert from 'node:assert/strict';
 import { eastern, freshDb } from './helpers';
 import { find } from '../src/commands';

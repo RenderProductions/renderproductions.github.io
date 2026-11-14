@@ -5,12 +5,15 @@
 export interface GameEvents {
   'daily.claimed': { guildId: string; userId: string; streak: number; cents: number };
   'stock.bought': { guildId: string; userId: string; ticker: string; qty: number; priceCents: number };
-  'stock.sold': { guildId: string; userId: string; ticker: string; qty: number; priceCents: number; costCents: number };
-  'work.shift': { guildId: string; userId: string; ticker: string; result: 'pass' | 'wrong' | 'slow'; cents: number; rush: number };
+  'stock.sold': { guildId: string; userId: string; ticker: string; qty: number; priceCents: number; costCents: number; lots: { qty: number; price_cents: number; bought_at: number }[] };
+  'work.shift': { guildId: string; userId: string; ticker: string; result: 'pass' | 'wrong' | 'slow'; cents: number; rush: number; team: boolean };
   'work.review': { guildId: string; userId: string; ticker: string; score: number; outcome: 'promoted' | 'bonus' | 'kept' | 'demoted'; rank: number };
   'work.gig': { guildId: string; userId: string; result: 'pass' | 'wrong' | 'slow'; cents: number };
   'work.laidoff': { guildId: string; userId: string; ticker: string; cents: number };
   'dividends.claimed': { guildId: string; userId: string; cents: number };
+  'savings.matured': { guildId: string; userId: string; cents: number };
+  'stock.wiped': { guildId: string; userId: string; ticker: string; shares: number };
+  'achievement.unlocked': { guildId: string | null; userId: string; id: string };
   'gift.sent': { guildId: string; fromId: string; toId: string; cents: number };
   'mod.action': { guildId: string; modId: string; action: string; targetId?: string; cents?: number; reason?: string };
 }

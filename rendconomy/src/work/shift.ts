@@ -161,7 +161,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
     }
     saveCareer(ctx, guildId, ticker, next);
     if (result === 'pass' && st.rush === 0) nudge(ctx.db, ticker, JOB_RULES.stockNudge);
-    emit('work.shift', { guildId, userId: ctx.user.id, ticker, result, cents: paid, rush: st.rush });
+    emit('work.shift', { guildId, userId: ctx.user.id, ticker, result, cents: paid, rush: st.rush, team: team > 0 });
 
     const cash = balance(ctx.db, w);
     let content: string;

@@ -22,6 +22,7 @@ export function sharesOf(db: Db, m: MarketData, guildId: string, userId: string,
   if (!h) return 0;
   const wipes = quote(m, ticker)?.wipes ?? 0;
   if (wipes > h.wipes_seen) {
+    if (h.shares > 0) emit('stock.wiped', { guildId, userId, ticker, shares: h.shares });
     db.tx(() => {
       db.run('UPDATE holdings SET shares = 0, wipes_seen = ? WHERE guild_id = ? AND user_id = ? AND ticker = ?', wipes, guildId, userId, ticker);
       db.run('DELETE FROM lots WHERE guild_id = ? AND user_id = ? AND ticker = ?', guildId, userId, ticker);
@@ -132,7 +133,7 @@ export function sell(db: Db, m: MarketData, input: TradeInput): TradeResult {
     transfer(db, { from: RESERVE, to: w, cents: total, reason: 'stock.sell', guildId: input.guildId, actorId: input.userId, now, note: { ticker: q.id, qty: input.qty, price: q.priceCents } });
     setShares(db, m, input.guildId, input.userId, q.id, owned - input.qty);
     const sold = takeLots(db, input.guildId, input.userId, q.id, input.qty);
-    emit('stock.sold', { guildId: input.guildId, userId: input.userId, ticker: q.id, qty: input.qty, priceCents: q.priceCents, costCents: sold.reduce((s, l) => s + l.qty * l.price_cents, 0) });
+    emit('stock.sold', { guildId: input.guildId, userId: input.userId, ticker: q.id, qty: input.qty, priceCents: q.priceCents, costCents: sold.reduce((s, l) => s + l.qty * l.price_cents, 0), lots: sold });
     return { quote: q, qty: input.qty, priceCents: q.priceCents, totalCents: total, shares: owned - input.qty, cash: balance(db, w), sold };
   });
 }

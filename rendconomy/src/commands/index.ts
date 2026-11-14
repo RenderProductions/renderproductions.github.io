@@ -1,5 +1,7 @@
+import { installAchievementListeners } from '../achievements/listeners';
 // Every command. Add new ones here.
 import { freeze, give, take, unfreeze, wipe } from './admin';
+import { achievements, importAchievements } from './achievements';
 import { balance } from './balance';
 import { daily } from './daily';
 import { makeHelp, ping } from './general';
@@ -11,7 +13,9 @@ import { apply, gig, job, quit, work } from './work';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, balance, history, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, buy, sell, portfolio, dividends, reserve, ping, give, take, freeze, unfreeze, wipe, makeHelp(() => commands));
+commands.push(daily, balance, history, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, buy, sell, portfolio, dividends, reserve, ping, give, take, freeze, unfreeze, wipe, importAchievements, makeHelp(() => commands));
+
+installAchievementListeners();
 
 /** Finds a command by name or alias (case-insensitive). */
 export function find(name: string): Command | undefined {
