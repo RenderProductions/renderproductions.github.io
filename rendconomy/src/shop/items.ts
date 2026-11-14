@@ -32,7 +32,7 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('reference', '✉️', 'Reference Letter', 250, 3, 'work', 'Cancels one demotion at a bad review. Works on its own.', { passive: true }),
   item('booster', '📈', 'Dividend Booster', 400, 2, 'market', '+50% on dividends you collect for 24 hours.'),
   item('insurance', '🛡️', 'Insurance Policy', 750, 2, 'market', 'Saves your shares in one company from a bankruptcy wipe. Works on its own.', { passive: true }),
-  item('times', '📰', 'The Rend Times', 200, 3, 'market', "A vague tip about one company's hidden mood.", { ready: false }),
+  item('times', '📰', 'The Rend Times', 200, 3, 'market', "A vague tip about one company's hidden mood."),
   item('chip', '💿', 'Platinum Chip', 600, 3, 'casino', 'Your next 5 Rend-Sino games pay 4% more: no house edge.'),
   item('fuel', '⛽', 'Rocket Fuel', 500, 2, 'casino', 'Your next Rocket flies 20% higher before it crashes.'),
   item('mystery', '🎁', 'Mystery', null, 5, 'casino', 'Random Polygons or an Overtime pass. Small jackpot chance. The price changes every restock.'),

@@ -6,7 +6,7 @@ import type { Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { ENGINE, TICK_MS, type MarketData, type MarketPost } from './engine';
 
-const KEY = { data: 'market.data', state: 'market.state', crash: 'market.crash', boost: 'market.boost', nudges: 'market.nudges' } as const;
+export const KEY = { data: 'market.data', state: 'market.state', crash: 'market.crash', boost: 'market.boost', nudges: 'market.nudges' } as const;
 
 const readJson = <T>(db: Db, key: string): T | null => {
   const raw = db.meta(key);
@@ -25,6 +25,11 @@ export const TICKERS: readonly string[] = ENGINE.COMPANIES.map((c) => c.id);
 export const startingPrices = (): Record<string, Cents> =>
   Object.fromEntries(ENGINE.COMPANIES.map((c) => [c.id, Math.round(c.start * 100)]));
 
+/** Runs after every tick with the new prices (orders, brokers, shorts, companies...). */
+type TickHook = (db: Db, m: MarketData, now: number, rng: Rng) => void;
+const tickHooks: TickHook[] = [];
+export const onTick = (fn: TickHook): void => { tickHooks.push(fn); };
+
 /** Moves the market forward one step. Returns the news posts it produced (empty if nothing changed). */
 export function tick(db: Db, rng: Rng, now = Date.now()): MarketPost[] {
   ENGINE.configure({ crash: readJson(db, KEY.crash) ?? {}, boost: readJson(db, KEY.boost) ?? {} });
@@ -42,6 +47,9 @@ export function tick(db: Db, rng: Rng, now = Date.now()): MarketPost[] {
     for (const [t, p] of Object.entries(r.data.prices)) if (Number.isFinite(Number(p))) db.run('INSERT OR REPLACE INTO price_history (ticker, hour, price) VALUES (?, ?, ?)', t, hour, Number(p));
     db.run('DELETE FROM price_history WHERE hour < ?', now - 7 * 24 * 3_600_000);
   });
+  for (const fn of tickHooks) {
+    try { db.tx(() => fn(db, r.data, now, rng)); } catch (e) { console.error('[market] tick hook failed:', e); }
+  }
   return r.posts;
 }
 

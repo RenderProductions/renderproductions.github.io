@@ -348,7 +348,7 @@ function rkView(s: sessions.Session<RK>, now: number, end?: { line: string; tone
 }
 
 export const rocket: Command = {
-  name: 'rocket', aliases: ['crash'], description: 'Rocket: cash out before it crashes', system: 'casino', guildOnly: true,
+  name: 'rocket', aliases: ['moon'], description: 'Rocket: cash out before it crashes', system: 'casino', guildOnly: true,
   options: [betOption('rocket')],
   run(ctx, args) {
     const { guildId } = me(ctx);

@@ -13,6 +13,7 @@ import { prune as pruneSessions } from './core/sessions';
 import * as market from './market/market';
 import { on } from './core/events';
 import { startPublishing } from './site/publish';
+import { setNotifier } from './market/schemes';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -38,7 +39,12 @@ async function main(): Promise<void> {
 
   const rng = cryptoRng();
   // The market runs in the bot. News posts (to the market news channel) come back with the news module.
-  market.start(db, rng);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const news: { send: (posts: unknown[], hooks: string[], o: { log: (m: string) => void }) => Promise<unknown> } = require('./market/engine/post-news.js');
+  market.start(db, rng, (posts) => {
+    if (!config.newsWebhook) return;
+    news.send(posts, config.newsWebhook.split(/[\s,]+/).filter(Boolean), { log: (m) => console.log('[news]', m) }).catch((e: unknown) => console.error('[news]', e));
+  });
   console.log(`[${config.name}] market running (${market.TICKERS.join(', ')})`);
 
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
@@ -46,6 +52,11 @@ async function main(): Promise<void> {
 
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);
+    // DMs about things that happened while a player was away (orders filled, broker reports, margin calls)
+    setNotifier((_g, userId, text) => {
+      if (db.meta(`receipts.off:${userId}`) === '1') return;
+      c.users.fetch(userId).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+    });
     startPublishing(db, config, {
       serverName: (id) => c.guilds.cache.get(id)?.name ?? null,
       user: (id) => { const u = c.users.cache.get(id); return u ? { name: u.globalName ?? u.username, avatar: u.displayAvatarURL({ size: 128 }) } : null; },

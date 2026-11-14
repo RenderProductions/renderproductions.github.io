@@ -9,11 +9,31 @@ import { clearCooldown, discordTime, HOUR } from '../core/time';
 import { addEffect, addItem, startTimed, takeItem } from './inventory';
 import { anyItem } from './items';
 
+/** The Rend Times: a vague tip about one company's hidden market state. */
+function rendTimes(ctx: Ctx): string {
+  let state: { co?: Record<string, { mood?: { trend?: number }; health?: number; secret?: { leakDir?: number }; lnFair?: number }> } | null = null;
+  try { state = JSON.parse(ctx.db.meta('market.state') ?? 'null'); } catch { state = null; }
+  const data = (() => { try { return JSON.parse(ctx.db.meta('market.data') ?? 'null') as { prices?: Record<string, number>; names?: Record<string, string> } | null; } catch { return null; } })();
+  if (!state?.co) return 'The presses are down today. Nobody is printing anything.';
+  const id = ctx.rng.pick(Object.keys(state.co));
+  const s = state.co[id]!;
+  const name = data?.names?.[id] ?? id;
+  const hints: string[] = [];
+  const trend = s.mood?.trend ?? 0;
+  hints.push(trend > 0.05 ? `Insiders at **${name}** are quietly optimistic.` : trend < -0.05 ? `People leaving **${name}** headquarters look nervous.` : `It is a quiet week at **${name}**. Perhaps too quiet.`);
+  if (typeof s.health === 'number') { if (s.health > 0.3) hints.push('Word is the books look healthy.'); else if (s.health < -0.3) hints.push('Someone saw an accountant crying in the parking lot.'); }
+  if (s.secret) hints.push(s.secret.leakDir! > 0 ? 'Rumor has it something good is brewing behind closed doors.' : s.secret.leakDir! < 0 ? 'Rumor has it someone is about to get some bad news.' : 'Something is going on behind closed doors.');
+  const price = Number(data?.prices?.[id]);
+  if (Number.isFinite(price) && price > 0 && typeof s.lnFair === 'number') { const r = Math.exp(s.lnFair) / price; if (r > 1.2) hints.push('One analyst thinks the stock is a bargain.'); else if (r < 0.8) hints.push('One analyst thinks the stock is overpriced.'); }
+  return `**The Rend Times.** ${hints.slice(0, 2 + (ctx.rng.chance(0.5) ? 1 : 0)).join(' ')}\n-# The Rend Times is not responsible for your trades.`;
+}
+
 const JOKE_TITLES = ['Certified Floppy User', 'Read-Only Member', 'Insert Disk 2', '1.44 MB of Talent', 'Corrupted File'];
 
 type Use = (ctx: Ctx, guildId: string) => string;
 
 const USES: Record<string, Use> = {
+  times: (ctx) => rendTimes(ctx),
   coffee: (ctx, g) => { clearCooldown(ctx.db, 'work', `${g}:${ctx.user.id}`); return 'Coffee consumed. Your work cooldown has been reset.'; },
   overtime: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'overtime', 1); return 'Overtime approved. Your next shift pays double.'; },
   stopwatch: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'stopwatch', 3); return 'Stopwatch set. Your next 3 shifts have 10 extra seconds.'; },

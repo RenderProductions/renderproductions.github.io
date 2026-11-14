@@ -9,6 +9,8 @@ import { makeHelp, ping } from './general';
 import { history } from './history';
 import { buy, chart, dividends, market, portfolio, sell } from './market';
 import { reserve } from './reserve';
+import { boost, broker, compare, cover, crash, order, short } from './schemes';
+import { installSchemes } from '../market/schemes';
 import { fish, sellfish } from './fishing';
 import { bailout, forgive, loan, loans, payback, repay } from './loans';
 import { installLoans } from '../loans/loans';
@@ -18,10 +20,11 @@ import { apply, gig, job, quit, work } from './work';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, balance, history, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, settitle, fish, sellfish, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, buy, sell, portfolio, dividends, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, odds, reserve, ping, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, makeHelp(() => commands));
+commands.push(daily, balance, history, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, settitle, fish, sellfish, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, compare, buy, sell, portfolio, dividends, order, broker, short, cover, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, odds, reserve, ping, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, makeHelp(() => commands));
 
 installAchievementListeners();
 installLoans();
+installSchemes();
 
 /** Finds a command by name or alias (case-insensitive). */
 export function find(name: string): Command | undefined {

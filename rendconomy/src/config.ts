@@ -42,6 +42,8 @@ export function botConfig() {
     githubToken: env('GITHUB_TOKEN'),
     githubRepo: env('GITHUB_REPO', 'RenderProductions/renderproductions.github.io'),
     dataBranch: env('DATA_BRANCH', 'data'),
+    /** Market news webhook(s), comma-separated. Only the main bot should post. */
+    newsWebhook: env('NEWS_WEBHOOK'),
     /** Where moderator actions are posted. Empty = not posted. */
     modLogChannelId: env('MOD_LOG_CHANNEL_ID'),
     ownerIds: (env('OWNER_IDS') || env('BOT_OWNER_ID')).split(',').map((s) => s.trim()).filter(Boolean)

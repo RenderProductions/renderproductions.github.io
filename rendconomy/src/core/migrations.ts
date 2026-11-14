@@ -233,5 +233,49 @@ export const MIGRATIONS: readonly string[] = [
     price  REAL NOT NULL,
     PRIMARY KEY (ticker, hour)
   );
+  `,
+
+  /* v11: Sit Back and Relax and Schemes: limit orders, brokers, short selling. Money set aside for an
+     order or a short sits in the player's escrow account ('escrow:<guild>:<user>'). */ `
+  CREATE TABLE orders (
+    id         INTEGER PRIMARY KEY,
+    guild_id   TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    ticker     TEXT NOT NULL,
+    side       TEXT NOT NULL,              -- buy | sell
+    kind       TEXT NOT NULL,              -- limit | stop
+    qty        INTEGER,                    -- null = all (sells)
+    price      INTEGER NOT NULL,           -- cents
+    reserved   INTEGER NOT NULL DEFAULT 0, -- cents set aside (buys)
+    created_at INTEGER NOT NULL
+  );
+  CREATE INDEX orders_owner ON orders (guild_id, user_id);
+  CREATE TABLE brokers (
+    guild_id  TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    active    INTEGER NOT NULL DEFAULT 0,
+    name      TEXT,
+    trait     TEXT,
+    hired_at  INTEGER,
+    paid_at   INTEGER,
+    hires     INTEGER NOT NULL DEFAULT 0,
+    rules     TEXT NOT NULL DEFAULT '{}',    -- { TICKER: { buyUntil, sellAt, stopAt } } in cents
+    holdings  TEXT NOT NULL DEFAULT '{}',    -- { TICKER: { shares, cost, wipes } }
+    profit    INTEGER NOT NULL DEFAULT 0,
+    ticks     INTEGER NOT NULL DEFAULT 0,
+    log       TEXT NOT NULL DEFAULT '[]',
+    PRIMARY KEY (guild_id, user_id)
+  );
+  CREATE TABLE shorts (
+    guild_id  TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    ticker    TEXT NOT NULL,
+    shares    INTEGER NOT NULL,
+    entry     INTEGER NOT NULL,            -- average price sold at, cents
+    margin    INTEGER NOT NULL,            -- cents in escrow
+    wipes     INTEGER NOT NULL DEFAULT 0,
+    opened_at INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id, ticker)
+  );
   `
 ];

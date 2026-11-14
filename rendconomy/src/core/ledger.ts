@@ -10,8 +10,15 @@ import { assertCents, format, type Cents } from './money';
 
 export const RESERVE = 'reserve';
 export const wallet = (guildId: string, userId: string): string => `wallet:${guildId}:${userId}`;
+/** Money a player has set aside (open buy orders, short margins). Still theirs, counted in net worth. */
+export const escrow = (guildId: string, userId: string): string => `escrow:${guildId}:${userId}`;
+export function ensureEscrow(db: Db, guildId: string, userId: string, now = Date.now()): string {
+  const id = escrow(guildId, userId);
+  ensureAccount(db, id, 'escrow', guildId, userId, now);
+  return id;
+}
 
-export type AccountKind = 'reserve' | 'wallet' | 'savings';
+export type AccountKind = 'reserve' | 'wallet' | 'savings' | 'escrow' | 'company';
 
 export interface Account {
   id: string;
