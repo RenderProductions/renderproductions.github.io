@@ -296,5 +296,43 @@ export const MIGRATIONS: readonly string[] = [
     last_text TEXT,
     PRIMARY KEY (guild_id, user_id)
   );
+  `,
+
+  /* v13: player companies, their shares, takeover bids and merger proposals. A company's treasury is its
+     own ledger account ('company:<TICKER>'). Companies are global; holdings are per server. */ `
+  CREATE TABLE companies (
+    ticker        TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    owner_id      TEXT NOT NULL,
+    owner_name    TEXT,
+    owner_guild   TEXT NOT NULL,
+    status        TEXT NOT NULL,          -- pending | private | public | dead | rejected
+    level         INTEGER NOT NULL DEFAULT 1,
+    price         REAL NOT NULL DEFAULT 0,
+    offering_left INTEGER NOT NULL DEFAULT 0,
+    strikes       INTEGER NOT NULL DEFAULT 0,
+    created_at    INTEGER NOT NULL,
+    approved_at   INTEGER,
+    ipo_at        INTEGER,
+    died_at       INTEGER,
+    last_upkeep   INTEGER,
+    last_salary   INTEGER,
+    history       TEXT NOT NULL DEFAULT '[]',
+    note          TEXT
+  );
+  CREATE TABLE company_holdings (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    ticker   TEXT NOT NULL,
+    shares   INTEGER NOT NULL CHECK (shares >= 0),
+    PRIMARY KEY (guild_id, user_id, ticker)
+  );
+  CREATE TABLE takeovers (
+    ticker       TEXT PRIMARY KEY,
+    bidder_id    TEXT NOT NULL,
+    bidder_guild TEXT NOT NULL,
+    premium      INTEGER NOT NULL,       -- cents, held in the bidder's escrow
+    ends_at      INTEGER NOT NULL
+  );
   `
 ];

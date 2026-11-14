@@ -8,6 +8,17 @@ import { payFromReserve } from '../core/economy';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
 import { me } from './shared';
+import { buyShares as buyCompanyShares, getCompany, holding as companyHolding, sellShares as sellCompanyShares } from '../companies/companies';
+import { TICKERS } from '../market/market';
+import type { Ctx } from './types';
+
+/** A public player company, if that's what the ticker is (house tickers win). */
+function playerCompany(t: string, ctx: Ctx) {
+  const id = t.trim().toUpperCase();
+  if (TICKERS.includes(id)) return null;
+  const c = getCompany(ctx.db, id);
+  return c && c.status === 'public' ? c : null;
+}
 import { netWorth, savingsTotal } from '../social/worth';
 import { timedUntil } from '../shop/inventory';
 import type { Command } from './types';
@@ -51,6 +62,12 @@ export const buy: Command = {
   run(ctx, args) {
     const m = current(ctx.db);
     const { wallet, guildId } = me(ctx);
+    const pc = playerCompany(String(args.ticker ?? ''), ctx);
+    if (pc) {
+      const qty = parseCount(args.amount, { all: affordable(balance(ctx.db, wallet), Math.ceil(pc.price * 100 * 1.5)) });
+      const r = buyCompanyShares(ctx.db, guildId, ctx.user.id, pc, qty, ctx.now);
+      return { embeds: [embed('market', `Purchase complete: ${qty} ${pc.ticker}`, [`${qty} × ${format(r.priceCents)} = **${format(r.cost)}**`, `Shares of ${pc.ticker} held: ${r.held}`, `Balance: ${format(balance(ctx.db, wallet))}`])] };
+    }
     const q = tradableQuote(m, String(args.ticker ?? ''));
     const max = affordable(balance(ctx.db, wallet), q.priceCents);
     const qty = parseCount(args.amount, { all: max, max: undefined });
@@ -77,6 +94,12 @@ export const sell: Command = {
   run(ctx, args) {
     const m = current(ctx.db);
     const { guildId } = me(ctx);
+    const pc = playerCompany(String(args.ticker ?? ''), ctx);
+    if (pc) {
+      const qty = parseCount(args.amount, { all: companyHolding(ctx.db, guildId, ctx.user.id, pc.ticker) });
+      const r = sellCompanyShares(ctx.db, guildId, ctx.user.id, pc, qty, ctx.now);
+      return { embeds: [embed('market', `Sale complete: ${qty} ${pc.ticker}`, [`${qty} × ${format(r.priceCents)} = **${format(r.proceeds)}**`, `Shares of ${pc.ticker} held: ${r.held}`])] };
+    }
     const q = tradableQuote(m, String(args.ticker ?? ''));
     const owned = sharesOf(ctx.db, m, guildId, ctx.user.id, q.id);
     const qty = parseCount(args.amount, { all: owned });

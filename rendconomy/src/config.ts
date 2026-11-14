@@ -42,6 +42,8 @@ export function botConfig() {
     githubToken: env('GITHUB_TOKEN'),
     githubRepo: env('GITHUB_REPO', 'RenderProductions/renderproductions.github.io'),
     dataBranch: env('DATA_BRANCH', 'data'),
+    /** Mods in this server (and the bot owner) approve new player companies. */
+    homeGuildId: env('HOME_GUILD_ID'),
     /** Market news webhook(s), comma-separated. Only the main bot should post. */
     newsWebhook: env('NEWS_WEBHOOK'),
     /** Where moderator actions are posted. Empty = not posted. */

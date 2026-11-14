@@ -8,6 +8,7 @@ import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay } from '.
 import { KIND, careerOf, layOff, startTask } from '../work/shift';
 import { guildOf, me } from './shared';
 import { takeItem } from '../shop/inventory';
+import { alive, getCompany } from '../companies/companies';
 import type { Command, Ctx, SessionReply } from './types';
 
 const tickers = () => Object.keys(COMPANIES).join(', ');
@@ -36,7 +37,12 @@ export const work: Command = {
       throw new GameError('work.cooldown', `Your next shift is available ${discordTime(cd.until)}.`);
     }
     const career = careerOf(ctx, guildId, p.job);
-    return startTask(ctx, { mode: 'work', ticker: p.job, style: p.job, tier: career.rank });
+    if (!COMPANIES[p.job] && !alive(getCompany(ctx.db, p.job))) {
+      ctx.db.run('UPDATE players SET job = NULL WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id);
+      throw new GameError('work.closed', 'Your company has closed. Apply somewhere else.');
+    }
+    const style = COMPANIES[p.job] ? p.job : Object.keys(COMPANIES)[[...p.job].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 5]!;
+    return startTask(ctx, { mode: 'work', ticker: p.job, style, tier: career.rank });
   }
 };
 
@@ -66,8 +72,10 @@ export const apply: Command = {
     const { player, guildId } = me(ctx);
     const p = player;
     const t = String(args.ticker ?? '').trim().toUpperCase();
-    const c = COMPANIES[t];
-    if (!c) throw new GameError('apply.unknown', `Choose a company: ${tickers()}.`);
+    const pc = COMPANIES[t] ? null : getCompany(ctx.db, t);
+    if (pc && alive(pc) && pc.owner_id === ctx.user.id) throw new GameError('apply.own', 'You run that company; you cannot also be an employee.');
+    const c = COMPANIES[t] ?? (pc && alive(pc) ? { ticker: t, name: pc.name, role: 'the payroll', ranks: ['Intern', 'Employee', 'Manager', 'Executive'] as const } : undefined);
+    if (!c) throw new GameError('apply.unknown', `Choose a company: ${tickers()}, or an open player company.`);
     if (p.job === t) throw new GameError('apply.same', `You already work at ${c.name}.`);
     if (p.job) throw new GameError('apply.employed', `You already work at ${COMPANIES[p.job]?.name ?? p.job}. Use \`${ctx.config.prefix}quit\` first.`);
     const m = loadMarket(ctx.db);
@@ -145,7 +153,7 @@ export const job: Command = {
       ])] };
     }
     const c = careerOf(ctx, guildId, p.job);
-    const co = COMPANIES[p.job]!;
+    const co = COMPANIES[p.job] ?? { name: getCompany(ctx.db, p.job)?.name ?? p.job, ranks: ['Intern', 'Employee', 'Manager', 'Executive'] };
     const m = loadMarket(ctx.db);
     const q = m ? quote(m, p.job) : null;
     const ladder = co.ranks.map((n, i) => (i === c.rank ? `**${n}**` : n)).join(' → ');

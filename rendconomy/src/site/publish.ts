@@ -14,6 +14,7 @@ import { COLLECTIBLES } from '../shop/items';
 import { netWorth } from '../social/worth';
 import { rankName } from '../work/jobs';
 import { BANNERS, FRAMES, PAINTS, PRESETS, getStyle } from '../profile/styles';
+import { CO, LEVELS, change, employees, listCompanies, levelOf, sharesHeld, treasury } from '../companies/companies';
 
 /** Lookups only the live Discord client can answer (server names, avatars). */
 export interface Directory { serverName?: (id: string) => string | null; user?: (id: string) => { name: string; avatar: string | null } | null; servers?: () => number | null; botId?: () => string | null }
@@ -32,7 +33,7 @@ export function botStats(db: Db, dir: Directory = {}) {
     shifts: one<{ s: number }>('SELECT COALESCE(SUM(shifts), 0) AS s FROM careers').s,
     bets: one<{ s: number }>('SELECT COALESCE(SUM(played), 0) AS s FROM gambling').s,
     wagered: one<{ s: number }>('SELECT COALESCE(SUM(wagered), 0) AS s FROM gambling').s / 100,
-    companies: 0,
+    companies: listCompanies(db, ['private', 'public']).length,
     commands: Number(db.meta('commands_run') ?? 0)
   };
 }
@@ -84,11 +85,29 @@ export function historySnapshot(db: Db) {
   return { updated: new Date().toISOString(), hourly, event: null };
 }
 
+export function companiesSnapshot(db: Db, now = Date.now()) {
+  const card = (c: ReturnType<typeof listCompanies>[number]) => ({
+    ticker: c.ticker, name: c.name, owner: c.owner_name ?? 'unknown', level: c.level, levelName: levelOf(c).name, status: c.status,
+    price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null,
+    history: c.status === 'public' ? c.history.filter((_, i, a) => i % 3 === 0 || i === a.length - 1) : [],
+    treasury: treasury(db, c) / 100, upkeep: levelOf(c).upkeep / 100, strikes: c.strikes, employees: employees(db, c.ticker),
+    available: c.status === 'public' ? CO.float - sharesHeld(db, c.ticker) : null, offeringLeft: c.status === 'public' ? c.offering_left : null,
+    founded: new Date(c.approved_at ?? c.created_at).toISOString(), ipo: c.ipo_at ? new Date(c.ipo_at).toISOString() : null
+  });
+  return {
+    companies: listCompanies(db, ['public', 'private']).map(card),
+    closed: listCompanies(db, ['dead']).filter((c) => (c.died_at ?? 0) >= now - 7 * 86_400_000).sort((a, b) => (b.died_at ?? 0) - (a.died_at ?? 0)).slice(0, 10)
+      .map((c) => ({ ticker: c.ticker, name: c.name, owner: c.owner_name ?? 'unknown', levelName: levelOf(c).name, died: new Date(c.died_at ?? now).toISOString(), cause: c.note })),
+    levels: LEVELS.map((l) => ({ name: l.name, cost: l.cost / 100, upkeep: l.upkeep / 100, payMult: l.payMult })),
+    rules: { ipoLevel: CO.ipoLevel, listingFee: CO.listingFee / 100, float: CO.float, founding: LEVELS[0]!.cost / 100 }
+  };
+}
+
 /** Every file, as text. */
 export function siteFiles(db: Db, dir: Directory = {}): Record<string, string> {
   const now = new Date().toISOString();
   const files: Record<string, string> = {
-    'player-companies.json': JSON.stringify({ updated: now, companies: [], closed: [], levels: [], reserve: reserveSnapshot(db), bot: botStats(db, dir), rules: {} }, null, 1),
+    'player-companies.json': JSON.stringify({ updated: now, ...companiesSnapshot(db), reserve: reserveSnapshot(db), bot: botStats(db, dir) }, null, 1),
     'profiles.json': JSON.stringify({ updated: now, ...profilesSnapshot(db, dir) }),
     'history-7d.json': JSON.stringify(historySnapshot(db))
   };

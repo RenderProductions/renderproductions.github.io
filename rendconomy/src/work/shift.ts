@@ -12,6 +12,7 @@ import { load as loadMarket, nudge, quote } from '../market/market';
 import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay, type Career } from './jobs';
 import { isRight, makeTask, type Task } from './tasks';
 import { takeItem, useEffect } from '../shop/inventory';
+import { CO, addRevenue, getCompany, levelOf } from '../companies/companies';
 
 export const KIND = 'work';
 
@@ -113,7 +114,8 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
   const m = loadMarket(ctx.db);
   const q = m ? quote(m, ticker) : null;
   const career = careerOf(ctx, guildId, ticker);
-  let pay = shiftPay(ticker, q?.priceCents, career.rank);
+  const pc = COMPANIES[ticker] ? null : getCompany(ctx.db, ticker);
+  let pay = pc ? Math.round(JOB_RULES.basePay * RANK_PAY[clampRank(career.rank)] * levelOf(pc).payMult) : shiftPay(ticker, q?.priceCents, career.rank);
   const extras: string[] = [];
   let tip = 0, team = 0;
 
@@ -169,7 +171,8 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
       }
     }
     saveCareer(ctx, guildId, ticker, next);
-    if (result === 'pass' && st.rush === 0) nudge(ctx.db, ticker, JOB_RULES.stockNudge);
+    if (result === 'pass' && st.rush === 0 && !pc) nudge(ctx.db, ticker, JOB_RULES.stockNudge);
+    if (pc && paid > 0) addRevenue(ctx.db, ticker, Math.round(paid * CO.revenueShare), ctx.now); // employees earn for their company
     emit('work.shift', { guildId, userId: ctx.user.id, ticker, result, cents: paid, rush: st.rush, team: team > 0 });
 
     const cash = balance(ctx.db, w);
