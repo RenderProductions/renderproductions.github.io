@@ -40,7 +40,8 @@ export const heist: Command = {
         { footer: { text: `${ctx.config.prefix}heist vault|stash|reserve [role]` } })] };
     }
     if (!TARGETS[t]) throw new GameError('heist.target', 'Choose a target: vault, stash, or reserve.');
-    const role = (String(args.role ?? 'hacker').trim().toLowerCase() || 'hacker') as Role;
+    let role = (String(args.role ?? 'hacker').trim().toLowerCase() || 'hacker') as Role;
+    if (!ROLES[role] && /^[a-z]{2,5}$/.test(role) && !['hack', 'look', 'drive'].includes(role)) role = 'hacker'; // the old "r!heist vault <ticker>"
     if (!ROLES[role]) throw new GameError('heist.role', 'Roles: hacker, driver, lookout, muscle.');
     const wait = serverReady(ctx.db, guildId, ctx.now);
     if (wait) throw new GameError('heist.server', `The server is still hot from the last heist. Next one ${discordTime(wait)}.`);

@@ -59,6 +59,7 @@ export const work: Command = {
 
 export const gig: Command = {
   name: 'gig',
+  aliases: ['sidehustle'],
   description: 'A quick paid task, no job needed (every 10 minutes)',
   system: 'work',
   guildOnly: true,

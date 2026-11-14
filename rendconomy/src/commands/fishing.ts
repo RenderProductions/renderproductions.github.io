@@ -19,6 +19,7 @@ export const fish: Command = {
   name: 'fish', aliases: ['cast'], description: 'Cast a line (needs a Fishing Rod; optionally use a fish as bait)', system: 'wallet', guildOnly: true,
   options: [{ name: 'bait', type: 'string', description: 'A fish from your bag to use as bait, e.g. minnow' }],
   run(ctx, args) {
+    if (String(args.bait ?? '').trim().toLowerCase() === 'sell') return sellfish.run(ctx, {}); // the old r!fish sell
     const { guildId, wallet } = me(ctx);
     if (!count(ctx.db, guildId, ctx.user.id, 'rod')) throw new GameError('fish.rod', `A Fishing Rod is required. Marquez sells them: \`${ctx.config.prefix}shop tackle\`.`);
     const stash = bag(ctx, guildId);

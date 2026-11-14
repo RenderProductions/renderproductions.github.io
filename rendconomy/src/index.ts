@@ -17,6 +17,8 @@ import { setNotifier } from './market/schemes';
 import { setEventAnnouncer } from './events/install';
 import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
+import { ROLE_BUTTON_ID, postUpdate, readNewestUpdate, setUpdatePoster, updateEmbed } from './site/updates';
+import { ButtonStyle, ComponentType } from 'discord.js';
 import { startActivity, startApi, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
@@ -102,6 +104,25 @@ async function main(): Promise<void> {
       if (!chId) return;
       c.channels.fetch(chId).then(async (ch) => { if (ch && ch.isSendable()) await ch.send({ content: text, allowedMentions: { users: [] } }); }).catch(() => {});
     });
+    // Update logs: post the newest patch notes entry once, if it's new (main bot only: UPDATES_CHANNEL_ID)
+    setUpdatePoster(async (u) => {
+      if (!config.updatesChannelId) return false;
+      const ch = await c.channels.fetch(config.updatesChannelId).catch(() => null);
+      if (!ch || !ch.isSendable()) { console.error('[updates] cannot post in UPDATES_CHANNEL_ID'); return false; }
+      await ch.send({
+        content: config.updatesRoleId ? `<@&${config.updatesRoleId}>` : undefined,
+        embeds: [updateEmbed(u)],
+        components: config.updatesRoleId ? [{ type: ComponentType.ActionRow, components: [{ type: ComponentType.Button, style: ButtonStyle.Secondary, label: 'Get update pings', emoji: { name: '🔔' }, custom_id: ROLE_BUTTON_ID }] }] : [],
+        allowedMentions: { roles: config.updatesRoleId ? [config.updatesRoleId] : [] }
+      });
+      return true;
+    });
+    const latest = readNewestUpdate();
+    if (config.updatesChannelId && latest && db.meta('updates.last') !== latest.id) {
+      postUpdate(latest).then((ok) => {
+        if (ok) { db.setMeta('updates.last', latest.id); console.log(`[updates] posted "${latest.title}"`); }
+      }).catch((e: unknown) => console.error('[updates]', e));
+    }
     startReminders(db, c);
     startActivity(db, config, rng, c);
     startApi(db, c);

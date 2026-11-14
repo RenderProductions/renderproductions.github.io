@@ -217,6 +217,7 @@ export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promi
 }
 
 export async function onButton(deps: Deps, i: ButtonInteraction): Promise<void> {
+  if (i.customId === 'updates:role') return toggleUpdateRole(deps, i);
   const r = press(ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), i.customId);
   if (r.update) await i.update(payload(r.update));
   else if (r.notice && !r.followUp) { await i.reply({ content: r.notice, flags: MessageFlags.Ephemeral }); return; }
@@ -238,4 +239,17 @@ export function slashBody(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
     dm_permission: !c.guildOnly,
     options: (c.options ?? []).map((o) => ({ name: o.name, description: o.description.slice(0, 100), type: TYPES[o.type], required: !!o.required }))
   })) as RESTPostAPIChatInputApplicationCommandsJSONBody[];
+}
+
+/** The "Get update pings" button on update posts: gives or takes the updates role. */
+async function toggleUpdateRole(deps: Deps, i: ButtonInteraction): Promise<void> {
+  const roleId = deps.config.updatesRoleId;
+  const member = i.guild ? await i.guild.members.fetch(i.user.id).catch(() => null) : null;
+  if (!roleId || !member) { await i.reply({ content: 'Update pings are not set up here.', flags: MessageFlags.Ephemeral }); return; }
+  try {
+    if (member.roles.cache.has(roleId)) { await member.roles.remove(roleId); await i.reply({ content: 'You will no longer be pinged for updates.', flags: MessageFlags.Ephemeral }); }
+    else { await member.roles.add(roleId); await i.reply({ content: 'You will be pinged when an update goes live.', flags: MessageFlags.Ephemeral }); }
+  } catch {
+    await i.reply({ content: 'The bot cannot manage that role. A moderator needs to give the bot Manage Roles, above the updates role.', flags: MessageFlags.Ephemeral });
+  }
 }

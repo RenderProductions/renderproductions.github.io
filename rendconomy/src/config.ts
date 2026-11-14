@@ -44,6 +44,9 @@ export function botConfig() {
     dataBranch: env('DATA_BRANCH', 'data'),
     /** Mods in this server (and the bot owner) approve new player companies. */
     homeGuildId: env('HOME_GUILD_ID'),
+    /** Update logs: posted here when the patch notes page gets a new entry. Main bot only. */
+    updatesChannelId: env('UPDATES_CHANNEL_ID'),
+    updatesRoleId: env('UPDATES_ROLE_ID'),
     /** Market news webhook(s), comma-separated. Only the main bot should post. */
     newsWebhook: env('NEWS_WEBHOOK'),
     /** Where moderator actions are posted. Empty = not posted. */
