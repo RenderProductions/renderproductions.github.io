@@ -17,12 +17,19 @@ process.emitWarning = (warning, ...rest) => {
   return emit.call(process, warning, ...rest);
 };
 
+// Which version is running, so the console shows whether the host pulled the latest code
+try {
+  const commit = execSync('git log -1 --format="%h %s (%cr)"', { cwd: dir, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  console.log(`[start] version: ${commit}`);
+} catch { console.log('[start] version: unknown (no git here)'); }
+
 const lock = path.join(dir, 'package-lock.json');
 const stamp = path.join(dir, 'node_modules', '.installed-from');
 const want = fs.existsSync(lock) ? String(fs.statSync(lock).mtimeMs) : 'none';
 if (!fs.existsSync(stamp) || fs.readFileSync(stamp, 'utf8') !== want) {
   console.log('[start] installing packages...');
-  run('npm install --include=dev --no-audit --no-fund');
+  // npm ci installs exactly what package-lock.json says and never edits it, so the host's git pull can't be blocked
+  run(fs.existsSync(lock) ? 'npm ci --include=dev --no-audit --no-fund' : 'npm install --include=dev --no-audit --no-fund');
   fs.writeFileSync(stamp, want);
 }
 
