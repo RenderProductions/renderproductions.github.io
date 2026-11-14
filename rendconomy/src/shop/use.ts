@@ -18,6 +18,8 @@ const USES: Record<string, Use> = {
   overtime: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'overtime', 1); return 'Overtime approved. Your next shift pays double.'; },
   stopwatch: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'stopwatch', 3); return 'Stopwatch set. Your next 3 shifts have 10 extra seconds.'; },
   booster: (ctx, g) => `Dividend Booster active until ${discordTime(startTimed(ctx.db, g, ctx.user.id, 'divBoost', 24 * HOUR, ctx.now))}. Dividends collected meanwhile pay 50% more.`,
+  chip: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'chip', 5); return 'Platinum Chip loaded. Your next 5 Rend-Sino games pay 4% more.'; },
+  fuel: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'fuel', 1); return 'Rocket Fuel loaded. Your next Rocket flies 20% higher before it crashes.'; },
   wrap: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'wrap', 1); return 'Gift Wrap ready. Your next gift has no fee.'; },
   mystery: (ctx, g) => {
     const w = wallet(g, ctx.user.id);
@@ -45,7 +47,7 @@ const USES: Record<string, Use> = {
       ctx.db.run('UPDATE players SET title = ? WHERE guild_id = ? AND user_id = ?', t, g, u);
       return `The disk installs **NAME.TXT**. Your title is now *${t}*.`;
     }
-    if (r < 0.95) { addItem(ctx.db, g, u, 'stopwatch', 1); return 'A **Stopwatch** was taped to the back of the disk. It is in your inventory.'; }
+    if (r < 0.95) { addEffect(ctx.db, g, u, 'chip', 1); return 'A **Platinum Chip** was taped to the back of the disk. Your next Rend-Sino game pays 4% more.'; }
     return 'The disk plays a tinny little song. TODD is quietly moved. Nothing else happens.';
   }
 };

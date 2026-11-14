@@ -55,6 +55,8 @@ export interface ReplyObject {
   session?: string;
   /** Edit the message after a delay (memory tasks hide their prompt). */
   later?: { ms: number; edit: ReplyObject };
+  /** Keep editing the message every `everyMs` until next() returns null (the Rocket's live multiplier). */
+  live?: { everyMs: number; next: () => ReplyObject | null };
 }
 
 /** What a button press or typed answer does to the message it belongs to. */
@@ -69,7 +71,7 @@ export interface SessionReply {
 export type Reply = string | ReplyObject;
 
 /** Which part of the bot a command belongs to: decides its embed color and where /help lists it. */
-export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve' | 'admin' | 'social';
+export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve' | 'admin' | 'social' | 'casino';
 
 export interface Command {
   name: string;

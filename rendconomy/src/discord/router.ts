@@ -148,6 +148,16 @@ function ctxFor(deps: Deps, guildId: string | null, channelId: string | null, us
 /** After sending: remember which message holds a session's buttons, and run any delayed edit. */
 function afterSend(deps: Deps, r: ReplyObject, msg: { id: string; channelId: string }, edit: (p: ReplyObject) => Promise<unknown>): void {
   if (r.session) sessions.attachMessage(deps.db, r.session, msg.id, msg.channelId);
+  if (r.live) {
+    const live = r.live;
+    const timer = setInterval(() => {
+      let next: ReplyObject | null = null;
+      try { next = live.next(); } catch (e) { console.error('[live]', e); }
+      if (!next) { clearInterval(timer); return; }
+      edit(next).catch(() => clearInterval(timer));
+    }, live.everyMs);
+    timer.unref();
+  }
   if (r.later) {
     const later = r.later;
     setTimeout(() => {

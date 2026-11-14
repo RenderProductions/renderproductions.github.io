@@ -5,6 +5,7 @@ import { onWipeButton } from './admin';
 import { onAchievementsButton } from './achievements';
 import { onLeaderboardButton } from './social';
 import { onShopButton } from './shop';
+import { casinoHandlers } from './casino';
 import { onQuitButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
 
@@ -20,5 +21,6 @@ export const handlers: Record<string, SessionHandler> = {
   wipe: { onButton: onWipeButton },
   leaderboard: { onButton: onLeaderboardButton },
   achievements: { onButton: onAchievementsButton },
-  shop: { onButton: onShopButton }
+  shop: { onButton: onShopButton },
+  ...Object.fromEntries(Object.entries(casinoHandlers).map(([k, fn]) => [k, { onButton: fn as SessionHandler['onButton'] }]))
 };

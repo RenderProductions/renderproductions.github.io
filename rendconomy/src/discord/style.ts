@@ -12,6 +12,7 @@ export const COLORS: Record<System | 'error', number> = {
   reserve: 0xd4a017,  // gold
   admin: 0x95a5a6,    // grey
   social: 0xff9ecb,   // pink
+  casino: 0xeb459e,   // magenta
   error: 0xc0392b     // red
 };
 

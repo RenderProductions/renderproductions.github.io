@@ -184,5 +184,25 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (guild_id, user_id, item, period)
   );
   ALTER TABLE players ADD COLUMN title TEXT;
+  `,
+
+  /* v8: the Rend-Sino. Per-player streaks and TODD's ban, and stats per game. */ `
+  CREATE TABLE casino (
+    guild_id   TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    win_streak INTEGER NOT NULL DEFAULT 0,
+    ban_until  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+  );
+  CREATE TABLE gambling (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    game     TEXT NOT NULL,
+    played   INTEGER NOT NULL DEFAULT 0,
+    wagered  INTEGER NOT NULL DEFAULT 0,
+    paid     INTEGER NOT NULL DEFAULT 0,
+    biggest  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id, game)
+  );
   `
 ];
