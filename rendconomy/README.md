@@ -49,10 +49,26 @@ rendconomy/
   test/               node:test, no Discord needed
 ```
 
-## Commands so far
+## Commands
 
-`/daily`, `/balance` (`r!bal`), `/history` (`r!tx`), `/work`, `/gig`, `/apply`, `/quit`, `/job`, `/market` (`r!m`), `/buy`, `/sell`, `/portfolio` (`r!pf`), `/reserve`, `/ping`, `/help`. Every command works as `/name` and `r!name`.
-Commands are plain functions in `src/commands/` (see `types.ts`); add new ones to `src/commands/index.ts`.
+Everything from the old bot is ported (run `/help` for the list, with aliases). By area:
+
+- **Wallet and players:** daily, balance, history, profile, achievements, gift, leaderboard, savings, shop, purchase, inventory, use, settitle, fish, sellfish, receipts
+- **TODD and loans:** bailout, repay, loan, loans, payback, forgive
+- **Work:** work, gig, apply, quit, job (strikes, reminders, player-company jobs)
+- **Market:** market, chart, compare, buy, sell, portfolio, dividends, order, broker, short, cover, event
+- **Player companies:** found, company, exchange, invest, upgrade, ipo, salary, takeover, merge
+- **Rend-Sino:** slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, bus, derby, lottery, heist, gambling, odds
+- **Moderators and owner:** give, take, freeze, unfreeze, wipe, importachievements, cleartitle, crash, boost, dropin, review, approve, reject
+
+Not ported on purpose: `backpay` (the reset's fresh-start payout replaces it).
+
+Commands are plain functions in `src/commands/` (see `types.ts`); add new ones to `src/commands/index.ts`. Buttons belong to stored sessions; `src/commands/sessions.ts` says which handler answers each kind.
+
+## Only the main bot
+
+These `.env` settings make the bot act on the outside world. Set them on the main bot only, never on the test bot:
+`PUBLISH_SITE_DATA=1` + `GITHUB_TOKEN` (site data), `NEWS_WEBHOOK` (market news), `ACTIVITY_URL` + `ACTIVITY_SECRET` (the Trading Floor).
 
 ## Hosting on Bot-Hosting.net
 
