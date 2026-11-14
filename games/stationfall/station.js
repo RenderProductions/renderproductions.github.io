@@ -7,8 +7,8 @@
   const { ITEMS, BUILDINGS: B, BUILD_TABS, RECIPES, ROLES, CREW_NAMES, SPR, ICON_URL, BUILD_ICON } = SF;
 
   // ---------- constants ----------
-  const T = 32, W = 96, H = 96;
-  const SAVE_KEY = 'stationfall-save-v2', BEST_KEY = 'stationfall-best';
+  const T = 32, W = 128, H = 128;
+  const SAVE_KEY = 'stationfall-save-v3', BEST_KEY = 'stationfall-best';
   const DAY_LEN = 240;
   const SPACE = 0, GROUND = 1, ROCK = 2, ICE = 3, ORE = 4;
   const TILE_HP = { [ROCK]: 60, [ICE]: 50, [ORE]: 90 };
@@ -18,14 +18,35 @@
   const TOP_RES = ['ore', 'bar', 'circuit', 'ice', 'crystal', 'food'];
   const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const CALL_COST = { food: 6, circuit: 2 };
+  const R_AST = 52;                      // asteroid radius in tiles
+  // The starting station, 25 x 14. # wall  . floor  D door  A airlock  b bed  t table  c chair
+  // l lamp  F furnace  W workbench  C crate  O O2 generator  K O2 tank  P battery  f farm  M med bay
+  const STATION = [
+    '#########################',
+    '#b.b.b..#F.W...C#O.O.K.K#',
+    '#.......#.......#.......#',
+    '#..ctc..#.......#P.P.P..#',
+    '#......l#......l#......l#',
+    '####D#######D#######D####',
+    'A.......................A',
+    '#...l.......l.......l...#',
+    '######D###########D######',
+    '#...........#...........#',
+    '#..f...f....#M..........#',
+    '#...........#...........#',
+    '#..........l#CC........l#',
+    '##################A######'
+  ];
+  const STATION_CODES = { '#': 'wall', D: 'door', A: 'airlock', b: 'bed', t: 'table', c: 'chair', l: 'lamp', F: 'furnace', W: 'workbench', C: 'crate', O: 'o2gen', K: 'o2tank', P: 'battery', f: 'farm', M: 'med' };
+  const STATION_LABELS = [[4, 2.5, 'QUARTERS'], [12, 2.5, 'WORKSHOP'], [20, 2.5, 'LIFE SUPPORT'], [6, 11, 'HYDROPONICS'], [18, 11, 'CARGO BAY']];
 
   const OBJECTIVES = [
     { text: 'Mine iron ore: hold left click on grey rock with the Mining Laser [1].', done: (g) => g.stats.ore >= 6 },
-    { text: 'Press B, open Industry and build a Furnace. Press E at it to smelt Iron Bars.', done: (g) => g.stats.smelted >= 2 },
-    { text: 'Build a Workbench and craft something. Circuits are a good start.', done: (g) => g.stats.crafted >= 1 },
+    { text: 'Bring the ore to the Workshop and press E at the Furnace to smelt Iron Bars.', done: (g) => g.stats.smelted >= 2 },
+    { text: 'Craft something at the Workbench. Circuits are a good start.', done: (g) => g.stats.crafted >= 1 },
     { text: 'Give your crew member a job: walk up to them and press E.', done: (g) => g.stats.roles >= 1 },
     { text: 'Build a Turret (Defense). Drone raids begin on the second night.', done: () => countType('turret') >= 1 },
-    { text: 'Build another Bed and a Comms Console, then call down a survivor.', done: (g) => g.crew.length >= 2 },
+    { text: 'Build a Comms Console (B, Living) and call down a survivor. There are spare beds in the quarters.', done: (g) => g.crew.length >= 2 },
     { text: 'Grow the station and survive. Each night brings more drones.', done: () => false }
   ];
 
@@ -39,7 +60,7 @@
   let running = false, paused = true, retreating = false;
   let mode = 'play', buildTab = 0, selected = null;
   let mineTarget = -1, mineProgress = 0, shootCool = 0;
-  let toastTimer = 0, saveTimer = 0, uiTimer = 0, flash = 0;
+  let toastTimer = 0, saveTimer = 0, uiTimer = 0, flash = 0, shake = 0, mapTimer = 0;
   let panel = null;               // { type, i } for a building, { type: 'crew', id } for a person
   let swapFrom = -1, lastPaint = -1;
   let zoom = 1.25;
@@ -84,6 +105,57 @@
       const bot = v(x0, y0 + 1) + (v(x0 + 1, y0 + 1) - v(x0, y0 + 1)) * sx;
       return top + (bot - top) * sy;
     };
+  }
+
+  // ---------- sound (synthesized, no files) ----------
+  let audio = null, muted = localStorage.getItem('stationfall-mute') === '1';
+  const lastSfx = {};
+  function tone(f0, f1, dur, type, vol, delay = 0) {
+    const t0 = audio.currentTime + delay, o = audio.createOscillator(), gn = audio.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
+    gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(gn).connect(audio.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function hiss(dur, vol, freq, delay = 0) {
+    const t0 = audio.currentTime + delay, len = Math.floor(audio.sampleRate * dur);
+    const buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+    for (let k = 0; k < len; k++) d[k] = Math.random() * 2 - 1;
+    const src = audio.createBufferSource(), f = audio.createBiquadFilter(), gn = audio.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8;
+    gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f).connect(gn).connect(audio.destination); src.start(t0);
+  }
+  const SFX = {
+    pistol: () => tone(900, 300, 0.07, 'square', 0.05),
+    rifle: () => tone(700, 250, 0.05, 'sawtooth', 0.035),
+    turret: () => tone(520, 200, 0.06, 'square', 0.025),
+    enemy: () => tone(300, 120, 0.09, 'sawtooth', 0.02),
+    mine: () => hiss(0.06, 0.04, 2400),
+    rock: () => { hiss(0.18, 0.08, 600); tone(140, 60, 0.15, 'triangle', 0.08); },
+    build: () => { tone(160, 70, 0.12, 'triangle', 0.12); hiss(0.05, 0.04, 1200); },
+    remove: () => tone(300, 90, 0.12, 'triangle', 0.08),
+    destroy: () => { hiss(0.35, 0.12, 400); tone(110, 40, 0.3, 'sawtooth', 0.06); },
+    breach: () => hiss(1.2, 0.08, 3000),
+    airlock: () => { hiss(0.45, 0.07, 1800); tone(220, 180, 0.12, 'sine', 0.05); },
+    pickup: () => tone(660, 1320, 0.08, 'sine', 0.06),
+    craft: () => { tone(880, 880, 0.08, 'sine', 0.05); tone(1320, 1320, 0.12, 'sine', 0.04, 0.08); },
+    hurt: () => tone(220, 90, 0.18, 'sawtooth', 0.08),
+    alarm: () => { for (let k = 0; k < 4; k++) { tone(620, 620, 0.22, 'square', 0.04, k * 0.5); tone(460, 460, 0.22, 'square', 0.04, k * 0.5 + 0.25); } },
+    join: () => { tone(523, 523, 0.1, 'sine', 0.06); tone(659, 659, 0.1, 'sine', 0.06, 0.1); tone(784, 784, 0.18, 'sine', 0.06, 0.2); },
+    click: () => tone(1200, 900, 0.03, 'square', 0.02),
+    kill: () => { hiss(0.25, 0.08, 900); tone(400, 60, 0.25, 'square', 0.04); }
+  };
+  function sfx(name, x, y) {
+    if (muted || !audio || !SFX[name]) return;
+    if (x != null && g && dist(x, y, g.player.x, g.player.y) > T * 22) return;   // too far to hear
+    const now = audio.currentTime;
+    if (lastSfx[name] && now - lastSfx[name] < 0.05) return;
+    lastSfx[name] = now;
+    try { SFX[name](); } catch { /* audio not ready */ }
+  }
+  function startAudio() {
+    if (audio) { if (audio.state === 'suspended') audio.resume(); return; }
+    try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch { audio = null; }
   }
 
   // ---------- inventory and storage ----------
@@ -131,7 +203,7 @@
     const rand = rng(seed);
     const edge = noise2(rand, 9), rockN = noise2(rand, 6), iceN = noise2(rand, 7), oreN = noise2(rand, 5);
     terrain = new Uint8Array(W * H); tileHp = new Uint8Array(W * H); floor = new Uint8Array(W * H);
-    const cx = W / 2, cy = H / 2, R = 38;
+    const cx = W / 2, cy = H / 2, R = R_AST;
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const d = dist(x, y, cx, cy), i = idx(x, y);
       if (d > R + (edge(x, y) - 0.5) * 16) { terrain[i] = SPACE; continue; }
@@ -139,11 +211,11 @@
       if (rockN(x, y) > 0.64) t = ROCK;
       if (iceN(x, y) > 0.76) t = ICE;
       if (t === ROCK && oreN(x, y) > 0.66) t = ORE;
-      if (d < 10) t = GROUND;
+      if (d < 18) t = GROUND;
       terrain[i] = t;
       if (minable(t)) tileHp[i] = TILE_HP[t];
     }
-    for (const [ox, oy, t] of [[8, -2, ICE], [9, -2, ICE], [8, -1, ICE], [-8, 1, ROCK], [-9, 1, ROCK], [-8, 2, ROCK], [-9, 2, ROCK], [-8, 3, ROCK], [-7, -7, ORE], [-8, -7, ORE]]) {
+    for (const [ox, oy, t] of [[16, -2, ICE], [17, -2, ICE], [16, -1, ICE], [17, -1, ICE], [-16, 1, ROCK], [-17, 1, ROCK], [-16, 2, ROCK], [-17, 2, ROCK], [-16, 3, ROCK], [-15, -9, ORE], [-16, -9, ORE], [3, -11, ROCK], [4, -11, ROCK], [5, -11, ROCK]]) {
       const i = idx(cx + ox, cy + oy); terrain[i] = t; tileHp[i] = TILE_HP[t];
     }
   }
@@ -166,8 +238,8 @@
     g = {
       seed, day: 1, t: 20, raidDone: 0, nextId: 1,
       inv: new Array(INV_SIZE).fill(null), hand: 0, suit: null,
-      storage: { bar: 30, circuit: 6, ice: 10, crystal: 6, food: 6 },
-      power: 60, crew: [], pickups: [], pods: [],
+      storage: { bar: 24, circuit: 4, ice: 16, crystal: 4, food: 8 },
+      power: 200, labels: [], crew: [], pickups: [], pods: [],
       player: { x: 0, y: 0, hp: 100, oxy: 100, hunger: 100, stamina: 100, ang: 0 },
       stats: { ore: 0, ice: 0, smelted: 0, crafted: 0, roles: 0, harvests: 0, kills: 0 },
       obj: 0, log: []
@@ -176,27 +248,24 @@
     generate(seed);
     build = new Array(W * H).fill(null);
     enemies = []; bullets = []; particles = []; retreating = false;
-    // the shelter: a sealed 7x7 room with air, power, storage, a bed and lamps
-    const cx = W / 2, cy = H / 2;
-    for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
-      const i = idx(cx + x, cy + y);
+    // the station kit: quarters, workshop, life support, hydroponics, cargo bay and a corridor
+    const ox = W / 2 - 12, oy = H / 2 - 7;
+    STATION.forEach((row, y) => [...row].forEach((ch, x) => {
+      const i = idx(ox + x, oy + y);
       floor[i] = 1;
-      if (Math.abs(x) === 4 || Math.abs(y) === 4) place(i, x === 0 && y === 4 ? 'airlock' : 'wall');
-    }
-    place(idx(cx - 3, cy - 3), 'o2gen'); place(idx(cx - 2, cy - 3), 'o2tank');
-    place(idx(cx + 3, cy - 3), 'battery'); place(idx(cx + 2, cy - 3), 'crate');
-    place(idx(cx + 3, cy + 1), 'bed');
-    place(idx(cx - 3, cy + 3), 'lamp'); place(idx(cx + 3, cy + 3), 'lamp');
-    place(idx(cx - 1, cy + 6), 'solar'); place(idx(cx + 1, cy + 6), 'solar'); place(idx(cx - 2, cy + 7), 'solar');
+      if (STATION_CODES[ch]) place(i, STATION_CODES[ch]);
+    }));
+    for (let k = 0; k < 8; k++) place(idx(ox + 1 + k, oy + 15 + (k % 2)), 'solar');
     refreshBuildList();
-    g.player.x = cx * T + T / 2; g.player.y = cy * T + T / 2;
-    g.crew.push(newCrew((cx - 1) * T + T / 2, (cy + 1) * T + T / 2, 'Ade'));
+    g.labels = STATION_LABELS.map(([x, y, text]) => [ox + x, oy + y, text]);
+    g.player.x = (ox + 12) * T + T / 2; g.player.y = (oy + 6) * T + T / 2;
+    g.crew.push(newCrew((ox + 3) * T + T / 2, (oy + 2) * T + T / 2, 'Ade'));
     makeShade();
     rooms = []; roomId = new Int32Array(W * H).fill(-1);
     rebuildRooms();
     for (const r of rooms) if (r.sealed) r.o2 = 1;
     for (const i of buildList) if (build[i].type === 'o2tank') build[i].air = 1;
-    log('Shelter deployed. Air is on. Ade made it down with you.', 'good');
+    log('Station kit deployed. Air is on. Ade made it down with you.', 'good');
   }
 
   // ---------- buildings ----------
@@ -227,7 +296,7 @@
     pay(B[type].cost);
     place(i, type);
     refreshBuildList(); rebuildRooms();
-    puff(c.x, c.y, '#ffe600', 5);
+    puff(c.x, c.y, '#ffe600', 5); sfx('build');
   }
   function tryRemove(i, quiet = false) {
     const c = center(i);
@@ -239,7 +308,7 @@
       for (const [k, v] of Object.entries(B[b.type].cost)) give(k, Math.floor(v / 2), c.x, c.y);
       if (b.buf) give('ore', b.buf, c.x, c.y);
       rebuildRooms(); closePanelFor(i);
-      puff(c.x, c.y, '#8a93ab', 6);
+      puff(c.x, c.y, '#8a93ab', 6); sfx('remove');
       return;
     }
     if (floor[i]) { floor[i] = 0; rebuildRooms(); }
@@ -257,7 +326,8 @@
       for (const k of Object.keys(g.storage)) { if (over <= 0) break; const n = Math.min(over, g.storage[k]); g.storage[k] -= n; over -= n; if (!g.storage[k]) delete g.storage[k]; drop(k, n, c.x, c.y); }
     }
     closePanelFor(i);
-    puff(c.x, c.y, '#ff6b6b', 14);
+    puff(c.x, c.y, '#ff6b6b', 14); sfx('destroy', c.x, c.y);
+    if (dist(c.x, c.y, g.player.x, g.player.y) < T * 10) shake = Math.max(shake, 5);
     log(`${B[b.type].name} destroyed`, 'warn');
     rebuildRooms();
   }
@@ -276,30 +346,52 @@
   // tile that is neither floor nor a seal, the room is open and vents its air.
   function rebuildRooms() {
     const oldRooms = rooms, oldId = roomId;
-    roomId = new Int32Array(W * H).fill(-1);
-    rooms = [];
+    const raw = new Int32Array(W * H).fill(-1);
+    const parts = [];
     const seals = (i) => build[i] && B[build[i].type].seal;
-    for (let s = 0; s < W * H; s++) {
-      if (!floor[s] || seals(s) || roomId[s] !== -1) continue;
-      const id = rooms.length, room = { id, cells: [], sealed: true, o2: 0 };
-      const queue = [s]; roomId[s] = id;
+    for (let s0 = 0; s0 < W * H; s0++) {
+      if (!floor[s0] || seals(s0) || raw[s0] !== -1) continue;
+      const id = parts.length, part = { cells: [], sealed: true };
+      const queue = [s0]; raw[s0] = id;
       while (queue.length) {
-        const i = queue.pop(); room.cells.push(i);
+        const i = queue.pop(); part.cells.push(i);
         const x = i % W, y = Math.floor(i / W);
         for (const [dx, dy] of N4) {
           const nx = x + dx, ny = y + dy;
-          if (!inMap(nx, ny)) { room.sealed = false; continue; }
+          if (!inMap(nx, ny)) { part.sealed = false; continue; }
           const n = idx(nx, ny);
           if (seals(n)) continue;
-          if (!floor[n]) { room.sealed = false; continue; }
-          if (roomId[n] === -1) { roomId[n] = id; queue.push(n); }
+          if (!floor[n]) { part.sealed = false; continue; }
+          if (raw[n] === -1) { raw[n] = id; queue.push(n); }
         }
       }
+      parts.push(part);
+    }
+    // inside doors share air between the rooms they join; airlocks and doors to the outside don't
+    const parent = parts.map((_, k) => k);
+    const find = (k) => (parent[k] === k ? k : (parent[k] = find(parent[k])));
+    for (const i of buildList) {
+      if (!build[i] || build[i].type !== 'door') continue;
+      const ns = neighbors4(i).filter((n) => !seals(n));
+      if (ns.length < 2 || ns.some((n) => raw[n] < 0)) continue;
+      const ids = ns.map((n) => find(raw[n]));
+      for (const k of ids) parent[find(k)] = ids[0];
+    }
+    roomId = new Int32Array(W * H).fill(-1);
+    rooms = [];
+    const byRoot = new Map();
+    parts.forEach((part, k) => {
+      const root = find(k);
+      let room = byRoot.get(root);
+      if (!room) { room = { id: rooms.length, cells: [], sealed: true, o2: 0 }; byRoot.set(root, room); rooms.push(room); }
+      room.cells.push(...part.cells);
+      if (!part.sealed) room.sealed = false;
+    });
+    for (const room of rooms) {
       let sum = 0;
-      for (const c of room.cells) { const o = oldId[c]; sum += o >= 0 && oldRooms[o] ? oldRooms[o].o2 : 0; }
+      for (const c of room.cells) { roomId[c] = room.id; const o = oldId[c]; sum += o >= 0 && oldRooms[o] ? oldRooms[o].o2 : 0; }
       room.o2 = sum / room.cells.length;
-      if (!room.sealed && room.o2 > 0.3 && running) log('Hull breach! A room is venting air.', 'warn');
-      rooms.push(room);
+      if (!room.sealed && room.o2 > 0.3 && running) { log('Hull breach! The station is venting air.', 'warn'); sfx('breach'); }
     }
   }
   const roomAt = (px, py) => { const i = tileAt(px, py); return roomId[i] >= 0 ? rooms[roomId[i]] : null; };
@@ -341,6 +433,7 @@
     for (const q of particles) { q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt; }
     particles = particles.filter((q) => q.life > 0);
     if (flash > 0) flash -= dt;
+    if (shake > 0) shake = Math.max(0, shake - dt * 20);
     while (g.obj < OBJECTIVES.length - 1 && OBJECTIVES[g.obj].done(g)) { g.obj++; log('Objective complete.', 'good'); }
     if (g.player.hp <= 0) gameOver();
   }
@@ -364,6 +457,7 @@
       if (b.type === 'turret' && b.firing) use = 0.7;
       if (B[b.type].station && !b.queue.length && !b.call) use = 0.05;
       if (b.type === 'lamp' && sun > 0.6) use = 0;
+      if (b.type === 'o2gen' && b.idle) use = 0.1;
       const need = use * dt;
       if (avail >= need) { avail -= need; used += use; b.on = true; } else b.on = false;
     }
@@ -383,6 +477,9 @@
           if (!b.on) break;
           const r = rooms[roomId[i]];
           if (!r || !r.sealed) break;
+          // idle when the air is full and the room's tanks are topped up
+          if (r.o2 >= 0.995 && !r.tanksLow) { b.idle = true; break; }
+          b.idle = false;
           b.ice += dt;
           if (b.ice >= 30) {
             if (have('ice') > 0) { take('ice', 1); b.ice = 0; }
@@ -395,7 +492,7 @@
         case 'farm': {
           const r = rooms[roomId[i]];
           b.air = !!r && r.o2 > 0.5;
-          if (b.on && b.air && b.grow < 1) b.grow = Math.min(1, b.grow + dt / 60);
+          if (b.on && b.air && b.grow < 1) b.grow = Math.min(1, b.grow + dt / 90);
           break;
         }
         case 'drill': {
@@ -419,7 +516,7 @@
           for (const e of enemies) { const d = dist(c.x, c.y, e.x, e.y); if (d < bd && clearShot(c.x, c.y, e.x, e.y)) { bd = d; best = e; } }
           if (best) {
             b.aim = Math.atan2(best.y - c.y, best.x - c.x); b.firing = true;
-            if (b.cool <= 0) { b.cool = 0.55; shoot(c.x, c.y, b.aim, 'ally', 16, 760); }
+            if (b.cool <= 0) { b.cool = 0.55; shoot(c.x, c.y, b.aim, 'ally', 16, 760); sfx('turret', c.x, c.y); }
           }
           break;
         }
@@ -437,6 +534,7 @@
           const r = RECIPES[b.type][job.r];
           give(r.out, r.n, c.x, c.y);
           if (b.type === 'furnace') g.stats.smelted += r.n; else g.stats.crafted++;
+          if (dist(c.x, c.y, g.player.x, g.player.y) < T * 12) sfx('craft');
           b.queue.shift();
           puff(c.x, c.y, '#ffe600', 4);
           break;
@@ -462,14 +560,8 @@
     for (const i of occupied) {
       if (!B[build[i].type].leaky) continue;
       const ns = neighbors4(i);
-      const sides = ns.map((n) => (roomId[n] >= 0 ? rooms[roomId[n]] : null));
-      const outside = ns.some((n) => !floor[n] && !(build[n] && B[build[n].type].seal)) || sides.some((r) => r && !r.sealed);
-      const rs = [...new Set(sides.filter(Boolean))];
-      if (outside) rs.forEach((r) => leaking.add(r.id));
-      else if (rs.length === 2) {
-        const avg = (rs[0].o2 * rs[0].cells.length + rs[1].o2 * rs[1].cells.length) / (rs[0].cells.length + rs[1].cells.length);
-        for (const r of rs) r.o2 += (avg - r.o2) * Math.min(1, dt * 2);
-      }
+      const outside = ns.some((n) => !floor[n] && !(build[n] && B[build[n].type].seal)) || ns.some((n) => roomId[n] >= 0 && !rooms[roomId[n]].sealed);
+      if (outside) for (const n of ns) if (roomId[n] >= 0) leaking.add(roomId[n]);
     }
     for (const r of rooms) {
       if (!r.sealed) { r.o2 = Math.max(0, r.o2 - dt * 0.5); continue; }
@@ -479,10 +571,12 @@
       if (leaking.has(r.id)) r.o2 = Math.max(0, r.o2 - dt * 12 / r.cells.length);
     }
     // oxygen tanks: fill from a full room, refill a thin one
+    for (const r of rooms) r.tanksLow = false;
     for (const i of buildList) {
       const b = build[i]; if (b.type !== 'o2tank') continue;
       const r = rooms[roomId[i]]; if (!r || !r.sealed) continue;
-      if (r.o2 > 0.97 && (makingAir.get(r.id) || 0) > 0) b.air = Math.min(1, b.air + dt * 0.03);
+      if (b.air < 0.99) r.tanksLow = true;
+      if (r.o2 > 0.97 && ((makingAir.get(r.id) || 0) > 0)) b.air = Math.min(1, b.air + dt * 0.03);
       else if (r.o2 < 0.9 && b.air > 0) { const out = Math.min(b.air, dt * 0.08); b.air -= out; r.o2 = Math.min(1, r.o2 + out * 40 / r.cells.length); }
     }
   }
@@ -498,6 +592,12 @@
     const sprint = moving && (keys.has('ShiftLeft') || keys.has('ShiftRight')) && p.stamina > 1;
     if (sprint) p.stamina = Math.max(0, p.stamina - 25 * dt); else p.stamina = Math.min(100, p.stamina + 14 * dt);
     if (moving) { const len = Math.hypot(mx, my), speed = 150 * (sprint ? 1.6 : 1); moveBody(p, (mx / len) * speed * dt, (my / len) * speed * dt, 10, walkSolid); }
+    const ti0 = tileAt(p.x, p.y);
+    if (ti0 !== p.lastTile) {
+      if (build[ti0] && build[ti0].type === 'airlock') { sfx('airlock'); puff(p.x, p.y, '#c9f3ff', 8); }
+      p.lastTile = ti0;
+    }
+    if (moving && !floor[ti0] && Math.random() < dt * 6) particles.push({ x: p.x + (Math.random() - 0.5) * 10, y: p.y + 8, vx: (Math.random() - 0.5) * 20, vy: -10, life: 0.5, color: '#3d4762' });
     const oxyMax = g.suit ? 250 : 100;
     if (pressurized(p.x, p.y)) p.oxy = Math.min(oxyMax, p.oxy + 40 * dt); else p.oxy = Math.max(0, p.oxy - 3.2 * dt);
     p.hunger = Math.max(0, p.hunger - dt * 100 / 360);
@@ -508,7 +608,9 @@
     // walk over loot to pick it up
     g.pickups = g.pickups.filter((q) => {
       if (dist(q.x, q.y, p.x, p.y) > 22) return true;
+      const before = q.n;
       q.n = invAdd(q.id, q.n);
+      if (q.n < before) sfx('pickup');
       return q.n > 0;
     });
 
@@ -524,7 +626,9 @@
         if (mineTarget !== ti) { mineTarget = ti; mineProgress = 0; }
         mineProgress += dt * def.mine;
         if (Math.random() < dt * 14) puff(c.x + (Math.random() - 0.5) * 20, c.y + (Math.random() - 0.5) * 20, terrain[ti] === ICE ? '#6fd3ee' : terrain[ti] === ORE ? '#ffe600' : '#8a93ab', 1);
+        if (Math.random() < dt * 9) sfx('mine');
         if (mineProgress >= tileHp[ti]) {
+          sfx('rock');
           const t = terrain[ti];
           let full = false;
           for (const [k, v] of Object.entries(MINE_YIELD[t])) { const left = invAdd(k, v); if (left) { drop(k, left, c.x, c.y); full = true; } g.stats[k === 'ice' ? 'ice' : 'ore'] += v; }
@@ -538,6 +642,7 @@
       if (def.ammo) take(def.ammo, 1);
       shootCool = def.rate;
       shoot(p.x, p.y, p.ang, 'ally', def.dmg, def.speed);
+      sfx(def.ammo ? 'rifle' : 'pistol');
     }
   }
 
@@ -708,7 +813,7 @@
         pod.done = true;
         const m = newCrew(pod.x, pod.y + 18);
         g.crew.push(m);
-        log(`${m.name} has joined the crew.`, 'good');
+        log(`${m.name} has joined the crew.`, 'good'); sfx('join');
       }
     }
     g.pods = g.pods.filter((pod) => pod.t > 0 || pod.fall > 0);
@@ -721,7 +826,7 @@
     const brutes = Math.min(8, Math.max(0, g.day - 3));
     const a0 = Math.random() * Math.PI * 2;
     for (let n = 0; n < drones + brutes; n++) {
-      const brute = n >= drones, a = a0 + (Math.random() - 0.5) * 1.6, r = 50 * T + Math.random() * 3 * T;
+      const brute = n >= drones, a = a0 + (Math.random() - 0.5) * 1.6, r = (R_AST + 8) * T + Math.random() * 3 * T;
       enemies.push({
         x: (W / 2) * T + Math.cos(a) * r, y: (H / 2) * T + Math.sin(a) * r,
         kind: brute ? 'brute' : 'drone', hp: brute ? 90 : 30, max: brute ? 90 : 30,
@@ -729,7 +834,7 @@
         r: brute ? 13 : 9, cool: 1 + Math.random(), ang: 0
       });
     }
-    toast(`RAID: ${drones + brutes} hostiles inbound`, true);
+    toast(`RAID: ${drones + brutes} hostiles inbound`, true); sfx('alarm');
     log(`Night ${g.day}: ${drones} drones${brutes ? ` and ${brutes} brutes` : ''} incoming.`, 'warn');
   }
   const enemySolid = (i) => !!build[i] && build[i].type !== 'chair';
@@ -744,7 +849,7 @@
       if (dawn) {
         const a = Math.atan2(e.y - (H / 2) * T, e.x - (W / 2) * T);
         e.ang = a; e.x += Math.cos(a) * e.speed * 1.5 * dt; e.y += Math.sin(a) * e.speed * 1.5 * dt;
-        if (dist(e.x, e.y, (W / 2) * T, (H / 2) * T) > 56 * T) e.gone = true;
+        if (dist(e.x, e.y, (W / 2) * T, (H / 2) * T) > (R_AST + 14) * T) e.gone = true;
         continue;
       }
       let tx = p.x, ty = p.y, bd = Infinity;
@@ -757,7 +862,7 @@
         const hit = moveBody(e, Math.cos(ang) * e.speed * dt, Math.sin(ang) * e.speed * dt, e.r, enemySolid);
         if (hit >= 0 && e.cool <= 0) { e.cool = e.rate; const c = center(hit); shoot(e.x, e.y, Math.atan2(c.y - e.y, c.x - e.x), 'enemy', e.dmg, 380); }
       }
-      if (shot && d <= e.range && e.cool <= 0) { e.cool = e.rate; shoot(e.x, e.y, ang, 'enemy', e.dmg, 380); }
+      if (shot && d <= e.range && e.cool <= 0) { e.cool = e.rate; shoot(e.x, e.y, ang, 'enemy', e.dmg, 380); sfx('enemy', e.x, e.y); }
     }
   }
 
@@ -771,7 +876,7 @@
         const i = idx(tx, ty);
         if (b.from === 'enemy') {
           if (build[i] && B[build[i].type].hp && build[i].type !== 'chair') { damageBuilding(i, b.dmg * 0.7); b.life = 0; break; }
-          if (dist(b.x, b.y, p.x, p.y) < 12) { p.hp -= b.dmg * (g.suit ? 0.7 : 1); puff(b.x, b.y, '#ff6b6b', 4); b.life = 0; flash = 0.25; break; }
+          if (dist(b.x, b.y, p.x, p.y) < 12) { p.hp -= b.dmg * (g.suit ? 0.7 : 1); puff(b.x, b.y, '#ff6b6b', 4); b.life = 0; flash = 0.25; shake = Math.max(shake, 4); sfx('hurt'); break; }
           const m = g.crew.find((c) => dist(b.x, b.y, c.x, c.y) < 11);
           if (m) { m.hp -= b.dmg; puff(b.x, b.y, '#ff6b6b', 4); b.life = 0; break; }
         } else {
@@ -787,7 +892,7 @@
       if (e.gone) continue;
       if (e.hp > 0) { alive.push(e); continue; }
       g.stats.kills++;
-      puff(e.x, e.y, '#ff6b6b', 16);
+      puff(e.x, e.y, '#ff6b6b', 16); sfx('kill', e.x, e.y);
       drop('bar', e.kind === 'brute' ? 3 : 1, e.x, e.y);
       if (e.kind === 'brute' || Math.random() < 0.3) drop('circuit', 1, e.x, e.y);
     }
@@ -1011,7 +1116,8 @@
       ctx.fillStyle = `rgba(244,236,184,${0.25 + s.p})`; ctx.fillRect(x, y, s.s, s.s);
     }
     ctx.save();
-    ctx.translate(Math.round(vw / 2), Math.round(vh / 2)); ctx.scale(zoom, zoom); ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
+    const sx0 = shake ? (Math.random() - 0.5) * shake * 2 : 0, sy0 = shake ? (Math.random() - 0.5) * shake * 2 : 0;
+    ctx.translate(Math.round(vw / 2 + sx0), Math.round(vh / 2 + sy0)); ctx.scale(zoom, zoom); ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
     const x0 = clamp(tileOf(cam.x - vw / 2 / zoom) - 1, 0, W - 1), x1 = clamp(tileOf(cam.x + vw / 2 / zoom) + 1, 0, W - 1);
     const y0 = clamp(tileOf(cam.y - vh / 2 / zoom) - 1, 0, H - 1), y1 = clamp(tileOf(cam.y + vh / 2 / zoom) + 1, 0, H - 1);
     const now = performance.now() / 1000;
@@ -1027,6 +1133,13 @@
         if (r && (!r.sealed || r.o2 < 0.5) && Math.sin(now * 6 + i * 0.7) > 0.5) { ctx.fillStyle = 'rgba(255,92,92,0.1)'; ctx.fillRect(px, py, T, T); }
       }
       if (minable(t)) ctx.drawImage(SPR[t === ICE ? 'ice' : t === ORE ? 'ore' : 'rock'], px, py, T, T);
+    }
+    // room names painted on the floor
+    ctx.font = '22px VT323, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const [lx, ly, text] of g.labels || []) {
+      const i = idx(Math.floor(lx), Math.floor(ly));
+      if (!floor[i]) continue;
+      ctx.fillStyle = 'rgba(255,230,0,0.16)'; ctx.fillText(text, lx * T + T / 2, ly * T + T / 2);
     }
     const crack = (tile, prog) => {
       const c = center(tile), f = prog / Math.max(1, tileHp[tile]);
@@ -1119,6 +1232,47 @@
       for (const e of enemies) { const sx = (e.x - cam.x) * zoom + vw / 2, sy = (e.y - cam.y) * zoom + vh / 2; ctx.beginPath(); ctx.arc(sx, sy, (e.kind === 'brute' ? 4 : 3) * zoom, 0, Math.PI * 2); ctx.fill(); }
     }
     if (flash > 0) { ctx.fillStyle = `rgba(255,107,107,${flash})`; ctx.fillRect(0, 0, vw, vh); }
+    // low air: a pulsing red edge
+    const air = p.oxy / (g.suit ? 250 : 100);
+    if (air < 0.3) {
+      const a = (0.3 - air) / 0.3 * (0.45 + 0.25 * Math.sin(now * 6));
+      const grad = ctx.createRadialGradient(vw / 2, vh / 2, Math.min(vw, vh) * 0.35, vw / 2, vh / 2, Math.max(vw, vh) * 0.7);
+      grad.addColorStop(0, 'rgba(255,40,40,0)'); grad.addColorStop(1, `rgba(255,40,40,${a})`);
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, vw, vh);
+    }
+    drawMinimap();
+  }
+
+  // ---------- minimap ----------
+  const mini = document.getElementById('minimap'), mctx = mini.getContext('2d');
+  const mbase = document.createElement('canvas'); mbase.width = W; mbase.height = H;
+  const mbctx = mbase.getContext('2d');
+  function paintMinimapBase() {
+    const img = mbctx.createImageData(W, H), d = img.data;
+    const col = { [SPACE]: [5, 7, 13], [GROUND]: [30, 37, 56], [ROCK]: [86, 97, 128], [ICE]: [43, 123, 147], [ORE]: [160, 140, 0] };
+    for (let i = 0; i < W * H; i++) {
+      let c = col[terrain[i]];
+      if (floor[i]) c = [60, 70, 100];
+      if (build[i]) c = B[build[i].type].seal ? [169, 179, 204] : [255, 230, 0];
+      d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255;
+    }
+    mbctx.putImageData(img, 0, 0);
+  }
+  function drawMinimap() {
+    if (mini.hidden) return;
+    mapTimer -= 1;
+    if (mapTimer <= 0) { mapTimer = 30; paintMinimapBase(); }
+    const s = mini.width / W;
+    mctx.imageSmoothingEnabled = false;
+    mctx.drawImage(mbase, 0, 0, mini.width, mini.height);
+    const dot = (x, y, c, r) => { mctx.fillStyle = c; mctx.fillRect(x / T * s - r / 2, y / T * s - r / 2, r, r); };
+    for (const pod of g.pods) dot(pod.x, pod.y, '#ff9b3d', 4);
+    for (const m of g.crew) dot(m.x, m.y, '#6fd3ee', 4);
+    for (const e of enemies) dot(e.x, e.y, '#ff5c5c', 4);
+    dot(g.player.x, g.player.y, '#ffffff', 5);
+    const vw = innerWidth / zoom / T * s, vh = innerHeight / zoom / T * s;
+    mctx.strokeStyle = 'rgba(255,230,0,0.6)'; mctx.lineWidth = 1;
+    mctx.strokeRect(cam.x / T * s - vw / 2, cam.y / T * s - vh / 2, vw, vh);
   }
 
   function spriteFor(type, b) {
@@ -1173,7 +1327,7 @@
     }
     const help = mode === 'build'
       ? 'BUILD &middot; click or drag to build &middot; right-click or drag to remove (half back) &middot; 1&ndash;4 pick &middot; Tab next tab &middot; B / Esc leave'
-      : 'WASD move &middot; Shift sprint &middot; 1&ndash;6 hold &middot; click use &middot; E interact &middot; F eat &middot; I inventory &middot; B build &middot; Esc pause';
+      : 'WASD move &middot; Shift sprint &middot; 1&ndash;6 hold &middot; click use &middot; E interact &middot; F eat &middot; I inventory &middot; B build &middot; M map &middot; N sound &middot; Esc pause';
     const key = tabs + html + help;
     if (key === barKey || panelHeld) return;     // only touch the DOM when something changed
     barKey = key;
@@ -1253,7 +1407,7 @@
       if (d.use && !(b.type === 'lamp' && daylight() > 0.6)) text += `<br>${b.on ? 'Powered' : '<span class="warn">No power</span>'}`;
       if (b.type === 'farm') text += `<br>${b.grow >= 1 ? 'Ripe: press E' : b.air ? `Growing ${Math.floor(b.grow * 100)}%` : '<span class="warn">Needs air</span>'}`;
       if (b.type === 'o2tank') text += `<br>Air stored ${Math.round(b.air * 100)}%`;
-      if (b.type === 'o2gen' && !b.making) text += '<br><span class="warn">Not making air</span>';
+      if (b.type === 'o2gen') text += b.idle ? '<br>Standing by: air is full' : b.making ? '<br>Making air' : '<br><span class="warn">Not making air</span>';
       if (d.station && b.queue.length) text += `<br>${b.queue.length} queued`;
       if (b.type === 'crate') text += `<br>Storage ${storeUsed()}/${storeCap()}`;
       if (USABLE.includes(b.type) && b.type !== 'farm' && b.type !== 'drill') text += '<br><span class="muted">E to open</span>';
@@ -1314,6 +1468,7 @@
     running = true; paused = false; barKey = '';
     setMode('play'); closePanel(); toggleInventory(false);
     $('log').innerHTML = g.log.map((l) => `<li class="${l.kind}">${esc(l.msg)}</li>`).join('');
+    mapTimer = 0;
   }
   function pause(on) {
     if (!running) return;
@@ -1380,7 +1535,17 @@
     if (e.code === 'KeyE') interact();
     if (e.code === 'KeyF') eat();
     if (e.code === 'KeyI') toggleInventory();
+    if (e.code === 'KeyM') mini.hidden = !mini.hidden;
+    if (e.code === 'KeyN') setMuted(!muted);
   });
+  function setMuted(on) {
+    muted = on;
+    try { localStorage.setItem('stationfall-mute', on ? '1' : '0'); } catch { /* ignore */ }
+    $('sound').textContent = on ? 'SOUND OFF' : 'SOUND ON';
+  }
+  $('sound').addEventListener('click', () => { startAudio(); setMuted(!muted); });
+  addEventListener('pointerdown', startAudio);
+  addEventListener('keydown', startAudio);
   addEventListener('keyup', (e) => keys.delete(e.code));
   addEventListener('blur', () => { keys.clear(); mouse.left = mouse.right = false; if (running && !paused) pause(true); });
   canvas.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
@@ -1407,6 +1572,7 @@
   $('inv-close').addEventListener('click', () => toggleInventory(false));
 
   // ---------- boot ----------
+  setMuted(muted);
   resize();
   buildHud();
   const best = Number(localStorage.getItem(BEST_KEY) || 0);

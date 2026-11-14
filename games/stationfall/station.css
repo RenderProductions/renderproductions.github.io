@@ -199,3 +199,9 @@ body::after {
   .window { right: 14px; }
   .res { gap: 10px; }
 }
+
+.snd { pointer-events: auto; cursor: pointer; background: none; border: 1px solid var(--line); color: var(--grey); font: 600 10px var(--mono); letter-spacing: 1px; padding: 4px 8px; }
+.snd:hover { color: var(--bright); border-color: var(--bright); }
+.minimap { position: fixed; right: 14px; bottom: 96px; z-index: 4; width: 176px; height: 176px; border: 1px solid var(--line-strong); background: #05070d; image-rendering: pixelated; }
+.minimap[hidden] { display: none; }
+@media (max-height: 760px) { .minimap { width: 128px; height: 128px; } }
