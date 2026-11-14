@@ -11,6 +11,7 @@ import * as sessions from '../core/sessions';
 import { load as loadMarket, nudge, quote } from '../market/market';
 import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay, type Career } from './jobs';
 import { isRight, makeTask, type Task } from './tasks';
+import { takeItem, useEffect } from '../shop/inventory';
 
 export const KIND = 'work';
 
@@ -65,10 +66,15 @@ export function startTask(ctx: Ctx, o: { mode: 'work' | 'gig'; ticker: string | 
   const c = m?.companies.find((x) => x.id === o.ticker && x.history?.length > 13);
   const priceHistory = c ? { ticker: c.id, hourAgo: c.history[c.history.length - 13]!, now: c.history[c.history.length - 1]! } : undefined;
   const task = makeTask(o.style, ctx.rng, { rush: rush > 0, tier: o.tier ?? 0, priceHistory, kind: TUNING.kind });
+  // A Stopwatch charge: 10 extra seconds on a regular shift
+  let intro = o.intro ? o.intro + '\n' : '';
+  if (o.mode === 'work' && rush === 0 && ctx.guildId && useEffect(ctx.db, ctx.guildId, ctx.user.id, 'stopwatch')) {
+    task.limitSec += 10;
+    intro += '-# Stopwatch: 10 extra seconds.\n';
+  }
   const hide = task.hideMs ?? 0;
   const state: WorkState = { mode: o.mode, ticker: o.ticker, style: o.style, rush, tier: o.tier ?? 0, task, startedAt: ctx.now + hide, pressed: [] };
   const s = sessions.create(ctx.db, { kind: KIND, guildId: ctx.guildId, channelId: ctx.channelId, userId: ctx.user.id, state, ttlMs: JOB_RULES.abandonMs + hide, now: ctx.now });
-  const intro = o.intro ? o.intro + '\n' : '';
   const timer = `-# Time limit: ${task.limitSec} seconds.${task.steps ? ' Press them in order, or type them separated by spaces.' : ' Press a button or type the answer.'}`;
   const buttons = buttonsFor(s.id, task);
   if (hide) return { content: `${intro}${task.prompt}`, buttons: [], session: s.id, later: { ms: hide, edit: { content: `${intro}${task.hidden}\n${timer}`, buttons } } };
@@ -115,6 +121,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
     pay = result === 'pass' ? Math.round(pay * JOB_RULES.rushShare) : 0;
   } else {
     if (result !== 'pass') pay = Math.round(pay * JOB_RULES.missShare);
+    if (useEffect(ctx.db, guildId, ctx.user.id, 'overtime')) { pay *= 2; extras.push('Overtime: pay doubled'); }
     const boost = m?.boost as { tickers?: string[] } | null | undefined;
     if (boost && (!boost.tickers?.length || boost.tickers.includes(ticker))) { pay *= 2; extras.push('Market boom: pay doubled'); }
     tip = Math.round(pay * speed);
@@ -150,6 +157,8 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
           reviewBonus = payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: Math.round(JOB_RULES.basePay * RANK_PAY[3] * JOB_RULES.review.topBonusShifts), reason: 'work.review', guildId, actorId: ctx.user.id, now: ctx.now });
           next.earned += reviewBonus; outcome = 'bonus';
           review = `**Performance review: ${score}/10.** Outstanding. A bonus of ${format(reviewBonus)} has been paid.`;
+        } else if (score <= JOB_RULES.review.demote && career.rank > 0 && takeItem(ctx.db, guildId, ctx.user.id, 'reference')) {
+          review = `**Performance review: ${score}/10.** A demotion was due, but your Reference Letter prevented it. You remain ${rankName(ticker, career.rank)}.`;
         } else if (score <= JOB_RULES.review.demote && career.rank > 0) {
           next.rank = career.rank - 1; outcome = 'demoted';
           review = `**Performance review: ${score}/10.** Demoted to ${rankName(ticker, next.rank)}. Pay multiplier: ${RANK_PAY[clampRank(next.rank)]}×.`;
@@ -221,7 +230,11 @@ export function onText(ctx: Ctx, s: sessions.Session<WorkState>, text: string): 
 // ---------------------------------------------------------------- layoffs
 
 /** A bankrupt company lays its staff off with severance. Returns the message. */
-export function layOff(ctx: Ctx, guildId: string, ticker: string): string {
+export function layOff(ctx: Ctx, guildId: string, ticker: string): string | null {
+  if (takeItem(ctx.db, guildId, ctx.user.id, 'hardhat')) {
+    ctx.notes.push(`${COMPANIES[ticker]?.name ?? ticker} is bankrupt and laying staff off. Your Hard Hat kept you on the payroll.`);
+    return null;
+  }
   const career = careerOf(ctx, guildId, ticker);
   const cents = Math.round(JOB_RULES.basePay * RANK_PAY[clampRank(career.rank)] * JOB_RULES.severanceShifts);
   const paid = ctx.db.tx(() => {

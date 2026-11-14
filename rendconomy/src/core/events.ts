@@ -12,8 +12,10 @@ export interface GameEvents {
   'work.laidoff': { guildId: string; userId: string; ticker: string; cents: number };
   'dividends.claimed': { guildId: string; userId: string; cents: number };
   'savings.matured': { guildId: string; userId: string; cents: number };
+  'stock.insured': { guildId: string; userId: string; ticker: string; shares: number };
   'stock.wiped': { guildId: string; userId: string; ticker: string; shares: number };
   'achievement.unlocked': { guildId: string | null; userId: string; id: string };
+  'shop.bought': { guildId: string; userId: string; item: string; qty: number; cents: number };
   'gift.sent': { guildId: string; fromId: string; toId: string; cents: number };
   'mod.action': { guildId: string; modId: string; action: string; targetId?: string; cents?: number; reason?: string };
 }

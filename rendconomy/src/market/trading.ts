@@ -4,6 +4,7 @@
 import type { Db } from '../core/db';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
+import { takeItem } from '../shop/inventory';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
 import { closedReason, quote, type Quote } from './market';
@@ -22,6 +23,12 @@ export function sharesOf(db: Db, m: MarketData, guildId: string, userId: string,
   if (!h) return 0;
   const wipes = quote(m, ticker)?.wipes ?? 0;
   if (wipes > h.wipes_seen) {
+    // An Insurance Policy saves the shares in one company from a wipe
+    if (h.shares > 0 && takeItem(db, guildId, userId, 'insurance')) {
+      db.run('UPDATE holdings SET wipes_seen = ? WHERE guild_id = ? AND user_id = ? AND ticker = ?', wipes, guildId, userId, ticker);
+      emit('stock.insured', { guildId, userId, ticker, shares: h.shares });
+      return h.shares;
+    }
     if (h.shares > 0) emit('stock.wiped', { guildId, userId, ticker, shares: h.shares });
     db.tx(() => {
       db.run('UPDATE holdings SET shares = 0, wipes_seen = ? WHERE guild_id = ? AND user_id = ? AND ticker = ?', wipes, guildId, userId, ticker);

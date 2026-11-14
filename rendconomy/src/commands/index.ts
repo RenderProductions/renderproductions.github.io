@@ -8,12 +8,13 @@ import { makeHelp, ping } from './general';
 import { history } from './history';
 import { buy, chart, dividends, market, portfolio, sell } from './market';
 import { reserve } from './reserve';
+import { cleartitle, inventory, purchase, settitle, shop, use } from './shop';
 import { gift, leaderboard, savings } from './social';
 import { apply, gig, job, quit, work } from './work';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, balance, history, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, buy, sell, portfolio, dividends, reserve, ping, give, take, freeze, unfreeze, wipe, importAchievements, makeHelp(() => commands));
+commands.push(daily, balance, history, shop, purchase, inventory, use, settitle, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, buy, sell, portfolio, dividends, reserve, ping, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, makeHelp(() => commands));
 
 installAchievementListeners();
 

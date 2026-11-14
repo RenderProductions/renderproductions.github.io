@@ -9,6 +9,7 @@ import { GameError } from '../core/errors';
 import { emit } from '../core/events';
 import { me } from './shared';
 import { netWorth, savingsTotal } from '../social/worth';
+import { timedUntil } from '../shop/inventory';
 import type { Command } from './types';
 
 const pct = (n: number) => `${n >= 0 ? '▲' : '▼'} ${Math.abs(n).toFixed(2)}%`;
@@ -136,7 +137,8 @@ export const dividends: Command = {
       const p = pendingDividends(ctx.db, m, guildId, ctx.user.id);
       const cents = Math.floor(p.total * 100 + 1e-9);
       ctx.db.run('UPDATE players SET div_pending = ? WHERE guild_id = ? AND user_id = ?', Math.max(0, p.total - cents / 100), guildId, ctx.user.id);
-      const paid = cents > 0 ? payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents, reason: 'dividends', guildId, actorId: ctx.user.id, now: ctx.now }) : 0;
+      const boosted = timedUntil(ctx.db, guildId, ctx.user.id, 'divBoost', ctx.now) > 0;
+      const paid = cents > 0 ? payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: boosted ? Math.round(cents * 1.5) : cents, reason: 'dividends', guildId, actorId: ctx.user.id, now: ctx.now }) : 0;
       if (paid > 0) emit('dividends.claimed', { guildId, userId: ctx.user.id, cents: paid });
       const lines = m.companies.map((c) => {
         const held = sharesOf(ctx.db, m, guildId, ctx.user.id, c.id);
@@ -145,6 +147,7 @@ export const dividends: Command = {
       }).filter(Boolean) as string[];
       return { embeds: [embed('market', 'Dividends', [
         paid > 0 ? `**${format(paid)}** has been collected.` : 'No dividends are due.',
+        paid > 0 && boosted ? 'Dividend Booster: +50%.' : null,
         paid > 0 && paid < cents ? 'The Polygon Reserve is low. Payouts are reduced.' : null,
         '',
         ...(lines.length ? lines : ['No shares held. Shares earn dividends from the moment they are bought.']),

@@ -10,6 +10,7 @@ import { embed } from '../discord/style';
 import { load as loadMarket } from '../market/market';
 import { SAVINGS, close, collect, deposit, interestOf, list } from '../social/savings';
 import { netWorth } from '../social/worth';
+import { charges, useEffect } from '../shop/inventory';
 import { guildOf, me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
 
@@ -44,18 +45,20 @@ export const gift: Command = {
     const cents = parseAmount(args.amount, { min: GIFT.min });
     const sent = giftedToday(ctx, guildId);
     if (sent + cents > GIFT.perDay) throw new GameError('gift.limit', `The daily gift limit is ${format(GIFT.perDay)}. Remaining today: ${format(Math.max(0, GIFT.perDay - sent))}.`);
-    const fee = Math.max(1, Math.round(cents * GIFT.fee));
+    const wrapped = charges(ctx.db, guildId, ctx.user.id, 'wrap') > 0;
+    const fee = wrapped ? 0 : Math.max(1, Math.round(cents * GIFT.fee));
     if (balance(ctx.db, from) < cents + fee) throw new GameError('funds.short', `A gift of ${format(cents)} costs ${format(cents + fee)} including the ${GIFT.fee * 100}% fee. The balance is ${format(balance(ctx.db, from))}.`);
     const note = String(args.note ?? '').trim().slice(0, 200);
     ctx.db.tx(() => {
       ensurePlayer(ctx.db, guildId, to, economy.startingCash, ctx.now);
       transfer(ctx.db, { from, to: wallet(guildId, to), cents, reason: 'gift', guildId, actorId: ctx.user.id, now: ctx.now, note: note ? { note } : undefined });
-      transfer(ctx.db, { from, to: RESERVE, cents: fee, reason: 'gift.fee', guildId, actorId: ctx.user.id, now: ctx.now });
+      if (fee > 0) transfer(ctx.db, { from, to: RESERVE, cents: fee, reason: 'gift.fee', guildId, actorId: ctx.user.id, now: ctx.now });
+      if (wrapped) useEffect(ctx.db, guildId, ctx.user.id, 'wrap');
     });
     emit('gift.sent', { guildId, fromId: ctx.user.id, toId: to, cents });
     return { embeds: [embed('social', 'Gift sent', [
       `<@${to}> received **${format(cents)}**.`,
-      `Fee: ${format(fee)}`,
+      wrapped ? 'Gift Wrap: no fee.' : `Fee: ${format(fee)}`,
       note && `Note: ${note}`,
       `Balance: ${format(balance(ctx.db, from))}`
     ])] };

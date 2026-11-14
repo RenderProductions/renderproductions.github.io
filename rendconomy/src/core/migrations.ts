@@ -151,5 +151,38 @@ export const MIGRATIONS: readonly string[] = [
     value   INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (user_id, key)
   );
+  `,
+
+  /* v7: Marquez's shop, inventories, item effects, profile titles. */ `
+  CREATE TABLE inventory (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    item     TEXT NOT NULL,
+    qty      INTEGER NOT NULL CHECK (qty >= 0),
+    PRIMARY KEY (guild_id, user_id, item)
+  );
+  -- Active item effects: a count (Overtime: 1 shift) and/or an end time (Dividend Booster: 24 hours).
+  CREATE TABLE effects (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    key      TEXT NOT NULL,
+    value    INTEGER NOT NULL DEFAULT 0,
+    until    INTEGER,
+    PRIMARY KEY (guild_id, user_id, key)
+  );
+  -- Stock is shared by every server.
+  CREATE TABLE shop_stock (
+    item  TEXT PRIMARY KEY,
+    stock INTEGER NOT NULL
+  );
+  -- One collectible per customer per week.
+  CREATE TABLE shop_buys (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    item     TEXT NOT NULL,
+    period   TEXT NOT NULL,
+    PRIMARY KEY (guild_id, user_id, item, period)
+  );
+  ALTER TABLE players ADD COLUMN title TEXT;
   `
 ];

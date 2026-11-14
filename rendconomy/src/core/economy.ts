@@ -24,6 +24,7 @@ export interface Player {
   hired_at: number | null;
   quit_at: number | null;
   name: string | null;
+  title: string | null;
 }
 
 /** Called once when a player's account is created in a server (inside the same transaction). */

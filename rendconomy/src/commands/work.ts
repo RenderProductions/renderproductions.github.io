@@ -7,6 +7,7 @@ import { load as loadMarket, quote } from '../market/market';
 import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay } from '../work/jobs';
 import { KIND, careerOf, layOff, startTask } from '../work/shift';
 import { guildOf, me } from './shared';
+import { takeItem } from '../shop/inventory';
 import type { Command, Ctx, SessionReply } from './types';
 
 const tickers = () => Object.keys(COMPANIES).join(', ');
@@ -29,7 +30,7 @@ export const work: Command = {
     if (!p.job) throw new GameError('work.nojob', `You do not have a job. Apply with \`${ctx.config.prefix}apply <ticker>\` (${tickers()}), or take a \`${ctx.config.prefix}gig\`.`);
     midTask(ctx);
     const m = loadMarket(ctx.db);
-    if (m?.statuses?.[p.job] === 'bankrupt') return layOff(ctx, guildId, p.job);
+    if (m?.statuses?.[p.job] === 'bankrupt') { const out = layOff(ctx, guildId, p.job); if (out) return out; }
     if (!takeCooldown(ctx.db, 'work', subject(ctx), JOB_RULES.workCooldownMs, ctx.now)) {
       const cd = cooldown(ctx.db, 'work', subject(ctx), ctx.now);
       throw new GameError('work.cooldown', `Your next shift is available ${discordTime(cd.until)}.`);
@@ -96,7 +97,9 @@ export const quit: Command = {
     const p = player;
     if (!p.job) throw new GameError('quit.nojob', 'You do not have a job.');
     const free = (p.hired_at ?? 0) + JOB_RULES.quitLockMs;
-    if (ctx.now < free) throw new GameError('quit.locked', `You were hired recently. You may quit ${discordTime(free)}.`);
+    if (ctx.now < free && !takeItem(ctx.db, guildId, ctx.user.id, 'resume')) {
+      throw new GameError('quit.locked', `You were hired recently. You may quit ${discordTime(free)}, or sooner with a Resume from Marquez.`);
+    }
     const career = careerOf(ctx, guildId, p.job);
     const s = sessions.create(ctx.db, { kind: 'quit', guildId, channelId: ctx.channelId, userId: ctx.user.id, state: { job: p.job }, ttlMs: 2 * 60_000, now: ctx.now });
     return {

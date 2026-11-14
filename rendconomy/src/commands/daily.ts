@@ -6,6 +6,7 @@ import { balance } from '../core/ledger';
 import { format } from '../core/money';
 import { checkDaily, dayKey, discordTime } from '../core/time';
 import { embed } from '../discord/style';
+import { useEffect } from '../shop/inventory';
 import { me } from './shared';
 import type { Command } from './types';
 
@@ -29,12 +30,14 @@ export const daily: Command = {
       );
       if (r.changes !== 1) throw new GameError('daily.claimed', "Today's allowance has already been collected.");
 
-      const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: economy.dailyAmount, reason: 'daily', guildId, actorId: ctx.user.id, now: ctx.now });
+      const twice = useEffect(ctx.db, guildId, ctx.user.id, 'dailyDouble'); // TODD's Floppy Disk
+      const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: economy.dailyAmount * (twice ? 2 : 1), reason: 'daily', guildId, actorId: ctx.user.id, now: ctx.now });
       emit('daily.claimed', { guildId, userId: ctx.user.id, streak: check.streak, cents: paid });
       return {
         embeds: [embed('wallet', 'Daily allowance', [
           `${format(paid)} has been deposited.`,
-          paid < economy.dailyAmount && 'The Polygon Reserve is low. Payouts are reduced.',
+          twice && 'DAILY_X2.BAT: this allowance is doubled.',
+          paid < economy.dailyAmount * (twice ? 2 : 1) && 'The Polygon Reserve is low. Payouts are reduced.',
           `Balance: **${format(balance(ctx.db, wallet))}**`,
           `Streak: ${check.streak} ${check.streak === 1 ? 'day' : 'days'}`,
           `Next allowance: ${discordTime(check.resetsAt)}`
