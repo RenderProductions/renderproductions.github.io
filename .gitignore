@@ -3,3 +3,9 @@ engine/node_modules/
 engine/.env
 engine/data/
 /node_modules/
+
+# RendConomy (rewrite): never commit secrets, installs, builds, or the database
+rendconomy/node_modules/
+rendconomy/dist/
+rendconomy/.env
+rendconomy/data/

@@ -1,0 +1,24 @@
+{
+  "name": "rendconomy",
+  "version": "2.0.0-dev",
+  "private": true,
+  "description": "RendConomy: the ground-up TypeScript rewrite of the Rend-Conomy Discord bot.",
+  "type": "commonjs",
+  "main": "dist/src/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "tsc && node --no-warnings=ExperimentalWarning dist/src/index.js",
+    "test": "tsc && node --no-warnings=ExperimentalWarning --test \"dist/test/**/*.test.js\""
+  },
+  "dependencies": {
+    "discord.js": "^14.28.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.6.0"
+  }
+}
