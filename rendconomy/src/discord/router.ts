@@ -2,7 +2,7 @@
 // and turns the results into Discord messages. Every interaction always gets a response, so Discord
 // never shows "This interaction failed".
 import {
-  ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, MessageFlags,
+  ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits, type PermissionsBitField,
   type ButtonInteraction, type ChatInputCommandInteraction, type Message, type RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js';
 import { commands, find } from '../commands';
@@ -122,11 +122,13 @@ function payload(r: ReplyObject) {
   return out;
 }
 
-function ctxFor(deps: Deps, guildId: string | null, channelId: string | null, user: { id: string; username: string; globalName?: string | null }): Ctx {
+function ctxFor(deps: Deps, guildId: string | null, channelId: string | null, user: { id: string; username: string; globalName?: string | null }, perms?: Readonly<PermissionsBitField> | null): Ctx {
+  const isOwner = deps.config.ownerIds.includes(user.id);
   return {
+    isMod: isOwner || !!perms?.has(PermissionFlagsBits.ManageGuild),
     db: deps.db, config: deps.config, rng: deps.rng, now: Date.now(), guildId, channelId,
     user: { id: user.id, name: user.globalName || user.username },
-    isOwner: deps.config.ownerIds.includes(user.id),
+    isOwner,
     notes: [],
     ping: deps.ping?.()
   };
@@ -155,7 +157,7 @@ async function clearButtons(msg: Message, sessionMessageId: string | null): Prom
 
 export async function onMessage(deps: Deps, msg: Message): Promise<void> {
   if (msg.author.bot) return;
-  const ctx = ctxFor(deps, msg.guildId, msg.channelId, msg.author);
+  const ctx = ctxFor(deps, msg.guildId, msg.channelId, msg.author, msg.member?.permissions);
   const parsed = parsePrefix(msg.content, deps.config.prefix);
 
   if (!parsed) {
@@ -182,14 +184,14 @@ export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promi
     else if (o.type === 'integer') args[o.name] = i.options.getInteger(o.name) ?? undefined;
     else args[o.name] = i.options.getString(o.name) ?? undefined;
   }
-  const reply = await execute(cmd, ctxFor(deps, i.guildId, i.channelId, i.user), args);
+  const reply = await execute(cmd, ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), args);
   const res = await i.reply({ ...payload(reply), ...(reply.ephemeral ? { flags: MessageFlags.Ephemeral as const } : {}), withResponse: true });
   const sent = res.resource?.message;
   if (sent) afterSend(deps, reply, sent, (p) => i.editReply(payload(p)));
 }
 
 export async function onButton(deps: Deps, i: ButtonInteraction): Promise<void> {
-  const r = press(ctxFor(deps, i.guildId, i.channelId, i.user), i.customId);
+  const r = press(ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), i.customId);
   if (r.update) await i.update(payload(r.update));
   else if (r.notice && !r.followUp) { await i.reply({ content: r.notice, flags: MessageFlags.Ephemeral }); return; }
   else await i.deferUpdate();

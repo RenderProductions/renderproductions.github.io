@@ -22,7 +22,7 @@ function setup() {
   const db = freshDb();
   tick(db, seededRng(9), noon);
   let now = noon;
-  const ctx = (user = 'u1', rng: Rng = seededRng(2)): Ctx => ({ db, config, rng, now, guildId: G, channelId: C, user: { id: user, name: user }, isOwner: false, notes: [] });
+  const ctx = (user = 'u1', rng: Rng = seededRng(2)): Ctx => ({ db, config, rng, now, guildId: G, channelId: C, user: { id: user, name: user }, isOwner: false, isMod: false, notes: [] });
   const run = (name: string, args: Record<string, string> = {}, user = 'u1', rng?: Rng) => execute(find(name)!, ctx(user, rng), args);
   const later = (ms: number) => { now += ms; };
   const pending = (user = 'u1') => sessions.active<WorkState>(db, KIND, G, user, now);
@@ -95,7 +95,7 @@ test('buttons survive a restart: the stored task is graded from the database', a
   TUNING.kind = undefined;
   const id = pending()!.id;
   // A "restarted bot": nothing in memory, just the database and the button's custom id
-  const freshCtx: Ctx = { db, config, rng: noRush, now: noon + 3000, guildId: G, channelId: C, user: { id: 'u1', name: 'u1' }, isOwner: false, notes: [] };
+  const freshCtx: Ctx = { db, config, rng: noRush, now: noon + 3000, guildId: G, channelId: C, user: { id: 'u1', name: 'u1' }, isOwner: false, isMod: false, notes: [] };
   const stored = sessions.get<WorkState>(db, id, noon)!;
   const r = press(freshCtx, sessions.buttonId(id, answerOf(stored.state)));
   assert.match(text(r.followUp), /Correct/);

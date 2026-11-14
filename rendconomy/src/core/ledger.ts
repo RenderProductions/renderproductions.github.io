@@ -11,7 +11,7 @@ import { assertCents, format, type Cents } from './money';
 export const RESERVE = 'reserve';
 export const wallet = (guildId: string, userId: string): string => `wallet:${guildId}:${userId}`;
 
-export type AccountKind = 'reserve' | 'wallet';
+export type AccountKind = 'reserve' | 'wallet' | 'savings';
 
 export interface Account {
   id: string;

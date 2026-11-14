@@ -10,6 +10,7 @@ export const COLORS: Record<System | 'error', number> = {
   market: 0x3498db,   // blue
   work: 0xe67e22,     // orange
   reserve: 0xd4a017,  // gold
+  admin: 0x95a5a6,    // grey
   error: 0xc0392b     // red
 };
 

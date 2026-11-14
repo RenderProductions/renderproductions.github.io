@@ -23,7 +23,10 @@ export interface Ctx {
   guildId: string | null;
   channelId: string | null;
   user: { id: string; name: string };
+  /** Bot owner (OWNER_IDS). */
   isOwner: boolean;
+  /** Has Manage Server in this server (or is a bot owner). */
+  isMod: boolean;
   /** Extra lines the router adds to the reply (e.g. "Account opened"). */
   notes: string[];
   /** Websocket ping, when known. */
@@ -66,7 +69,7 @@ export interface SessionReply {
 export type Reply = string | ReplyObject;
 
 /** Which part of the bot a command belongs to: decides its embed color and where /help lists it. */
-export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve';
+export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve' | 'admin';
 
 export interface Command {
   name: string;

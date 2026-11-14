@@ -1,4 +1,5 @@
 // Every command. Add new ones here.
+import { freeze, give, take, unfreeze, wipe } from './admin';
 import { balance } from './balance';
 import { daily } from './daily';
 import { makeHelp, ping } from './general';
@@ -9,7 +10,7 @@ import { apply, gig, job, quit, work } from './work';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, balance, history, work, gig, apply, quit, job, market, buy, sell, portfolio, reserve, ping, makeHelp(() => commands));
+commands.push(daily, balance, history, work, gig, apply, quit, job, market, buy, sell, portfolio, reserve, ping, give, take, freeze, unfreeze, wipe, makeHelp(() => commands));
 
 /** Finds a command by name or alias (case-insensitive). */
 export function find(name: string): Command | undefined {

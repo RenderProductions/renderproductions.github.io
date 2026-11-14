@@ -11,6 +11,7 @@ import { HOUR, pruneCooldowns } from './core/time';
 import { onButton, onMessage, onSlash, slashBody, type Deps } from './discord/router';
 import { prune as pruneSessions } from './core/sessions';
 import * as market from './market/market';
+import { on } from './core/events';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -53,6 +54,15 @@ async function main(): Promise<void> {
       console.error(`[${config.name}] could not register slash commands:`, e);
     }
   });
+  // Moderator actions go to the mod log channel, if one is set
+  on('mod.action', (e) => {
+    if (!config.modLogChannelId) return;
+    const text = `**${e.action}** by <@${e.modId}>${e.targetId ? ` on <@${e.targetId}>` : ''}${e.cents ? `: ${format(e.cents)}` : ''}${e.reason ? `\nReason: ${e.reason}` : ''}`;
+    client.channels.fetch(config.modLogChannelId)
+      .then(async (ch) => { if (ch && ch.isSendable()) await ch.send({ content: text, allowedMentions: { parse: [] } }); })
+      .catch((err: unknown) => console.error('[mod log]', err));
+  });
+
   client.on(Events.MessageCreate, (m) => { onMessage(deps, m).catch((e) => console.error('[message]', e)); });
   client.on(Events.InteractionCreate, (i) => {
     if (i.isChatInputCommand()) onSlash(deps, i).catch((e) => console.error('[slash]', e));

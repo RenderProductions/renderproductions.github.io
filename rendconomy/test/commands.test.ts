@@ -15,7 +15,7 @@ const db = freshDb();
 const config = { ...botConfig(), prefix: 'r!' };
 
 function ctx(userId: string, now: number, guildId: string | null = G): Ctx {
-  return { db, config, rng: seededRng(1), now, guildId, channelId: 'chan1', user: { id: userId, name: userId }, isOwner: false, notes: [] };
+  return { db, config, rng: seededRng(1), now, guildId, channelId: 'chan1', user: { id: userId, name: userId }, isOwner: false, isMod: false, notes: [] };
 }
 async function run(line: string, userId = 'alice', now = eastern('2026-11-13T22:00', -5), guildId: string | null = G): Promise<ReplyObject> {
   const p = parsePrefix(line, 'r!');
@@ -70,7 +70,8 @@ test('server-only commands are refused in DMs', async () => {
 
 test('help lists every command', async () => {
   const t = text(await run('r!help'));
-  for (const c of commands) assert.ok(t.includes(`/${c.name}`), `help is missing ${c.name}`);
+  for (const c of commands.filter((x) => x.system !== 'admin')) assert.ok(t.includes(`/${c.name}`), `help is missing ${c.name}`);
+  assert.ok(!t.includes('/wipe'), 'moderator commands are hidden from players');
 });
 
 test('prefix parsing', () => {

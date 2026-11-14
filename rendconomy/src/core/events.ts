@@ -10,6 +10,7 @@ export interface GameEvents {
   'work.review': { guildId: string; userId: string; ticker: string; score: number; outcome: 'promoted' | 'bonus' | 'kept' | 'demoted'; rank: number };
   'work.gig': { guildId: string; userId: string; result: 'pass' | 'wrong' | 'slow'; cents: number };
   'work.laidoff': { guildId: string; userId: string; ticker: string; cents: number };
+  'mod.action': { guildId: string; modId: string; action: string; targetId?: string; cents?: number; reason?: string };
 }
 
 type Listener<K extends keyof GameEvents> = (e: GameEvents[K]) => void;

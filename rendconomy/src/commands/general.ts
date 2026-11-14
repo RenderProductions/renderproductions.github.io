@@ -10,7 +10,7 @@ export const ping: Command = {
   }
 };
 
-const SECTIONS: Record<System, string> = { wallet: 'Wallet', market: 'Stock market', work: 'Work', reserve: 'The Reserve', general: 'General' };
+const SECTIONS: Record<System, string> = { wallet: 'Wallet', market: 'Stock market', work: 'Work', reserve: 'The Reserve', general: 'General', admin: 'Moderators' };
 
 /** Built from the command list, so it can never fall out of date. */
 export function makeHelp(list: () => Command[]): Command {
@@ -22,10 +22,11 @@ export function makeHelp(list: () => Command[]): Command {
       const p = ctx.config.prefix;
       const groups = new Map<System, string[]>();
       for (const c of list()) {
+        if (c.system === 'admin' && !ctx.isMod) continue;
         const line = `\`/${c.name}\`${c.aliases?.length ? ` (${c.aliases.map((a) => p + a).join(', ')})` : ''}: ${c.description}`;
         groups.set(c.system, [...(groups.get(c.system) ?? []), line]);
       }
-      const order: System[] = ['wallet', 'work', 'market', 'reserve', 'general'];
+      const order: System[] = ['wallet', 'work', 'market', 'reserve', 'general', 'admin'];
       const lines = order.filter((s) => groups.has(s)).flatMap((s) => [`**${SECTIONS[s]}**`, ...groups.get(s)!, '']);
       return {
         embeds: [embed('general', `${ctx.config.name} commands`, [
