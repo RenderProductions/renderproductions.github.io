@@ -1,0 +1,62 @@
+{
+ "updated": "2026-11-14T03:35:02.668Z",
+ "companies": [],
+ "closed": [],
+ "levels": [
+  {
+   "name": "Startup",
+   "cost": 2500,
+   "upkeep": 25,
+   "payMult": 1
+  },
+  {
+   "name": "Small Business",
+   "cost": 5000,
+   "upkeep": 50,
+   "payMult": 1.1
+  },
+  {
+   "name": "Firm",
+   "cost": 12000,
+   "upkeep": 100,
+   "payMult": 1.2
+  },
+  {
+   "name": "Corporation",
+   "cost": 30000,
+   "upkeep": 200,
+   "payMult": 1.35
+  },
+  {
+   "name": "Conglomerate",
+   "cost": 75000,
+   "upkeep": 400,
+   "payMult": 1.5
+  }
+ ],
+ "reserve": {
+  "polygons": 24997484.37,
+  "start": 25000000,
+  "level": 1,
+  "payouts": 1
+ },
+ "bot": {
+  "servers": 1,
+  "players": 1,
+  "polygons": 2515.63,
+  "shifts": 0,
+  "bets": 1,
+  "wagered": 25,
+  "companies": 0,
+  "commands": 65,
+  "online": "2026-11-14T03:32:46.602Z",
+  "status": "idle",
+  "activity": "Start a company: r!found"
+ },
+ "rules": {
+  "ipoLevel": 3,
+  "listingFee": 2000,
+  "float": 400,
+  "founding": 2500
+ }
+}
