@@ -14,6 +14,9 @@ import * as market from './market/market';
 import { on } from './core/events';
 import { startPublishing } from './site/publish';
 import { setNotifier } from './market/schemes';
+import { setLotteryAnnouncer } from './commands/extras';
+import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
+import { runInRequest } from './core/request';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -48,7 +51,27 @@ async function main(): Promise<void> {
   console.log(`[${config.name}] market running (${market.TICKERS.join(', ')})`);
 
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
-  const deps: Deps = { db, config, rng, ping: () => client.ws.ping };
+  const deps: Deps = {
+    db, config, rng, ping: () => client.ws.ping, botId: () => client.user?.id,
+    // Ordinary chat: TODD drop-in answers, chat pay, and sometimes a new drop-in
+    onChat: async (ctx, msg) => {
+      const won = runInRequest({ db, guildId: ctx.guildId, userId: ctx.user.id, now: ctx.now, notes: ctx.notes }, () => db.tx(() => {
+        const exists = db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', ctx.guildId, ctx.user.id);
+        const w = exists ? answerDrop(ctx, msg.content) : null;
+        if (exists) chatPay(ctx, msg.content);
+        return w;
+      }));
+      if (won) { await msg.reply({ content: [won, ...ctx.notes].join('\n'), allowedMentions: { parse: [] } }); return; }
+      const ch = msg.channel;
+      const everyone = msg.guild?.roles.everyone;
+      const open = !!everyone && 'permissionsFor' in ch && !!ch.permissionsFor(everyone)?.has(['ViewChannel', 'SendMessages']);
+      if (!open || !ctx.guildId || !shouldDrop(db, ctx.guildId, msg.channelId, ctx.now, rng)) return;
+      const drop = startDrop(market.load(db), ctx.guildId, msg.channelId, ctx.now, rng);
+      if (!ch.isSendable()) return;
+      await ch.send({ embeds: [{ author: { name: 'TODD has entered the chat' }, title: 'DROP-IN', color: 0x38e1ff, description: `${drop.q}\n\nFirst right answer wins **${format(drop.pot)}**. You have 60 seconds.` }], allowedMentions: { parse: [] } });
+      setTimeout(() => { if (expireDrop(msg.channelId, drop) && ch.isSendable()) ch.send({ content: `Time is up. The answer was **${drop.shown}**. TODD keeps the Polygons.`, allowedMentions: { parse: [] } }).catch(() => {}); }, 60_000).unref();
+    }
+  };
 
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);
@@ -56,6 +79,11 @@ async function main(): Promise<void> {
     setNotifier((_g, userId, text) => {
       if (db.meta(`receipts.off:${userId}`) === '1') return;
       c.users.fetch(userId).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+    });
+    setLotteryAnnouncer((guildId, text) => {
+      const chId = db.meta(`lottery.channel:${guildId}`);
+      if (!chId) return;
+      c.channels.fetch(chId).then(async (ch) => { if (ch && ch.isSendable()) await ch.send({ content: text, allowedMentions: { users: [] } }); }).catch(() => {});
     });
     startPublishing(db, config, {
       serverName: (id) => c.guilds.cache.get(id)?.name ?? null,

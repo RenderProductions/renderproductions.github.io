@@ -16,7 +16,7 @@ import { runInRequest } from '../core/request';
 import * as sessions from '../core/sessions';
 import { COLORS } from './style';
 
-export interface Deps { db: Db; config: BotConfig; rng: Rng; ping?: () => number }
+export interface Deps { db: Db; config: BotConfig; rng: Rng; ping?: () => number; botId?: () => string | undefined; onChat?: (ctx: Ctx, msg: Message) => Promise<void> }
 
 const errorReply = (e: unknown, where: string): ReplyObject => {
   if (isGameError(e)) return { embeds: [{ color: COLORS.error, description: e.message }], ephemeral: true };
@@ -142,7 +142,8 @@ function ctxFor(deps: Deps, guildId: string | null, channelId: string | null, us
     user: { id: user.id, name: user.globalName || user.username },
     isOwner,
     notes: [],
-    ping: deps.ping?.()
+    ping: deps.ping?.(),
+    botId: deps.botId?.()
   };
 }
 
@@ -185,7 +186,7 @@ export async function onMessage(deps: Deps, msg: Message): Promise<void> {
   if (!parsed) {
     // Not a command: maybe a typed answer to a task waiting in this channel
     const t = typedAnswer(ctx, msg.content);
-    if (!t) return;
+    if (!t) { if (deps.onChat && msg.guildId) await deps.onChat(ctx, msg); return; }
     await clearButtons(msg, t.session.message_id);
     const sent = await msg.reply(payload(t.reply));
     afterSend(deps, t.reply, sent, (p) => sent.edit(payload(p)));
@@ -193,13 +194,16 @@ export async function onMessage(deps: Deps, msg: Message): Promise<void> {
   }
   if ('unknown' in parsed) return; // stay quiet about unknown commands in chat
   const reply = await execute(parsed.cmd, ctx, parsed.args);
+  if (reply.deleteTrigger) msg.delete().catch(() => { /* no Manage Messages */ });
+  if (reply.dm) msg.author.send({ content: reply.dm, allowedMentions: { parse: [] } }).catch(() => { /* DMs closed */ });
+  if (reply.silent) return;
   const sent = await msg.reply(payload(reply));
   afterSend(deps, reply, sent, (p) => sent.edit(payload(p)));
 }
 
 export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promise<void> {
   const cmd = find(i.commandName);
-  if (!cmd) { await i.reply({ content: 'This command is no longer available.', flags: MessageFlags.Ephemeral }); return; }
+  if (!cmd || cmd.hidden) { await i.reply({ content: 'This command is no longer available.', flags: MessageFlags.Ephemeral }); return; }
   const args: Args = {};
   for (const o of cmd.options ?? []) {
     if (o.type === 'user') args[o.name] = i.options.getUser(o.name)?.id;
@@ -228,7 +232,7 @@ const TYPES = { string: ApplicationCommandOptionType.String, integer: Applicatio
 
 /** The slash command definitions Discord needs. */
 export function slashBody(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-  return commands.map((c) => ({
+  return commands.filter((c) => !c.hidden).map((c) => ({
     name: c.name,
     description: c.description.slice(0, 100),
     dm_permission: !c.guildOnly,

@@ -22,7 +22,7 @@ export function makeHelp(list: () => Command[]): Command {
       const p = ctx.config.prefix;
       const groups = new Map<System, string[]>();
       for (const c of list()) {
-        if (c.system === 'admin' && !ctx.isMod) continue;
+        if (c.hidden || (c.system === 'admin' && !ctx.isMod)) continue;
         const line = `\`/${c.name}\`${c.aliases?.length ? ` (${c.aliases.map((a) => p + a).join(', ')})` : ''}: ${c.description}`;
         groups.set(c.system, [...(groups.get(c.system) ?? []), line]);
       }

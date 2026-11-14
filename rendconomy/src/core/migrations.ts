@@ -277,5 +277,24 @@ export const MIGRATIONS: readonly string[] = [
     opened_at INTEGER NOT NULL,
     PRIMARY KEY (guild_id, user_id, ticker)
   );
+  `,
+
+  /* v12: the weekly lottery (one per server), and chat pay counters. */ `
+  CREATE TABLE lottery (
+    guild_id TEXT NOT NULL,
+    draw     TEXT NOT NULL,                -- the Sunday it's drawn on, YYYY-MM-DD
+    user_id  TEXT NOT NULL,
+    tickets  INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, draw, user_id)
+  );
+  CREATE TABLE chat_pay (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    day      TEXT NOT NULL,
+    paid     INTEGER NOT NULL DEFAULT 0,
+    last_at  INTEGER NOT NULL DEFAULT 0,
+    last_text TEXT,
+    PRIMARY KEY (guild_id, user_id)
+  );
   `
 ];

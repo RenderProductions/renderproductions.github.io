@@ -72,7 +72,7 @@ test('server-only commands are refused in DMs', async () => {
 
 test('help lists every command', async () => {
   const t = text(await run('r!help'));
-  for (const c of commands.filter((x) => x.system !== 'admin')) assert.ok(t.includes(`/${c.name}`), `help is missing ${c.name}`);
+  for (const c of commands.filter((x) => x.system !== 'admin' && !x.hidden)) assert.ok(t.includes(`/${c.name}`), `help is missing ${c.name}`);
   assert.ok(!t.includes('/wipe'), 'moderator commands are hidden from players');
 });
 
@@ -88,7 +88,7 @@ test('prefix parsing', () => {
 
 test('slash definitions are valid for Discord', () => {
   const body = slashBody();
-  assert.equal(body.length, commands.length);
+  assert.equal(body.length, commands.filter((c) => !c.hidden).length);
   for (const c of body) {
     assert.match(c.name, /^[a-z0-9_-]{1,32}$/);
     assert.ok(c.description.length > 0 && c.description.length <= 100);

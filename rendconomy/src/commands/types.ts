@@ -29,6 +29,8 @@ export interface Ctx {
   isMod: boolean;
   /** Extra lines the router adds to the reply (e.g. "Account opened"). */
   notes: string[];
+  /** The bot's own user id, when known. */
+  botId?: string;
   /** Websocket ping, when known. */
   ping?: number;
 }
@@ -55,6 +57,12 @@ export interface ReplyObject {
   session?: string;
   /** Edit the message after a delay (memory tasks hide their prompt). */
   later?: { ms: number; edit: ReplyObject };
+  /** Send this to the player by DM (instead of, or as well as, the reply). */
+  dm?: string;
+  /** Post nothing in the channel (a secret). */
+  silent?: boolean;
+  /** Delete the message that ran the command (prefix commands; needs Manage Messages). */
+  deleteTrigger?: boolean;
   /** Keep editing the message every `everyMs` until next() returns null (the Rocket's live multiplier). */
   live?: { everyMs: number; next: () => ReplyObject | null };
 }
@@ -79,6 +87,8 @@ export interface Command {
   system: System;
   aliases?: string[];
   options?: Option[];
+  /** Prefix-only and left out of /help and the slash command list (secrets). */
+  hidden?: boolean;
   /** Needs a server (balances are per server). Refused in DMs. */
   guildOnly?: boolean;
   run(ctx: Ctx, args: Args): Reply | Promise<Reply>;
