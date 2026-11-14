@@ -159,7 +159,11 @@ function buy(db, { guildId, user, ticker, n }) {
   const available = RULES.float - sharesHeld(db, ticker);
   if (available <= 0) return { error: `Every public share of ${ticker} is owned right now. Wait for someone to sell.` };
   if (n > available) return { error: `Only ${available} shares of ${ticker} are available right now.` };
-  const priceCents = Math.round(c.price * 100);
+  // Fill at the average of the price before and after the order moves it, rounded up, so buying and
+  // selling straight back can never make money (it used to fill at the old price and then raise it).
+  // The new price isn't rounded to cents: rounding each tiny step up let one-share buys creep it up
+  const price = c.price * (1 + RULES.impact * n / RULES.float);
+  const priceCents = Math.ceil((c.price + price) / 2 * 100);
   const cost = n * priceCents;
   const p = db.player(guildId, user);
   if (p.cash < cost) return { error: `Not enough Polygons. That order costs ${amt(cost)} and you have ${have(p.cash)}.` };
@@ -170,7 +174,6 @@ function buy(db, { guildId, user, ticker, n }) {
     db.addCash(guildId, user.id, -cost);
     reserve.take(db, cost - fromOffering * priceCents); // shares not from the offering are bought from the house
     setHolding(db, guildId, user.id, ticker, held);
-    const price = Math.round(c.price * (1 + RULES.impact * n / RULES.float) * 100) / 100;
     update(db, ticker, {
       treasury: c.treasury + fromOffering * priceCents, // IPO shares fund the company
       offering_left: c.offering_left - fromOffering,
@@ -186,15 +189,16 @@ function sell(db, { guildId, user, ticker, n }) {
   const c = get(db, ticker);
   const owned = holding(db, guildId, user.id, ticker);
   if (n > owned) return { error: `You only own ${owned} shares of ${ticker}.` };
-  const priceCents = Math.round(c.price * 100);
-  if (priceCents <= 0) return { error: `${ticker} is worth nothing right now.` };
+  if (Math.round(c.price * 100) <= 0) return { error: `${ticker} is worth nothing right now.` };
+  // Fill at the average of the price before and after the sale, rounded down (see buy)
+  const price = Math.max(0.01, c.price * (1 - RULES.impact * n / RULES.float));
+  const priceCents = Math.floor((c.price + price) / 2 * 100);
   const proceeds = n * priceCents;
   return db.tx(() => {
     db.player(guildId, user);
     db.addCash(guildId, user.id, proceeds);
     reserve.spend(db, proceeds); // the house buys them back
     setHolding(db, guildId, user.id, ticker, owned - n);
-    const price = Math.max(0.01, Math.round(c.price * (1 - RULES.impact * n / RULES.float) * 100) / 100);
     update(db, ticker, { price });
     db.logTrade(guildId, user.id, ticker, -n, priceCents);
     return { proceeds, priceCents, left: owned - n };

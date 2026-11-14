@@ -108,7 +108,7 @@ const cash = (u, g = G) => db.player(g, u).cash;
   await has('r!buy MEOW 401', 'Only 400 shares', BOB);
   await has('r!buy MEOW 10', 'went into Meow Industries', BOB);
   c = co.get(db, 'MEOW');
-  assert.strictEqual(c.treasury, 500_00 + 10 * 15_50, 'IPO shares fund the treasury');
+  assert.strictEqual(c.treasury, 500_00 + 10 * 15_60, 'IPO shares fund the treasury (filled at the average of 15.50 and 15.69)');
   assert.strictEqual(c.offering_left, 390);
   assert.ok(c.price > 15.5, 'buying pushes the price up');
   await has('r!bal', '🏢 Meow Industries (MEOW)', BOB);
@@ -116,6 +116,19 @@ const cash = (u, g = G) => db.player(g, u).cash;
   await has('r!sell MEOW 4', 'own **6**', BOB);
   assert.ok(co.get(db, 'MEOW').price < c.price, 'selling pushes it down');
   assert.strictEqual(co.holding(db, G2, BOB.id, 'MEOW'), 0, 'shares are per server');
+
+  // Exploit: buying then selling straight back used to pay out more than it cost
+  for (const n of [1, 6, 50, 200]) {
+    const before = db.player(G, BOB).cash;
+    const b = co.buy(db, { guildId: G, user: BOB, ticker: 'MEOW', n });
+    assert.ok(!b.error, b.error);
+    co.sell(db, { guildId: G, user: BOB, ticker: 'MEOW', n });
+    assert.ok(db.player(G, BOB).cash <= before, `a quick buy and sell of ${n} shares never makes money`);
+  }
+  let step = db.player(G, BOB).cash;
+  for (let i = 0; i < 30; i++) co.buy(db, { guildId: G, user: BOB, ticker: 'MEOW', n: 1 }); // creep the price up
+  co.sell(db, { guildId: G, user: BOB, ticker: 'MEOW', n: 30 });
+  assert.ok(db.player(G, BOB).cash <= step, 'buying one at a time and dumping them all never makes money either');
 
   // ---- working there ----
   await has('r!apply MEOW', 'Welcome to **Meow Industries**', BOB);
