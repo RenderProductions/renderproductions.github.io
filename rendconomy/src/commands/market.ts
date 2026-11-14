@@ -182,7 +182,7 @@ export const dividends: Command = {
 };
 
 export const chart: Command = {
-  name: 'chart',
+  name: 'chart', aliases: ['graph'],
   description: 'A price chart for a company (last 24 hours)',
   system: 'market',
   options: [{ name: 'ticker', type: 'string', description: 'Company ticker, e.g. RRM', required: true }],

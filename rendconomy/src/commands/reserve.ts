@@ -5,7 +5,7 @@ import { embed } from '../discord/style';
 import type { Command } from './types';
 
 export const reserve: Command = {
-  name: 'reserve',
+  name: 'reserve', aliases: ['vault'],
   description: 'The Polygon Reserve: what the house has left to pay out',
   system: 'reserve',
   run(ctx) {

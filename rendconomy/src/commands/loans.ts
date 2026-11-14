@@ -20,7 +20,7 @@ const userArg = (v: unknown, what = 'a player'): string => {
 };
 
 export const bailout: Command = {
-  name: 'bailout', description: "Borrow ⬡500 from TODD when you're broke (you owe ⬡600)", system: 'social', guildOnly: true,
+  name: 'bailout', aliases: ['todd'], description: "Borrow ⬡500 from TODD when you're broke (you owe ⬡600)", system: 'social', guildOnly: true,
   run(ctx) {
     const { guildId, wallet } = me(ctx);
     const paid = toddBailout(ctx.db, guildId, ctx.user.id, netWorth(ctx.db, loadMarket(ctx.db), guildId, ctx.user.id), ctx.now);
@@ -34,7 +34,7 @@ export const bailout: Command = {
 };
 
 export const repay: Command = {
-  name: 'repay', description: 'Pay TODD back', system: 'social', guildOnly: true,
+  name: 'repay', aliases: ['payoff'], description: 'Pay TODD back', system: 'social', guildOnly: true,
   options: [{ name: 'amount', type: 'string', description: 'How much, or "all"', required: true }],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -53,7 +53,7 @@ export const repay: Command = {
 interface LoanRequest { borrowerId: string; borrowerName: string; lenderId: string; cents: number; rate: number }
 
 export const loan: Command = {
-  name: 'loan', description: 'Ask another player for a loan (they accept or decline)', system: 'social', guildOnly: true,
+  name: 'loan', aliases: ['borrow'], description: 'Ask another player for a loan (they accept or decline)', system: 'social', guildOnly: true,
   options: [
     { name: 'lender', type: 'user', description: 'Who you are asking', required: true },
     { name: 'amount', type: 'string', description: 'How much', required: true },
@@ -100,7 +100,7 @@ export function onLoanButton(ctx: Ctx, s: sessions.Session<LoanRequest>, value: 
 }
 
 export const loans: Command = {
-  name: 'loans', description: 'Your loans: what you owe and what you are owed', system: 'social', guildOnly: true,
+  name: 'loans', aliases: ['debts'], description: 'Your loans: what you owe and what you are owed', system: 'social', guildOnly: true,
   run(ctx) {
     const { guildId } = me(ctx);
     const owe = activeLoans(ctx.db, guildId, { borrower: ctx.user.id }, ctx.now);

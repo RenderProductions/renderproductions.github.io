@@ -29,7 +29,7 @@ function lobbyView(ctx: Ctx, s: sessions.Session<Lobby>, line = '', done = false
 }
 
 export const heist: Command = {
-  name: 'heist', description: 'Plan a heist: vault, stash, or the Reserve (crew of 3 to 5)', system: 'casino', guildOnly: true,
+  name: 'heist', aliases: ['heists', 'rob'], description: 'Plan a heist: vault, stash, or the Reserve (crew of 3 to 5)', system: 'casino', guildOnly: true,
   options: [{ name: 'target', type: 'string', description: 'vault, stash, or reserve (leave out for recent heists)' }, { name: 'role', type: 'string', description: 'Your role: hacker, driver, lookout, muscle (default hacker)' }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -90,7 +90,7 @@ export function onHeistButton(ctx: Ctx, s: sessions.Session<Lobby>, value: strin
 }
 
 export const event: Command = {
-  name: 'event', description: 'The world event running now (bot owner: start or end one)', system: 'market',
+  name: 'event', aliases: ['events', 'worldevent'], description: 'The world event running now (bot owner: start or end one)', system: 'market',
   options: [{ name: 'action', type: 'string', description: 'Bot owner: "start <id> [ticker]" or "end"' }],
   run(ctx, args) {
     const [verb, id, tk] = String(args.action ?? '').trim().split(/\s+/);

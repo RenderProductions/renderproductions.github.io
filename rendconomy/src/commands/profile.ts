@@ -16,7 +16,7 @@ import type { Command } from './types';
 const SITE = 'https://renderproductions.github.io/profile/';
 
 export const profile: Command = {
-  name: 'profile', aliases: ['p', 'me'], description: 'Your profile (or another player\'s), and customizing it', system: 'social', guildOnly: true,
+  name: 'profile', aliases: ['p', 'me', 'card'], description: 'Your profile (or another player\'s), and customizing it', system: 'social', guildOnly: true,
   options: [{ name: 'action', type: 'string', description: '@player to view, or: color, theme, banner, frame, pin, reset, private on|off' }],
   run(ctx, args) {
     const raw = String(args.action ?? '').trim();

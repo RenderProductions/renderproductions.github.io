@@ -33,7 +33,7 @@ const card = (ctx: Ctx, t: string) => {
 };
 
 export const found: Command = {
-  name: 'found', description: `Found a player company (${'⬡2,500'}; approved by moderators)`, system: 'market', guildOnly: true,
+  name: 'found', aliases: ['startup'], description: `Found a player company (${'⬡2,500'}; approved by moderators)`, system: 'market', guildOnly: true,
   options: [{ name: 'ticker', type: 'string', description: '2 to 5 letters, e.g. MEOW', required: true }, { name: 'name', type: 'string', description: 'The company name', required: true }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -53,7 +53,7 @@ export const company: Command = {
 };
 
 export const exchange: Command = {
-  name: 'exchange', aliases: ['companies'], description: 'Every player company', system: 'market',
+  name: 'exchange', aliases: ['companies', 'ex'], description: 'Every player company', system: 'market',
   run(ctx) {
     const list = listCompanies(ctx.db, ['public', 'private']);
     return { embeds: [embed('market', 'The player exchange', list.length ? list.map((c) => `**${c.ticker}** · ${c.name} · ${levelOf(c).name} · ${c.status === 'public' ? `${format(Math.round(c.price * 100))} ${change(c) >= 0 ? '▲' : '▼'}${Math.abs(change(c)).toFixed(1)}%` : 'private'}`) : ['No player companies yet.'],
@@ -62,7 +62,7 @@ export const exchange: Command = {
 };
 
 export const invest: Command = {
-  name: 'invest', description: 'Put your own Polygons into your company\'s treasury', system: 'market', guildOnly: true,
+  name: 'invest', aliases: ['fund'], description: 'Put your own Polygons into your company\'s treasury', system: 'market', guildOnly: true,
   options: [{ name: 'amount', type: 'string', description: 'How much', required: true }],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -75,7 +75,7 @@ export const invest: Command = {
 };
 
 export const upgrade: Command = {
-  name: 'upgrade', description: 'Level your company up (paid from its treasury)', system: 'market', guildOnly: true,
+  name: 'upgrade', aliases: ['expand'], description: 'Level your company up (paid from its treasury)', system: 'market', guildOnly: true,
   run(ctx) {
     const c = mine(ctx);
     if (!alive(c)) throw new GameError('co.pending', 'The company must be approved first.');
@@ -94,7 +94,7 @@ export const ipo: Command = {
 };
 
 export const salary: Command = {
-  name: 'salary', description: 'Pay yourself from your company (up to 10% of the treasury a day)', system: 'market', guildOnly: true,
+  name: 'salary', aliases: ['wage'], description: 'Pay yourself from your company (up to 10% of the treasury a day)', system: 'market', guildOnly: true,
   options: [{ name: 'amount', type: 'string', description: 'How much, or "max"', required: true }],
   run(ctx, args) {
     const c = mine(ctx);
@@ -140,7 +140,7 @@ export const reject: Command = {
 };
 
 export const takeover: Command = {
-  name: 'takeover', description: 'Hostile takeovers: bid, defend (poison pill), or accept a bid on your company', system: 'market', guildOnly: true,
+  name: 'takeover', aliases: ['hostiletakeover', 'raid'], description: 'Hostile takeovers: bid, defend (poison pill), or accept a bid on your company', system: 'market', guildOnly: true,
   options: [{ name: 'action', type: 'string', description: '"bid <TICKER>", "defend", or "accept"', required: true }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -163,7 +163,7 @@ export const takeover: Command = {
 };
 
 export const merge: Command = {
-  name: 'merge', description: 'Propose or accept a merger with another company', system: 'market', guildOnly: true,
+  name: 'merge', aliases: ['merger'], description: 'Propose or accept a merger with another company', system: 'market', guildOnly: true,
   options: [{ name: 'ticker', type: 'string', description: 'The other company', required: true }],
   run(ctx, args) {
     me(ctx);

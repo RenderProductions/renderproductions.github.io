@@ -57,7 +57,7 @@ export const coinflip: Command = {
 };
 
 export const dice: Command = {
-  name: 'dice', description: 'Roll 1-100: bet it lands over or under your number', system: 'casino', guildOnly: true,
+  name: 'dice', aliases: ['roll'], description: 'Roll 1-100: bet it lands over or under your number', system: 'casino', guildOnly: true,
   options: [betOption('dice'), { name: 'call', type: 'string', description: 'over or under, then 5-95, e.g. "over 70"', required: true }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -97,7 +97,7 @@ function rouletteBet(raw: string): { label: string; pays: number; wins: (n: numb
 }
 
 export const roulette: Command = {
-  name: 'roulette', aliases: ['rl'], description: 'Bet on red, black, odd, even, low, high, a dozen, or a number', system: 'casino', guildOnly: true,
+  name: 'roulette', aliases: ['rl', 'wheel'], description: 'Bet on red, black, odd, even, low, high, a dozen, or a number', system: 'casino', guildOnly: true,
   options: [betOption('roulette'), { name: 'on', type: 'string', description: 'red, black, odd, even, low, high, 1st, 2nd, 3rd, or 0-36', required: true }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -287,7 +287,7 @@ function msView(s: sessions.Session<MS>, line = '', done = false, tone: 'play' |
 }
 
 export const mines: Command = {
-  name: 'mines', aliases: ['minesweeper'], description: 'Minesweeper: dodge the bombs, cash out before you hit one', system: 'casino', guildOnly: true,
+  name: 'mines', aliases: ['minesweeper', 'ms'], description: 'Minesweeper: dodge the bombs, cash out before you hit one', system: 'casino', guildOnly: true,
   options: [betOption('mines'), { name: 'bombs', type: 'integer', description: 'Bombs on the 4x4 field, 1 to 12 (default 3)' }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -348,7 +348,7 @@ function rkView(s: sessions.Session<RK>, now: number, end?: { line: string; tone
 }
 
 export const rocket: Command = {
-  name: 'rocket', aliases: ['moon'], description: 'Rocket: cash out before it crashes', system: 'casino', guildOnly: true,
+  name: 'rocket', aliases: ['moon', 'crashgame'], description: 'Rocket: cash out before it crashes', system: 'casino', guildOnly: true,
   options: [betOption('rocket')],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -397,7 +397,7 @@ function onRocket(ctx: Ctx, s: sessions.Session<RK>, value: string): SessionRepl
 // ---------------------------------------------------------------- odds
 
 export const odds: Command = {
-  name: 'odds', description: 'The real odds and house edge of every Rend-Sino game', system: 'casino',
+  name: 'odds', aliases: ['payouts'], description: 'The real odds and house edge of every Rend-Sino game', system: 'casino',
   run() {
     return { embeds: [card('slots', (Object.keys(ODDS) as Game[]).map((g) => `**${NAMES[g]}**: ${ODDS[g]}`)), ].map((e) => ({ ...e, title: 'Rend-Sino odds' })) };
   }

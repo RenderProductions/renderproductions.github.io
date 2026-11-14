@@ -135,7 +135,7 @@ export function onLeaderboardButton(ctx: Ctx, s: sessions.Session, value: string
 
 export const savings: Command = {
   name: 'savings',
-  aliases: ['save', 'bank'],
+  aliases: ['save', 'bank', 'piggybank'],
   description: 'Lock Polygons away for 3, 7 or 14 days and get them back with interest',
   system: 'social',
   guildOnly: true,

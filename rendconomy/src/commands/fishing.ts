@@ -16,7 +16,7 @@ import type { Command, Ctx } from './types';
 const bag = (ctx: Ctx, guildId: string) => items(ctx.db, guildId, ctx.user.id).filter((r) => isCatch(r.item)).map((r) => ({ ...r, id: r.item.slice(5), ...CATCH[r.item.slice(5)]! }));
 
 export const fish: Command = {
-  name: 'fish', aliases: ['cast'], description: 'Cast a line (needs a Fishing Rod; optionally use a fish as bait)', system: 'wallet', guildOnly: true,
+  name: 'fish', aliases: ['cast', 'fishing'], description: 'Cast a line (needs a Fishing Rod; optionally use a fish as bait)', system: 'wallet', guildOnly: true,
   options: [{ name: 'bait', type: 'string', description: 'A fish from your bag to use as bait, e.g. minnow' }],
   run(ctx, args) {
     if (String(args.bait ?? '').trim().toLowerCase() === 'sell') return sellfish.run(ctx, {}); // the old r!fish sell

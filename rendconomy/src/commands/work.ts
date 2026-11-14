@@ -25,7 +25,7 @@ function midTask(ctx: Ctx): void {
 }
 
 export const work: Command = {
-  name: 'work',
+  name: 'work', aliases: ['w'],
   description: 'Work a shift at your job (every 15 minutes)',
   system: 'work',
   guildOnly: true,
@@ -59,7 +59,7 @@ export const work: Command = {
 
 export const gig: Command = {
   name: 'gig',
-  aliases: ['sidehustle'],
+  aliases: ['sidehustle', 'freelance', 'hustle'],
   description: 'A quick paid task, no job needed (every 10 minutes)',
   system: 'work',
   guildOnly: true,
@@ -75,7 +75,7 @@ export const gig: Command = {
 };
 
 export const apply: Command = {
-  name: 'apply',
+  name: 'apply', aliases: ['hire'],
   description: 'Apply for a job at a company',
   system: 'work',
   guildOnly: true,
@@ -108,7 +108,7 @@ export const apply: Command = {
 };
 
 export const quit: Command = {
-  name: 'quit',
+  name: 'quit', aliases: ['resign'],
   description: 'Leave your job (24 hours after being hired; your rank is kept)',
   system: 'work',
   guildOnly: true,

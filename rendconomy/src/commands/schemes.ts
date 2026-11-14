@@ -24,7 +24,7 @@ const tickerOf = (m: ReturnType<typeof current>, t: string) => {
 // ---------------------------------------------------------------- orders
 
 export const order: Command = {
-  name: 'order', aliases: ['orders'], description: 'Limit and stop orders that fill on their own', system: 'market', guildOnly: true,
+  name: 'order', aliases: ['orders', 'limit'], description: 'Limit and stop orders that fill on their own', system: 'market', guildOnly: true,
   options: [{ name: 'action', type: 'string', description: '"buy RRM 10 at 150", "sell BNW all at 90", "sell BLU all below 30", "cancel <#>"' }],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -58,7 +58,7 @@ export const order: Command = {
 // ---------------------------------------------------------------- brokers
 
 export const broker: Command = {
-  name: 'broker', description: 'Hire a broker to trade for you by your rules', system: 'market', guildOnly: true,
+  name: 'broker', aliases: ['brokers'], description: 'Hire a broker to trade for you by your rules', system: 'market', guildOnly: true,
   options: [{ name: 'action', type: 'string', description: '"hire", "buy RRM until 150", "sell RRM at 200", "stop RRM at 120", "clear RRM", "fire"' }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -113,7 +113,7 @@ export function onBrokerButton(ctx: Ctx, s: sessions.Session<{ cands: { name: st
 // ---------------------------------------------------------------- shorts
 
 export const short: Command = {
-  name: 'short', description: 'Short a stock: profit if it falls', system: 'market', guildOnly: true,
+  name: 'short', aliases: ['shortsell'], description: 'Short a stock: profit if it falls', system: 'market', guildOnly: true,
   options: [{ name: 'ticker', type: 'string', description: 'Company ticker', required: true }, { name: 'amount', type: 'string', description: 'Shares to short', required: true }],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -130,7 +130,7 @@ export const short: Command = {
 };
 
 export const cover: Command = {
-  name: 'cover', aliases: ['shorts'], description: 'Close a short (or list your shorts)', system: 'market', guildOnly: true,
+  name: 'cover', aliases: ['shorts', 'closeshort'], description: 'Close a short (or list your shorts)', system: 'market', guildOnly: true,
   options: [{ name: 'ticker', type: 'string', description: 'Which short to close (leave out to list them)' }],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -151,7 +151,7 @@ export const cover: Command = {
 // ---------------------------------------------------------------- compare
 
 export const compare: Command = {
-  name: 'compare', description: 'Compare companies side by side', system: 'market',
+  name: 'compare', aliases: ['vs'], description: 'Compare companies side by side', system: 'market',
   run(ctx) {
     const m = current(ctx.db);
     const rows = m.companies.map((c) => {

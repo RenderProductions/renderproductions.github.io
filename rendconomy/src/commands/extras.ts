@@ -177,7 +177,7 @@ function derbyView(st: Derby, line = ''): ReplyObject {
 }
 
 export const derby: Command = {
-  name: 'derby', description: 'The Polygon Derby: start a race or bet on a horse', system: 'casino', guildOnly: true,
+  name: 'derby', aliases: ['race', 'horses'], description: 'The Polygon Derby: start a race or bet on a horse', system: 'casino', guildOnly: true,
   options: [{ name: 'horse', type: 'string', description: 'A horse (name, number or ticker) to bet on; leave out to start a race' }, { name: 'amount', type: 'string', description: 'Your bet' }],
   run(ctx, args) {
     const { guildId } = me(ctx);
@@ -238,7 +238,7 @@ export const derby: Command = {
 // ================================================================ stats, drop-ins, receipts, a secret
 
 export const gambling: Command = {
-  name: 'gambling', aliases: ['casinostats'], description: 'Your Rend-Sino record, game by game', system: 'casino', guildOnly: true,
+  name: 'gambling', aliases: ['casinostats', 'casino', 'gamblestats'], description: 'Your Rend-Sino record, game by game', system: 'casino', guildOnly: true,
   run(ctx) {
     const { guildId } = me(ctx);
     const rows = ctx.db.all<{ game: string; played: number; wagered: number; paid: number; biggest: number }>('SELECT * FROM gambling WHERE guild_id = ? AND user_id = ? ORDER BY played DESC', guildId, ctx.user.id);
@@ -250,7 +250,7 @@ export const gambling: Command = {
 };
 
 export const dropin: Command = {
-  name: 'dropin', description: 'Moderators: TODD drop-ins on, off, only here, or anywhere', system: 'admin', guildOnly: true,
+  name: 'dropin', aliases: ['dropins', 'chatpay'], description: 'Moderators: TODD drop-ins on, off, only here, or anywhere', system: 'admin', guildOnly: true,
   options: [{ name: 'setting', type: 'string', description: 'on, off, here, or anywhere' }],
   run(ctx, args) {
     const g = guildOf(ctx);
@@ -266,7 +266,7 @@ export const dropin: Command = {
 };
 
 export const receipts: Command = {
-  name: 'receipts', description: 'DMs about filled orders, broker reports and margin calls: on or off', system: 'wallet',
+  name: 'receipts', aliases: ['receipt'], description: 'DMs about filled orders, broker reports and margin calls: on or off', system: 'wallet',
   options: [{ name: 'setting', type: 'string', description: 'on or off' }],
   run(ctx, args) {
     const v = String(args.setting ?? '').trim().toLowerCase();

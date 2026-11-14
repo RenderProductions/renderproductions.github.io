@@ -2,7 +2,7 @@ import { embed } from '../discord/style';
 import type { Command, System } from './types';
 
 export const ping: Command = {
-  name: 'ping',
+  name: 'ping', aliases: ['latency'],
   description: 'Check that the bot is responding',
   system: 'general',
   run(ctx) {
@@ -15,7 +15,7 @@ const SECTIONS: Record<System, string> = { wallet: 'Wallet', market: 'Stock mark
 /** Built from the command list, so it can never fall out of date. */
 export function makeHelp(list: () => Command[]): Command {
   return {
-    name: 'help',
+    name: 'help', aliases: ['h', 'commands'],
     description: 'List every command',
     system: 'general',
     run(ctx) {

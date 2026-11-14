@@ -75,7 +75,7 @@ export function onShopButton(ctx: Ctx, s: sessions.Session<{ shelf: Shelf }>, va
 }
 
 export const purchase: Command = {
-  name: 'purchase',
+  name: 'purchase', aliases: ['buyitem'],
   description: 'Buy an item from Marquez by name',
   system: 'wallet',
   guildOnly: true,
@@ -104,7 +104,7 @@ export const purchase: Command = {
 
 export const inventory: Command = {
   name: 'inventory',
-  aliases: ['inv', 'items'],
+  aliases: ['inv', 'items', 'bag'],
   description: 'The items you own in this server',
   system: 'wallet',
   guildOnly: true,
@@ -121,7 +121,7 @@ export const inventory: Command = {
 };
 
 export const use: Command = {
-  name: 'use',
+  name: 'use', aliases: ['open'],
   description: 'Use an item from your inventory',
   system: 'wallet',
   guildOnly: true,
@@ -136,7 +136,7 @@ export const use: Command = {
 };
 
 export const settitle: Command = {
-  name: 'settitle',
+  name: 'settitle', aliases: ['title'],
   description: 'Set your profile title (uses a Title item)',
   system: 'wallet',
   guildOnly: true,

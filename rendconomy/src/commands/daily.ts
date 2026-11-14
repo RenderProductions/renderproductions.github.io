@@ -11,7 +11,7 @@ import { me } from './shared';
 import type { Command } from './types';
 
 export const daily: Command = {
-  name: 'daily',
+  name: 'daily', aliases: ['d'],
   description: 'Collect your daily allowance (resets at 12 AM Eastern)',
   system: 'wallet',
   guildOnly: true,
