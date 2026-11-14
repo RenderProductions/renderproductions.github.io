@@ -15,6 +15,7 @@ import * as sessions from '../src/core/sessions';
 import { execute, press } from '../src/discord/router';
 import { has } from '../src/achievements/achievements';
 import { ACHIEVEMENTS } from '../src/achievements/list';
+import { importOnStartup } from '../src/achievements/import';
 import { tick } from '../src/market/market';
 
 const G = 'g1', A = '111111111111111111', OWNER = '999999999999999999';
@@ -76,4 +77,36 @@ test('importing from the old bot, then the fresh-start payout when an account op
   assert.equal(balance(db, wallet(G, A)), economy.startingCash + polygons(2750));
   assert.ok(audit(db).ok);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('the old achievements carry over on startup, once, before anyone plays', async () => {
+  const { db, run } = setup();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'oldbot-'));
+  const file = path.join(dir, 'old.db');
+  const old = new DatabaseSync(file);
+  old.exec('CREATE TABLE achievements (user_id TEXT, id TEXT, guild_id TEXT, unlocked_at INTEGER);');
+  old.exec(`INSERT INTO achievements VALUES ('${A}', 'promoted', '${G}', 1);`);
+  old.close();
+  const before = process.env.OLD_DB_FILE;
+  process.env.OLD_DB_FILE = file;
+  try {
+    assert.equal(importOnStartup(db)?.achievements, 1);
+    assert.equal(importOnStartup(db), null);
+    assert.match(text(await run('balance')), /paid out again, ⬡250\.00/);
+  } finally {
+    if (before === undefined) delete process.env.OLD_DB_FILE; else process.env.OLD_DB_FILE = before;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('no old database on startup: nothing happens and it checks again next time', () => {
+  const { db } = setup();
+  const before = process.env.OLD_DB_FILE;
+  process.env.OLD_DB_FILE = path.join(os.tmpdir(), 'no-such-old-bot.db');
+  try {
+    assert.equal(importOnStartup(db), null);
+    assert.equal(db.meta('achievements.imported'), null);
+  } finally {
+    if (before === undefined) delete process.env.OLD_DB_FILE; else process.env.OLD_DB_FILE = before;
+  }
 });

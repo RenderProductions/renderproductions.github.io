@@ -1,6 +1,7 @@
 // Carrying achievements over from the old bot (the reset keeps them). Reads the old bot's SQLite file
 // directly, read-only, and copies its achievements and progress counters.
 import fs from 'node:fs';
+import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Db } from '../core/db';
 import { BY_ID } from './list';
@@ -28,4 +29,23 @@ export function importFromOldBot(db: Db, file: string): ImportResult {
   } finally {
     old.close();
   }
+}
+
+/** Where the old bot kept its database: OLD_DB_FILE, or engine/data/rend-conomy.db at the repo root. */
+export function oldDbFile(): string {
+  return process.env.OLD_DB_FILE || path.join(__dirname, '..', '..', '..', '..', 'engine', 'data', 'rend-conomy.db');
+}
+
+/**
+ * Runs once, at startup, before the bot connects: brings the old achievements over so the
+ * fresh-start payout (paid on a player's first action) already counts them. Returns null when
+ * it has already run or there is no old database.
+ */
+export function importOnStartup(db: Db): ImportResult | null {
+  if (db.meta('achievements.imported')) return null;
+  const file = oldDbFile();
+  if (!fs.existsSync(file)) return null;
+  const r = importFromOldBot(db, file);
+  db.setMeta('achievements.imported', Date.now());
+  return r;
 }

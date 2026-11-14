@@ -1,7 +1,6 @@
-import path from 'node:path';
 import { RARITY, ACHIEVEMENTS, CATEGORIES, type Category } from '../achievements/list';
 import { rarityStats, unlocked } from '../achievements/achievements';
-import { importFromOldBot } from '../achievements/import';
+import { importFromOldBot, oldDbFile } from '../achievements/import';
 import { GameError } from '../core/errors';
 import * as sessions from '../core/sessions';
 import { discordTime } from '../core/time';
@@ -71,7 +70,7 @@ export const importAchievements: Command = {
   run(ctx, args) {
     guildOf(ctx);
     if (!ctx.isOwner) throw new GameError('owner.only', 'This command is restricted to the bot owner.');
-    const file = String(args.file ?? '').trim() || process.env.OLD_DB_FILE || path.join(__dirname, '..', '..', '..', '..', 'engine', 'data', 'rend-conomy.db');
+    const file = String(args.file ?? '').trim() || oldDbFile();
     let r;
     try { r = importFromOldBot(ctx.db, file); } catch (e) { throw new GameError('import.failed', (e as Error).message); }
     return { embeds: [embed('admin', 'Achievements imported', [

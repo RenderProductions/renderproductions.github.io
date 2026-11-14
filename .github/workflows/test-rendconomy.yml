@@ -1,0 +1,24 @@
+name: Test RendConomy
+
+# Runs the bot's offline tests whenever something in rendconomy/ changes.
+# The bot itself runs on Bot-Hosting.net, which pulls the branch and builds on restart,
+# so there is nothing to deploy from here. A red mark means: don't restart the bot yet.
+on:
+  push:
+    branches: [main, rewrite]
+    paths: ['rendconomy/**']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rendconomy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test

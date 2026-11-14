@@ -23,12 +23,20 @@ import { startActivity, startApi, startReminders, startStatus } from './discord/
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
+import { importOnStartup, oldDbFile } from './achievements/import';
 
 async function main(): Promise<void> {
   loadEnv();
   const config = botConfig();
   const db = open(config.dbFile);
   ensureReserve(db, economy.reserveStart);
+
+  try {
+    const imported = importOnStartup(db);
+    if (imported) console.log(`[${config.name}] carried over ${imported.achievements} achievements for ${imported.players} players from ${oldDbFile()}`);
+  } catch (e) {
+    console.error(`[${config.name}] WARNING: could not carry over achievements:`, (e as Error).message);
+  }
 
   const books = audit(db);
   console.log(`[${config.name}] database v${db.version()} at ${config.dbFile}`);
