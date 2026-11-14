@@ -33,7 +33,8 @@ async function main(): Promise<void> {
 
   try {
     const imported = importOnStartup(db);
-    if (imported) console.log(`[${config.name}] carried over ${imported.achievements} achievements for ${imported.players} players from ${oldDbFile()}`);
+    if (!imported && !db.meta('achievements.imported')) console.warn(`[${config.name}] old achievements not imported yet: no database at ${oldDbFile()}. Upload it there and restart, or run /importachievements.`);
+    if (imported) console.log(`[${config.name}] carried over ${imported.achievements} achievements for ${imported.players} players from ${oldDbFile()}${imported.caughtUp ? `, and paid ${imported.caughtUp} players who had already started` : ''}`);
   } catch (e) {
     console.error(`[${config.name}] WARNING: could not carry over achievements:`, (e as Error).message);
   }
@@ -142,9 +143,17 @@ async function main(): Promise<void> {
       botId: () => c.user.id
     });
     try {
-      const body = slashBody();
-      if (config.devGuildId) await c.application.commands.set(body, config.devGuildId);
-      else await c.application.commands.set(body);
+      const body: unknown[] = slashBody();
+      if (config.devGuildId) await c.application.commands.set(body as never, config.devGuildId);
+      else {
+        // An app with an Activity has an Entry Point command (the Launch button). Discord refuses a
+        // bulk update that leaves it out, so carry it over as it is.
+        const existing = await c.application.commands.fetch();
+        for (const cmd of existing.values()) {
+          if (Number(cmd.type) === 4) body.push({ name: cmd.name, description: cmd.description, type: 4, handler: (cmd as unknown as { handler?: number }).handler ?? 2 });
+        }
+        await c.application.commands.set(body as never);
+      }
       console.log(`[${config.name}] registered ${body.length} slash commands ${config.devGuildId ? `in server ${config.devGuildId}` : 'globally'}`);
     } catch (e) {
       console.error(`[${config.name}] could not register slash commands:`, e);

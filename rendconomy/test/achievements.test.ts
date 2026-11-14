@@ -110,3 +110,24 @@ test('no old database on startup: nothing happens and it checks again next time'
     if (before === undefined) delete process.env.OLD_DB_FILE; else process.env.OLD_DB_FILE = before;
   }
 });
+
+test('players who started before the import are paid what they missed, once', async () => {
+  const { db, run } = setup();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'oldbot-'));
+  const file = path.join(dir, 'old.db');
+  const old = new DatabaseSync(file);
+  old.exec('CREATE TABLE achievements (user_id TEXT, id TEXT, guild_id TEXT, unlocked_at INTEGER);');
+  old.exec(`INSERT INTO achievements VALUES ('${A}', 'promoted', '${G}', 1), ('${A}', 'moby_dick', '${G}', 2);`);
+  old.close();
+  try {
+    await run('balance'); // starts before the import: only the ⬡500
+    assert.equal(balance(db, wallet(G, A)), economy.startingCash);
+    assert.match(text(await run('importachievements', { file }, OWNER, true)), /1 players who had already started were paid ⬡2,750\.00/);
+    assert.equal(balance(db, wallet(G, A)), economy.startingCash + polygons(2750));
+    await run('importachievements', { file }, OWNER, true); // a second run pays nothing more
+    assert.equal(balance(db, wallet(G, A)), economy.startingCash + polygons(2750));
+    assert.ok(audit(db).ok);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

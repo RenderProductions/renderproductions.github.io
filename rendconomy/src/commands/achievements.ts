@@ -1,3 +1,4 @@
+import { format } from '../core/money';
 import { RARITY, ACHIEVEMENTS, CATEGORIES, type Category } from '../achievements/list';
 import { rarityStats, unlocked } from '../achievements/achievements';
 import { importFromOldBot, oldDbFile } from '../achievements/import';
@@ -72,12 +73,13 @@ export const importAchievements: Command = {
     if (!ctx.isOwner) throw new GameError('owner.only', 'This command is restricted to the bot owner.');
     const file = String(args.file ?? '').trim() || oldDbFile();
     let r;
-    try { r = importFromOldBot(ctx.db, file); } catch (e) { throw new GameError('import.failed', (e as Error).message); }
+    try { r = importFromOldBot(ctx.db, file); ctx.db.setMeta('achievements.imported', Date.now()); } catch (e) { throw new GameError('import.failed', (e as Error).message); }
     return { embeds: [embed('admin', 'Achievements imported', [
       `${r.achievements} achievements for ${r.players} players were copied.`,
       `${r.progress} progress counters were copied.`,
       r.skipped ? `${r.skipped} unknown achievement ids were skipped.` : null,
-      'Each player receives their achievement payouts again when their account opens in each server.'
+      r.caughtUp ? `${r.caughtUp} players who had already started were paid ${format(r.caughtUpCents)} in missed payouts.` : null,
+      'Everyone else receives their achievement payouts again when their account opens in each server.'
     ])] };
   }
 };
