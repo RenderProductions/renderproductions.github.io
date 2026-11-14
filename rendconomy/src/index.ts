@@ -14,6 +14,8 @@ import * as market from './market/market';
 import { on } from './core/events';
 import { startPublishing } from './site/publish';
 import { setNotifier } from './market/schemes';
+import { setEventAnnouncer } from './events/install';
+import { describeEvent } from './events/world';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
@@ -44,6 +46,14 @@ async function main(): Promise<void> {
   // The market runs in the bot. News posts (to the market news channel) come back with the news module.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const news: { send: (posts: unknown[], hooks: string[], o: { log: (m: string) => void }) => Promise<unknown> } = require('./market/engine/post-news.js');
+  // World events are announced in the market news feed
+  setEventAnnouncer((e) => {
+    if (!config.newsWebhook) return;
+    for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
+      fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Rend-Conomy News', embeds: [{ title: 'World event', description: `${describeEvent(e)}\nFor the next hour.`, color: 0x3498db }] }) })
+        .catch((err: unknown) => console.error('[event]', err));
+    }
+  });
   market.start(db, rng, (posts) => {
     if (!config.newsWebhook) return;
     news.send(posts, config.newsWebhook.split(/[\s,]+/).filter(Boolean), { log: (m) => console.log('[news]', m) }).catch((e: unknown) => console.error('[news]', e));

@@ -12,6 +12,7 @@ import { balance, RESERVE } from '../core/ledger';
 import { load as loadMarket } from '../market/market';
 import { COLLECTIBLES } from '../shop/items';
 import { netWorth } from '../social/worth';
+import { activeEvent } from '../events/world';
 import { rankName } from '../work/jobs';
 import { BANNERS, FRAMES, PAINTS, PRESETS, getStyle } from '../profile/styles';
 import { CO, LEVELS, change, employees, listCompanies, levelOf, sharesHeld, treasury } from '../companies/companies';
@@ -82,7 +83,7 @@ export function profilesSnapshot(db: Db, dir: Directory = {}) {
 export function historySnapshot(db: Db) {
   const hourly: Record<string, [number, number][]> = {};
   for (const r of db.all<{ ticker: string; hour: number; price: number }>('SELECT ticker, hour, price FROM price_history ORDER BY hour')) (hourly[r.ticker] ??= []).push([r.hour, Math.round(r.price * 100) / 100]);
-  return { updated: new Date().toISOString(), hourly, event: null };
+  return { updated: new Date().toISOString(), hourly, event: activeEvent(db) };
 }
 
 export function companiesSnapshot(db: Db, now = Date.now()) {

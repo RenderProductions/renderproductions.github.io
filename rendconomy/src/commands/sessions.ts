@@ -9,6 +9,7 @@ import { casinoHandlers } from './casino';
 import { onLoanButton } from './loans';
 import { onBrokerButton } from './schemes';
 import { onBus } from './extras';
+import { onHeistButton } from './heists';
 import { onQuitButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
 
@@ -27,6 +28,7 @@ export const handlers: Record<string, SessionHandler> = {
   shop: { onButton: onShopButton },
   loan: { onButton: onLoanButton },
   broker: { onButton: onBrokerButton },
+  heist: { onButton: onHeistButton },
   'casino.bus': { onButton: onBus as SessionHandler['onButton'] },
   ...Object.fromEntries(Object.entries(casinoHandlers).map(([k, fn]) => [k, { onButton: fn as SessionHandler['onButton'] }]))
 };

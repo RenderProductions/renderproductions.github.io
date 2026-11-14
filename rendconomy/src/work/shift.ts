@@ -13,6 +13,7 @@ import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay, type Car
 import { isRight, makeTask, type Task } from './tasks';
 import { takeItem, useEffect } from '../shop/inventory';
 import { CO, addRevenue, getCompany, levelOf } from '../companies/companies';
+import { shiftMultiplier } from '../events/world';
 
 export const KIND = 'work';
 
@@ -101,7 +102,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
 
   // ---------------- gigs ----------------
   if (st.mode === 'gig') {
-    const pay = Math.round(JOB_RULES.basePay * JOB_RULES.gigShare * (result === 'pass' ? 1 : JOB_RULES.missShare));
+    const pay = Math.round(JOB_RULES.basePay * JOB_RULES.gigShare * (result === 'pass' ? 1 : JOB_RULES.missShare) * shiftMultiplier(ctx.db, null, ctx.now));
     const tip = Math.round(pay * speed);
     const paid = payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: pay + tip, reason: 'work.gig', guildId, actorId: ctx.user.id, now: ctx.now });
     emit('work.gig', { guildId, userId: ctx.user.id, result, cents: paid });
@@ -124,6 +125,8 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
   } else {
     if (result !== 'pass') pay = Math.round(pay * JOB_RULES.missShare);
     if (useEffect(ctx.db, guildId, ctx.user.id, 'overtime')) { pay *= 2; extras.push('Overtime: pay doubled'); }
+    const world = shiftMultiplier(ctx.db, ticker, ctx.now);
+    if (world > 1) { pay = Math.round(pay * world); extras.push(`World event: pay ${world}x`); }
     const boost = m?.boost as { tickers?: string[] } | null | undefined;
     if (boost && (!boost.tickers?.length || boost.tickers.includes(ticker))) { pay *= 2; extras.push('Market boom: pay doubled'); }
     tip = Math.round(pay * speed);

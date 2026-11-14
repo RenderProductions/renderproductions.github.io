@@ -334,5 +334,17 @@ export const MIGRATIONS: readonly string[] = [
     premium      INTEGER NOT NULL,       -- cents, held in the bidder's escrow
     ends_at      INTEGER NOT NULL
   );
+  `,
+
+  /* v14: heists' history. */ `
+  CREATE TABLE heist_log (
+    id       INTEGER PRIMARY KEY,
+    guild_id TEXT NOT NULL,
+    target   TEXT NOT NULL,
+    crew     TEXT NOT NULL,                -- JSON [[userId, role, name], ...]
+    outcome  TEXT NOT NULL,                -- clean | escaped | caught
+    haul     INTEGER NOT NULL DEFAULT 0,
+    at       INTEGER NOT NULL
+  );
   `
 ];

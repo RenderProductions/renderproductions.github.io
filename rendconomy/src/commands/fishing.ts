@@ -10,6 +10,7 @@ import { CATCH, FISHING, SIZE_NAMES, cast, isCatch, itemId } from '../fishing/fi
 import { addItem, charges, count, items, takeItem, useEffect } from '../shop/inventory';
 import { marquez } from '../shop/items';
 import { me } from './shared';
+import { isEvent } from '../events/world';
 import type { Command, Ctx } from './types';
 
 const bag = (ctx: Ctx, guildId: string) => items(ctx.db, guildId, ctx.user.id).filter((r) => isCatch(r.item)).map((r) => ({ ...r, id: r.item.slice(5), ...CATCH[r.item.slice(5)]! }));
@@ -29,8 +30,9 @@ export const fish: Command = {
       if (!b || b.size === 0 || b.size === 4) throw new GameError('fish.bait', 'Choose a small, medium or large fish from your bag as bait.');
       using = b.id;
     } else if (charges(ctx.db, guildId, ctx.user.id, 'lure') > 0) using = 'lure';
+    const frenzy = isEvent(ctx.db, 'fish_frenzy', undefined, ctx.now);
     if (using === 'bait' && balance(ctx.db, wallet) < FISHING.bait) throw new GameError('funds.short', `Bait costs ${format(FISHING.bait)}.`);
-    if (!takeCooldown(ctx.db, 'fish', `${guildId}:${ctx.user.id}`, FISHING.cooldownMs, ctx.now)) {
+    if (!takeCooldown(ctx.db, 'fish', `${guildId}:${ctx.user.id}`, frenzy ? 90_000 : FISHING.cooldownMs, ctx.now)) {
       throw new GameError('fish.cooldown', `The fish need a moment. Cast again ${discordTime(cooldown(ctx.db, 'fish', `${guildId}:${ctx.user.id}`, ctx.now).until)}.`);
     }
     return ctx.db.tx(() => {
@@ -38,7 +40,7 @@ export const fish: Command = {
       if (using === 'bait') transfer(ctx.db, { from: wallet, to: RESERVE, cents: FISHING.bait, reason: 'fish.bait', guildId, actorId: ctx.user.id, now: ctx.now });
       else if (using === 'lure') { useEffect(ctx.db, guildId, ctx.user.id, 'lure'); head.push(`Lure: ${charges(ctx.db, guildId, ctx.user.id, 'lure')} casts left.`); }
       else { takeItem(ctx.db, guildId, ctx.user.id, itemId(using)); head.push(`Bait: one ${CATCH[using]!.name}.`); }
-      const r = cast(using, ctx.rng);
+      const r = cast(frenzy && using === 'bait' ? 'lure' : using, ctx.rng);
       let line: string;
       if (r.kind === 'nothing' || r.kind === 'snag') line = r.kind === 'nothing' ? 'Nothing bites.' : 'The line snags on a log. Nothing caught.';
       else if (r.kind === 'wallet') {
