@@ -42,12 +42,12 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('title', '🏷️', 'Title', 5000, 1, 'fun', 'A custom title on your profile. Set it with /settitle.', { passive: true }),
   item('rod', '🎣', 'Fishing Rod', 300, 5, 'tackle', 'Lets you fish. Yours for good. Each cast costs ⬡5 of bait.', { passive: true }),
   item('lure', '🪝', 'Lure', 300, 4, 'tackle', 'No bait needed for 25 casts, and bigger fish bite more often.'),
-  item('kit', '🎨', 'Profile Customizer Kit', 1500, 3, 'style', 'Unlocks customizing your profile, for good.', { ready: false }),
-  item('paint_holo', '🌈', 'Holographic Paint', 5000, 2, 'style', 'Shifts through every color. A profile theme, yours forever.', { ready: false }),
-  item('paint_terminal', '🖥️', 'TODD Terminal Paint', 3000, 2, 'style', 'Green on black, like TODD sees the world.', { ready: false }),
-  item('paint_sunset', '🌇', 'Sunset Paint', 3000, 2, 'style', 'Warm orange and pink.', { ready: false }),
-  item('paint_void', '🕳️', 'Void Paint', 3000, 2, 'style', 'Black and white. Nothing else.', { ready: false }),
-  item('paint_goldrush', '🪙', 'Gold Rush Paint', 4000, 2, 'style', 'Shimmering gold, for the rich (or the hopeful).', { ready: false })
+  item('kit', '🎨', 'Profile Customizer Kit', 1500, 3, 'style', 'Unlocks customizing your profile, for good.'),
+  item('paint_holo', '🌈', 'Holographic Paint', 5000, 2, 'style', 'Shifts through every color. A profile theme, yours forever.'),
+  item('paint_terminal', '🖥️', 'TODD Terminal Paint', 3000, 2, 'style', 'Green on black, like TODD sees the world.'),
+  item('paint_sunset', '🌇', 'Sunset Paint', 3000, 2, 'style', 'Warm orange and pink.'),
+  item('paint_void', '🕳️', 'Void Paint', 3000, 2, 'style', 'Black and white. Nothing else.'),
+  item('paint_goldrush', '🪙', 'Gold Rush Paint', 4000, 2, 'style', 'Shimmering gold, for the rich (or the hopeful).')
 ].map((i) => [i.id, i]));
 
 /** Collectibles: no effect, pure bragging rights. One is on sale each week, 3 for everyone. */

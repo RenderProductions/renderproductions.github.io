@@ -126,6 +126,22 @@ test('mystery and floppy always do something and keep the books balanced', async
   assert.ok(audit(db).ok);
 });
 
+test('profiles: the kit and paints unlock looks for good; the profile shows the essentials', async () => {
+  const { db, run } = setup();
+  await run('balance');
+  assert.match(text(await run('profile', { action: 'color #ff4fd8' })), /Customizer Kit is required/);
+  addItem(db, G, A, 'kit'); addItem(db, G, A, 'paint_terminal');
+  await run('use', { item: 'kit' });
+  assert.match(text(await run('profile', { action: 'color #ff4fd8' })), /#ff4fd8/);
+  assert.match(text(await run('profile', { action: 'theme terminal' })), /is a Profile Paint/);
+  await run('use', { item: 'paint_terminal' });
+  assert.match(text(await run('profile', { action: 'theme terminal' })), /TODD Terminal/);
+  assert.match(text(await run('profile', { action: 'banner crown' })), /reserved/);
+  const card = await run('profile');
+  assert.match(text(card), /Net worth:\*\* ⬡/);
+  assert.equal(card.embeds![0]!.color, 0x33ff66);
+});
+
 test('titles: set with a Title item, cleared by moderators', async () => {
   const { db, run } = setup();
   await run('balance');

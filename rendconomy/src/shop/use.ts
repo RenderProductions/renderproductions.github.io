@@ -8,6 +8,7 @@ import { format, polygons } from '../core/money';
 import { clearCooldown, discordTime, HOUR } from '../core/time';
 import { addEffect, addItem, startTimed, takeItem } from './inventory';
 import { anyItem } from './items';
+import { PAINTS, unlockKit, unlockPaint } from '../profile/styles';
 
 /** The Rend Times: a vague tip about one company's hidden market state. */
 function rendTimes(ctx: Ctx): string {
@@ -33,6 +34,8 @@ const JOKE_TITLES = ['Certified Floppy User', 'Read-Only Member', 'Insert Disk 2
 type Use = (ctx: Ctx, guildId: string) => string;
 
 const USES: Record<string, Use> = {
+  kit: (ctx) => { unlockKit(ctx.db, ctx.user.id); return `Profile customizing is unlocked for good. Try \`${ctx.config.prefix}profile looks\`.`; },
+  ...Object.fromEntries(Object.keys(PAINTS).map((id) => [`paint_${id}`, ((ctx: Ctx) => { unlockPaint(ctx.db, ctx.user.id, id); return `${PAINTS[id]!.label} is yours for good: \`${ctx.config.prefix}profile theme ${id}\`.`; }) as Use])),
   times: (ctx) => rendTimes(ctx),
   coffee: (ctx, g) => { clearCooldown(ctx.db, 'work', `${g}:${ctx.user.id}`); return 'Coffee consumed. Your work cooldown has been reset.'; },
   overtime: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'overtime', 1); return 'Overtime approved. Your next shift pays double.'; },

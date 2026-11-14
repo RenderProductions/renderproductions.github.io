@@ -13,6 +13,7 @@ import { load as loadMarket } from '../market/market';
 import { COLLECTIBLES } from '../shop/items';
 import { netWorth } from '../social/worth';
 import { rankName } from '../work/jobs';
+import { BANNERS, FRAMES, PAINTS, PRESETS, getStyle } from '../profile/styles';
 
 /** Lookups only the live Discord client can answer (server names, avatars). */
 export interface Directory { serverName?: (id: string) => string | null; user?: (id: string) => { name: string; avatar: string | null } | null; servers?: () => number | null; botId?: () => string | null }
@@ -43,7 +44,7 @@ export function profilesSnapshot(db: Db, dir: Directory = {}) {
   const users: Record<string, { name: string; avatar: string | null; achievements: unknown[]; servers: unknown[] }> = {};
   const botId = dir.botId?.() ?? null;
   for (const p of db.all<{ guild_id: string; user_id: string; name: string | null; title: string | null; job: string | null }>('SELECT guild_id, user_id, name, title, job FROM players')) {
-    if (p.user_id === botId) continue;
+    if (p.user_id === botId || db.meta(`private:${p.user_id}`) === '1') continue;
     const u = (users[p.user_id] ??= { name: p.name ?? 'Player', avatar: null, achievements: [], servers: [] });
     const career = p.job ? db.get<{ rank: number }>('SELECT rank FROM careers WHERE guild_id = ? AND user_id = ? AND ticker = ?', p.guild_id, p.user_id, p.job) : undefined;
     u.servers.push({
@@ -64,6 +65,14 @@ export function profilesSnapshot(db: Db, dir: Directory = {}) {
     const live = dir.user?.(id);
     if (live) { u.name = live.name; u.avatar = live.avatar; }
     (u.servers as { worth: number }[]).sort((a, b) => b.worth - a.worth);
+    // Their profile look, as checked names only (the site maps them to its own CSS)
+    const st = getStyle(db, id), style: Record<string, string> = {};
+    if (st.theme && (PRESETS[st.theme] || PAINTS[st.theme])) style.theme = st.theme;
+    if (st.color && /^#[0-9a-f]{6}$/.test(st.color)) style.color = st.color;
+    if (st.banner && BANNERS[st.banner]) style.banner = st.banner;
+    if (st.frame && FRAMES[st.frame] && st.frame !== 'none') style.frame = st.frame;
+    if (st.pin && COLLECTIBLES[st.pin]) style.pin = st.pin;
+    if (Object.keys(style).length) (u as { style?: Record<string, string> }).style = style;
   }
   const collectibles = Object.values(COLLECTIBLES).map((c) => ({ id: c.id, name: c.name, emoji: c.emoji, desc: c.desc }));
   return { achievements, collectibles, players: rar.players, users };

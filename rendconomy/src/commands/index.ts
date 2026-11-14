@@ -9,6 +9,7 @@ import { makeHelp, ping } from './general';
 import { history } from './history';
 import { buy, chart, dividends, market, portfolio, sell } from './market';
 import { reserve } from './reserve';
+import { profile } from './profile';
 import { bus, derby, dropin, gambling, installExtras, lottery, notFound, receipts } from './extras';
 import { boost, broker, compare, cover, crash, order, short } from './schemes';
 import { installSchemes } from '../market/schemes';
@@ -21,7 +22,7 @@ import { apply, gig, job, quit, work } from './work';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, balance, history, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, settitle, fish, sellfish, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, compare, buy, sell, portfolio, dividends, order, broker, short, cover, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, bus, derby, lottery, gambling, odds, reserve, receipts, ping, notFound, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, makeHelp(() => commands));
+commands.push(daily, balance, history, profile, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, settitle, fish, sellfish, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, compare, buy, sell, portfolio, dividends, order, broker, short, cover, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, bus, derby, lottery, gambling, odds, reserve, receipts, ping, notFound, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, makeHelp(() => commands));
 
 installAchievementListeners();
 installLoans();
