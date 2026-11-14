@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stationfall | Render Productions</title>
+<meta name="description" content="Stationfall: stranded on an asteroid, build a station, keep the air on, and hold out against the night raids.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Stationfall | Render Productions">
+<meta property="og:description" content="Stranded on an asteroid: build a station, keep the air on, and hold out against the night raids.">
+<meta property="og:url" content="https://renderproductions.github.io/games/stationfall/">
+<meta property="og:image" content="https://renderproductions.github.io/og/games.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#ffe600">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap">
+<link rel="stylesheet" href="station.css">
+</head>
+<body>
+
+<canvas id="view" aria-label="Stationfall game view"></canvas>
+
+<header class="hud-top">
+  <a class="back" href="../">&larr; GAMES</a>
+  <div class="title">STATIONFALL <span>ALPHA</span></div>
+  <div class="stat">DAY <b id="day">1</b></div>
+  <div class="stat clock"><span id="phase">DAY</span> <i id="phase-left"></i></div>
+  <div class="spacer"></div>
+  <div class="res" id="res"></div>
+</header>
+
+<aside class="vitals panel">
+  <h2>VITALS</h2>
+  <div class="bar" data-k="hp"><span>HEALTH</span><i><b></b></i></div>
+  <div class="bar" data-k="oxy"><span>OXYGEN</span><i><b></b></i></div>
+  <div class="bar" data-k="hunger"><span>FOOD</span><i><b></b></i></div>
+  <div class="bar" data-k="stamina"><span>STAMINA</span><i><b></b></i></div>
+  <p class="air" id="air">PRESSURIZED</p>
+  <h2>POWER</h2>
+  <div class="bar power" data-k="power"><span id="power-label">0 / 20</span><i><b></b></i></div>
+  <p class="net" id="net">+0.0/s</p>
+</aside>
+
+<aside class="side panel">
+  <h2>OBJECTIVE</h2>
+  <p id="objective"></p>
+  <h2>LOG</h2>
+  <ul id="log"></ul>
+</aside>
+
+<footer class="build-bar">
+  <div class="hotbar" id="hotbar"></div>
+  <p class="help">WASD move &middot; Shift sprint &middot; hold click: mine / shoot &middot; 1&ndash;0 build &middot; right-click remove &middot; E harvest &middot; F eat &middot; wheel zoom &middot; Esc pause</p>
+</footer>
+
+<div class="toast" id="toast" hidden></div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <h1 id="ov-title">STATIONFALL</h1>
+    <p id="ov-text">Your ship broke apart over an asteroid field. You made it down with a shelter kit and a little air. Mine the rock, seal your rooms, keep the oxygen flowing, and hold out when the scrapper drones come at night.</p>
+    <div class="ov-actions">
+      <button class="btn primary" id="ov-continue" hidden>CONTINUE</button>
+      <button class="btn primary" id="ov-new">NEW STATION</button>
+      <a class="btn" href="../">BACK TO GAMES</a>
+    </div>
+    <p class="ov-best" id="ov-best"></p>
+    <p class="ov-note">Keyboard and mouse. Saves automatically in this browser. Inspired by Junon.io.</p>
+  </div>
+</div>
+
+<script src="station.js"></script>
+<script src="/face/popup.js" data-odds="20"></script>
+</body>
+</html>
