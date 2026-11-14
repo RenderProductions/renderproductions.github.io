@@ -38,7 +38,7 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('mystery', '🎁', 'Mystery', null, 5, 'casino', 'Random Polygons or an Overtime pass. Small jackpot chance. The price changes every restock.'),
   item('floppy', '💾', "TODD's Floppy Disk", 150, 3, 'fun', "Does... something. TODD won't say what."),
   item('wrap', '🎀', 'Gift Wrap', 75, 5, 'fun', 'Your next gift has no fee.'),
-  item('megaphone', '📣', 'Megaphone', 1000, 1, 'fun', 'An ad for your player company in the market news feed.', { ready: false }),
+  item('megaphone', '📣', 'Megaphone', 1000, 1, 'fun', 'An ad for your player company in the market news feed.'),
   item('title', '🏷️', 'Title', 5000, 1, 'fun', 'A custom title on your profile. Set it with /settitle.', { passive: true }),
   item('rod', '🎣', 'Fishing Rod', 300, 5, 'tackle', 'Lets you fish. Yours for good. Each cast costs ⬡5 of bait.', { passive: true }),
   item('lure', '🪝', 'Lure', 300, 4, 'tackle', 'No bait needed for 25 casts, and bigger fish bite more often.'),

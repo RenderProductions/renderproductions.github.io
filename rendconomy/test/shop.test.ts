@@ -44,7 +44,7 @@ test('buying from the shop: stock is shared and restocks hourly; Marquez explain
   assert.match(text(await run('purchase', { item: 'coffee' }, B)), /sold out/, 'stock is shared by everyone');
   later(HOUR);
   assert.match(text(await run('purchase', { item: 'coffee' }, B)), /Purchase complete/, 'restocked');
-  assert.match(text(await run('purchase', { item: 'megaphone' })), /not on sale yet/);
+  assert.match(text(await run('purchase', { item: 'megaphone' })), /costs ⬡1,000\.00|Purchase complete|sold out/);
   assert.ok(audit(db).ok);
 });
 

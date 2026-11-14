@@ -27,6 +27,8 @@ export interface WorkState {
   /** When the clock started (after any hidden-prompt delay). */
   startedAt: number;
   pressed: string[];
+  /** Crossed a picket line: 10% less pay, and the stock takes a small hit. */
+  scab?: boolean;
 }
 
 /** Forces a task kind (tests only). */
@@ -62,7 +64,7 @@ function buttonsFor(sessionId: string, task: Task): Button[][] {
 }
 
 /** Hands out a task and stores it. Returns the message to send (with its buttons). */
-export function startTask(ctx: Ctx, o: { mode: 'work' | 'gig'; ticker: string | null; style: string; rush?: number; tier?: number; intro?: string }): ReplyObject {
+export function startTask(ctx: Ctx, o: { mode: 'work' | 'gig'; ticker: string | null; style: string; rush?: number; tier?: number; intro?: string; scab?: boolean }): ReplyObject {
   const rush = o.rush ?? 0;
   const m = loadMarket(ctx.db);
   const c = m?.companies.find((x) => x.id === o.ticker && x.history?.length > 13);
@@ -75,7 +77,7 @@ export function startTask(ctx: Ctx, o: { mode: 'work' | 'gig'; ticker: string | 
     intro += '-# Stopwatch: 10 extra seconds.\n';
   }
   const hide = task.hideMs ?? 0;
-  const state: WorkState = { mode: o.mode, ticker: o.ticker, style: o.style, rush, tier: o.tier ?? 0, task, startedAt: ctx.now + hide, pressed: [] };
+  const state: WorkState = { mode: o.mode, ticker: o.ticker, style: o.style, rush, tier: o.tier ?? 0, task, startedAt: ctx.now + hide, pressed: [], scab: o.scab };
   const s = sessions.create(ctx.db, { kind: KIND, guildId: ctx.guildId, channelId: ctx.channelId, userId: ctx.user.id, state, ttlMs: JOB_RULES.abandonMs + hide, now: ctx.now });
   const timer = `-# Time limit: ${task.limitSec} seconds.${task.steps ? ' Press them in order, or type them separated by spaces.' : ' Press a button or type the answer.'}`;
   const buttons = buttonsFor(s.id, task);
@@ -125,6 +127,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
   } else {
     if (result !== 'pass') pay = Math.round(pay * JOB_RULES.missShare);
     if (useEffect(ctx.db, guildId, ctx.user.id, 'overtime')) { pay *= 2; extras.push('Overtime: pay doubled'); }
+    if (st.scab) { pay = Math.round(pay * 0.9); extras.push('Crossed the picket line: -10%'); }
     const world = shiftMultiplier(ctx.db, ticker, ctx.now);
     if (world > 1) { pay = Math.round(pay * world); extras.push(`World event: pay ${world}x`); }
     const boost = m?.boost as { tickers?: string[] } | null | undefined;
@@ -174,7 +177,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
       }
     }
     saveCareer(ctx, guildId, ticker, next);
-    if (result === 'pass' && st.rush === 0 && !pc) nudge(ctx.db, ticker, JOB_RULES.stockNudge);
+    if (result === 'pass' && st.rush === 0 && !pc) nudge(ctx.db, ticker, st.scab ? -0.002 : JOB_RULES.stockNudge);
     if (pc && paid > 0) addRevenue(ctx.db, ticker, Math.round(paid * CO.revenueShare), ctx.now); // employees earn for their company
     emit('work.shift', { guildId, userId: ctx.user.id, ticker, result, cents: paid, rush: st.rush, team: team > 0 });
 

@@ -8,6 +8,7 @@ import { format, polygons } from '../core/money';
 import { clearCooldown, discordTime, HOUR } from '../core/time';
 import { addEffect, addItem, startTimed, takeItem } from './inventory';
 import { anyItem } from './items';
+import { ownedBy } from '../companies/companies';
 import { PAINTS, unlockKit, unlockPaint } from '../profile/styles';
 
 /** The Rend Times: a vague tip about one company's hidden market state. */
@@ -29,6 +30,10 @@ function rendTimes(ctx: Ctx): string {
   return `**The Rend Times.** ${hints.slice(0, 2 + (ctx.rng.chance(0.5) ? 1 : 0)).join(' ')}\n-# The Rend Times is not responsible for your trades.`;
 }
 
+/** Posts a Megaphone ad in the market news (set by the bot at startup). */
+let postAd: (text: string) => void = () => {};
+export const setAdPoster = (fn: (text: string) => void): void => { postAd = fn; };
+
 const JOKE_TITLES = ['Certified Floppy User', 'Read-Only Member', 'Insert Disk 2', '1.44 MB of Talent', 'Corrupted File'];
 
 type Use = (ctx: Ctx, guildId: string) => string;
@@ -37,6 +42,12 @@ const USES: Record<string, Use> = {
   kit: (ctx) => { unlockKit(ctx.db, ctx.user.id); return `Profile customizing is unlocked for good. Try \`${ctx.config.prefix}profile looks\`.`; },
   ...Object.fromEntries(Object.keys(PAINTS).map((id) => [`paint_${id}`, ((ctx: Ctx) => { unlockPaint(ctx.db, ctx.user.id, id); return `${PAINTS[id]!.label} is yours for good: \`${ctx.config.prefix}profile theme ${id}\`.`; }) as Use])),
   times: (ctx) => rendTimes(ctx),
+  megaphone: (ctx) => {
+    const c = ownedBy(ctx.db, ctx.user.id);
+    if (!c || (c.status !== 'private' && c.status !== 'public')) throw new GameError('use.megaphone', 'A Megaphone advertises your player company. Found one first.');
+    postAd(`**${c.name} (${c.ticker})** is open for business${c.status === 'public' ? ` at ${format(Math.round(c.price * 100))} a share` : ''}. Now hiring: \`/apply ${c.ticker}\`.`);
+    return `The ad for ${c.name} is in the market news.`;
+  },
   coffee: (ctx, g) => { clearCooldown(ctx.db, 'work', `${g}:${ctx.user.id}`); return 'Coffee consumed. Your work cooldown has been reset.'; },
   overtime: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'overtime', 1); return 'Overtime approved. Your next shift pays double.'; },
   stopwatch: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'stopwatch', 3); return 'Stopwatch set. Your next 3 shifts have 10 extra seconds.'; },

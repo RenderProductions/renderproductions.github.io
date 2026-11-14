@@ -83,6 +83,7 @@ export const REASONS: Record<string, string> = {
   'heist.stake': 'Heist stake',
   'heist.haul': 'Heist haul',
   'heist.fine': 'Heist fine',
+  'work.strike': 'Strike pay',
   'casino.bet': 'Rend-Sino bet',
   'casino.win': 'Rend-Sino winnings',
   'reserve.fund': 'Reserve funded',

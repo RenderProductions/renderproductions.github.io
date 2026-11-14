@@ -208,3 +208,17 @@ test('a bankrupt company lays you off with severance', async () => {
   assert.equal(balance(db, wallet(G, 'u1')) - before, Math.round(JOB_RULES.basePay * JOB_RULES.severanceShifts));
   assert.match(text(await run('work')), /do not have a job/);
 });
+
+test('strikes: when the Reserve is low, join for strike pay or cross the line for 10% less', async () => {
+  const { db, run, ctx } = setup();
+  await run('apply', { ticker: 'RRM' });
+  const { transfer: tr, RESERVE: R, balance: bal } = await import('../src/core/ledger.js');
+  const { ensureWallet } = await import('../src/core/ledger.js');
+  tr(db, { from: R, to: ensureWallet(db, G, 'sink'), cents: bal(db, R) - 1_000_000_00, reason: 'test' });
+  const always = { ...noRush, chance: () => true } as Rng;
+  const r = await run('work', {}, 'u1', always);
+  assert.match(text(r), /Strike at Render Room/);
+  const before = balance(db, wallet(G, 'u1'));
+  assert.match(text(press(ctx('u1', noRush), sessions.buttonId(r.session!, 'strike')).update), /Solidarity/);
+  assert.ok(balance(db, wallet(G, 'u1')) > before);
+});

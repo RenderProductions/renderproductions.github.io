@@ -10,7 +10,7 @@ import { onLoanButton } from './loans';
 import { onBrokerButton } from './schemes';
 import { onBus } from './extras';
 import { onHeistButton } from './heists';
-import { onQuitButton } from './work';
+import { onQuitButton, onStrikeButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
 
 export interface SessionHandler {
@@ -22,6 +22,7 @@ export interface SessionHandler {
 export const handlers: Record<string, SessionHandler> = {
   [shift.KIND]: { onButton: shift.onButton, onText: shift.onText },
   quit: { onButton: onQuitButton },
+  strike: { onButton: onStrikeButton },
   wipe: { onButton: onWipeButton },
   leaderboard: { onButton: onLeaderboardButton },
   achievements: { onButton: onAchievementsButton },

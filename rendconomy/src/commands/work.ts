@@ -8,6 +8,10 @@ import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay } from '.
 import { KIND, careerOf, layOff, startTask } from '../work/shift';
 import { guildOf, me } from './shared';
 import { takeItem } from '../shop/inventory';
+import { awardHere } from '../achievements/achievements';
+import { economy } from '../config';
+import { payFromReserve } from '../core/economy';
+import { RESERVE, balance, wallet } from '../core/ledger';
 import { alive, getCompany } from '../companies/companies';
 import type { Command, Ctx, SessionReply } from './types';
 
@@ -42,6 +46,13 @@ export const work: Command = {
       throw new GameError('work.closed', 'Your company has closed. Apply somewhere else.');
     }
     const style = COMPANIES[p.job] ? p.job : Object.keys(COMPANIES)[[...p.job].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 5]!;
+    ctx.db.setMeta(`remind:${guildId}:${ctx.user.id}`, ctx.db.meta(`remind.on:${ctx.user.id}`) === '1' ? ctx.now + JOB_RULES.workCooldownMs : 0);
+    // Strikes: when the Polygon Reserve is low, the union may walk out. Join them, or cross the line.
+    if (COMPANIES[p.job] && balance(ctx.db, RESERVE) < economy.reserveStart * 0.25 && ctx.rng.chance(0.3)) {
+      const s = sessions.create(ctx.db, { kind: 'strike', guildId, channelId: ctx.channelId, userId: ctx.user.id, state: { job: p.job, tier: career.rank }, ttlMs: JOB_RULES.abandonMs, now: ctx.now });
+      return { content: `**Strike at ${COMPANIES[p.job]!.name}.** The Polygon Reserve is running low and the union is walking out.\n**Join the strike** for strike pay (25%), or **cross the picket line** and work (-10%, and the stock takes a hit).`,
+        buttons: [[{ label: 'Join the strike', id: sessions.buttonId(s.id, 'strike'), style: 'success' }, { label: 'Cross the line', id: sessions.buttonId(s.id, 'cross'), style: 'danger' }]], session: s.id };
+    }
     return startTask(ctx, { mode: 'work', ticker: p.job, style, tier: career.rank });
   }
 };
@@ -132,10 +143,16 @@ export function onQuitButton(ctx: Ctx, s: sessions.Session<{ job: string }>, val
 export const job: Command = {
   name: 'job',
   aliases: ['career'],
-  description: 'Your job: rank, next review, accuracy, earnings and next shift',
+  description: 'Your job: rank, next review, accuracy, earnings and next shift (or "remind on|off")',
   system: 'work',
   guildOnly: true,
-  run(ctx) {
+  options: [{ name: 'remind', type: 'string', description: '"remind on" or "remind off": a DM when your next shift is ready' }],
+  run(ctx, args) {
+    const r = /^(?:remind\s+)?(on|off)$/i.exec(String(args.remind ?? '').trim());
+    if (r) {
+      ctx.db.setMeta(`remind.on:${ctx.user.id}`, r[1]!.toLowerCase() === 'on' ? '1' : '0');
+      return { content: `Shift reminders are **${r[1]!.toLowerCase()}**.`, ephemeral: true };
+    }
     const { player } = me(ctx);
     const guildId = guildOf(ctx);
     const p = player;
@@ -170,3 +187,17 @@ export const job: Command = {
     ])] };
   }
 };
+
+export function onStrikeButton(ctx: Ctx, s: sessions.Session<{ job: string; tier: number }>, value: string): SessionReply {
+  if (ctx.user.id !== s.user_id) return { notice: 'This decision belongs to another player.' };
+  if (!sessions.end(ctx.db, s.id)) return { update: { buttons: [] } };
+  const g = s.guild_id!;
+  if (value === 'strike') {
+    const m = loadMarket(ctx.db);
+    const pay = payFromReserve(ctx.db, economy.reserveStart, { to: wallet(g, ctx.user.id), cents: Math.round(shiftPay(s.state.job, m ? quote(m, s.state.job)?.priceCents : undefined, s.state.tier) * 0.25), reason: 'work.strike', guildId: g, actorId: ctx.user.id, now: ctx.now });
+    awardHere('solidarity');
+    return { update: { content: `**Solidarity.** You hold the line with the union. Strike pay: **+${format(pay)}**.\n-# Strikes do not count toward your review.`, buttons: [] } };
+  }
+  awardHere('scab');
+  return { update: { buttons: [] }, followUp: startTask(ctx, { mode: 'work', ticker: s.state.job, style: s.state.job, tier: s.state.tier, scab: true, intro: 'You cross the picket line.' }) };
+}

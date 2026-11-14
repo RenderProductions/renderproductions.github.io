@@ -16,6 +16,8 @@ import { startPublishing } from './site/publish';
 import { setNotifier } from './market/schemes';
 import { setEventAnnouncer } from './events/install';
 import { describeEvent } from './events/world';
+import { setAdPoster } from './shop/use';
+import { startActivity, startApi, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
@@ -52,6 +54,11 @@ async function main(): Promise<void> {
     for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
       fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Rend-Conomy News', embeds: [{ title: 'World event', description: `${describeEvent(e)}\nFor the next hour.`, color: 0x3498db }] }) })
         .catch((err: unknown) => console.error('[event]', err));
+    }
+  });
+  setAdPoster((text) => {
+    for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
+      fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Rend-Conomy News', embeds: [{ title: 'Advertisement', description: text, color: 0xff9f1c }] }) }).catch(() => {});
     }
   });
   market.start(db, rng, (posts) => {
@@ -95,6 +102,10 @@ async function main(): Promise<void> {
       if (!chId) return;
       c.channels.fetch(chId).then(async (ch) => { if (ch && ch.isSendable()) await ch.send({ content: text, allowedMentions: { users: [] } }); }).catch(() => {});
     });
+    startReminders(db, c);
+    startActivity(db, config, rng, c);
+    startApi(db, c);
+    startStatus(db, c);
     startPublishing(db, config, {
       serverName: (id) => c.guilds.cache.get(id)?.name ?? null,
       user: (id) => { const u = c.users.cache.get(id); return u ? { name: u.globalName ?? u.username, avatar: u.displayAvatarURL({ size: 128 }) } : null; },
