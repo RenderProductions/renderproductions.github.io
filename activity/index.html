@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rend-Conomy Trading Floor</title>
 <!-- The Discord Activity. Runs inside Discord (through the Cloudflare Worker in worker.js), not on the site.
      Everything it does goes through the bot, as you, in the server you opened it in. -->
@@ -142,6 +142,20 @@
   @media (max-height: 640px) { header { padding: 6px 14px; } header img { width: 32px; height: 32px; } .title b { font-size: 24px; } .card { margin-top: 8px; padding: 9px 10px; } .worth { font-size: 32px; } .casino img { width: 34px; height: 34px; } .chart svg { height: 150px; } }
   @media (max-width: 1050px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); } .detail { grid-template-columns: 1fr; } }
   @media (max-width: 760px) { main { display: block; flex: none; } body { overflow: auto; } .left { overflow: visible; } .right { border-left: 0; border-top: 1px solid var(--line); } .log { max-height: 50vh; } .board { grid-template-columns: repeat(2, minmax(0, 1fr)); } .status .light { display: none; } }
+  /* phones: stay clear of the notch and the home bar (Discord's mobile safe areas), no zoom when typing */
+  body { padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); }
+  @media (max-width: 760px) {
+    #line { font-size: 16px; }
+    .board { gap: 8px; } .tk .p { font-size: 26px; }
+    .casino-btns button, .farm-btns button, .quick button { min-height: 36px; }
+    .msg .btns button { padding: 7px 11px; font-size: 12.5px; }
+  }
+  @media (max-width: 420px) {
+    header { gap: 8px; padding: 8px 10px; } .title span { display: none; } .who span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .left { padding: 10px; } .card { margin: 10px 10px 0; }
+    .farm-btns { grid-template-columns: 1fr 1fr; }
+    .bs { gap: 6px; }
+  }
   @media (prefers-reduced-motion: reduce) { .tape-in, .msg { animation: none; } .tk { transition: none; } }
 </style>
 </head>
