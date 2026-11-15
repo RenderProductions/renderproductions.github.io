@@ -68,7 +68,7 @@ export function checkOrders(db: Db, m: MarketData, now = Date.now()): Order[] {
   for (const o of db.all<Order>('SELECT * FROM orders ORDER BY id')) {
     if (now - o.created_at > ORDERS.expireMs) {
       cancelOrder(db, o, now);
-      notify(o.guild_id, o.user_id, `⌛ Your order expired after a week without filling: ${describeOrder(o)}.${o.reserved > 0 ? ` The ${format(o.reserved)} set aside for it is back in your wallet.` : ''}`);
+      notify(o.guild_id, o.user_id, `${emoji('time')} Your order expired after a week without filling: ${describeOrder(o)}.${o.reserved > 0 ? ` The ${format(o.reserved)} set aside for it is back in your wallet.` : ''}`);
       continue;
     }
     const q = quote(m, o.ticker);

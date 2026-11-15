@@ -99,9 +99,9 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
   const guildId = s.guild_id!;
   const w = wallet(guildId, ctx.user.id);
   const quick = elapsed < st.task.limitSec * 0.4;
-  const verdict = result === 'pass' ? `✅ Correct, in ${elapsed.toFixed(1)} seconds. ${line(ctx.rng, quick ? 'workFast' : 'workOk')}`
-    : result === 'slow' ? `⌛ Time expired. ${line(ctx.rng, 'workSlow')}`
-    : `❌ Incorrect. The answer was \`${st.task.shown}\`. ${line(ctx.rng, 'workWrong')}`;
+  const verdict = result === 'pass' ? `${emoji('yes')} Correct, in ${elapsed.toFixed(1)} seconds. ${line(ctx.rng, quick ? 'workFast' : 'workOk')}`
+    : result === 'slow' ? `${emoji('time')} Time expired. ${line(ctx.rng, 'workSlow')}`
+    : `${emoji('no')} Incorrect. The answer was \`${st.task.shown}\`. ${line(ctx.rng, 'workWrong')}`;
   const factor = payoutFactor(ctx.db, economy.reserveStart);
   const shortfall = factor < 1 ? `\n-# The Polygon Reserve is low. Payouts are reduced to ${Math.round(factor * 100)}%.` : '';
 

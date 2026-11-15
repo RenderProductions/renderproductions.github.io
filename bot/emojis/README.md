@@ -3,6 +3,14 @@
 The bot's own emojis, drawn for RendConomy: 32×32 pixel art saved at 128×128. Each rim matches the embed color of its system.
 See `preview.png` and `preview-set.png` for the whole set.
 
+## Answers
+
+| File | Stands for | Replaces |
+|---|---|---|
+| `rc_yes.png` | Correct, done | ✅ |
+| `rc_no.png` | Wrong, refused | ❌ |
+| `rc_time.png` | Time ran out, expired | ⌛ |
+
 ## Update posts
 
 | File | Stands for | Replaces |
