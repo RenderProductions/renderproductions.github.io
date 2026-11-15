@@ -1,5 +1,6 @@
 // The rest of the Rend-Sino (Ride the Bus, the lottery, the Polygon Derby, stats), drop-in controls,
 // DM receipts, and a secret.
+import { emoji } from '../discord/emoji';
 import { award, awardHere } from '../achievements/achievements';
 import { CASINO, NAMES, cardText, deck, mult, settle, takeBet, type Card } from '../casino/core';
 import type { Db } from '../core/db';
@@ -273,8 +274,8 @@ export const receipts: Command = {
     if (v === 'on' || v === 'off') ctx.db.setMeta(`receipts.off:${ctx.user.id}`, v === 'off' ? '1' : '0');
     const off = ctx.db.meta(`receipts.off:${ctx.user.id}`) === '1';
     return { content: off
-      ? `🧾 Receipts are **off**. No more DMs about trades, purchases, gifts, loans, company money or filled orders. Turn them back on with \`${ctx.config.prefix}receipts on\`.`
-      : `🧾 Receipts are **on**. Trades, shop purchases, gifts, loans, company money and filled orders are sent to your DMs. Turn them off with \`${ctx.config.prefix}receipts off\`.`, ephemeral: true };
+      ? `${emoji('receipt')} Receipts are **off**. No more DMs about trades, purchases, gifts, loans, company money or filled orders. Turn them back on with \`${ctx.config.prefix}receipts on\`.`
+      : `${emoji('receipt')} Receipts are **on**. Trades, shop purchases, gifts, loans, company money and filled orders are sent to your DMs. Turn them off with \`${ctx.config.prefix}receipts off\`.`, ephemeral: true };
   }
 };
 

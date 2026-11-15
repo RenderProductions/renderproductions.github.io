@@ -4,7 +4,24 @@
 // Custom emojis show in message text, embed descriptions and field values, but not in embed titles.
 import type { Client } from 'discord.js';
 
-export const FALLBACK = { new: '🆕', changed: '🔧', fixed: '🩹', hotfix: '🔥', removed: '🗑️' } as const;
+export const FALLBACK = {
+  // update posts
+  new: '🆕', changed: '🔧', fixed: '🩹', hotfix: '🔥', removed: '🗑️',
+  // money
+  polygon: '⬡', daily: '🌅', reserve: '🏦', savings: '🐷', receipt: '🧾',
+  // work
+  work: '💼', gig: '🛠️', promoted: '🎉',
+  // market
+  stonks: '📈', crash: '📉', company: '🏢', broker: '👔',
+  // the Rend-Sino
+  slots: '🎰', coinflip: '🪙', dice: '🎲', roulette: '🎡', blackjack: '🃏', mines: '💣', rocket: '🚀', hilo: '🔼',
+  // fishing, the shop, TODD
+  fishing: '🎣', shop: '🛍️', todd: '🖥️',
+  // people
+  gift: '🎁', loan: '📜', heist: '🦹', lottery: '🎟️',
+  // progress
+  achievement: '🏆', leaderboard: '🏅', event: '🌐'
+} as const;
 export type EmojiKey = keyof typeof FALLBACK;
 
 const custom: Partial<Record<EmojiKey, string>> = {};

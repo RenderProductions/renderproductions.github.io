@@ -8,6 +8,7 @@
 //          your own portfolio. Miss a payday and they quit (KorbedOut's idea).
 //  Shorts: borrow and sell shares; half the position is set aside as margin (plus a 1% fee). Covering buys
 //          them back. A loss of 90% of the margin covers it for you; a bankruptcy pays out in full.
+import { emoji } from '../discord/emoji';
 import { award } from '../achievements/achievements';
 import { economy } from '../config';
 import type { Db } from '../core/db';
@@ -92,7 +93,7 @@ export function checkOrders(db: Db, m: MarketData, now = Date.now()): Order[] {
       award(db, o.guild_id, o.user_id, 'set_and_forget', now);
       const what = o.side === 'buy' ? 'Limit buy' : o.kind === 'stop' ? 'Stop-loss' : 'Limit sell';
       notify(o.guild_id, o.user_id, r
-        ? `${o.side === 'buy' ? '📈' : '📉'} **${what} filled:** ${o.side === 'buy' ? 'bought' : 'sold'} **${r.qty} ${o.ticker}** at ${format(r.priceCents)} each, ${format(r.totalCents)} in all. You now hold ${r.shares} ${o.ticker}; balance ${format(r.cash)}.`
+        ? `${emoji(o.side === 'buy' ? 'stonks' : 'crash')} **${what} filled:** ${o.side === 'buy' ? 'bought' : 'sold'} **${r.qty} ${o.ticker}** at ${format(r.priceCents)} each, ${format(r.totalCents)} in all. You now hold ${r.shares} ${o.ticker}; balance ${format(r.cash)}.`
         : `${what} on ${o.ticker} reached its price, but you no longer held any shares, so nothing was sold. The order is closed.`);
     } catch (e) { console.error('[orders]', e); }
   }
@@ -231,7 +232,7 @@ function brokerSell(db: Db, b: Broker, m: MarketData, q: Quote, qty: number, why
   h.shares -= qty; h.cost -= costPart;
   blog(b, `Sold ${qty} ${q.id} at ${format(q.priceCents)} (${why === 'stop' ? 'stop-loss' : why === 'hunch' ? 'on a hunch' : 'target reached'})${profit > 0 ? `, profit ${format(profit)}, cut ${format(cut)}` : ''}.`);
   const reason = why === 'stop' ? 'its stop-loss was hit' : why === 'hunch' ? 'on a hunch' : 'its target was reached';
-  notify(b.guild_id, b.user_id, `💼 **Broker report from ${b.name}:** sold ${qty} ${q.id} at ${format(q.priceCents)} each (${format(qty * q.priceCents)}) because ${reason}. ${profit > 0 ? `Profit ${format(profit)}; ${b.name}'s cut was ${format(cut)}.` : `Loss ${format(Math.abs(profit))}.`}`);
+  notify(b.guild_id, b.user_id, `${emoji('broker')} **Broker report from ${b.name}:** sold ${qty} ${q.id} at ${format(q.priceCents)} each (${format(qty * q.priceCents)}) because ${reason}. ${profit > 0 ? `Profit ${format(profit)}; ${b.name}'s cut was ${format(cut)}.` : `Loss ${format(Math.abs(profit))}.`}`);
 }
 
 // ================================================================ shorts

@@ -1,3 +1,4 @@
+import { emoji } from '../discord/emoji';
 import { GameError } from '../core/errors';
 import { format } from '../core/money';
 import * as sessions from '../core/sessions';
@@ -153,8 +154,8 @@ export const job: Command = {
     if (r) {
       ctx.db.setMeta(`remind.on:${ctx.user.id}`, r[1]!.toLowerCase() === 'on' ? '1' : '0');
       return { content: r[1]!.toLowerCase() === 'on'
-        ? `⏰ Shift reminders are **on**. After each shift, you'll get a DM when the next one at your job is ready. Turn them off with \`${ctx.config.prefix}job remind off\`.`
-        : `⏰ Shift reminders are **off**. Turn them back on with \`${ctx.config.prefix}job remind on\`.`, ephemeral: true };
+        ? `${emoji('work')} Shift reminders are **on**. After each shift, you'll get a DM when the next one at your job is ready. Turn them off with \`${ctx.config.prefix}job remind off\`.`
+        : `${emoji('work')} Shift reminders are **off**. Turn them back on with \`${ctx.config.prefix}job remind on\`.`, ephemeral: true };
     }
     const { player } = me(ctx);
     const guildId = guildOf(ctx);

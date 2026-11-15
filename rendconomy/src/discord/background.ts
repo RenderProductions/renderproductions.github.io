@@ -1,5 +1,6 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
+import { emoji } from './emoji';
 import http from 'node:http';
 import type { Client } from 'discord.js';
 import { ActivityType } from 'discord.js';
@@ -23,7 +24,7 @@ export function startReminders(db: Db, client: Client, prefix: string): void {
       const job = db.get<{ job: string | null }>('SELECT job FROM players WHERE guild_id = ? AND user_id = ?', guildId, userId)?.job;
       if (!job) continue;   // they quit since
       const server = client.guilds.cache.get(guildId)?.name;
-      const text = `⏰ Your next shift at **${job}** is ready${server ? ` in **${server}**` : ''}. Clock in with \`${prefix}work\`.\n-# Turn these off with \`${prefix}job remind off\`.`;
+      const text = `${emoji('work')} Your next shift at **${job}** is ready${server ? ` in **${server}**` : ''}. Clock in with \`${prefix}work\`.\n-# Turn these off with \`${prefix}job remind off\`.`;
       client.users.fetch(userId).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     }
   }, MINUTE).unref();

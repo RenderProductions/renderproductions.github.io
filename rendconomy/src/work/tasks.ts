@@ -1,5 +1,6 @@
 // Work tasks: three kinds per company, harder at higher ranks. A task is plain data (no functions),
 // so it can be stored in a session and graded after a restart.
+import { emoji } from '../discord/emoji';
 import type { Rng } from '../core/rng';
 import { JOB_RULES } from './jobs';
 
@@ -211,7 +212,7 @@ export function makeTask(style: string, rng: Rng, opts: TaskOptions = {}): Task 
       }
       const pct = (to / from - 1) * 100;
       return { kind, limitSec, grade: { type: 'near', value: pct, tolerance: tier >= 2 ? 0.5 : 1 }, shown: `about ${Math.round(pct)}%`,
-        prompt: `📈 ${head('**BNW analyst desk.**')}${who}. By what **percent** did it change? (nearest whole number, use - for a drop)` };
+        prompt: `${emoji('stonks')} ${head('**BNW analyst desk.**')}${who}. By what **percent** did it change? (nearest whole number, use - for a drop)` };
     }
     // ---------------- Bastardly Glory ----------------
     case 'tile': {

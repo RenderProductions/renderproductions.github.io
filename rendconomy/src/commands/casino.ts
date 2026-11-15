@@ -1,5 +1,6 @@
 // The Rend-Sino's games. Instant games settle in one step; interactive ones keep their state in a stored
 // session (kind "casino.<game>"), so their buttons survive restarts and each press is handled once.
+import { emoji } from '../discord/emoji';
 import type { APIEmbed } from 'discord.js';
 import { awardHere } from '../achievements/achievements';
 import { CASINO, NAMES, ODDS, cardText, deck, mult, settle, takeBet, type Card, type Game } from '../casino/core';
@@ -52,7 +53,7 @@ export const slots: Command = {
       return {
         embeds: [card('slots', [`## [ ${x} | ${y} | ${z} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
         teaser: {
-          ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} 🎰`, 700),
+          ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} ${emoji('slots')}`, 700),
           frames: [frame(x, blur(), blur(), 'The first reel stops...', 800), frame(x, y, blur(), x === y ? `Two ${x}... 👀` : 'The second reel stops...', x === y ? 1200 : 800)]
         }
       };
@@ -73,7 +74,7 @@ export const coinflip: Command = {
       const r = settle(ctx, guildId, 'coinflip', bet, win);
       return {
         embeds: [card('coinflip', [`You called **${side}**. It's... **${flip}!** ${flip === 'heads' ? '🙂' : '🦅'}`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
-        teaser: teaser(NAMES.coinflip, `You call **${side}**. ${line(ctx.rng, 'coinSpin')} 🪙`, COLORS.casino)
+        teaser: teaser(NAMES.coinflip, `You call **${side}**. ${line(ctx.rng, 'coinSpin')} ${emoji('coinflip')}`, COLORS.casino)
       };
     });
   }
@@ -98,7 +99,7 @@ export const dice: Command = {
       const call = `You bet **${over ? 'over' : 'under'} ${n}** (${Math.round(chance * 100)}% chance, pays **${pays}x**).`;
       return {
         embeds: [card('dice', [call, `You rolled... **${roll}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
-        teaser: teaser(NAMES.dice, `${call}\n${line(ctx.rng, 'diceRoll')} 🎲`, COLORS.casino)
+        teaser: teaser(NAMES.dice, `${call}\n${line(ctx.rng, 'diceRoll')} ${emoji('dice')}`, COLORS.casino)
       };
     });
   }
@@ -149,7 +150,7 @@ export const roulette: Command = {
       const frame = (back: number, text: string, ms: number) => ({ embeds: [card('roulette', [`You bet on **${b.label}**.`, strip(at - back), text])], ms });
       return {
         embeds: [card('roulette', [`You bet on **${b.label}** (pays ${b.pays}x).`, strip(at), `The ball drops into... **${dot(n)} ${n}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
-        teaser: { ...frame(14 + ctx.rng.int(0, 5), `${line(ctx.rng, 'wheelSpin')} 🎡`, 700), frames: [frame(5, 'Slowing down...', 800), frame(1, 'Almost...', 900)] }
+        teaser: { ...frame(14 + ctx.rng.int(0, 5), `${line(ctx.rng, 'wheelSpin')} ${emoji('roulette')}`, 700), frames: [frame(5, 'Slowing down...', 800), frame(1, 'Almost...', 900)] }
       };
     });
   }
