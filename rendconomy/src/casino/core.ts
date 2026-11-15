@@ -1,5 +1,6 @@
 // The Rend-Sino: rules every game shares. Bets go into the Reserve and winnings come out of it, paid
 // in full. Every game has a stated house edge (see /odds), so over time the casino refills the Reserve.
+import { emojiOr } from '../discord/emoji';
 import { awardHere, bump, setProgress } from '../achievements/achievements';
 import type { Ctx } from '../commands/types';
 import { GameError } from '../core/errors';
@@ -124,4 +125,6 @@ export function deck(shuffle: <T>(l: readonly T[]) => T[]): Card[] {
   for (const [suit, icon, red] of SUITS) for (let r = 2; r <= 14; r++) d.push({ r, suit, icon, red });
   return shuffle(d);
 }
-export const cardText = (c: Card): string => `\`${FACE[c.r] ?? c.r}${c.icon}\``;
+/** A card: the bot's card emoji (cah, c10s...) once uploaded, else rank and suit as text. */
+export const cardText = (c: Card): string => emojiOr(`c${(FACE[c.r] ?? String(c.r)).toLowerCase()}${c.suit[0]}`, `\`${FACE[c.r] ?? c.r}${c.icon}\``);
+export const cardBack = (): string => emojiOr('cardback', '`??`');

@@ -117,8 +117,12 @@ const STYLES = { primary: ButtonStyle.Primary, secondary: ButtonStyle.Secondary,
 function rows(buttons: Button[][]) {
   return buttons.filter((r) => r.length).slice(0, 5).map((r) => new ActionRowBuilder<ButtonBuilder>().addComponents(
     r.slice(0, 5).map((b) => {
-      const btn = new ButtonBuilder().setCustomId(b.id).setLabel(b.label.slice(0, 80)).setStyle(STYLES[b.style ?? 'secondary']).setDisabled(!!b.disabled);
-      if (b.emoji) btn.setEmoji(b.emoji);
+      const btn = new ButtonBuilder().setCustomId(b.id).setStyle(STYLES[b.style ?? 'secondary']).setDisabled(!!b.disabled);
+      if (b.label) btn.setLabel(b.label.slice(0, 80));
+      if (b.emoji) {
+        const m = /^<(a?):(\w+):(\d+)>$/.exec(b.emoji);   // the bot's own emoji, or a standard one
+        btn.setEmoji(m ? { id: m[3]!, name: m[2]!, animated: !!m[1] } : { name: b.emoji });
+      }
       return btn;
     })
   ));

@@ -2,14 +2,14 @@
 // session (kind "casino.<game>"), so their buttons survive restarts and each press is handled once.
 import type { APIEmbed } from 'discord.js';
 import { awardHere } from '../achievements/achievements';
-import { CASINO, NAMES, ODDS, cardText, deck, mult, settle, takeBet, type Card, type Game } from '../casino/core';
+import { CASINO, NAMES, ODDS, cardBack, cardText, deck, mult, settle, takeBet, type Card, type Game } from '../casino/core';
 import { GameError } from '../core/errors';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
 import * as sessions from '../core/sessions';
 import { COLORS } from '../discord/style';
 import { line, teaser } from '../discord/flavor';
-import { emoji, type EmojiKey } from '../discord/emoji';
+import { emoji, emojiOr, hasEmoji, type EmojiKey } from '../discord/emoji';
 import { useEffect } from '../shop/inventory';
 import { me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
@@ -113,17 +113,19 @@ export const dice: Command = {
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 const colorOf = (n: number) => (n === 0 ? 'green' : RED.has(n) ? 'red' : 'black');
 const dot = (n: number) => ({ green: '🟢', red: '🔴', black: '⚫' })[colorOf(n)];
+/** A pocket: the bot's numbered pocket emoji once uploaded, else a coloured dot and the number. */
+const pocket = (n: number): string => emojiOr(`r${n}`, `${dot(n)} ${n}`);
 /** The pockets in the order they sit on a European wheel. */
 const WHEEL = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
 /** Five pockets of the wheel around position i, the ball's pocket in the middle. */
 function strip(i: number): string {
   const at = (k: number) => WHEEL[((k % WHEEL.length) + WHEEL.length) % WHEEL.length]!;
-  return [-2, -1, 0, 1, 2].map((d) => { const v = at(i + d); return d === 0 ? `**[ ${dot(v)} ${v} ]**` : `${dot(v)} ${v}`; }).join(' · ');
+  return [-2, -1, 0, 1, 2].map((d) => { const v = at(i + d); return d === 0 ? `**[ ${pocket(v)} ]**` : pocket(v); }).join(hasEmoji('r0') ? ' ' : ' · ');
 }
 
 function rouletteBet(raw: string): { label: string; pays: number; wins: (n: number) => boolean; straight?: boolean } | null {
   const t = raw.trim().toLowerCase().replace(/\s+/g, '');
-  if (/^\d{1,2}$/.test(t) && Number(t) <= 36) { const k = Number(t); return { label: `${dot(k)} ${k}`, pays: 36, wins: (n) => n === k, straight: true }; }
+  if (/^\d{1,2}$/.test(t) && Number(t) <= 36) { const k = Number(t); return { label: pocket(k), pays: 36, wins: (n) => n === k, straight: true }; }
   const alias: Record<string, string> = { r: 'red', b: 'black', '1-18': 'low', '19-36': 'high', small: 'low', big: 'high', first: '1st', second: '2nd', third: '3rd' };
   const k = alias[t] ?? t;
   const simple: Record<string, [string, number, (n: number) => boolean]> = {
@@ -154,7 +156,7 @@ export const roulette: Command = {
       const at = WHEEL.indexOf(n);
       const frame = (back: number, text: string, ms: number) => ({ embeds: [card('roulette', [`You bet on **${b.label}**.`, strip(at - back), text])], ms });
       return {
-        embeds: [card('roulette', [`You bet on **${b.label}** (pays ${b.pays}x).`, strip(at), `The ball drops into... **${dot(n)} ${n}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        embeds: [card('roulette', [`You bet on **${b.label}** (pays ${b.pays}x).`, strip(at), `The ball drops into... **${pocket(n)}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
         teaser: { ...frame(14 + ctx.rng.int(0, 5), `${line(ctx.rng, 'wheelSpin')} ${emoji('roulette')}`, 700), frames: [frame(5, 'Slowing down...', 800), frame(1, 'Almost...', 900)] }
       };
     });
@@ -182,7 +184,7 @@ const showHand = (h: Card[]) => h.map(cardText).join(' ');
 
 function bjView(s: sessions.Session<BJ>, line = '', done = false, tone: 'play' | 'win' | 'loss' | 'push' = 'play'): ReplyObject {
   const st = s.state;
-  const dealer = done ? `${showHand(st.dealer)} (**${handValue(st.dealer)}**)` : `${cardText(st.dealer[0]!)} \`??\``;
+  const dealer = done ? `${showHand(st.dealer)} (**${handValue(st.dealer)}**)` : `${cardText(st.dealer[0]!)} ${cardBack()}`;
   const buttons = done ? [] : [[btn(s, 'hit', 'Hit', 'primary'), btn(s, 'stand', 'Stand'), ...(st.hand.length === 2 && !st.doubled ? [btn(s, 'double', `Double (${format(st.bet)})`, 'success')] : [])]];
   return { embeds: [card('blackjack', [`**TODD:** ${dealer}`, `**You:** ${showHand(st.hand)} (**${handValue(st.hand)}**)`, `Bet: ${format(st.bet * (st.doubled ? 2 : 1))}`, line && `\n${line}`], tone)], buttons };
 }
@@ -325,7 +327,9 @@ function msView(s: sessions.Session<MS>, line = '', done = false, tone: 'play' |
   const rows: Button[][] = [];
   for (let r = 0; r < 4; r++) rows.push(Array.from({ length: 4 }, (_, c) => {
     const i = r * 4 + c, open = st.open.includes(i), bomb = st.bombs.includes(i);
-    return { label: done && bomb ? '💣' : open ? '💎' : '·', id: sessions.buttonId(s.id, String(i)), style: open ? 'success' : done && bomb ? 'danger' : 'secondary', disabled: done || open } as Button;
+    const face = done && bomb ? ['mines', '💣'] : open ? ['diamond', '💎'] : ['tile', '·'];
+    const own = hasEmoji(face[0]!);
+    return { label: own ? '' : face[1]!, emoji: own ? emojiOr(face[0]!, face[1]!) : undefined, id: sessions.buttonId(s.id, String(i)), style: open ? 'success' : done && bomb ? 'danger' : 'secondary', disabled: done || open } as Button;
   }));
   const worth = Math.floor(st.bet * minesMult(st.count, st.open.length));
   if (!done) rows.push([btn(s, 'cash', st.open.length ? `Cash out ${format(worth)}` : 'Choose a tile', 'success', !st.open.length)]);

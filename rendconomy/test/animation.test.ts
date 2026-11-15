@@ -9,7 +9,11 @@ import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import { execute, revealThen } from '../src/discord/router';
 import { tick } from '../src/market/market';
-import { setCustomEmojis } from '../src/discord/emoji';
+import { emojiOr, setCustomEmojis, syncAppEmojis } from '../src/discord/emoji';
+import { cardBack, cardText } from '../src/casino/core';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const G = 'g1', A = '111111111111111111';
 const noon = eastern('2026-11-13T12:00', -5);
@@ -69,4 +73,37 @@ test('slots show the bot\'s own reel emojis once they are uploaded', async () =>
   const r = await run('slots', { amount: '10' });
   assert.match(desc(r), /^## \[ <:rc_\w+:\d+> \| <:rc_\w+:\d+> \| <:rc_\w+:\d+> \]/);
   assert.doesNotMatch(desc(r.teaser!), /🍒|🍋|🔔|🔺|💎/);
+});
+
+test('roulette pockets, cards and mines tiles use the bot\'s emojis once uploaded', async () => {
+  const names = [...Array.from({ length: 37 }, (_, n) => `r${n}`), 'cah', 'c10s', 'cardback', 'tile', 'diamond', 'mines'];
+  setCustomEmojis(names.map((n, k) => ({ name: `rc_${n}`, id: String(500 + k) })));
+  const { db, run } = setup();
+  await run('balance', {});
+  transfer(db, { from: RESERVE, to: wallet(G, A), cents: polygons(5000), reason: 'mod.give' });
+  const r = await run('roulette', { amount: '10', on: '17' });
+  assert.match(desc(r), /You bet on \*\*<:rc_r17:\d+>\*\*/);
+  assert.match(desc(r), /\*\*\[ <:rc_r\d+:\d+> \]\*\*/, 'the strip is made of pockets');
+  assert.match(desc(r), /drops into\.\.\. \*\*<:rc_r\d+:\d+>!\*\*/);
+  assert.match(cardText({ r: 14, suit: 'hearts', icon: '♥️', red: true }), /^<:rc_cah:\d+>$/);
+  assert.equal(cardText({ r: 13, suit: 'clubs', icon: '♣️', red: false }), '`K♣️`', 'not uploaded yet: text');
+  assert.match(cardBack(), /^<:rc_cardback:\d+>$/);
+  const m = await run('mines', { amount: '10', bombs: '3' });
+  const b = m.buttons![0]![0]!;
+  assert.equal(b.label, '');
+  assert.match(b.emoji!, /^<:rc_tile:\d+>$/, 'hidden tiles show the tile emoji');
+});
+
+test('the bot uploads the emojis it is missing, then uses them', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'emo-'));
+  for (const f of ['rc_one.png', 'rc_two.png', 'preview.png']) fs.writeFileSync(path.join(dir, f), 'x');
+  const uploaded: string[] = [];
+  const existing = [{ name: 'rc_one', id: '1', animated: false }];
+  const list = () => { const all = [...existing]; return { map: <T>(f: (e: typeof all[number]) => T) => all.map(f), values: () => all.values() }; };
+  const client = { application: { emojis: { fetch: async () => list(), create: async ({ name }: { name: string }) => { uploaded.push(name); existing.push({ name, id: String(existing.length + 1), animated: false }); } } } };
+  const n = await syncAppEmojis(client as unknown as Parameters<typeof syncAppEmojis>[0], dir, () => {});
+  assert.equal(n, 1);
+  assert.deepEqual(uploaded, ['rc_two'], 'only the missing one, and never the previews');
+  assert.equal(emojiOr('two', '?'), '<:rc_two:2>');
+  fs.rmSync(dir, { recursive: true, force: true });
 });

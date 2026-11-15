@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { APIEmbed } from 'discord.js';
-import { FALLBACK, emoji, type EmojiKey } from '../discord/emoji';
+import { FALLBACK, emoji, emojiOr, type EmojiKey } from '../discord/emoji';
 
 export interface UpdateEntry { id: string; title: string; date: string; hotfix?: boolean; intro: string; sections: { heading: string; items: string[] }[]; outro: string }
 
@@ -33,7 +33,7 @@ export function toMarkdown(html: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/[ \t]+/g, ' ')
-    .replace(/\s*\n\s*/g, '\n')).trim().replace(/\u0001(\w+)\u0001 ?/g, (m, k: string) => (k in FALLBACK ? emoji(k as EmojiKey) + (m.endsWith(' ') ? ' ' : '') : '')).trim();
+    .replace(/\s*\n\s*/g, '\n')).trim().replace(/\u0001(\w+)\u0001 ?/g, (m, k: string) => { const e = k in FALLBACK ? emoji(k as EmojiKey) : emojiOr(k, ''); return e ? e + (m.endsWith(' ') ? ' ' : '') : ''; }).trim();
 }
 
 /** The newest update on the patch notes page, or null if the page can't be read. */

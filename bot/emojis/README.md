@@ -21,6 +21,18 @@ See `preview.png` and `preview-set.png` for the whole set.
 | `rc_triangle.png` | Triangle (10x) | 🔺 |
 | `rc_diamond.png` | Diamond (25x) | 💎 |
 
+## Roulette pockets
+
+`rc_r0.png` to `rc_r36.png`: each pocket with its number, on its colour (green 0, red and black), with a wooden rim like the wheel.
+
+## Cards
+
+`rc_c<rank><suit>.png` for all 52: rank `2`–`10`, `j`, `q`, `k`, `a`; suit `h`earts, `d`iamonds, `s`pades, `c`lubs (so `rc_cah` is the ace of hearts, `rc_c10s` the ten of spades). `rc_cardback.png` is the back, for TODD's hidden card.
+
+## Minesweeper
+
+`rc_tile.png` is a hidden tile. Opened tiles use `rc_diamond`, bombs use `rc_mines`.
+
 ## Update posts
 
 | File | Stands for | Replaces |
@@ -98,9 +110,9 @@ See `preview.png` and `preview-set.png` for the whole set.
 
 ## Adding them to the bot
 
-1. Discord Developer Portal → the RendConomy application → **Emojis**.
-2. Upload each PNG. Keep the file name as the emoji name (`rc_new`, `rc_work`, …).
-3. Restart the bot. The console lists the emojis it found.
+**Automatic:** on startup the bot uploads every `rc_*.png` here that its application doesn't have yet, then uses them. Add a new PNG to this folder, push, restart: done. (`EMOJI_SYNC=0` in `.env` turns this off.) The update post waits for the uploads, so it can use the new emojis.
+
+**By hand**, if you prefer: Discord Developer Portal → the application → **Emojis**, upload each PNG with its file name as the emoji name, then restart.
 
 Application emojis work in every server the bot is in. Until one is uploaded, the bot keeps using the standard emoji.
 Discord shows custom emojis in message text and embed text, but not in embed titles, footers or button labels, so those keep standard emojis.

@@ -1,5 +1,5 @@
 // RendConomy: starts the bot.
-import { loadAppEmojis } from './discord/emoji';
+import { loadAppEmojis, syncAppEmojis } from './discord/emoji';
 import { COLORS } from './discord/style';
 import { setReceiptSender } from './social/receipts';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
@@ -107,7 +107,9 @@ async function main(): Promise<void> {
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);
     const emojis = await loadAppEmojis(c);
-    console.log(`[${config.name}] custom emojis: ${emojis.length ? emojis.join(', ') : 'none uploaded yet (using the standard ones)'}`);
+    console.log(`[${config.name}] custom emojis: ${emojis.length} loaded`);
+    // new emojis upload in the background; the update post below waits for them, so it can use them
+    const emojisReady = process.env.EMOJI_SYNC === '0' ? Promise.resolve(0) : syncAppEmojis(c).catch((e: unknown) => { console.error('[emoji]', e); return 0; });
     // DMs about things that happened while a player was away (orders filled, broker reports, margin calls)
     // Receipts: a small embed per transaction, with the server it happened in
     setReceiptSender((r) => {
@@ -142,12 +144,13 @@ async function main(): Promise<void> {
       });
       return true;
     });
-    const latest = readNewestUpdate();
-    if (config.updatesChannelId && latest && db.meta('updates.last') !== latest.id) {
+    if (config.updatesChannelId) emojisReady.then(() => {
+      const latest = readNewestUpdate();   // read after the emojis are in, so the post shows them
+      if (!latest || db.meta('updates.last') === latest.id) return;
       postUpdate(latest).then((ok) => {
         if (ok) { db.setMeta('updates.last', latest.id); console.log(`[updates] posted "${latest.title}"`); }
       }).catch((e: unknown) => console.error('[updates]', e));
-    }
+    });
     startReminders(db, c, config.prefix);
     startActivity(db, config, rng, c);
     startApi(db, c);
