@@ -2,7 +2,6 @@
 // Emojis) under the same names (rc_new, rc_changed, ...). On startup the bot looks them up by name, so no
 // IDs need copying. Until an emoji is uploaded, the plain Unicode one stands in.
 // Custom emojis show in message text, embed descriptions and field values, but not in embed titles.
-import { emoji } from '../discord/emoji';
 import type { Client } from 'discord.js';
 
 export const FALLBACK = {
