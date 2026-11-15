@@ -1,4 +1,4 @@
-import { awardHere, bump } from '../achievements/achievements';
+import { awardHere, bump, sameDay } from '../achievements/achievements';
 import { economy } from '../config';
 import { payFromReserve, payoutFactor } from '../core/economy';
 import { GameError } from '../core/errors';
@@ -29,7 +29,10 @@ export const fish: Command = {
     if (stash.reduce((s, r) => s + r.qty, 0) >= FISHING.bagMax) throw new GameError('fish.full', `Your bag is full (${FISHING.bagMax}). Sell your catch with \`${ctx.config.prefix}sellfish\`.`);
     const baitName = String(args.bait ?? '').trim().toLowerCase();
     let using = 'bait';
-    if (baitName) {
+    if (baitName && /^carrots?$/.test(baitName)) {
+      if (!count(ctx.db, guildId, ctx.user.id, 'crop_carrot')) throw new GameError('fish.bait', `You have no Carrots. Grow some: \`${ctx.config.prefix}plant carrot\`.`);
+      using = 'carrot';
+    } else if (baitName) {
       const b = stash.find((r) => r.id === baitName || r.name.toLowerCase() === baitName || r.name.toLowerCase().includes(baitName));
       if (!b || b.size === 0 || b.size === 4) throw new GameError('fish.bait', 'Choose a small, medium or large fish from your bag as bait.');
       using = b.id;
@@ -44,8 +47,10 @@ export const fish: Command = {
       let spent: string;
       if (using === 'bait') { transfer(ctx.db, { from: wallet, to: RESERVE, cents: FISHING.bait, reason: 'fish.bait', guildId, actorId: ctx.user.id, now: ctx.now }); spent = `🪱 Bait: −${format(FISHING.bait)}`; }
       else if (using === 'lure') { useEffect(ctx.db, guildId, ctx.user.id, 'lure'); const left = charges(ctx.db, guildId, ctx.user.id, 'lure'); spent = `🪝 Lure: ${left} ${left === 1 ? 'cast' : 'casts'} left`; }
+      else if (using === 'carrot') { takeItem(ctx.db, guildId, ctx.user.id, 'crop_carrot'); spent = '🥕 You used a Carrot as bait. The fish seem curious.'; }
       else { takeItem(ctx.db, guildId, ctx.user.id, itemId(using)); spent = `${CATCH[using]!.emoji} You used a ${CATCH[using]!.name} as bait.`; }
       const r = cast(frenzy && using === 'bait' ? 'lure' : using, ctx.rng);
+      sameDay(ctx.db, ctx.user.id, 'fish', ctx.now);
       let text: string, color = 0x3ba7f2;
       if (r.kind === 'nothing') text = `🌊 ${line(ctx.rng, 'fishNothing')}`;
       else if (r.kind === 'snag') { text = '🪢 **Your line snagged on something!** You yank it free, but the bait is gone.'; color = 0xed4245; }
@@ -65,12 +70,13 @@ export const fish: Command = {
           if (bump(ctx.db, ctx.user.id, 'fish_caught') >= 200) awardHere('fish_in_the_sea');
           if (r.id === 'whale') awardHere('moby_dick');
           if (CATCH[using] && f.size > CATCH[using]!.size) awardHere('bigger_fish');
+          if (using === 'carrot') awardHere('full_circle');
         }
       }
       const inBag = bag(ctx, guildId).reduce((s, x) => s + x.qty, 0);
       return {
         embeds: [{ title: '🎣 Fishing', color, description: [text, '', spent, `-# Bag: ${inBag} / ${FISHING.bagMax} · \`${P}fish bag\` · \`${P}fish sell\``, frenzy ? '-# 🐟 Fish Frenzy: the fish are biting like a lure is on.' : null].filter((x) => x !== null).join('\n') }],
-        teaser: teaser('🎣 Fishing', CATCH[using] ? `You hook the ${CATCH[using]!.name} and cast it out... 🌊` : 'You cast your line... 🌊', 0x99aab5, 2200)
+        teaser: teaser('🎣 Fishing', using === 'carrot' ? 'You tie a Carrot to the hook and cast it out... 🌊' : CATCH[using] ? `You hook the ${CATCH[using]!.name} and cast it out... 🌊` : 'You cast your line... 🌊', 0x99aab5, 2200)
       };
     });
   }

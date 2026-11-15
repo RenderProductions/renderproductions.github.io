@@ -7,6 +7,7 @@ import { emit } from '../core/events';
 import { wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
 import { currentRequest } from '../core/request';
+import { dayKey } from '../core/time';
 import { ACHIEVEMENTS, BY_ID, RARITY } from './list';
 
 /** Tests that check exact balances switch payouts off. */
@@ -78,4 +79,11 @@ export function rarityStats(db: Db): { players: number; pct: (id: string) => num
 /** What a player's achievements unlocked in a server are worth (the fresh-start payout after the reset). */
 export function payoutValue(db: Db, guildId: string, userId: string): Cents {
   return unlocked(db, userId).filter((r) => r.guild_id === guildId).reduce((s, r) => s + RARITY[BY_ID[r.id]!.rarity].pay, 0);
+}
+
+/** Farm to Table: harvest, fish and work a shift on the same (Eastern) day. */
+export function sameDay(db: Db, userId: string, what: 'harvest' | 'fish' | 'work', now = Date.now()): void {
+  const today = Number(dayKey(now).replace(/-/g, ''));
+  setProgress(db, userId, `ftt_${what}`, today);
+  if (['harvest', 'fish', 'work'].every((k) => getProgress(db, userId, `ftt_${k}`) === today)) awardHere('farm_to_table', userId);
 }

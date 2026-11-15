@@ -4,9 +4,12 @@ import type { Db } from '../core/db';
 import type { Rng } from '../core/rng';
 import { HOUR } from '../core/time';
 import type { MarketData } from '../market/engine';
+import { addWeather } from '../farming/farming';
 
 export const EVENTS: Record<string, { emoji: string; name: string; desc: (t?: string) => string }> = {
   labor_shortage: { emoji: '👷', name: 'Labor Shortage', desc: () => 'Nobody wants to work. Shifts and gigs pay **1.5x**.' },
+  rain: { emoji: '🌧️', name: 'Rain', desc: () => 'Rain over every farm. Crops are **watered for free** while it lasts.' },
+  storm: { emoji: '⛈️', name: 'Storm', desc: () => 'A storm rolls in. Crops outside a **Greenhouse** can be flattened.' },
   fish_frenzy: { emoji: '🎣', name: 'Fish Frenzy', desc: () => 'The fish are biting. Cast every **90 seconds**, and plain bait works like a lure.' },
   police_strike: { emoji: '🚔', name: 'Police Strike', desc: () => "TODD's security team walked out. Heists get **+15%** odds." },
   bear_rumors: { emoji: '🐻', name: 'Bear Rumors', desc: () => 'Everyone smells a drop. Shorts open with **no fee**.' },
@@ -31,7 +34,7 @@ export function pickEvent(m: MarketData | null, rng: Rng): WorldEvent {
   const r = rng.next();
   if (up && r < 0.3) return { id: 'spotlight', ticker: up[0] };
   if (down && r < 0.6) return { id: 'fire_sale', ticker: down[0] };
-  return { id: rng.pick(['labor_shortage', 'fish_frenzy', 'police_strike', 'bear_rumors', 'chatty']) };
+  return { id: rng.pick(['labor_shortage', 'fish_frenzy', 'police_strike', 'bear_rumors', 'chatty', 'rain', 'storm']) };
 }
 
 /** Once per market tick. Returns an event that just started (to announce), or null. */
@@ -43,6 +46,7 @@ export function worldTick(db: Db, m: MarketData | null, now: number, rng: Rng): 
   const e: WorldEvent = { ...pickEvent(m, rng), until: now + WORLD.lengthMs };
   e.next = e.until! + WORLD.gapMinMs + Math.floor(rng.next() * (WORLD.gapMaxMs - WORLD.gapMinMs));
   write(db, e);
+  if (e.id === 'rain' || e.id === 'storm') addWeather(db, e.id, now, e.until!);
   return e;
 }
 
@@ -51,6 +55,7 @@ export function startEvent(db: Db, id: string, ticker: string | undefined, now: 
   const s = read(db);
   const e: WorldEvent = { id, ticker, until: now + WORLD.lengthMs, next: Math.max(s.next ?? 0, now + WORLD.lengthMs + WORLD.gapMinMs) };
   write(db, e);
+  if (id === 'rain' || id === 'storm') addWeather(db, id, now, e.until!);
   return e;
 }
 export const endEvent = (db: Db): void => { const s = read(db); write(db, { next: s.next }); };

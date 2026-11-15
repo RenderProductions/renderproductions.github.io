@@ -91,6 +91,8 @@ const USES: Record<string, Use> = {
 export function useItem(ctx: Ctx, guildId: string, id: string): string {
   const it = anyItem(id);
   if (!it) throw new GameError('use.unknown', 'That item does not exist.');
+  if (id === 'fertilizer') throw new GameError('use.fertilizer', `Fertilizer goes on a growing crop: \`${ctx.config.prefix}fertilize\`.`);
+  if (id.startsWith('seed_')) throw new GameError('use.seed', `Plant seeds with \`${ctx.config.prefix}plant ${id.slice(5)}\`.`);
   if (it.passive) throw new GameError('use.passive', `${it.name} works on its own while it is in your inventory.`);
   const fn = USES[id];
   if (!fn) throw new GameError('use.none', `${it.name} has no use yet.`);

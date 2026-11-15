@@ -52,8 +52,12 @@ test('restarts post every entry added since the last post, oldest first; /announ
   assert.equal(findUpdate(all, 'entry b')!.id, 'b');
   assert.equal(findUpdate(all, '')!.id, 'c');
   assert.equal(findUpdate(all, 'nope'), null);
-  // the real page: the next restart posts Animation Expansion, then Glossy Makeover
+  // the real page: the next restart posts Animation Expansion, Glossy Makeover, then farming
   const real = readAllUpdates();
-  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover']);
+  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy']);
   assert.equal(findUpdate(real, 'animation')!.id, 'animation-expansion');
+});
+
+test('a plain CHANGED tag (class="tag") becomes the changed emoji too', () => {
+  assert.equal(toMarkdown('<span class="tag">CHANGED</span><span>Balance and portfolio are one view</span>'), '🔧 Balance and portfolio are one view');
 });

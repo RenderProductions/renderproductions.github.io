@@ -55,6 +55,8 @@ export const REASONS: Record<string, string> = {
   'fish.bait': 'Fishing bait',
   'fish.wallet': 'Lost wallet (fishing)',
   'fish.sell': 'Catch sold',
+  'farm.sell': 'Harvest sold',
+  'farm.plot': 'Farm plot',
   'order.reserve': 'Order (set aside)',
   'order.release': 'Order (released)',
   'broker.bonus': 'Broker sign-on bonus',

@@ -12,7 +12,7 @@ import { load as loadMarket } from '../market/market';
 import { sharesOf } from '../market/trading';
 import { netWorth } from '../social/worth';
 import { COMPANIES } from '../work/jobs';
-import { awardHere, bump, payoutValue } from './achievements';
+import { awardHere, bump, payoutValue, sameDay } from './achievements';
 
 let installed = false;
 
@@ -66,6 +66,7 @@ export function installAchievementListeners(): void {
     const req = currentRequest();
     if (!req) return;
     if (e.rush === 0) awardHere('first_paycheck', e.userId);
+    sameDay(req.db, e.userId, 'work', req.now);
     if (e.rush >= 5 && e.result === 'pass') awardHere('rush_hour', e.userId);
     if (e.team && bump(req.db, e.userId, 'team_shifts') >= 10) awardHere('team_player', e.userId);
     const worked = req.db.all<{ ticker: string }>('SELECT ticker FROM careers WHERE guild_id = ? AND user_id = ? AND shifts > 0', e.guildId, e.userId).map((r) => r.ticker);

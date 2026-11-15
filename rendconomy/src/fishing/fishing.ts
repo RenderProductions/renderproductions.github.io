@@ -36,7 +36,7 @@ export type CastResult = { kind: 'nothing' } | { kind: 'snag' } | { kind: 'walle
 
 /** One cast. `using`: 'bait', 'lure', or the id of a fish used as bait. */
 export function cast(using: string, rng: Rng): CastResult {
-  const table = using === 'bait' || using === 'lure' ? using : CATCH[using] ? String(Math.min(3, Math.max(1, CATCH[using]!.size))) : 'bait';
+  const table = using === 'bait' || using === 'lure' ? using : using === 'carrot' ? '1' : CATCH[using] ? String(Math.min(3, Math.max(1, CATCH[using]!.size))) : 'bait';
   const k = rng.pickWeighted(Object.entries(TABLES[table]!) as [Outcome, number][]);
   if (k === 'nothing') return { kind: 'nothing' };
   if (k === 'snag') return { kind: 'snag' };

@@ -24,6 +24,8 @@ export const FALLBACK = {
   slots: '🎰', coinflip: '🪙', dice: '🎲', roulette: '🎡', blackjack: '🃏', mines: '💣', rocket: '🚀', hilo: '🔼',
   // fishing, the shop, TODD
   fishing: '🎣', shop: '🛍️', todd: '🖥️',
+  // farming
+  farm: '🌾', wateringcan: '💧', harvest: '🧺', newplot: '🪧', sprinkler: '💦', fertilizer: '🧪', greenhouse: '🏡', farmhand: '🧑‍🌾', compost: '♻️', scarecrow: '🧑‍🌾', crow: '🐦‍⬛', rain: '🌧️', storm: '⛈️',
   // people
   gift: '🎁', loan: '📜', heist: '🦹', lottery: '🎟️',
   // progress

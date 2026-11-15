@@ -15,9 +15,9 @@ export const ping: Command = {
 const SECTIONS: Record<System, { label: string; emoji: string }> = {
   wallet: { label: 'Wallet', emoji: '👛' }, social: { label: 'Players', emoji: '👥' }, work: { label: 'Work', emoji: '💼' },
   market: { label: 'Stock market', emoji: '📈' }, casino: { label: 'Rend-Sino', emoji: '🎰' }, reserve: { label: 'The Reserve', emoji: '🏦' },
-  general: { label: 'General', emoji: 'ℹ️' }, admin: { label: 'Moderators', emoji: '🛡️' }
+  farm: { label: 'Farming', emoji: '🌾' }, general: { label: 'General', emoji: 'ℹ️' }, admin: { label: 'Moderators', emoji: '🛡️' }
 };
-const ORDER: System[] = ['wallet', 'social', 'work', 'market', 'casino', 'reserve', 'general', 'admin'];
+const ORDER: System[] = ['wallet', 'farm', 'social', 'work', 'market', 'casino', 'reserve', 'general', 'admin'];
 
 let listCommands: () => Command[] = () => [];
 

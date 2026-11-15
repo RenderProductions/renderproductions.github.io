@@ -13,11 +13,12 @@ export const COLORS: Record<System | 'error', number> = {
   admin: 0x95a5a6,    // grey
   social: 0xff9ecb,   // pink
   casino: 0xeb459e,   // magenta
+  farm: 0x7cb342,     // field green
   error: 0xc0392b     // red
 };
 
 export function embed(system: System, title: string, lines: (string | false | null | undefined)[], extra: Partial<APIEmbed> = {}): APIEmbed {
-  let description = lines.filter(Boolean).join('\n');
+  let description = lines.filter((l) => l !== false && l !== null && l !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim();
   // Discord refuses the whole message over 4,096 characters: cut it short instead
   if (description.length > 4096) description = description.slice(0, 4080).replace(/\n[^\n]*$/, '') + '\n…';
   return { color: COLORS[system], title, description, ...extra };

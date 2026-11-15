@@ -22,7 +22,7 @@ import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { startActivity, startApi, startReminders, startStatus } from './discord/background';
+import { startActivity, startApi, startFarmReminders, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
@@ -154,6 +154,7 @@ async function main(): Promise<void> {
       }
     });
     startReminders(db, c, config.prefix);
+    startFarmReminders(db, c, config.prefix);
     startActivity(db, config, rng, c);
     startApi(db, c);
     startStatus(db, c);

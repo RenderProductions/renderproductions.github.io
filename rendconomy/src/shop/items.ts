@@ -1,9 +1,10 @@
 // Marquez's shop: the catalog, the shelves, and Marquez himself.
 // `ready: false` keeps an item off the shelf until the system it belongs to is ported (fishing, casino...).
+import { CROPS } from '../farming/farming';
 import { polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 
-export type Shelf = 'work' | 'market' | 'casino' | 'fun' | 'tackle' | 'style' | 'rare';
+export type Shelf = 'work' | 'market' | 'casino' | 'fun' | 'tackle' | 'garden' | 'style' | 'rare';
 
 export interface Item {
   id: string;
@@ -42,6 +43,12 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('title', '🏷️', 'Title', 5000, 1, 'fun', 'A custom title on your profile. Set it with /settitle.', { passive: true }),
   item('rod', '🎣', 'Fishing Rod', 300, 5, 'tackle', 'Lets you fish. Yours for good. Each cast costs ⬡5 of bait.', { passive: true }),
   item('lure', '🪝', 'Lure', 300, 4, 'tackle', 'No bait needed for 25 casts, and bigger fish bite more often.'),
+  ...Object.values(CROPS).map((c) => item(`seed_${c.id}`, c.emoji, `${c.name} Seeds`, c.seedPrice, c.seedStock, 'garden',
+    `Plant with /plant ${c.id}. Ready in ${c.growMs >= 3_600_000 ? `${c.growMs / 3_600_000} ${c.growMs === 3_600_000 ? 'hour' : 'hours'}` : `${c.growMs / 60_000} minutes`}${c.harvests > 1 ? `, and it gives ${c.harvests} harvests` : ''}.`)),
+  item('fertilizer', '🧪', 'Fertilizer', 60, 10, 'garden', 'One crop grows 50% faster. /fertilize, or compost your fishing junk into it.'),
+  item('scarecrow', '🧑‍🌾', 'Scarecrow', 400, 3, 'garden', 'Chases crows off your whole farm. Works on its own.', { passive: true }),
+  item('sprinkler', '💦', 'Sprinkler', 2500, 2, 'garden', 'Waters every crop on your farm for you. Works on its own.', { passive: true }),
+  item('greenhouse', '🏡', 'Greenhouse', 4000, 1, 'garden', 'Storms can\'t touch your crops. Works on its own.', { passive: true }),
   item('kit', '🎨', 'Profile Customizer Kit', 1500, 3, 'style', 'Unlocks customizing your profile, for good.'),
   item('paint_holo', '🌈', 'Holographic Paint', 5000, 2, 'style', 'Shifts through every color. A profile theme, yours forever.'),
   item('paint_terminal', '🖥️', 'TODD Terminal Paint', 3000, 2, 'style', 'Green on black, like TODD sees the world.'),
@@ -68,6 +75,7 @@ export const SHELVES: Record<Shelf, { label: string; emoji: string }> = {
   casino: { label: 'Rend-Sino', emoji: '🎰' },
   fun: { label: 'Odds & Ends', emoji: '🎀' },
   tackle: { label: 'Bait & Tackle', emoji: '🎣' },
+  garden: { label: 'Garden', emoji: '🌾' },
   style: { label: 'Profile', emoji: '🎨' },
   rare: { label: 'Collectible', emoji: '🗃️' }
 };
@@ -114,7 +122,11 @@ const LINES: Record<string, string[]> = {
   notThisWeek: ['"Not this week, {n}. Something else is on the special shelf."'],
   catch: ['Marquez looks over your catch. "Nice haul, {n}."', '"These\'ll do fine, {n}," Marquez says, weighing them.', 'Marquez nods at the bucket. "Fresh. Thank you, {n}."', 'Marquez holds one up to the light. "Not bad at all, {n}."'],
   whale: ['Marquez stares at the White Whale for a long moment. "...Well. I\'ll be. Good work, {n}."'],
-  koi: ['Marquez sets down his coffee. "That\'s the real thing, {n}. Careful with it."']
+  koi: ['Marquez sets down his coffee. "That\'s the real thing, {n}. Careful with it."'],
+  crops: ['Marquez turns a tomato over in his hand. "Good soil out there, {n}."', '"Fresh from the field. Thank you, {n}."', 'Marquez nods at the basket. "You\'ve been busy, {n}."',
+    '"These\'ll be gone before lunch, {n}," Marquez says.', 'Marquez weighs the basket and smiles a little. "Honest work, {n}."'],
+  square: ['Marquez sets the square pumpkin on the counter and just looks at it for a while. "...How, {n}?"'],
+  golden: ['Marquez squints at the gold. "That\'s not paint, is it, {n}?"']
 };
 
 export function marquez(kind: keyof typeof LINES, rng: Rng): string {

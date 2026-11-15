@@ -346,5 +346,36 @@ export const MIGRATIONS: readonly string[] = [
     haul     INTEGER NOT NULL DEFAULT 0,
     at       INTEGER NOT NULL
   );
+  `,
+
+  /* v15: farming (per server, like balances). */ `
+  CREATE TABLE farms (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    plots    INTEGER NOT NULL DEFAULT 3,
+    remind   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+  );
+  CREATE TABLE farm_plots (
+    guild_id      TEXT NOT NULL,
+    user_id       TEXT NOT NULL,
+    slot          INTEGER NOT NULL,
+    crop          TEXT NOT NULL,
+    planted_at    INTEGER NOT NULL,
+    updated_at    INTEGER NOT NULL,
+    progress      REAL NOT NULL DEFAULT 0,     -- ms of growth done
+    watered       INTEGER NOT NULL DEFAULT 0,  -- this stage
+    stage_since   INTEGER NOT NULL,
+    harvests_left INTEGER NOT NULL DEFAULT 1,
+    wilted        INTEGER NOT NULL DEFAULT 0,
+    crow_at       INTEGER,
+    fert          INTEGER NOT NULL DEFAULT 0,
+    dry_ms        INTEGER NOT NULL DEFAULT 0,
+    ready_at      INTEGER,
+    storm_seen    INTEGER NOT NULL DEFAULT 0,
+    reminded      INTEGER NOT NULL DEFAULT 0,
+    seed          INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id, slot)
+  );
   `
 ];

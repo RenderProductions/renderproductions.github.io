@@ -12,6 +12,8 @@ import { MINUTE } from '../core/time';
 import { load as loadMarket } from '../market/market';
 import { netWorth } from '../social/worth';
 import { execute, parsePrefix } from './router';
+import { CROPS, plotsOf, simulate, weatherLog } from '../farming/farming';
+import { count } from '../shop/inventory';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
 export function startReminders(db: Db, client: Client, prefix: string): void {
@@ -30,9 +32,27 @@ export function startReminders(db: Db, client: Client, prefix: string): void {
   }, MINUTE).unref();
 }
 
+/** DMs farmers (with /farm remind on) once a crop is ready. Looks ahead without saving, so nothing else changes. */
+export function startFarmReminders(db: Db, client: Client, prefix: string): void {
+  setInterval(() => {
+    const now = Date.now(), weather = weatherLog(db);
+    for (const f of db.all<{ guild_id: string; user_id: string }>('SELECT guild_id, user_id FROM farms WHERE remind = 1')) {
+      const has = (item: string) => count(db, f.guild_id, f.user_id, item) > 0;
+      const env = { sprinkler: has('sprinkler'), greenhouse: has('greenhouse'), scarecrow: has('scarecrow'), weather };
+      const ready = plotsOf(db, f.guild_id, f.user_id).filter((p) => !p.reminded && !p.wilted).filter((p) => { const r = simulate(p, env, now); return !r.gone && r.plot.ready_at !== null; });
+      if (!ready.length) continue;
+      for (const p of ready) db.run('UPDATE farm_plots SET reminded = 1 WHERE guild_id = ? AND user_id = ? AND slot = ?', f.guild_id, f.user_id, p.slot);
+      const what = ready.map((p) => `${CROPS[p.crop]!.emoji} ${CROPS[p.crop]!.name}`).join(', ');
+      const server = client.guilds.cache.get(f.guild_id)?.name;
+      const text = `${emoji('harvest')} Ready to harvest${server ? ` in **${server}**` : ''}: ${what}. Pick ${ready.length === 1 ? 'it' : 'them'} with \`${prefix}harvest\`.\n-# Turn these off with \`${prefix}farm remind off\`.`;
+      client.users.fetch(f.user_id).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+    }
+  }, MINUTE).unref();
+}
+
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 const CHAT_ONLY: Record<string, string> = { rocket: 'Rocket', blackjack: 'Blackjack', bus: 'Ride the Bus', hilo: 'Higher or Lower', mines: 'Minesweeper', derby: 'The Derby', heist: 'Heists' };
 

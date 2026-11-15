@@ -20,7 +20,7 @@ export function toMarkdown(html: string): string {
   return decode(html
     // tags become markers first: a custom emoji looks like a tag (<:name:id>) and would be stripped below
     .replace(/<span class="tag new">\s*NEW\s*<\/span>/gi, '\u0001new\u0001 ')
-    .replace(/<span class="tag (?:changed)?">\s*CHANGED\s*<\/span>/gi, '\u0001changed\u0001 ')
+    .replace(/<span class="tag(?: changed)?\s*">\s*CHANGED\s*<\/span>/gi, '\u0001changed\u0001 ')
     .replace(/<span class="tag fix">\s*FIXED\s*<\/span>/gi, '\u0001fixed\u0001 ')
     .replace(/<span class="tag removed">\s*REMOVED\s*<\/span>/gi, '\u0001removed\u0001 ')
     // <img class="emoji" data-emoji="new" ...> on the page: the same emoji in Discord
