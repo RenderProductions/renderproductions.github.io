@@ -1,3 +1,4 @@
+import { emoji } from '../discord/emoji';
 import { nameOf, receipt } from '../social/receipts';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
@@ -23,7 +24,7 @@ const card = (ctx: Ctx, t: string) => {
   const bid = bidOn(ctx.db, c.ticker);
   return embed('market', `${c.name} (${c.ticker})`, [
     `Owner: <@${c.owner_id}> · **${lv.name}** (level ${c.level}) · ${c.status}`,
-    c.status === 'public' ? `Price: **${format(Math.round(c.price * 100))}** ${change(c) >= 0 ? '▲' : '▼'}${Math.abs(change(c)).toFixed(1)}% ${spark(c.history)} · ${CO.float - sharesHeld(ctx.db, c.ticker)} public shares available` : null,
+    c.status === 'public' ? `Price: **${format(Math.round(c.price * 100))}** ${emoji(change(c) >= 0 ? 'up' : 'down')} ${Math.abs(change(c)).toFixed(1)}% ${spark(c.history)} · ${CO.float - sharesHeld(ctx.db, c.ticker)} public shares available` : null,
     `Treasury: ${format(treasury(ctx.db, c))} · worth ${format(worthOf(ctx.db, c))} · upkeep ${format(lv.upkeep)}/day${c.strikes ? ` · **${c.strikes} missed upkeep${c.strikes > 1 ? 's' : ''}**` : ''}`,
     `Employees: ${employees(ctx.db, c.ticker)} (pay ${lv.payMult}x)`,
     next ? `Next level: ${next.name}, ${format(next.cost)} from the treasury` : 'Top level reached.',
@@ -57,7 +58,7 @@ export const exchange: Command = {
   name: 'exchange', aliases: ['companies', 'ex'], description: 'Every player company', system: 'market',
   run(ctx) {
     const list = listCompanies(ctx.db, ['public', 'private']);
-    return { embeds: [embed('market', 'The player exchange', list.length ? list.map((c) => `**${c.ticker}** · ${c.name} · ${levelOf(c).name} · ${c.status === 'public' ? `${format(Math.round(c.price * 100))} ${change(c) >= 0 ? '▲' : '▼'}${Math.abs(change(c)).toFixed(1)}%` : 'private'}`) : ['No player companies yet.'],
+    return { embeds: [embed('market', 'The player exchange', list.length ? list.map((c) => `**${c.ticker}** · ${c.name} · ${levelOf(c).name} · ${c.status === 'public' ? `${format(Math.round(c.price * 100))} ${emoji(change(c) >= 0 ? 'up' : 'down')} ${Math.abs(change(c)).toFixed(1)}%` : 'private'}`) : ['No player companies yet.'],
       { footer: { text: `Buy public shares with ${ctx.config.prefix}buy <TICKER> <amount>.` } })] };
   }
 };

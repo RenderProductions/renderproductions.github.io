@@ -6,6 +6,7 @@ import { seededRng } from '../core/rng';
 import * as sessions from '../core/sessions';
 import { discordTime } from '../core/time';
 import { embed } from '../discord/style';
+import { emoji } from '../discord/emoji';
 import { KEY, current, quote, tick } from '../market/market';
 import { BROKERS, ORDERS, TRAITS, brokerOf, brokerRow, cancelOrder, candidates, coverShort, describeOrder, dismissBroker, hireBroker, listOrders, listShorts, openShort, placeOrder, setBrokerRule, settlePrice, shortPnl, signOnBonus, SHORTS, type Rule, type Trait } from '../market/schemes';
 import { tradableQuote } from '../market/trading';
@@ -162,7 +163,7 @@ export const compare: Command = {
       const h = c.history ?? [];
       const hi = Math.max(...h), lo = Math.min(...h);
       const div = (m.divText as Record<string, string> | undefined)?.[c.id] ?? '';
-      return `**${c.id}** ${format(q.priceCents)} ${q.change >= 0 ? '▲' : '▼'}${Math.abs(q.change).toFixed(1)}% · 24h range ${format(Math.round(lo * 100))}–${format(Math.round(hi * 100))}${div ? ` · ${div.replace(/\*\*/g, '')}` : ''}`;
+      return `**${c.id}** ${format(q.priceCents)} ${emoji(q.change >= 0 ? 'up' : 'down')} ${Math.abs(q.change).toFixed(1)}% · 24h range ${format(Math.round(lo * 100))}–${format(Math.round(hi * 100))}${div ? ` · ${div.replace(/\*\*/g, '')}` : ''}`;
     });
     return { embeds: [embed('market', 'Compare', rows)] };
   }

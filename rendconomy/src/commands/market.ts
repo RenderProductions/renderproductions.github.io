@@ -25,7 +25,7 @@ import { netWorth, savingsTotal, worthLines, type WorthLine } from '../social/wo
 import { timedUntil } from '../shop/inventory';
 import type { Command } from './types';
 
-const pct = (n: number) => `${n >= 0 ? '▲' : '▼'} ${Math.abs(n).toFixed(2)}%`;
+const pct = (n: number) => `${emoji(n >= 0 ? 'up' : 'down')} ${Math.abs(n).toFixed(2)}%`;
 const plain = (s: unknown) => String(s ?? '').replace(/\*\*/g, '');
 
 export const market: Command = {
@@ -148,7 +148,7 @@ export const money: Command = {
     const extra = worthLines(ctx.db, m, guildId, userId);
     const plus = extra.filter((l) => l.cents > 0), minus = extra.filter((l) => l.cents < 0);
     const worth = netWorth(ctx.db, m, guildId, userId);
-    const gain = (d: number) => `${d >= 0 ? '▲' : '▼'} ${format(Math.abs(d))}`;
+    const gain = (d: number) => `${emoji(d >= 0 ? 'up' : 'down')} ${format(Math.abs(d))}`;
     const icon = (k: string) => (k in FALLBACK ? emoji(k as EmojiKey) : emojiOr(k, '•'));
     const row = (l: WorthLine) => `${icon(l.emoji)} ${l.label}: **${l.cents < 0 ? '−' : ''}${format(Math.abs(l.cents))}**${l.note ? `\n-# ${l.note}` : ''}`;
     const holdings = list.map((p) => `-# **${p.quote.id}** · ${p.shares} × ${format(p.quote.priceCents)} = ${format(p.valueCents)}${p.costCents > 0 ? ` · ${gain(p.valueCents - p.costCents)}` : ''}`);
