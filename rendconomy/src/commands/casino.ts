@@ -1,6 +1,5 @@
 // The Rend-Sino's games. Instant games settle in one step; interactive ones keep their state in a stored
 // session (kind "casino.<game>"), so their buttons survive restarts and each press is handled once.
-import { emoji } from '../discord/emoji';
 import type { APIEmbed } from 'discord.js';
 import { awardHere } from '../achievements/achievements';
 import { CASINO, NAMES, ODDS, cardText, deck, mult, settle, takeBet, type Card, type Game } from '../casino/core';
@@ -10,6 +9,7 @@ import { format, type Cents } from '../core/money';
 import * as sessions from '../core/sessions';
 import { COLORS } from '../discord/style';
 import { line, teaser } from '../discord/flavor';
+import { emoji, type EmojiKey } from '../discord/emoji';
 import { useEffect } from '../shop/inventory';
 import { me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
@@ -35,6 +35,11 @@ const betOption = (game: Game) => ({ name: 'amount', type: 'string' as const, de
 
 const SYMBOLS = ['🍒', '🍋', '🔔', '🔺', '💎'];
 const TRIPLE: Record<string, number> = { '💎': 25, '🔺': 10, '🔔': 8, '🍋': 5, '🍒': 3 };
+/** How a reel symbol is shown: the bot's own emoji once uploaded (the game itself works on the plain ones). */
+const REEL: Record<string, EmojiKey> = { '🍒': 'cherry', '🍋': 'lemon', '🔔': 'bell', '🔺': 'triangle', '💎': 'diamond' };
+const show = (sym: string): string => emoji(REEL[sym]!);
+/** Any text with reel symbols in it, shown with the bot's emojis. */
+const showAll = (text: string): string => text.replace(/🍒|🍋|🔔|🔺|💎/gu, (s) => show(s));
 
 export const slots: Command = {
   name: 'slots', aliases: ['slot'], description: 'Spin the Rend-Sino slot machine', system: 'casino', guildOnly: true,
@@ -46,15 +51,15 @@ export const slots: Command = {
       const [x, y, z] = [ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS)];
       const win = x === y && y === z ? bet * TRIPLE[x]! : x === y || y === z || x === z ? bet : 0;
       const r = settle(ctx, guildId, 'slots', bet, win);
-      const what = x === y && y === z ? (x === '💎' ? '💎 **DIAMONDS!** Three of a kind.' : `Three ${x}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair.' : 'No match.';
+      const what = x === y && y === z ? (x === '💎' ? `${show('💎')} **DIAMONDS!** Three of a kind.` : `Three ${show(x)}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair.' : 'No match.';
       // The reels blur, then stop one at a time, left to right
       const blur = () => ctx.rng.pick(SYMBOLS);
-      const frame = (a: string, b: string, c: string, text: string, ms: number) => ({ embeds: [card('slots', [`## [ ${a} | ${b} | ${c} ]`, text])], ms });
+      const frame = (a: string, b: string, c: string, text: string, ms: number) => ({ embeds: [card('slots', [`## [ ${show(a)} | ${show(b)} | ${show(c)} ]`, text])], ms });
       return {
-        embeds: [card('slots', [`## [ ${x} | ${y} | ${z} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        embeds: [card('slots', [`## [ ${show(x!)} | ${show(y!)} | ${show(z!)} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
         teaser: {
           ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} ${emoji('slots')}`, 700),
-          frames: [frame(x, blur(), blur(), 'The first reel stops...', 800), frame(x, y, blur(), x === y ? `Two ${x}... 👀` : 'The second reel stops...', x === y ? 1200 : 800)]
+          frames: [frame(x, blur(), blur(), 'The first reel stops...', 800), frame(x, y, blur(), x === y ? `Two ${show(x)}... 👀` : 'The second reel stops...', x === y ? 1200 : 800)]
         }
       };
     });
@@ -440,7 +445,7 @@ function onRocket(ctx: Ctx, s: sessions.Session<RK>, value: string): SessionRepl
 export const odds: Command = {
   name: 'odds', aliases: ['payouts'], description: 'The real odds and house edge of every Rend-Sino game', system: 'casino',
   run() {
-    return { embeds: [card('slots', (Object.keys(ODDS) as Game[]).map((g) => `**${NAMES[g]}**: ${ODDS[g]}`)), ].map((e) => ({ ...e, title: 'Rend-Sino odds' })) };
+    return { embeds: [card('slots', (Object.keys(ODDS) as Game[]).map((g) => `**${NAMES[g]}**: ${showAll(ODDS[g])}`)), ].map((e) => ({ ...e, title: 'Rend-Sino odds' })) };
   }
 };
 

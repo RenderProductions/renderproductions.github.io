@@ -11,6 +11,16 @@ See `preview.png` and `preview-set.png` for the whole set.
 | `rc_no.png` | Wrong, refused | ❌ |
 | `rc_time.png` | Time ran out, expired | ⌛ |
 
+## Slot reels
+
+| File | Stands for | Replaces |
+|---|---|---|
+| `rc_cherry.png` | Cherry (3x) | 🍒 |
+| `rc_lemon.png` | Lemon (5x) | 🍋 |
+| `rc_bell.png` | Bell (8x) | 🔔 |
+| `rc_triangle.png` | Triangle (10x) | 🔺 |
+| `rc_diamond.png` | Diamond (25x) | 💎 |
+
 ## Update posts
 
 | File | Stands for | Replaces |

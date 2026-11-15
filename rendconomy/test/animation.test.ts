@@ -9,6 +9,7 @@ import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import { execute, revealThen } from '../src/discord/router';
 import { tick } from '../src/market/market';
+import { setCustomEmojis } from '../src/discord/emoji';
 
 const G = 'g1', A = '111111111111111111';
 const noon = eastern('2026-11-13T12:00', -5);
@@ -58,4 +59,14 @@ test('the router plays every frame, then the result, in order', async () => {
   });
   clearInterval(keepAlive);
   assert.deepEqual(shown, ['two', 'three', 'result']);
+});
+
+test('slots show the bot\'s own reel emojis once they are uploaded', async () => {
+  setCustomEmojis(['cherry', 'lemon', 'bell', 'triangle', 'diamond'].map((n, k) => ({ name: `rc_${n}`, id: String(100 + k) })));
+  const { db, run } = setup();
+  await run('balance', {});
+  transfer(db, { from: RESERVE, to: wallet(G, A), cents: polygons(5000), reason: 'mod.give' });
+  const r = await run('slots', { amount: '10' });
+  assert.match(desc(r), /^## \[ <:rc_\w+:\d+> \| <:rc_\w+:\d+> \| <:rc_\w+:\d+> \]/);
+  assert.doesNotMatch(desc(r.teaser!), /🍒|🍋|🔔|🔺|💎/);
 });

@@ -7,6 +7,8 @@ import type { Client } from 'discord.js';
 export const FALLBACK = {
   // answers
   yes: '✅', no: '❌', time: '⌛',
+  // slot reels
+  cherry: '🍒', lemon: '🍋', bell: '🔔', triangle: '🔺', diamond: '💎',
   // update posts
   new: '🆕', changed: '🔧', fixed: '🩹', hotfix: '🔥', removed: '🗑️',
   // money
