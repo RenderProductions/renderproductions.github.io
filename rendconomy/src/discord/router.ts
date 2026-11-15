@@ -197,8 +197,18 @@ export async function onMessage(deps: Deps, msg: Message): Promise<void> {
   if (reply.deleteTrigger) msg.delete().catch(() => { /* no Manage Messages */ });
   if (reply.dm) msg.author.send({ content: reply.dm, allowedMentions: { parse: [] } }).catch(() => { /* DMs closed */ });
   if (reply.silent) return;
-  const sent = await msg.reply(payload(reply));
-  afterSend(deps, reply, sent, (p) => sent.edit(payload(p)));
+  const sent = await msg.reply(payload(firstOf(reply)));
+  revealThen(deps, reply, sent, (p) => sent.edit(payload(p)));
+}
+
+/** What to send first: the teaser if there is one, else the reply. */
+const firstOf = (r: ReplyObject): ReplyObject => (r.teaser ? { content: r.content, embeds: r.teaser.embeds } : r);
+/** Swaps a teaser for the real reply after its moment, then carries on as usual. */
+function revealThen(deps: Deps, r: ReplyObject, msg: { id: string; channelId: string }, edit: (p: ReplyObject) => Promise<unknown>): void {
+  if (!r.teaser) return afterSend(deps, r, msg, edit);
+  setTimeout(() => {
+    edit({ ...r, teaser: undefined }).then(() => afterSend(deps, { ...r, teaser: undefined }, msg, edit)).catch((e: unknown) => console.error('[reveal]', e));
+  }, r.teaser.ms).unref();
 }
 
 export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promise<void> {
@@ -211,9 +221,9 @@ export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promi
     else args[o.name] = i.options.getString(o.name) ?? undefined;
   }
   const reply = await execute(cmd, ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), args);
-  const res = await i.reply({ ...payload(reply), ...(reply.ephemeral ? { flags: MessageFlags.Ephemeral as const } : {}), withResponse: true });
+  const res = await i.reply({ ...payload(firstOf(reply)), ...(reply.ephemeral ? { flags: MessageFlags.Ephemeral as const } : {}), withResponse: true });
   const sent = res.resource?.message;
-  if (sent) afterSend(deps, reply, sent, (p) => i.editReply(payload(p)));
+  if (sent) revealThen(deps, reply, sent, (p) => i.editReply(payload(p)));
 }
 
 export async function onButton(deps: Deps, i: ButtonInteraction): Promise<void> {

@@ -68,7 +68,7 @@ export const buy: Command = {
       const qty = parseCount(args.amount, { all: affordable(balance(ctx.db, wallet), Math.ceil(pc.price * 100 * 1.5)) });
       const r = buyCompanyShares(ctx.db, guildId, ctx.user.id, pc, qty, ctx.now);
       receipt(ctx.db, guildId, ctx.user.id, `Bought ${qty} ${pc.ticker}`, [['Company', `${pc.name} (${pc.ticker})`], ['Shares', String(qty)], ['Price per share', format(r.priceCents)], ['Total cost', format(r.cost)], ['You now own', `${r.held} ${pc.ticker}`], ['Balance', format(balance(ctx.db, wallet))]]);
-      return { embeds: [embed('market', `Purchase complete: ${qty} ${pc.ticker}`, [`${qty} × ${format(r.priceCents)} = **${format(r.cost)}**`, `Shares of ${pc.ticker} held: ${r.held}`, `Balance: ${format(balance(ctx.db, wallet))}`])] };
+      return { embeds: [embed('market', `📈 Bought ${qty} ${pc.ticker}`, [`${qty} × ${format(r.priceCents)} = **${format(r.cost)}**`, `Shares of ${pc.ticker} held: ${r.held}`, `Balance: ${format(balance(ctx.db, wallet))}`])] };
     }
     const q = tradableQuote(m, String(args.ticker ?? ''));
     const max = affordable(balance(ctx.db, wallet), q.priceCents);
@@ -76,7 +76,7 @@ export const buy: Command = {
     const r = buyShares(ctx.db, m, { guildId, userId: ctx.user.id, ticker: q.id, qty, now: ctx.now });
     receipt(ctx.db, guildId, ctx.user.id, `Bought ${r.qty} ${q.id}`, [['Company', `${q.name} (${q.id})`], ['Shares', String(r.qty)], ['Price per share', format(r.priceCents)], ['Total cost', format(r.totalCents)], ['You now own', `${r.shares} ${q.id}`], ['Balance', format(r.cash)]]);
     return {
-      embeds: [embed('market', `Purchase complete: ${r.qty} ${q.id}`, [
+      embeds: [embed('market', `📈 Bought ${r.qty} ${q.id}`, [
         `${r.qty} × ${format(r.priceCents)} = **${format(r.totalCents)}**`,
         `Shares of ${q.id} held: ${r.shares}`,
         `Balance: ${format(r.cash)}`
@@ -102,7 +102,7 @@ export const sell: Command = {
       const qty = parseCount(args.amount, { all: companyHolding(ctx.db, guildId, ctx.user.id, pc.ticker) });
       const r = sellCompanyShares(ctx.db, guildId, ctx.user.id, pc, qty, ctx.now);
       receipt(ctx.db, guildId, ctx.user.id, `Sold ${qty} ${pc.ticker}`, [['Company', `${pc.name} (${pc.ticker})`], ['Shares', String(qty)], ['Price per share', format(r.priceCents)], ['You received', format(r.proceeds)], ['You still own', `${r.held} ${pc.ticker}`]]);
-      return { embeds: [embed('market', `Sale complete: ${qty} ${pc.ticker}`, [`${qty} × ${format(r.priceCents)} = **${format(r.proceeds)}**`, `Shares of ${pc.ticker} held: ${r.held}`])] };
+      return { embeds: [embed('market', `📉 Sold ${qty} ${pc.ticker}`, [`${qty} × ${format(r.priceCents)} = **${format(r.proceeds)}**`, `Shares of ${pc.ticker} held: ${r.held}`])] };
     }
     const q = tradableQuote(m, String(args.ticker ?? ''));
     const owned = sharesOf(ctx.db, m, guildId, ctx.user.id, q.id);
@@ -113,7 +113,7 @@ export const sell: Command = {
     receipt(ctx.db, guildId, ctx.user.id, `Sold ${r.qty} ${q.id}`, [['Company', `${q.name} (${q.id})`], ['Shares', String(r.qty)], ['Price per share', format(r.priceCents)], ['You received', format(r.totalCents)],
       cost > 0 && [gain >= 0 ? 'Gain' : 'Loss', format(Math.abs(gain))], ['You still own', `${r.shares} ${q.id}`], ['Balance', format(r.cash)]]);
     return {
-      embeds: [embed('market', `Sale complete: ${r.qty} ${q.id}`, [
+      embeds: [embed('market', `${gain >= 0 ? '💰' : '📉'} Sold ${r.qty} ${q.id}`, [
         `${r.qty} × ${format(r.priceCents)} = **${format(r.totalCents)}**`,
         cost > 0 && `${gain >= 0 ? 'Gain' : 'Loss'} against purchase price: ${format(Math.abs(gain))}`,
         `Shares of ${q.id} held: ${r.shares}`,

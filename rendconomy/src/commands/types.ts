@@ -55,6 +55,9 @@ export interface ReplyObject {
   ephemeral?: boolean;
   /** The session these buttons belong to: the router records which message holds them. */
   session?: string;
+  /** A moment of suspense: Discord shows these embeds first ("You cast your line..."), then the reply itself.
+   *  Tests, the Activity and the site get the reply straight away. */
+  teaser?: { embeds: APIEmbed[]; ms: number };
   /** Edit the message after a delay (memory tasks hide their prompt). */
   later?: { ms: number; edit: ReplyObject };
   /** Send this to the player by DM (instead of, or as well as, the reply). */

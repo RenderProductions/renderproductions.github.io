@@ -111,7 +111,10 @@ const LINES: Record<string, string[]> = {
   soldOut: ['"Sorry, {n}. That one\'s all gone for now."', 'Marquez shakes his head. "Sold the last one, {n}. Check back soon."'],
   broke: ['"Ah. Not quite enough, {n}. No shame in it. Come back when you\'re ready."', 'Marquez looks at the Polygons, then at you, kindly. "Not today, {n}. It\'ll keep."'],
   once: ['"One per customer, {n}. Gotta leave some for the others."', 'Marquez smiles a little. "Already got yours, {n}."'],
-  notThisWeek: ['"Not this week, {n}. Something else is on the special shelf."']
+  notThisWeek: ['"Not this week, {n}. Something else is on the special shelf."'],
+  catch: ['Marquez looks over your catch. "Nice haul, {n}."', '"These\'ll do fine, {n}," Marquez says, weighing them.', 'Marquez nods at the bucket. "Fresh. Thank you, {n}."', 'Marquez holds one up to the light. "Not bad at all, {n}."'],
+  whale: ['Marquez stares at the White Whale for a long moment. "...Well. I\'ll be. Good work, {n}."'],
+  koi: ['Marquez sets down his coffee. "That\'s the real thing, {n}. Careful with it."']
 };
 
 export function marquez(kind: keyof typeof LINES, rng: Rng): string {

@@ -61,7 +61,7 @@ test('apply, then a shift paid by button press', async () => {
   const s = pending()!;
   const before = balance(db, wallet(G, 'u1'));
   const out = typedAnswer(ctx('u1', noRush), answerOf(s.state));
-  assert.match(text(out!.reply), /Shift complete\.\*\* Correct/);
+  assert.match(text(out!.reply), /Shift complete\.\*\* ✅ Correct/);
   const paid = balance(db, wallet(G, 'u1')) - before;
   const base = shiftPay('NACH', undefined, 0);
   assert.ok(paid >= base * 0.9 && paid <= base * 2, `paid about a shift's worth (${paid} vs ${base})`);

@@ -35,14 +35,14 @@ test('the first command opens an account with 500 Polygons', async () => {
 
 test('daily pays 250 once per Eastern day, and streaks count yesterday', async () => {
   const night = eastern('2026-11-13T23:59', -5);
-  assert.match(text(await run('r!daily', 'alice', night)), /⬡250\.00 has been deposited[\s\S]*⬡750\.00[\s\S]*Streak: 1 day/);
+  assert.match(text(await run('r!daily', 'alice', night)), /\*\*⬡250\.00\*\* has been deposited[\s\S]*⬡750\.00[\s\S]*Streak: \*\*1 day/);
   const again = await run('r!daily', 'alice', night);
   assert.equal(again.ephemeral, true);
   assert.match(text(again), /already been collected/);
   assert.equal(balance(db, wallet(G, 'alice')), polygons(750), 'no second payout');
 
-  assert.match(text(await run('r!daily', 'alice', eastern('2026-11-14T00:00', -5))), /Streak: 2 days/, 'midnight is a new day');
-  assert.match(text(await run('r!daily', 'alice', eastern('2026-11-16T12:00', -5))), /Streak: 1 day/, 'a missed day resets it');
+  assert.match(text(await run('r!daily', 'alice', eastern('2026-11-14T00:00', -5))), /Streak: \*\*2 days/, 'midnight is a new day');
+  assert.match(text(await run('r!daily', 'alice', eastern('2026-11-16T12:00', -5))), /Streak: \*\*1 day/, 'a missed day resets it');
   assert.ok(audit(db).ok);
 });
 
@@ -118,10 +118,10 @@ test('market commands: view, buy, sell, portfolio', async () => {
   const u = '444444444444444444';
   const view = text(await run('r!market', u, noon));
   for (const t of ['RRM', 'NACH', 'BLU', 'BNW', 'BSTG']) assert.ok(view.includes(`**${t}**`), `market shows ${t}`);
-  assert.match(text(await run('r!buy blu 2', u, noon)), /Purchase complete: 2 BLU/);
-  assert.match(text(await run('r!buy RRM max', u, noon)), /Purchase complete: \d+ RRM/);
+  assert.match(text(await run('r!buy blu 2', u, noon)), /Bought 2 BLU/);
+  assert.match(text(await run('r!buy RRM max', u, noon)), /Bought \d+ RRM/);
   assert.match(text(await run('r!pf', u, noon)), /Net worth/);
-  assert.match(text(await run('r!sell blu all', u, noon)), /Sale complete: 2 BLU[\s\S]*Gain against purchase price: ⬡0\.00/);
+  assert.match(text(await run('r!sell blu all', u, noon)), /Sold 2 BLU[\s\S]*Gain against purchase price: ⬡0\.00/);
   assert.match(text(await run('r!sell blu 1', u, noon)), /hold 0 shares of BLU/);
   assert.match(text(await run('r!buy blu 1.5', u, noon)), /whole numbers/);
   assert.match(text(await run('r!div', u, noon)), /Dividends/);

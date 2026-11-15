@@ -8,6 +8,7 @@ import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
 import * as sessions from '../core/sessions';
 import { COLORS } from '../discord/style';
+import { line, teaser } from '../discord/flavor';
 import { useEffect } from '../shop/inventory';
 import { me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
@@ -18,6 +19,15 @@ const card = (game: Game, lines: (string | null | false | undefined)[], tone: 'p
   color: tone === 'win' ? 0x57f287 : tone === 'loss' ? COLORS.error : tone === 'push' ? 0xfee75c : COLORS.casino
 });
 const toneOf = (bet: Cents, paid: Cents) => (paid > bet ? 'win' : paid === bet ? 'push' : 'loss') as 'win' | 'loss' | 'push';
+/** The closing lines of an instant game: what happened to the bet, a word from the house, the balance. */
+function outcome(ctx: Ctx, _guildId: string, bet: Cents, paid: Cents, extra: string[]): string[] {
+  const big = paid >= bet * 8;
+  const verdict = paid > bet ? `🎉 **You win ${format(paid)}!** ${big ? line(ctx.rng, 'bigWin') : line(ctx.rng, 'win')}`
+    : paid === bet ? `🤝 **Push.** Your ${format(bet)} comes back.`
+    : paid > 0 ? `↩️ You get ${format(paid)} back of your ${format(bet)}.`
+    : `💸 **You lose ${format(bet)}.** ${line(ctx.rng, 'loss')}`;
+  return ['', verdict, ...extra];   // settle() adds the balance
+}
 const betOption = (game: Game) => ({ name: 'amount', type: 'string' as const, description: `Your bet, ${format(CASINO.minBet)} to ${format(CASINO.maxBet[game])}, or "max"`, required: true });
 
 // ---------------------------------------------------------------- instant games
@@ -35,7 +45,11 @@ export const slots: Command = {
       const [x, y, z] = [ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS)];
       const win = x === y && y === z ? bet * TRIPLE[x]! : x === y || y === z || x === z ? bet : 0;
       const r = settle(ctx, guildId, 'slots', bet, win);
-      return { embeds: [card('slots', [`## ${x} ${y} ${z}`, `Bet: ${format(bet)} · Paid: ${format(r.paid)}`, ...r.lines], toneOf(bet, win))] };
+      const what = x === y && y === z ? (x === '💎' ? '💎 **DIAMONDS!** Three of a kind.' : `Three ${x}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair. Your bet comes back.' : 'No match.';
+      return {
+        embeds: [card('slots', [`## [ ${x} | ${y} | ${z} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        teaser: teaser(NAMES.slots, `## [ ❔ | ❔ | ❔ ]\n${line(ctx.rng, 'reels')}`, COLORS.casino)
+      };
     });
   }
 };
@@ -51,7 +65,10 @@ export const coinflip: Command = {
       const flip = ctx.rng.chance(0.5) ? 'heads' : 'tails';
       const win = flip === side ? Math.round(bet * 1.95) : 0;
       const r = settle(ctx, guildId, 'coinflip', bet, win);
-      return { embeds: [card('coinflip', [`Called: **${side}**. Result: **${flip}**.`, win ? `Won ${format(r.paid)}.` : `Lost ${format(bet)}.`, ...r.lines], toneOf(bet, win))] };
+      return {
+        embeds: [card('coinflip', [`You called **${side}**. It's... **${flip}!** ${flip === 'heads' ? '🙂' : '🦅'}`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        teaser: teaser(NAMES.coinflip, `You call **${side}**. ${line(ctx.rng, 'coinSpin')} 🪙`, COLORS.casino)
+      };
     });
   }
 };
@@ -72,7 +89,11 @@ export const dice: Command = {
       const won = over ? roll > n : roll < n;
       const win = won ? Math.round(bet * pays) : 0;
       const r = settle(ctx, guildId, 'dice', bet, win);
-      return { embeds: [card('dice', [`Call: ${over ? 'over' : 'under'} ${n} (pays ${pays}x). Roll: **${roll}**.`, won ? `Won ${format(r.paid)}.` : `Lost ${format(bet)}.`, ...r.lines], toneOf(bet, win))] };
+      const call = `You bet **${over ? 'over' : 'under'} ${n}** (${Math.round(chance * 100)}% chance, pays **${pays}x**).`;
+      return {
+        embeds: [card('dice', [call, `You rolled... **${roll}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        teaser: teaser(NAMES.dice, `${call}\n${line(ctx.rng, 'diceRoll')} 🎲`, COLORS.casino)
+      };
     });
   }
 };
@@ -110,7 +131,10 @@ export const roulette: Command = {
       const win = won ? bet * b.pays : 0;
       const r = settle(ctx, guildId, 'roulette', bet, win);
       if (won && b.straight) awardHere('straight_up');
-      return { embeds: [card('roulette', [`Bet: ${b.label} (pays ${b.pays}x). The ball lands on **${dot(n)} ${n}**.`, won ? `Won ${format(r.paid)}.` : `Lost ${format(bet)}.`, ...r.lines], toneOf(bet, win))] };
+      return {
+        embeds: [card('roulette', [`You bet on **${b.label}** (pays ${b.pays}x).`, `The ball drops into... **${dot(n)} ${n}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        teaser: teaser(NAMES.roulette, `You bet on **${b.label}**. ${line(ctx.rng, 'wheelSpin')} 🎡`, COLORS.casino)
+      };
     });
   }
 };

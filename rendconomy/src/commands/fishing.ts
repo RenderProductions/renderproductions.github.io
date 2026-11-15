@@ -9,6 +9,7 @@ import { embed } from '../discord/style';
 import { CATCH, FISHING, SIZE_NAMES, cast, isCatch, itemId } from '../fishing/fishing';
 import { addItem, charges, count, items, takeItem, useEffect } from '../shop/inventory';
 import { marquez } from '../shop/items';
+import { LINES, line, teaser } from '../discord/flavor';
 import { me } from './shared';
 import { isEvent } from '../events/world';
 import type { Command, Ctx } from './types';
@@ -37,28 +38,38 @@ export const fish: Command = {
       throw new GameError('fish.cooldown', `The fish need a moment. Cast again ${discordTime(cooldown(ctx.db, 'fish', `${guildId}:${ctx.user.id}`, ctx.now).until)}.`);
     }
     return ctx.db.tx(() => {
-      const head: string[] = [];
-      if (using === 'bait') transfer(ctx.db, { from: wallet, to: RESERVE, cents: FISHING.bait, reason: 'fish.bait', guildId, actorId: ctx.user.id, now: ctx.now });
-      else if (using === 'lure') { useEffect(ctx.db, guildId, ctx.user.id, 'lure'); head.push(`Lure: ${charges(ctx.db, guildId, ctx.user.id, 'lure')} casts left.`); }
-      else { takeItem(ctx.db, guildId, ctx.user.id, itemId(using)); head.push(`Bait: one ${CATCH[using]!.name}.`); }
+      const P = ctx.config.prefix;
+      let spent: string;
+      if (using === 'bait') { transfer(ctx.db, { from: wallet, to: RESERVE, cents: FISHING.bait, reason: 'fish.bait', guildId, actorId: ctx.user.id, now: ctx.now }); spent = `🪱 Bait: −${format(FISHING.bait)}`; }
+      else if (using === 'lure') { useEffect(ctx.db, guildId, ctx.user.id, 'lure'); const left = charges(ctx.db, guildId, ctx.user.id, 'lure'); spent = `🪝 Lure: ${left} ${left === 1 ? 'cast' : 'casts'} left`; }
+      else { takeItem(ctx.db, guildId, ctx.user.id, itemId(using)); spent = `${CATCH[using]!.emoji} You used a ${CATCH[using]!.name} as bait.`; }
       const r = cast(frenzy && using === 'bait' ? 'lure' : using, ctx.rng);
-      let line: string;
-      if (r.kind === 'nothing' || r.kind === 'snag') line = r.kind === 'nothing' ? 'Nothing bites.' : 'The line snags on a log. Nothing caught.';
+      let text: string, color = 0x3ba7f2;
+      if (r.kind === 'nothing') text = `🌊 ${line(ctx.rng, 'fishNothing')}`;
+      else if (r.kind === 'snag') { text = '🪢 **Your line snagged on something!** You yank it free, but the bait is gone.'; color = 0xed4245; }
       else if (r.kind === 'wallet') {
         const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: r.cents, reason: 'fish.wallet', guildId, actorId: ctx.user.id, now: ctx.now });
-        line = `A lost wallet. Inside: ${format(paid)}.`;
+        text = `👛 **You reeled in a soggy wallet!** There's **${format(paid)}** inside. Finders keepers.`;
+        color = 0xf0b232;
       } else {
         const f = CATCH[r.id]!;
         addItem(ctx.db, guildId, ctx.user.id, itemId(r.id));
-        line = `Caught: ${f.emoji} **${f.name}** (${SIZE_NAMES[f.size]}, worth ${format(f.value)}).`;
-        if (r.kind === 'fish') {
+        if (r.kind === 'junk') text = `${f.emoji} You pulled up a **${f.name}**. Marquez might give you ${format(f.value)} for it.`;
+        else {
+          text = `${f.emoji} **You caught a ${f.name}!** ${SIZE_NAMES[f.size]}, worth ${format(f.value)}.${LINES.fishBig[f.size]}`;
+          color = f.size >= 3 ? 0xf0b232 : 0x57f287;
+          if (f.size === 4) text += `\n-# Word travels fast. *${marquez(r.id === 'whale' ? 'whale' : 'koi', ctx.rng)}*`;
           awardHere('first_catch');
           if (bump(ctx.db, ctx.user.id, 'fish_caught') >= 200) awardHere('fish_in_the_sea');
           if (r.id === 'whale') awardHere('moby_dick');
           if (CATCH[using] && f.size > CATCH[using]!.size) awardHere('bigger_fish');
         }
       }
-      return { embeds: [embed('wallet', 'Fishing', [...head, line, '', `Bag: ${bag(ctx, guildId).reduce((s, x) => s + x.qty, 0)} of ${FISHING.bagMax}`])] };
+      const inBag = bag(ctx, guildId).reduce((s, x) => s + x.qty, 0);
+      return {
+        embeds: [{ title: '🎣 Fishing', color, description: [text, '', spent, `-# Bag: ${inBag} / ${FISHING.bagMax} · \`${P}fish bag\` · \`${P}fish sell\``, frenzy ? '-# 🐟 Fish Frenzy: the fish are biting like a lure is on.' : null].filter((x) => x !== null).join('\n') }],
+        teaser: teaser('🎣 Fishing', CATCH[using] ? `You hook the ${CATCH[using]!.name} and cast it out... 🌊` : 'You cast your line... 🌊', 0x99aab5, 2200)
+      };
     });
   }
 };
@@ -73,7 +84,9 @@ export const sellfish: Command = {
       const total = stash.reduce((s, r) => s + r.value * r.qty, 0);
       for (const r of stash) takeItem(ctx.db, guildId, ctx.user.id, r.item, r.qty);
       const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: total, reason: 'fish.sell', guildId, actorId: ctx.user.id, now: ctx.now });
-      return { embeds: [embed('wallet', 'Catch sold', [`*${marquez('thanks', ctx.rng)}*`, ...stash.map((r) => `${r.emoji} ${r.name} × ${r.qty}: ${format(r.value * r.qty)}`), `**Paid: ${format(paid)}**`, `Balance: ${format(balance(ctx.db, wallet))}`])] };
+      const n = stash.reduce((x, r) => x + r.qty, 0);
+      return { embeds: [embed('wallet', '🧺 Catch sold', [`*${marquez('catch', ctx.rng)}*`, '', ...stash.map((r) => `${r.emoji} ${r.name} × ${r.qty}: ${format(r.value * r.qty)}`), '',
+        `He pays **${format(paid)}** for ${n} ${n === 1 ? 'thing' : 'things'}.`, `-# Balance: ${format(balance(ctx.db, wallet))}`])] };
     });
   }
 };

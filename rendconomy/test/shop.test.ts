@@ -36,7 +36,7 @@ function setup() {
 test('buying from the shop: stock is shared and restocks hourly; Marquez explains refusals', async () => {
   const { db, run, rich, later } = setup();
   await run('balance');
-  assert.match(text(await run('purchase', { item: 'coffee' })), /Purchase complete[\s\S]*1 × ☕ Coffee: ⬡100\.00/);
+  assert.match(text(await run('purchase', { item: 'coffee' })), /🛍️ ☕ Coffee[\s\S]*1 × ☕ Coffee: ⬡100\.00/);
   assert.equal(balance(db, wallet(G, A)), polygons(400));
   assert.match(text(await run('purchase', { item: 'title' })), /costs ⬡5,000\.00/);
   rich();
@@ -44,8 +44,8 @@ test('buying from the shop: stock is shared and restocks hourly; Marquez explain
   assert.equal(stockOf(db, 'coffee'), 0);
   assert.match(text(await run('purchase', { item: 'coffee' }, B)), /sold out/, 'stock is shared by everyone');
   later(HOUR);
-  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /Purchase complete/, 'restocked');
-  assert.match(text(await run('purchase', { item: 'megaphone' })), /costs ⬡1,000\.00|Purchase complete|sold out/);
+  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /🛍️/, 'restocked');
+  assert.match(text(await run('purchase', { item: 'megaphone' })), /costs ⬡1,000\.00|🛍️|sold out/);
   assert.ok(audit(db).ok);
 });
 
@@ -66,7 +66,7 @@ test('collectibles: only this week\'s, one per customer', async () => {
   rich();
   const col = collectibleOfWeek(noon);
   const other = ['col_nacho', 'col_todd'].find((c) => c !== col)!;
-  assert.match(text(await run('purchase', { item: col })), /Purchase complete/);
+  assert.match(text(await run('purchase', { item: col })), /🛍️/);
   assert.match(text(await run('purchase', { item: col })), /already bought/);
   assert.match(text(await run('purchase', { item: other })), /not on the special shelf/);
   assert.equal(count(db, G, A, col), 1);
@@ -167,13 +167,15 @@ test('fishing: needs a rod, costs bait, fills the bag, sells to Marquez', async 
   addItem(db, G, A, 'rod');
   let caught = 0;
   for (let i = 0; i < 40; i++) {
-    const r = text(await run('fish'));
-    assert.match(r, /Fishing/);
-    if (/Caught:/.test(r)) caught++;
+    const reply = await run('fish');
+    const r = text(reply);
+    assert.match(r, /🎣 Fishing/);
+    assert.match(reply.teaser!.embeds[0]!.description!, /cast your line/, 'Discord sees the cast first');
+    if (/You caught a|You pulled up a/.test(r)) caught++;
     later(3 * 60_000);
   }
   assert.ok(caught > 10, `caught ${caught} in 40 casts`);
-  assert.match(text(await run('sellfish')), /Catch sold[\s\S]*Paid: ⬡/);
+  assert.match(text(await run('sellfish')), /Catch sold[\s\S]*He pays \*\*⬡/);
   assert.match(text(await run('sellfish')), /bag is empty/);
   assert.ok(audit(db).ok);
 });

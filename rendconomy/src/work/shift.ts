@@ -1,6 +1,7 @@
 // A shift (or a gig): hand out a task, wait for the answer (buttons or typing), grade it, pay.
 // The task waits in a stored session, so a restart mid-task doesn't break its buttons, and exactly
 // one answer is ever graded (sessions.end only succeeds once).
+import { line } from '../discord/flavor';
 import type { Button, Ctx, ReplyObject, SessionReply } from '../commands/types';
 import { economy } from '../config';
 import { payFromReserve, payoutFactor } from '../core/economy';
@@ -96,9 +97,10 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
   const speed = result === 'pass' ? JOB_RULES.tipMax * Math.max(0, 1 - elapsed / st.task.limitSec) : 0;
   const guildId = s.guild_id!;
   const w = wallet(guildId, ctx.user.id);
-  const verdict = result === 'pass' ? `Correct, in ${elapsed.toFixed(1)} seconds.`
-    : result === 'slow' ? 'Time expired.'
-    : `Incorrect. The answer was \`${st.task.shown}\`.`;
+  const quick = elapsed < st.task.limitSec * 0.4;
+  const verdict = result === 'pass' ? `✅ Correct, in ${elapsed.toFixed(1)} seconds. ${line(ctx.rng, quick ? 'workFast' : 'workOk')}`
+    : result === 'slow' ? `⌛ Time expired. ${line(ctx.rng, 'workSlow')}`
+    : `❌ Incorrect. The answer was \`${st.task.shown}\`. ${line(ctx.rng, 'workWrong')}`;
   const factor = payoutFactor(ctx.db, economy.reserveStart);
   const shortfall = factor < 1 ? `\n-# The Polygon Reserve is low. Payouts are reduced to ${Math.round(factor * 100)}%.` : '';
 
@@ -108,7 +110,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
     const tip = Math.round(pay * speed);
     const paid = payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: pay + tip, reason: 'work.gig', guildId, actorId: ctx.user.id, now: ctx.now });
     emit('work.gig', { guildId, userId: ctx.user.id, result, cents: paid });
-    return { content: slip('**Gig complete.** ' + verdict, [['Gig pay', pay], ['Speed bonus', tip]], paid, balance(ctx.db, w)) + shortfall +
+    return { content: slip('🛠️ **Gig complete.** ' + verdict, [['Gig pay', pay], ['Speed bonus', tip]], paid, balance(ctx.db, w)) + shortfall +
       `\n-# For steady pay, apply for a job with \`${ctx.config.prefix}apply <ticker>\`.` };
   }
 
@@ -160,18 +162,18 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
         let outcome: 'promoted' | 'bonus' | 'kept' | 'demoted' = 'kept';
         if (score >= JOB_RULES.review.promote && career.rank < 3) {
           next.rank = career.rank + 1; outcome = 'promoted';
-          review = `**Performance review: ${score}/10.** Promoted to ${rankName(ticker, next.rank)}. Pay multiplier: ${RANK_PAY[clampRank(next.rank)]}×. Tasks will be more demanding.`;
+          review = `🎉 **Performance review: ${score}/10.** Promoted to ${rankName(ticker, next.rank)}. Pay multiplier: ${RANK_PAY[clampRank(next.rank)]}×. Tasks will be more demanding.`;
         } else if (score >= JOB_RULES.review.promote) {
           reviewBonus = payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: Math.round(JOB_RULES.basePay * RANK_PAY[3] * JOB_RULES.review.topBonusShifts), reason: 'work.review', guildId, actorId: ctx.user.id, now: ctx.now });
           next.earned += reviewBonus; outcome = 'bonus';
-          review = `**Performance review: ${score}/10.** Outstanding. A bonus of ${format(reviewBonus)} has been paid.`;
+          review = `🌟 **Performance review: ${score}/10.** Outstanding. A bonus of ${format(reviewBonus)} has been paid.`;
         } else if (score <= JOB_RULES.review.demote && career.rank > 0 && takeItem(ctx.db, guildId, ctx.user.id, 'reference')) {
-          review = `**Performance review: ${score}/10.** A demotion was due, but your Reference Letter prevented it. You remain ${rankName(ticker, career.rank)}.`;
+          review = `📜 **Performance review: ${score}/10.** A demotion was due, but your Reference Letter prevented it. You remain ${rankName(ticker, career.rank)}.`;
         } else if (score <= JOB_RULES.review.demote && career.rank > 0) {
           next.rank = career.rank - 1; outcome = 'demoted';
-          review = `**Performance review: ${score}/10.** Demoted to ${rankName(ticker, next.rank)}. Pay multiplier: ${RANK_PAY[clampRank(next.rank)]}×.`;
+          review = `📉 **Performance review: ${score}/10.** Demoted to ${rankName(ticker, next.rank)}. Pay multiplier: ${RANK_PAY[clampRank(next.rank)]}×.`;
         } else {
-          review = `**Performance review: ${score}/10.** No change in rank. ${JOB_RULES.review.promote}/10 is required for ${career.rank < 3 ? 'a promotion' : 'a bonus'}.`;
+          review = `📋 **Performance review: ${score}/10.** No change in rank. ${JOB_RULES.review.promote}/10 is required for ${career.rank < 3 ? 'a promotion' : 'a bonus'}.`;
         }
         emit('work.review', { guildId, userId: ctx.user.id, ticker, score, outcome, rank: next.rank });
       }
@@ -185,10 +187,10 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
     let content: string;
     if (st.rush > 0) {
       content = result === 'pass'
-        ? `**Rush order cleared.** ${verdict} Bonus: **+${format(paid)}**\n-# Balance: ${format(cash)}`
-        : `**Rush order missed.** ${verdict} No bonus is paid.`;
+        ? `⚡ **Rush order cleared!** ${verdict} Bonus: **+${format(paid)}**\n-# Balance: ${format(cash)}`
+        : `⚡ **Rush order missed.** ${verdict} No bonus is paid.`;
     } else {
-      content = slip(`**Shift complete.** ${verdict}`, [['Shift pay', pay], ['Speed bonus', tip], ['Team bonus', team], ['Review bonus', reviewBonus]], paid + reviewBonus, cash);
+      content = slip(`💼 **Shift complete.** ${verdict}`, [['Shift pay', pay], ['Speed bonus', tip], ['Team bonus', team], ['Review bonus', reviewBonus]], paid + reviewBonus, cash);
       if (extras.length) content += `\n-# ${extras.join(' · ')}`;
     }
     if (review) content += `\n\n${review}`;
