@@ -83,7 +83,8 @@ function withNotes(r: ReplyObject, notes: string[]): ReplyObject {
   if (!notes.length) return r;
   const text = notes.join('\n');
   const first = r.embeds?.[0];
-  if (first) return { ...r, embeds: [{ ...first, footer: { text: first.footer ? `${first.footer.text}\n${text}` : text } }, ...r.embeds!.slice(1)] };
+  // a small embed of their own: footers can't show bold text or the bot's emojis (achievement rarity gems)
+  if (first) return { ...r, embeds: [...r.embeds!, { color: 0xffe600, description: text.slice(0, 4096) }].slice(0, 10) };
   return { ...r, content: r.content ? `${r.content}\n-# ${text}` : text };
 }
 
