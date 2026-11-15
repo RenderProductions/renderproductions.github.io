@@ -20,7 +20,7 @@ import { setNotifier } from './market/schemes';
 import { setEventAnnouncer } from './events/install';
 import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
-import { ROLE_BUTTON_ID, postUpdate, readNewestUpdate, setUpdatePoster, updateEmbed } from './site/updates';
+import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { startActivity, startApi, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
@@ -144,12 +144,14 @@ async function main(): Promise<void> {
       });
       return true;
     });
-    if (config.updatesChannelId) emojisReady.then(() => {
-      const latest = readNewestUpdate();   // read after the emojis are in, so the post shows them
-      if (!latest || db.meta('updates.last') === latest.id) return;
-      postUpdate(latest).then((ok) => {
-        if (ok) { db.setMeta('updates.last', latest.id); console.log(`[updates] posted "${latest.title}"`); }
-      }).catch((e: unknown) => console.error('[updates]', e));
+    // every entry added since the last post, oldest first; read after the emojis are in, so posts show them
+    if (config.updatesChannelId) emojisReady.then(async () => {
+      for (const u of pendingUpdates(readAllUpdates(), db.meta('updates.last'))) {
+        const ok = await postUpdate(u).catch((e: unknown) => { console.error('[updates]', e); return false; });
+        if (!ok) break;
+        db.setMeta('updates.last', u.id);
+        console.log(`[updates] posted "${u.title}"`);
+      }
     });
     startReminders(db, c, config.prefix);
     startActivity(db, config, rng, c);

@@ -36,11 +36,39 @@ export function toMarkdown(html: string): string {
     .replace(/\s*\n\s*/g, '\n')).trim().replace(/\u0001(\w+)\u0001 ?/g, (m, k: string) => { const e = k in FALLBACK ? emoji(k as EmojiKey) : emojiOr(k, ''); return e ? e + (m.endsWith(' ') ? ' ' : '') : ''; }).trim();
 }
 
+/** Every update on the patch notes page, newest first. */
+export function allUpdates(html: string): UpdateEntry[] {
+  return [...html.matchAll(/<article class="log[^"]*" id="([^"]+)"[^>]*>([\s\S]*?)<\/article>/g)].map((m) => parseEntry(m[1]!, m[2]!));
+}
+
 /** The newest update on the patch notes page, or null if the page can't be read. */
 export function newestUpdate(html: string): UpdateEntry | null {
   const m = /<article class="log[^"]*" id="([^"]+)"[^>]*>([\s\S]*?)<\/article>/.exec(html);
-  if (!m) return null;
-  const [, id, body] = m as unknown as [string, string, string];
+  return m ? parseEntry(m[1]!, m[2]!) : null;
+}
+
+/**
+ * What to post: every entry newer than the last one posted, oldest first. If the last one isn't on
+ * the page (or nothing was posted yet), only the newest, so a fresh bot doesn't post the whole history.
+ */
+export function pendingUpdates(entries: UpdateEntry[], lastId: string | null): UpdateEntry[] {
+  const at = lastId ? entries.findIndex((e) => e.id === lastId) : -1;
+  if (at === 0) return [];
+  return at > 0 ? entries.slice(0, at).reverse() : entries.slice(0, 1);
+}
+
+/** Finds an entry by its id or title, in part ("animation" finds Animation Expansion). */
+export function findUpdate(entries: UpdateEntry[], query: string): UpdateEntry | null {
+  const q = query.trim().toLowerCase();
+  if (!q) return entries[0] ?? null;
+  return entries.find((e) => e.id === q) ?? entries.find((e) => e.id.includes(q) || e.title.toLowerCase().includes(q)) ?? null;
+}
+
+export function readAllUpdates(file = PATCH_NOTES_FILE): UpdateEntry[] {
+  try { return allUpdates(fs.readFileSync(file, 'utf8')); } catch { return []; }
+}
+
+function parseEntry(id: string, body: string): UpdateEntry {
   const title = toMarkdown(/<h2[^>]*>([\s\S]*?)<\/h2>/.exec(body)?.[1] ?? id);
   const label = /<div class="label">([\s\S]*?)<\/div>/.exec(body)?.[1] ?? '';
   const date = toMarkdown([...label.matchAll(/<span>([^<]*)<\/span>/g)].map((x) => x[1]).join(' '));

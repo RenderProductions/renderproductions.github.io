@@ -2,7 +2,7 @@ import { setCustomEmojis } from '../src/discord/emoji';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { PATCH_NOTES_FILE, newestUpdate, readNewestUpdate, toMarkdown, updateEmbed } from '../src/site/updates';
+import { PATCH_NOTES_FILE, allUpdates, findUpdate, newestUpdate, pendingUpdates, readAllUpdates, readNewestUpdate, toMarkdown, updateEmbed } from '../src/site/updates';
 
 test('the real patch notes page parses into an update', () => {
   assert.ok(fs.existsSync(PATCH_NOTES_FILE), 'the bot finds patch-notes/index.html in the repo');
@@ -39,4 +39,21 @@ test('update posts use the bot\'s own emojis once they are uploaded, and flag ho
 test('an emoji image on the patch notes page becomes the bot\'s emoji in the post', () => {
   assert.equal(toMarkdown('<img class="emoji" data-emoji="hotfix" src="/bot/emojis/rc_hotfix.png" alt=""><strong>Hotfix:</strong> quick'), '<:rc_hotfix:456> **Hotfix:** quick');
   assert.equal(toMarkdown('<img class="emoji" data-emoji="nope" src="x.png">Text'), 'Text', 'unknown names are dropped');
+});
+
+test('restarts post every entry added since the last post, oldest first; /announce finds entries by name', () => {
+  const page = ['c', 'b', 'a'].map((id) => `<article class="log release" id="${id}"><h2>Entry ${id.toUpperCase()}</h2><p>x</p></article>`).join('');
+  const all = allUpdates(page);
+  assert.deepEqual(all.map((e) => e.id), ['c', 'b', 'a']);
+  assert.deepEqual(pendingUpdates(all, 'a').map((e) => e.id), ['b', 'c'], 'both new ones, oldest first');
+  assert.deepEqual(pendingUpdates(all, 'c'), [], 'nothing new');
+  assert.deepEqual(pendingUpdates(all, null).map((e) => e.id), ['c'], 'a fresh bot posts only the newest');
+  assert.deepEqual(pendingUpdates(all, 'gone').map((e) => e.id), ['c']);
+  assert.equal(findUpdate(all, 'entry b')!.id, 'b');
+  assert.equal(findUpdate(all, '')!.id, 'c');
+  assert.equal(findUpdate(all, 'nope'), null);
+  // the real page: the next restart posts Animation Expansion, then Glossy Makeover
+  const real = readAllUpdates();
+  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover']);
+  assert.equal(findUpdate(real, 'animation')!.id, 'animation-expansion');
 });
