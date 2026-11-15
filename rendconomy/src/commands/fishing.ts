@@ -1,6 +1,6 @@
 import { awardHere, bump } from '../achievements/achievements';
 import { economy } from '../config';
-import { payFromReserve } from '../core/economy';
+import { payFromReserve, payoutFactor } from '../core/economy';
 import { GameError } from '../core/errors';
 import { RESERVE, balance, transfer } from '../core/ledger';
 import { format } from '../core/money';
@@ -18,10 +18,12 @@ const bag = (ctx: Ctx, guildId: string) => items(ctx.db, guildId, ctx.user.id).f
 
 export const fish: Command = {
   name: 'fish', aliases: ['cast', 'fishing'], description: 'Cast a line (needs a Fishing Rod; optionally use a fish as bait)', system: 'wallet', guildOnly: true,
-  options: [{ name: 'bait', type: 'string', description: 'A fish from your bag to use as bait, e.g. minnow' }],
+  options: [{ name: 'bait', type: 'string', description: 'A fish to use as bait (e.g. minnow), "bag" to see your catch, or "sell"' }],
   run(ctx, args) {
-    if (String(args.bait ?? '').trim().toLowerCase() === 'sell') return sellfish.run(ctx, {}); // the old r!fish sell
+    const word = String(args.bait ?? '').trim().toLowerCase();
+    if (word === 'sell') return sellfish.run(ctx, {});                                   // the old r!fish sell
     const { guildId, wallet } = me(ctx);
+    if (['bag', 'catch', 'inv', 'inventory'].includes(word)) return bagView(ctx, guildId); // and r!fish bag
     if (!count(ctx.db, guildId, ctx.user.id, 'rod')) throw new GameError('fish.rod', `A Fishing Rod is required. Marquez sells them: \`${ctx.config.prefix}shop tackle\`.`);
     const stash = bag(ctx, guildId);
     if (stash.reduce((s, r) => s + r.qty, 0) >= FISHING.bagMax) throw new GameError('fish.full', `Your bag is full (${FISHING.bagMax}). Sell your catch with \`${ctx.config.prefix}sellfish\`.`);
@@ -73,6 +75,27 @@ export const fish: Command = {
     });
   }
 };
+
+/** r!fish bag: what you've caught, what it's worth, and how full the bag is. */
+export function bagView(ctx: Ctx, guildId: string) {
+  const P = ctx.config.prefix;
+  const stash = bag(ctx, guildId).sort((a, b) => b.size - a.size || b.value - a.value);
+  const n = stash.reduce((s, r) => s + r.qty, 0);
+  const worth = Math.floor(stash.reduce((s, r) => s + r.value * r.qty, 0) * payoutFactor(ctx.db, economy.reserveStart));
+  const lure = charges(ctx.db, guildId, ctx.user.id, 'lure');
+  return {
+    embeds: [{
+      title: '🎣 Your catch', color: 0x3ba7f2,
+      description: [
+        ...(stash.length ? stash.map((r) => `${r.emoji} **${r.name}** × ${r.qty} · ${SIZE_NAMES[r.size]} · ${format(r.value)} each`) : ['Nothing yet. Go cast a line!']),
+        '',
+        stash.length ? `Marquez would pay **${format(worth)}** for all of it.` : null,
+        `${n} / ${FISHING.bagMax} in your bag${lure ? ` · 🪝 Lure: ${lure} ${lure === 1 ? 'cast' : 'casts'} left` : ''}`
+      ].filter((x) => x !== null).join('\n'),
+      footer: { text: `${P}fish sell · ${P}fish <small fish> uses it as bait` }
+    }]
+  };
+}
 
 export const sellfish: Command = {
   name: 'sellfish', aliases: ['sellcatch'], description: 'Sell your whole catch to Marquez', system: 'wallet', guildOnly: true,

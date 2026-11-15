@@ -33,7 +33,7 @@ export function startReminders(db: Db, client: Client, prefix: string): void {
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
 const ALLOWED = new Set(['balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
-  'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'portfolio', 'compare', 'profile', 'history']);
+  'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 const CHAT_ONLY: Record<string, string> = { rocket: 'Rocket', blackjack: 'Blackjack', bus: 'Ride the Bus', hilo: 'Higher or Lower', mines: 'Minesweeper', derby: 'The Derby', heist: 'Heists' };
 
 /** Polls the Cloudflare Worker for commands sent from the Activity, runs them as that player, sends replies back. */

@@ -1,14 +1,15 @@
+import { emoji } from '../discord/emoji';
 import { nameOf, receipt } from '../social/receipts';
-import { balance } from '../core/ledger';
+import { balance, wallet } from '../core/ledger';
 import { format, parseCount } from '../core/money';
 import { embed } from '../discord/style';
-import { current, quote } from '../market/market';
+import { current, load, quote } from '../market/market';
 import { affordable, buy as buyShares, pendingDividends, portfolio as positions, sell as sellShares, sharesOf, tradableQuote } from '../market/trading';
 import { economy } from '../config';
 import { payFromReserve } from '../core/economy';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
-import { me } from './shared';
+import { guildOf, me } from './shared';
 import { buyShares as buyCompanyShares, getCompany, holding as companyHolding, sellShares as sellCompanyShares } from '../companies/companies';
 import { TICKERS } from '../market/market';
 import type { Ctx } from './types';
@@ -123,31 +124,41 @@ export const sell: Command = {
   }
 };
 
-export const portfolio: Command = {
-  name: 'portfolio',
-  aliases: ['pf'],
-  description: 'Your shares, their value, and your net worth',
-  system: 'market',
+/** Your money in one place: cash, savings, shares and net worth. r!bal, r!balance, r!portfolio and r!pf. */
+export const money: Command = {
+  name: 'balance',
+  aliases: ['bal', 'portfolio', 'pf', 'wallet'],
+  description: 'Your Polygons, savings, shares and net worth, or another player\'s',
+  system: 'wallet',
   guildOnly: true,
-  run(ctx) {
-    const m = current(ctx.db);
-    const { wallet, guildId } = me(ctx);
-    const cash = balance(ctx.db, wallet);
-    const list = positions(ctx.db, m, guildId, ctx.user.id);
+  options: [{ name: 'player', type: 'user', description: 'Whose to show (default: yours)' }],
+  run(ctx, args) {
+    const m = load(ctx.db); // balance still works while the market is offline
+    const other = typeof args.player === 'string' && args.player !== ctx.user.id ? args.player : null;
+    let guildId: string, userId: string;
+    if (other) {
+      guildId = guildOf(ctx); userId = other;
+      if (!ctx.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', guildId, other)) throw new GameError('player.none', `That player has no account in this server. Accounts open with ${format(economy.startingCash)} on first use.`);
+    } else ({ guildId } = me(ctx), userId = ctx.user.id);
+    const cash = balance(ctx.db, wallet(guildId, userId));
+    const saved = savingsTotal(ctx.db, guildId, userId);
+    const list = m ? positions(ctx.db, m, guildId, userId) : [];
     const stocks = list.reduce((s, p) => s + p.valueCents, 0);
     const lines = list.map((p) => {
       const diff = p.valueCents - p.costCents;
       return `**${p.quote.id}** · ${p.shares} × ${format(p.quote.priceCents)} = ${format(p.valueCents)}` +
-        (p.costCents > 0 ? `\n-# ${diff >= 0 ? '+' : '−'}${format(Math.abs(diff))} against purchase price` : '');
+        (p.costCents > 0 ? ` · ${diff >= 0 ? '▲' : '▼'} ${format(Math.abs(diff))}` : '');
     });
     return {
-      embeds: [embed('market', `Portfolio: ${ctx.user.name}`, [
-        ...(lines.length ? lines : ['No shares held.']),
+      embeds: [embed('wallet', other ? 'Balance' : `Balance: ${ctx.user.name}`, [
+        other ? `<@${other}>` : null,
+        `${emoji('polygon')} Cash: **${format(cash)}**`,
+        saved > 0 ? `${emoji('savings')} Savings: **${format(saved)}**` : null,
+        list.length ? `${emoji('stonks')} Shares: **${format(stocks)}**` : null,
+        ...(list.length ? ['', ...lines] : []),
         '',
-        `Cash: ${format(cash)}`,
-        `Shares: ${format(stocks)}`,
-        savingsTotal(ctx.db, guildId, ctx.user.id) > 0 && `Savings: ${format(savingsTotal(ctx.db, guildId, ctx.user.id))}`,
-        `**Net worth: ${format(netWorth(ctx.db, m, guildId, ctx.user.id))}**`
+        `**Net worth: ${format(netWorth(ctx.db, m, guildId, userId))}**`,
+        !other && !list.length ? `-# No shares yet. See what's trading with \`${ctx.config.prefix}market\`.` : null
       ])]
     };
   }

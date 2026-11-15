@@ -65,7 +65,8 @@ test('savings: deposit, close early without interest, mature with interest', asy
   const { db, run, later } = setup();
   assert.match(text(await run('savings', { action: 'deposit 200 7' })), /Deposited \*\*⬡200\.00\*\* for 7 days at 6%/);
   assert.equal(balance(db, wallet(G, A)), polygons(300));
-  assert.match(text(await run('portfolio')), /Savings: ⬡200\.00[\s\S]*Net worth: ⬡500\.00/);
+  assert.equal(text(await run('portfolio')), text(await run('balance')), 'r!portfolio and r!bal are the same view');
+  assert.match(text(await run('portfolio')), /Savings: \*\*⬡200\.00[\s\S]*Net worth: ⬡500\.00/);
   assert.match(text(await run('savings', { action: 'deposit 50 3' })), /at least ⬡100\.00/);
   await run('savings', { action: 'deposit 100 3' });
   const id = db.get<{ id: number }>('SELECT id FROM savings WHERE days = 7')!.id;

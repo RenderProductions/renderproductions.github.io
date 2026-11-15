@@ -175,7 +175,14 @@ test('fishing: needs a rod, costs bait, fills the bag, sells to Marquez', async 
     later(3 * 60_000);
   }
   assert.ok(caught > 10, `caught ${caught} in 40 casts`);
+  const bag = text(await run('fish', { bait: 'bag' }));
+  assert.match(bag, /🎣 Your catch[\s\S]*each[\s\S]*Marquez would pay \*\*⬡[\s\S]*\d+ \/ 50 in your bag/, 'r!fish bag lists the catch');
+  const inv = text(await run('inventory'));
+  assert.match(inv, /Fishing bag\*\* \(\d+\/50\)/, 'the inventory shows one bag line');
+  assert.doesNotMatch(inv, /Minnow|Bluegill|Soggy Boot/, 'fish are not listed one by one');
   assert.match(text(await run('sellfish')), /Catch sold[\s\S]*He pays \*\*⬡/);
   assert.match(text(await run('sellfish')), /bag is empty/);
+  assert.match(text(await run('fish', { bait: 'bag' })), /Nothing yet[\s\S]*0 \/ 50 in your bag/);
+  assert.match(text(await run('inventory')), /Fishing bag\*\* \(0\/50\)/, 'a rod owner still sees the empty bag');
   assert.ok(audit(db).ok);
 });
