@@ -122,10 +122,17 @@ export function installLoans(): void {
   });
 
   // Debts count against net worth; money you've lent counts for it
-  addWorthPart((db, _m, guildId, userId) =>
-    -toddDebt(db, guildId, userId)
-    - activeLoans(db, guildId, { borrower: userId }).reduce((s, l) => s + l.owed, 0)
-    + activeLoans(db, guildId, { lender: userId }).reduce((s, l) => s + l.owed, 0));
+  addWorthPart((db, _m, guildId, userId) => {
+    const now = Date.now();
+    const owe = activeLoans(db, guildId, { borrower: userId }), lent = activeLoans(db, guildId, { lender: userId });
+    const late = owe.filter((l) => overdue(l, now)).length;
+    const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
+    return [
+      { label: 'Owed to you', emoji: 'loan', cents: lent.reduce((s, l) => s + l.owed, 0), note: n(lent.length, 'loan') },
+      { label: 'Loans to repay', emoji: 'loan', cents: -owe.reduce((s, l) => s + l.owed, 0), note: `${n(owe.length, 'loan')}${late ? `, **${late} overdue**: half of everything you earn goes to ${late === 1 ? 'it' : 'them'}` : ''}` },
+      { label: 'Owed to TODD', emoji: 'todd', cents: -toddDebt(db, guildId, userId), note: 'his bailout; no gambling until it\'s repaid' }
+    ];
+  });
 
   // Overdue loans take half of earnings, oldest loan first
   onPayout((db, p, paid) => {

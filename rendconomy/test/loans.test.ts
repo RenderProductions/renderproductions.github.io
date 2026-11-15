@@ -34,6 +34,10 @@ test('TODD bails out only the broke, blocks gambling and gifts until repaid', as
   assert.match(text(await run('bailout')), /STILL owe me ⬡600\.00/);
   assert.match(text(await run('coinflip', { amount: '10' })), /With MY money/);
   assert.match(text(await run('gift', { player: B, amount: '10' })), /Pay me back first/);
+  const bal = text(await run('balance'));
+  assert.match(bal, /What you owe[\s\S]*Owed to TODD: \*\*−⬡600\.00/, 'balance shows the debt');
+  assert.match(bal, /Net worth: −⬡[\s\S]*In debt: you owe \*\*⬡600\.00\*\*[\s\S]*`r!repay` pays TODD back/, 'and explains the net worth');
+  assert.match(text(await run('balance', { player: A }, B)), /What they owe[\s\S]*In debt: they owe/, 'someone else\'s balance says "they"');
   assert.match(text(await run('repay', { amount: '200' })), /Still owed to TODD: \*\*⬡400\.00/);
   transfer(db, { from: RESERVE, to: wallet(G, A), cents: polygons(400), reason: 'mod.give' });
   assert.match(text(await run('repay', { amount: 'all' })), /PAID IN FULL/);

@@ -325,7 +325,11 @@ export function installSchemes(): void {
     checkShorts(db, m, now);
   });
   // Orders' set-aside money, and open shorts, are still the player's
-  addWorthPart((db, m, g, u) =>
-    listOrders(db, g, u).reduce((s, o) => s + o.reserved, 0) +
-    listShorts(db, g, u).reduce((s, x) => s + shortWorth(x, settlePrice(x, m ? quote(m, x.ticker) : null)), 0));
+  addWorthPart((db, m, g, u) => {
+    const orders = listOrders(db, g, u), shorts = listShorts(db, g, u);
+    return [
+      { label: 'Held for open orders', emoji: 'broker', cents: orders.reduce((s, o) => s + o.reserved, 0), note: `${orders.length} ${orders.length === 1 ? 'order' : 'orders'}` },
+      { label: 'Short positions', emoji: 'crash', cents: shorts.reduce((s, x) => s + shortWorth(x, settlePrice(x, m ? quote(m, x.ticker) : null)), 0), note: `${shorts.length} open` }
+    ];
+  });
 }

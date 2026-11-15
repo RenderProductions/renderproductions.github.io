@@ -1,4 +1,4 @@
-import { emoji } from '../discord/emoji';
+import { FALLBACK, emoji, emojiOr, type EmojiKey } from '../discord/emoji';
 import { nameOf, receipt } from '../social/receipts';
 import { balance, wallet } from '../core/ledger';
 import { format, parseCount } from '../core/money';
@@ -21,7 +21,7 @@ function playerCompany(t: string, ctx: Ctx) {
   const c = getCompany(ctx.db, id);
   return c && c.status === 'public' ? c : null;
 }
-import { netWorth, savingsTotal } from '../social/worth';
+import { netWorth, savingsTotal, worthLines, type WorthLine } from '../social/worth';
 import { timedUntil } from '../shop/inventory';
 import type { Command } from './types';
 
@@ -140,26 +140,38 @@ export const money: Command = {
       guildId = guildOf(ctx); userId = other;
       if (!ctx.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', guildId, other)) throw new GameError('player.none', `That player has no account in this server. Accounts open with ${format(economy.startingCash)} on first use.`);
     } else ({ guildId } = me(ctx), userId = ctx.user.id);
+    const P = ctx.config.prefix;
     const cash = balance(ctx.db, wallet(guildId, userId));
     const saved = savingsTotal(ctx.db, guildId, userId);
     const list = m ? positions(ctx.db, m, guildId, userId) : [];
-    const stocks = list.reduce((s, p) => s + p.valueCents, 0);
-    const lines = list.map((p) => {
-      const diff = p.valueCents - p.costCents;
-      return `**${p.quote.id}** · ${p.shares} × ${format(p.quote.priceCents)} = ${format(p.valueCents)}` +
-        (p.costCents > 0 ? ` · ${diff >= 0 ? '▲' : '▼'} ${format(Math.abs(diff))}` : '');
-    });
+    const stocks = list.reduce((s, p) => s + p.valueCents, 0), cost = list.reduce((s, p) => s + p.costCents, 0);
+    const extra = worthLines(ctx.db, m, guildId, userId);
+    const plus = extra.filter((l) => l.cents > 0), minus = extra.filter((l) => l.cents < 0);
+    const worth = netWorth(ctx.db, m, guildId, userId);
+    const gain = (d: number) => `${d >= 0 ? '▲' : '▼'} ${format(Math.abs(d))}`;
+    const icon = (k: string) => (k in FALLBACK ? emoji(k as EmojiKey) : emojiOr(k, '•'));
+    const row = (l: WorthLine) => `${icon(l.emoji)} ${l.label}: **${l.cents < 0 ? '−' : ''}${format(Math.abs(l.cents))}**${l.note ? `\n-# ${l.note}` : ''}`;
+    const holdings = list.map((p) => `-# **${p.quote.id}** · ${p.shares} × ${format(p.quote.priceCents)} = ${format(p.valueCents)}${p.costCents > 0 ? ` · ${gain(p.valueCents - p.costCents)}` : ''}`);
+    const owed = minus.reduce((s, l) => s - l.cents, 0);
+    const why = worth < 0 ? `In debt: ${other ? 'they owe' : 'you owe'} **${format(owed)}**, ${format(-worth)} more than everything ${other ? 'they have' : 'you have'} (${format(worth + owed)}).`
+      : minus.length ? `${other ? 'They' : 'You'}'d be worth **${format(worth + owed)}** without the debts.` : null;
+    const fix = minus.some((l) => l.label === 'Owed to TODD') ? `\`${P}repay\` pays TODD back` : minus.some((l) => l.label === 'Loans to repay') ? `\`${P}payback\` repays a loan, \`${P}loans\` lists them` : null;
     return {
       embeds: [embed('wallet', other ? 'Balance' : `Balance: ${ctx.user.name}`, [
         other ? `<@${other}>` : null,
+        '**What you have**',
         `${emoji('polygon')} Cash: **${format(cash)}**`,
         saved > 0 ? `${emoji('savings')} Savings: **${format(saved)}**` : null,
-        list.length ? `${emoji('stonks')} Shares: **${format(stocks)}**` : null,
-        ...(list.length ? ['', ...lines] : []),
+        list.length ? `${emoji('stonks')} Shares: **${format(stocks)}**${cost > 0 ? ` · ${gain(stocks - cost)} since you bought` : ''}` : null,
+        ...holdings,
+        ...plus.map(row),
+        ...(minus.length ? ['', '**What you owe**', ...minus.map(row)] : []),
         '',
-        `**Net worth: ${format(netWorth(ctx.db, m, guildId, userId))}**`,
-        !other && !list.length ? `-# No shares yet. See what's trading with \`${ctx.config.prefix}market\`.` : null
-      ])]
+        `${emoji('reserve')} **Net worth: ${worth < 0 ? '−' : ''}${format(Math.abs(worth))}**`,
+        why ? `-# ${why}${!other && fix ? ` ${fix}.` : ''}` : null,
+        !other && !list.length && !minus.length ? `-# No shares yet. See what's trading with \`${P}market\`.` : null,
+        !m ? '-# The market is offline, so shares aren\'t counted right now.' : null
+      ].map((l) => (other && typeof l === 'string' ? l.replace(/^\*\*What you (have|owe)\*\*$/, (_, w) => `**What they ${w}**`) : l)))]
     };
   }
 };

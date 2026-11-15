@@ -8,5 +8,5 @@ export function installCompanies(): void {
   if (installed) return;
   installed = true;
   onTick((db, _m, now, rng) => { companiesTick(db, now, () => rng.next()); });
-  addWorthPart((db, _m, g, u) => companySharesValue(db, g, u));
+  addWorthPart((db, _m, g, u) => [{ label: 'Player company shares', emoji: 'company', cents: companySharesValue(db, g, u) }]);
 }
