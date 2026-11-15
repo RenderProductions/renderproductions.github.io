@@ -5,8 +5,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { APIEmbed } from 'discord.js';
+import { emoji, type EmojiKey } from '../discord/emoji';
 
-export interface UpdateEntry { id: string; title: string; date: string; intro: string; sections: { heading: string; items: string[] }[]; outro: string }
+export interface UpdateEntry { id: string; title: string; date: string; hotfix?: boolean; intro: string; sections: { heading: string; items: string[] }[]; outro: string }
 
 export const PATCH_NOTES_FILE = path.join(__dirname, '..', '..', '..', '..', 'patch-notes', 'index.html');
 export const PATCH_NOTES_URL = 'https://renderproductions.github.io/patch-notes/';
@@ -17,9 +18,11 @@ const decode = (s: string) => s.replace(/&(?:#(\d+)|#x([0-9a-f]+)|[a-z]+);/gi, (
 /** A bit of the page's HTML as Discord markdown. */
 export function toMarkdown(html: string): string {
   return decode(html
-    .replace(/<span class="tag new">\s*NEW\s*<\/span>/gi, '🆕 ')
-    .replace(/<span class="tag (?:changed)?">\s*CHANGED\s*<\/span>/gi, '🔧 ')
-    .replace(/<span class="tag fix">\s*FIXED\s*<\/span>/gi, '🩹 ')
+    // tags become markers first: a custom emoji looks like a tag (<:name:id>) and would be stripped below
+    .replace(/<span class="tag new">\s*NEW\s*<\/span>/gi, '\u0001new\u0001 ')
+    .replace(/<span class="tag (?:changed)?">\s*CHANGED\s*<\/span>/gi, '\u0001changed\u0001 ')
+    .replace(/<span class="tag fix">\s*FIXED\s*<\/span>/gi, '\u0001fixed\u0001 ')
+    .replace(/<span class="tag removed">\s*REMOVED\s*<\/span>/gi, '\u0001removed\u0001 ')
     .replace(/<span class="tag[^"]*">[^<]*<\/span>/gi, '')
     .replace(/<\/?(strong|b)>/gi, '**')
     .replace(/<\/?(em|i)>/gi, '*')
@@ -28,7 +31,7 @@ export function toMarkdown(html: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/[ \t]+/g, ' ')
-    .replace(/\s*\n\s*/g, '\n')).trim();
+    .replace(/\s*\n\s*/g, '\n')).trim().replace(/\u0001(\w+)\u0001/g, (_, k: string) => emoji(k as EmojiKey));
 }
 
 /** The newest update on the patch notes page, or null if the page can't be read. */
@@ -48,7 +51,7 @@ export function newestUpdate(html: string): UpdateEntry | null {
   }));
   const lastUl = afterTitle.lastIndexOf('</ul>');
   const outro = lastUl >= 0 ? toMarkdown((/<p>([\s\S]*?)<\/p>/.exec(afterTitle.slice(lastUl))?.[1]) ?? '') : '';
-  return { id, title, date, intro, sections, outro };
+  return { id, title, date, intro, sections, outro, hotfix: /HOTFIX/i.test(label) };
 }
 
 export function readNewestUpdate(file = PATCH_NOTES_FILE): UpdateEntry | null {
@@ -74,7 +77,7 @@ export function updateEmbed(u: UpdateEntry): APIEmbed {
   return {
     title: u.title.slice(0, 256),
     url: `${PATCH_NOTES_URL}#${u.id}`,
-    description: [u.intro, u.outro && `\n${u.outro}`].filter(Boolean).join('\n').slice(0, 1500) || undefined,
+    description: [u.hotfix && `${emoji('hotfix')} **Hotfix**`, u.intro, u.outro && `\n${u.outro}`].filter(Boolean).join('\n').slice(0, 1500) || undefined,
     color: 0xffe600,
     fields,
     footer: { text: [u.date, 'Full notes: renderproductions.github.io/patch-notes'].filter(Boolean).join(' · ') }

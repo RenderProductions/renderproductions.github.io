@@ -1,3 +1,4 @@
+import { setCustomEmojis } from '../src/discord/emoji';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,4 +20,18 @@ test('HTML becomes Discord markdown', () => {
   const u = newestUpdate(`<article class="log release" id="x"><div class="label"><span class="tag live">LATEST</span><span>Dec 2026</span></div><h2>Big One</h2><p>Intro.</p><h3>A</h3><ul><li>one</li><li>two</li></ul><p>Thanks.</p></article><article class="log" id="old"><h2>Old</h2></article>`)!;
   assert.deepEqual([u.id, u.title, u.date, u.intro, u.outro], ['x', 'Big One', 'Dec 2026', 'Intro.', 'Thanks.']);
   assert.deepEqual(u.sections, [{ heading: 'A', items: ['one', 'two'] }]);
+});
+
+test('update posts use the bot\'s own emojis once they are uploaded, and flag hotfixes', () => {
+  const html = '<article class="log release" id="x"><div class="label"><span class="tag live">LATEST</span><span class="tag fix">HOTFIX</span><span>November 2026</span></div><h2>Fix</h2><p>Intro.</p>'
+    + '<h3>A</h3><ul><li><span class="tag fix">FIXED</span><span>One</span></li><li><span class="tag removed">REMOVED</span><span>Two</span></li></ul></article>';
+  let u = newestUpdate(html)!;
+  assert.equal(u.hotfix, true);
+  assert.equal(u.date, 'November 2026');
+  assert.deepEqual(u.sections[0]!.items, ['🩹 One', '🗑️ Two'], 'standard emojis until uploaded');
+  assert.match(updateEmbed(u).description!, /^🔥 \*\*Hotfix\*\*/);
+  assert.deepEqual(setCustomEmojis([{ name: 'rc_fixed', id: '123' }, { name: 'rc_hotfix', id: '456' }, { name: 'something_else', id: '9' }]), ['fixed', 'hotfix']);
+  u = newestUpdate(html)!;
+  assert.deepEqual(u.sections[0]!.items, ['<:rc_fixed:123> One', '🗑️ Two']);
+  assert.match(updateEmbed(u).description!, /^<:rc_hotfix:456> \*\*Hotfix\*\*/);
 });

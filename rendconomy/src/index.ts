@@ -1,4 +1,5 @@
 // RendConomy: starts the bot.
+import { loadAppEmojis } from './discord/emoji';
 import { COLORS } from './discord/style';
 import { setReceiptSender } from './social/receipts';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
@@ -105,6 +106,8 @@ async function main(): Promise<void> {
 
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);
+    const emojis = await loadAppEmojis(c);
+    console.log(`[${config.name}] custom emojis: ${emojis.length ? emojis.join(', ') : 'none uploaded yet (using the standard ones)'}`);
     // DMs about things that happened while a player was away (orders filled, broker reports, margin calls)
     // Receipts: a small embed per transaction, with the server it happened in
     setReceiptSender((r) => {
