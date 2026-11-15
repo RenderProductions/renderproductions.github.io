@@ -131,6 +131,29 @@
   .msg .btns button.primary { border-color: var(--gold); color: var(--gold); } .msg .btns button:disabled { opacity: 0.4; cursor: default; }
   .msg .btns img.emo { width: 16px; height: 16px; vertical-align: 0; }
   .msg .note { color: var(--dim); font-size: 10.5px; margin-top: 4px; display: block; }
+  /* the stage: the left side switches screens with whatever you're doing */
+  .screens { display: flex; gap: 6px; flex-wrap: wrap; }
+  .screens button { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; font-size: 12px; color: var(--dim); }
+  .screens button[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); background: rgba(255, 230, 0, 0.07); }
+  .screen { display: flex; flex-direction: column; gap: 14px; }
+  .screen[hidden] { display: none; }
+  .stage-head { display: flex; align-items: center; gap: 12px; }
+  .stage-head img { width: 54px; height: 54px; image-rendering: pixelated; }
+  .stage-head .disp { font-size: 30px; color: var(--gold); }
+  .msg.big { font-size: 14px; padding: 16px 18px; animation: none; }
+  .msg.big .cmd { font-size: 11.5px; }
+  .msg.big h4 { font-size: 16px; margin-bottom: 8px; }
+  .msg.big img.emo { width: 24px; height: 24px; vertical-align: -6px; }
+  .msg.big .jumbo img.emo { width: 64px; height: 64px; margin: 1px; }
+  .msg.big .btns { gap: 8px; margin-top: 12px; }
+  .msg.big .btns button { padding: 9px 15px; font-size: 14px; }
+  .msg.big .btns img.emo { width: 22px; height: 22px; }
+  .msg.big .note { font-size: 12px; }
+  .msg.wait { color: var(--dim); text-align: center; padding: 28px; }
+  .stage-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stage-btns .sbtn { padding: 8px 13px; font-size: 13px; }
+  .past { display: flex; flex-direction: column; gap: 8px; }
+  .past .msg { opacity: 0.75; }
   .farm .jumbo { text-align: center; }
   .farm-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
   #farm-lines { font-size: 11.5px; color: var(--dim); white-space: pre-wrap; }
@@ -150,6 +173,8 @@
     .board { gap: 8px; } .tk .p { font-size: 26px; }
     .casino-btns button, .farm-btns button, .quick button { min-height: 36px; }
     .msg .btns button { padding: 7px 11px; font-size: 12.5px; }
+    .msg.big { padding: 12px; } .msg.big .jumbo img.emo { width: 52px; height: 52px; } .stage-head .disp { font-size: 24px; }
+    .screens { overflow-x: auto; flex-wrap: nowrap; } .screens button { flex: none; }
   }
   @media (max-width: 420px) {
     header { gap: 8px; padding: 8px 10px; } .title span { display: none; } .who span { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -169,7 +194,15 @@
 <div class="tape" aria-hidden="true"><div class="tape-in" id="tape"></div></div>
 <div class="event" id="event" hidden></div>
 <main id="main">
-  <section class="left">
+  <section class="left" id="stage">
+    <nav class="screens" aria-label="Screens">
+      <button type="button" data-screen="market" aria-pressed="true">📈 Market</button>
+      <button type="button" data-screen="game" aria-pressed="false">🎰 Rend-Sino</button>
+      <button type="button" data-screen="farm" aria-pressed="false">🌾 Farm</button>
+      <button type="button" data-screen="desk" aria-pressed="false">💼 Desk</button>
+      <button type="button" data-screen="lake" aria-pressed="false">🎣 Lake</button>
+    </nav>
+    <div class="screen" id="s-market">
     <div class="board" id="board" role="group" aria-label="Companies"></div>
     <div class="welcome" id="welcome"><b>Pick a company</b> to see its chart and trade it.<br>Everything you do here runs through Render's Vision, as you, in this server.</div>
     <div class="detail" id="detail" hidden>
@@ -192,6 +225,37 @@
         <div class="bs"><button class="big-btn" type="button" data-a="buy">BUY</button><button class="big-btn sell" type="button" data-a="sell">SELL</button></div>
         <div class="small-btns"><button class="sbtn" type="button" data-a="sell all">Sell all</button><button class="sbtn" type="button" data-a="short">🐻 Short</button><button class="sbtn" type="button" data-a="cover">Cover</button></div>
         <div class="hint">Shorts profit when the price falls</div>
+      </div>
+    </div>
+    </div>
+    <div class="screen" id="s-game" hidden>
+      <div class="stage-head"><img src="art-rendsino.png" alt=""><div><div class="disp">THE REND-SINO</div><div class="label">Pick a game on the right · bet ⬡ <span id="bet-v2">25</span></div></div></div>
+      <div class="msg big wait" id="game-main">The tables are open. Pick a game and it plays out here.</div>
+      <div class="label" id="game-past-l" hidden>Earlier</div>
+      <div class="past" id="game-past"></div>
+    </div>
+    <div class="screen" id="s-farm" hidden>
+      <div class="msg big" id="farm-last" hidden></div>
+      <div class="msg big wait" id="farm-main">Walking out to the field…</div>
+      <div class="stage-btns">
+        <button class="sbtn" type="button" data-play="water">💧 Water</button><button class="sbtn" type="button" data-play="harvest">🧺 Harvest</button><button class="sbtn" type="button" data-play="farm sell">💰 Sell to Marquez</button><button class="sbtn" type="button" data-play="fertilize">🧪 Fertilize</button><button class="sbtn" type="button" data-play="compost">♻️ Compost</button><button class="sbtn" type="button" data-play="buyplot">🪧 Buy a plot</button>
+      </div>
+      <div class="stage-btns">
+        <button class="sbtn" type="button" data-play="plant carrot">🥕 Plant carrots</button><button class="sbtn" type="button" data-play="plant corn">🌽 Corn</button><button class="sbtn" type="button" data-play="plant tomato">🍅 Tomatoes</button><button class="sbtn" type="button" data-play="plant pumpkin">🎃 Pumpkins</button><button class="sbtn" type="button" data-play="plant polygon fruit">✨ Polygon Fruit</button>
+      </div>
+    </div>
+    <div class="screen" id="s-desk" hidden>
+      <div class="msg big" id="desk-last" hidden></div>
+      <div class="msg big wait" id="desk-main">Opening the books…</div>
+      <div class="stage-btns">
+        <button class="sbtn" type="button" data-play="daily">🎁 Daily</button><button class="sbtn" type="button" data-play="dividends">💸 Dividends</button><button class="sbtn" type="button" data-play="savings">🐖 Savings</button><button class="sbtn" type="button" data-play="short">🐻 Shorts</button><button class="sbtn" type="button" data-play="loans">📜 Loans</button><button class="sbtn" type="button" data-play="history">🧾 History</button>
+      </div>
+    </div>
+    <div class="screen" id="s-lake" hidden>
+      <div class="msg big" id="lake-last" hidden></div>
+      <div class="msg big wait" id="lake-main">The lake is quiet. Cast a line?</div>
+      <div class="stage-btns">
+        <button class="sbtn" type="button" data-play="fish">🎣 Cast</button><button class="sbtn" type="button" data-play="fish carrot">🥕 Cast with a carrot</button><button class="sbtn" type="button" data-play="fish sell">🧺 Sell the catch</button><button class="sbtn" type="button" data-play="compost">♻️ Compost the junk</button>
       </div>
     </div>
   </section>
@@ -353,6 +417,79 @@ function follow(d, key, every) {
   setTimeout(tick, Math.max(1500, every || 2500));
 }
 
+// ---------- the stage: the left side follows what you're doing ----------
+// Each screen has a main view (refreshed from a command: farm, balance, fish bag) and a "last" slot for the
+// reply to whatever you just did. Games play out full size on the Rend-Sino screen.
+const SCREENS = {
+  market: {},
+  game: { main: 'game-main' },
+  farm: { ctx: 'farm', main: 'farm-main', last: 'farm-last' },
+  desk: { ctx: 'balance', main: 'desk-main', last: 'desk-last' },
+  lake: { ctx: 'fish bag', main: 'lake-main', last: 'lake-last' }
+};
+let screen = 'market';
+const ctxAt = {};
+function go(s) {
+  if (!SCREENS[s]) return;
+  screen = s;
+  for (const k of Object.keys(SCREENS)) $('s-' + k).hidden = k !== s;
+  document.querySelectorAll('[data-screen]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.screen === s)));
+  if (SCREENS[s].ctx && Date.now() - (ctxAt[s] || 0) > 20000) refreshCtx(s);
+  if (innerWidth <= 760) $('stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function refreshCtx(s) {
+  const c = SCREENS[s];
+  ctxAt[s] = Date.now();
+  const r = await run(c.ctx, true);
+  if (r) show($(c.main), c.ctx, r);
+}
+function show(el, line, result) {
+  el.hidden = false;
+  el.classList.remove('wait');
+  el._live = null;   // stops anything it was following
+  el._state = { content: result.content, embeds: result.embeds, buttons: result.buttons };
+  el._line = line; el._note = ''; el._time = null;
+  paint(el);
+  if (result.live) follow(el, result.live, result.everyMs);
+}
+function wait(el, text) { el.hidden = false; el._live = null; el.className = 'msg big wait'; el.innerHTML = esc(text); }
+const ROUTES = [
+  [/^(rocket|blackjack|bj|mines|hilo|bus|derby|heist|slots|coinflip|cf|flip|dice|roulette|wheel|rl|gambling)\b/i, 'game'],
+  [/^(farm|field|garden|plant|sow|water|harvest|reap|sellcrops|fertili[sz]e|compost|buyplot)\b/i, 'farm'],
+  [/^(fish|sellfish|cast)\b/i, 'lake'],
+  [/^(balance|bal|pf|portfolio|wallet|daily|dividends|divs|savings|save|short|shorts|loans|repay|payback|history)\b/i, 'desk']
+];
+// Runs a command where it belongs: on its screen, or in the tape if it has none.
+async function play(line) {
+  const route = ROUTES.find(([re]) => re.test(line));
+  const trade = line.match(/^(buy|sell|short|cover|chart)\s+([a-z]{2,5})\b/i);
+  if (trade && market && market.companies && market.companies.some((c) => c.id === trade[2].toUpperCase())) { go('market'); select(trade[2].toUpperCase()); return run(line); }
+  if (!route) return run(line);
+  const s = route[1], c = SCREENS[s];
+  go(s);
+  if (s === 'game') {
+    const cur = $('game-main');
+    if (cur._state) {   // the last game moves down to "Earlier", as it ended
+      const old = document.createElement('div');
+      old.className = 'msg'; old._state = { ...cur._state, buttons: [] }; old._line = cur._line; old._time = cur._time; paint(old);
+      $('game-past').prepend(old); $('game-past-l').hidden = false;
+      while ($('game-past').children.length > 4) $('game-past').lastChild.remove();
+    }
+    wait(cur, '🎲 ' + line + '…');
+    const r = await run(line, true);
+    if (r) show(cur, line, r); else wait(cur, "Couldn't reach the bot. Try again in a moment.");
+    return r;
+  }
+  const last = $(c.last);
+  wait(last, '…');
+  const r = await run(line, true);
+  if (!r) { wait(last, "Couldn't reach the bot. Try again in a moment."); return null; }
+  // farm commands answer with the farm itself (the field comes as emoji-only content)
+  if (line.toLowerCase() === c.ctx || (s === 'farm' && r.content)) { last.hidden = true; show($(c.main), line, r); ctxAt[s] = Date.now(); }
+  else { show(last, line, r); refreshCtx(s); }
+  return r;
+}
+
 // ---------- the farm card ----------
 async function refreshFarm() {
   const r = await run('farm', true);
@@ -510,15 +647,16 @@ document.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click',
   await run(a === 'sell all' ? `sell ${pick} all` : a === 'cover' ? `cover ${pick}` : `${a} ${pick} ${q}`);
   refreshDesk();
 })));
-document.querySelectorAll('[data-cmd]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.cmd); refreshDesk(); })));
-document.querySelectorAll('[data-game]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.game.replace('{b}', $('bet-v').textContent)); refreshDesk(); })));
-document.querySelectorAll('[data-farm]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.farm); refreshFarm(); refreshDesk(); })));
+document.querySelectorAll('[data-cmd]').forEach((b) => b.addEventListener('click', () => busy(async () => { await play(b.dataset.cmd); refreshDesk(); })));
+document.querySelectorAll('[data-game]').forEach((b) => b.addEventListener('click', () => busy(async () => { await play(b.dataset.game.replace('{b}', $('bet-v').textContent)); refreshDesk(); })));
+document.querySelectorAll('[data-farm], [data-play]').forEach((b) => b.addEventListener('click', () => busy(async () => { await play(b.dataset.farm || b.dataset.play); refreshFarm(); refreshDesk(); })));
+document.querySelectorAll('[data-screen]').forEach((b) => b.addEventListener('click', () => go(b.dataset.screen)));
 $('cl').addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = $('line').value.trim().replace(/^[rt]!/i, '');
   if (!text) return;
   $('line').value = '';
-  await run(text);
+  await play(text);
   refreshDesk();
 });
 
