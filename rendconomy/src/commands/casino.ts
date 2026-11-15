@@ -45,10 +45,16 @@ export const slots: Command = {
       const [x, y, z] = [ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS)];
       const win = x === y && y === z ? bet * TRIPLE[x]! : x === y || y === z || x === z ? bet : 0;
       const r = settle(ctx, guildId, 'slots', bet, win);
-      const what = x === y && y === z ? (x === '💎' ? '💎 **DIAMONDS!** Three of a kind.' : `Three ${x}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair. Your bet comes back.' : 'No match.';
+      const what = x === y && y === z ? (x === '💎' ? '💎 **DIAMONDS!** Three of a kind.' : `Three ${x}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair.' : 'No match.';
+      // The reels blur, then stop one at a time, left to right
+      const blur = () => ctx.rng.pick(SYMBOLS);
+      const frame = (a: string, b: string, c: string, text: string, ms: number) => ({ embeds: [card('slots', [`## [ ${a} | ${b} | ${c} ]`, text])], ms });
       return {
         embeds: [card('slots', [`## [ ${x} | ${y} | ${z} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
-        teaser: teaser(NAMES.slots, `## [ ❔ | ❔ | ❔ ]\n${line(ctx.rng, 'reels')}`, COLORS.casino)
+        teaser: {
+          ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} 🎰`, 700),
+          frames: [frame(x, blur(), blur(), 'The first reel stops...', 800), frame(x, y, blur(), x === y ? `Two ${x}... 👀` : 'The second reel stops...', x === y ? 1200 : 800)]
+        }
       };
     });
   }
@@ -101,6 +107,13 @@ export const dice: Command = {
 const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 const colorOf = (n: number) => (n === 0 ? 'green' : RED.has(n) ? 'red' : 'black');
 const dot = (n: number) => ({ green: '🟢', red: '🔴', black: '⚫' })[colorOf(n)];
+/** The pockets in the order they sit on a European wheel. */
+const WHEEL = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+/** Five pockets of the wheel around position i, the ball's pocket in the middle. */
+function strip(i: number): string {
+  const at = (k: number) => WHEEL[((k % WHEEL.length) + WHEEL.length) % WHEEL.length]!;
+  return [-2, -1, 0, 1, 2].map((d) => { const v = at(i + d); return d === 0 ? `**[ ${dot(v)} ${v} ]**` : `${dot(v)} ${v}`; }).join(' · ');
+}
 
 function rouletteBet(raw: string): { label: string; pays: number; wins: (n: number) => boolean; straight?: boolean } | null {
   const t = raw.trim().toLowerCase().replace(/\s+/g, '');
@@ -131,9 +144,12 @@ export const roulette: Command = {
       const win = won ? bet * b.pays : 0;
       const r = settle(ctx, guildId, 'roulette', bet, win);
       if (won && b.straight) awardHere('straight_up');
+      // The ball travels around the real wheel order, slowing down, then drops in
+      const at = WHEEL.indexOf(n);
+      const frame = (back: number, text: string, ms: number) => ({ embeds: [card('roulette', [`You bet on **${b.label}**.`, strip(at - back), text])], ms });
       return {
-        embeds: [card('roulette', [`You bet on **${b.label}** (pays ${b.pays}x).`, `The ball drops into... **${dot(n)} ${n}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
-        teaser: teaser(NAMES.roulette, `You bet on **${b.label}**. ${line(ctx.rng, 'wheelSpin')} 🎡`, COLORS.casino)
+        embeds: [card('roulette', [`You bet on **${b.label}** (pays ${b.pays}x).`, strip(at), `The ball drops into... **${dot(n)} ${n}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        teaser: { ...frame(14 + ctx.rng.int(0, 5), `${line(ctx.rng, 'wheelSpin')} 🎡`, 700), frames: [frame(5, 'Slowing down...', 800), frame(1, 'Almost...', 900)] }
       };
     });
   }

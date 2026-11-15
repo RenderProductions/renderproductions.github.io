@@ -203,12 +203,22 @@ export async function onMessage(deps: Deps, msg: Message): Promise<void> {
 
 /** What to send first: the teaser if there is one, else the reply. */
 const firstOf = (r: ReplyObject): ReplyObject => (r.teaser ? { content: r.content, embeds: r.teaser.embeds } : r);
-/** Swaps a teaser for the real reply after its moment, then carries on as usual. */
-function revealThen(deps: Deps, r: ReplyObject, msg: { id: string; channelId: string }, edit: (p: ReplyObject) => Promise<unknown>): void {
+/** Plays a teaser's frames, then swaps in the real reply and carries on as usual. Discord allows about
+ *  five edits in five seconds per channel, so animations stay short. */
+export function revealThen(deps: Deps, r: ReplyObject, msg: { id: string; channelId: string }, edit: (p: ReplyObject) => Promise<unknown>): void {
   if (!r.teaser) return afterSend(deps, r, msg, edit);
-  setTimeout(() => {
-    edit({ ...r, teaser: undefined }).then(() => afterSend(deps, { ...r, teaser: undefined }, msg, edit)).catch((e: unknown) => console.error('[reveal]', e));
-  }, r.teaser.ms).unref();
+  const final = { ...r, teaser: undefined };
+  const steps = [...(r.teaser.frames ?? []).map((f) => ({ show: { content: r.content, embeds: f.embeds } as ReplyObject, ms: f.ms })), { show: final, ms: 0 }];
+  const wait = (ms: number) => new Promise((ok) => setTimeout(ok, ms).unref());
+  (async () => {
+    let ms = r.teaser!.ms;
+    for (const s of steps) {
+      await wait(ms);
+      await edit(s.show).catch((e: unknown) => { if (s.show === final) throw e; });   // a dropped frame is fine; the result is not
+      ms = s.ms;
+    }
+    afterSend(deps, final, msg, edit);
+  })().catch((e: unknown) => console.error('[reveal]', e));
 }
 
 export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promise<void> {

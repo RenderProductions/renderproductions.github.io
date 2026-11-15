@@ -57,7 +57,10 @@ export interface ReplyObject {
   session?: string;
   /** A moment of suspense: Discord shows these embeds first ("You cast your line..."), then the reply itself.
    *  Tests, the Activity and the site get the reply straight away. */
-  teaser?: { embeds: APIEmbed[]; ms: number };
+  teaser?: Frame & {
+    /** More frames after the first, each shown for its own ms: an animation (slot reels stopping). */
+    frames?: Frame[];
+  };
   /** Edit the message after a delay (memory tasks hide their prompt). */
   later?: { ms: number; edit: ReplyObject };
   /** Send this to the player by DM (instead of, or as well as, the reply). */
@@ -69,6 +72,9 @@ export interface ReplyObject {
   /** Keep editing the message every `everyMs` until next() returns null (the Rocket's live multiplier). */
   live?: { everyMs: number; next: () => ReplyObject | null };
 }
+
+/** One frame of a teaser: what to show, and for how long. */
+export interface Frame { embeds: APIEmbed[]; ms: number }
 
 /** What a button press or typed answer does to the message it belongs to. */
 export interface SessionReply {
