@@ -19,7 +19,7 @@ export const FALLBACK = {
   // work
   work: '💼', gig: '🛠️', promoted: '🎉',
   // market
-  stonks: '📈', crash: '📉', up: '▲', down: '▼', company: '🏢', broker: '👔',
+  stonks: '📈', crash: '📉', up: '▲', down: '▼', quickadd: '⚡', company: '🏢', broker: '👔',
   // the Rend-Sino
   slots: '🎰', coinflip: '🪙', dice: '🎲', roulette: '🎡', blackjack: '🃏', mines: '💣', rocket: '🚀', hilo: '🔼',
   // fishing, the shop, TODD

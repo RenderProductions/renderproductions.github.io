@@ -7,7 +7,7 @@ import path from 'node:path';
 import type { APIEmbed } from 'discord.js';
 import { FALLBACK, emoji, emojiOr, type EmojiKey } from '../discord/emoji';
 
-export interface UpdateEntry { id: string; title: string; date: string; hotfix?: boolean; intro: string; sections: { heading: string; items: string[] }[]; outro: string }
+export interface UpdateEntry { id: string; title: string; date: string; hotfix?: boolean; quick?: boolean; intro: string; sections: { heading: string; items: string[] }[]; outro: string }
 
 export const PATCH_NOTES_FILE = path.join(__dirname, '..', '..', '..', '..', 'patch-notes', 'index.html');
 export const PATCH_NOTES_URL = 'https://renderproductions.github.io/patch-notes/';
@@ -81,7 +81,7 @@ function parseEntry(id: string, body: string): UpdateEntry {
   }));
   const lastUl = afterTitle.lastIndexOf('</ul>');
   const outro = lastUl >= 0 ? toMarkdown((/<p>([\s\S]*?)<\/p>/.exec(afterTitle.slice(lastUl))?.[1]) ?? '') : '';
-  return { id, title, date, intro, sections, outro, hotfix: /HOTFIX/i.test(label) };
+  return { id, title, date, intro, sections, outro, hotfix: /HOTFIX/i.test(label), quick: /QUICK\s*ADD/i.test(label) };
 }
 
 export function readNewestUpdate(file = PATCH_NOTES_FILE): UpdateEntry | null {
@@ -112,7 +112,7 @@ export function updateEmbed(u: UpdateEntry): APIEmbed {
   return {
     title: u.title.slice(0, 256),
     url: `${PATCH_NOTES_URL}#${u.id}`,
-    description: [u.hotfix && `${emoji('hotfix')} **Hotfix**`, u.intro, u.outro && `\n${u.outro}`].filter(Boolean).join('\n').slice(0, 1500) || undefined,
+    description: [u.hotfix && `${emoji('hotfix')} **Hotfix**`, u.quick && `${emoji('quickadd')} **Quick Add**`, u.intro, u.outro && `\n${u.outro}`].filter(Boolean).join('\n').slice(0, 1500) || undefined,
     color: 0xffe600,
     fields,
     footer: { text: [u.date, 'Full notes: renderproductions.github.io/patch-notes'].filter(Boolean).join(' · ') }

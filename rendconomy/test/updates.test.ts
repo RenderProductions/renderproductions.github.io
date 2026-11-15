@@ -52,9 +52,9 @@ test('restarts post every entry added since the last post, oldest first; /announ
   assert.equal(findUpdate(all, 'entry b')!.id, 'b');
   assert.equal(findUpdate(all, '')!.id, 'c');
   assert.equal(findUpdate(all, 'nope'), null);
-  // the real page: the next restart posts Animation Expansion, Glossy Makeover, farming, Polygon Holidays, then The Loose Ends
+  // the real page: the next restart posts Animation Expansion, Glossy Makeover, farming, Polygon Holidays, The Loose Ends, then Center Stage
   const real = readAllUpdates();
-  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays', 'the-loose-ends']);
+  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays', 'the-loose-ends', 'center-stage']);
   assert.equal(findUpdate(real, 'animation')!.id, 'animation-expansion');
 });
 
@@ -73,4 +73,13 @@ test('a section full of custom emojis carries on in a second field instead of be
     assert.ok(JSON.stringify(e).length < 6000, 'the embed fits');
     assert.match(fields.map((f) => f.value).join('\n'), /<:rc_advent:\d+>/);
   } finally { setCustomEmojis([]); }
+});
+
+test('a Quick Add entry is flagged like a hotfix', () => {
+  const html = '<article class="log release" id="q"><div class="label"><span class="tag live">LATEST</span><span class="tag quick">QUICK ADD</span><span>November 2026</span></div><h2>Small thing</h2><p>Intro.</p>'
+    + '<h3>NEW</h3><ul><li><span class="tag new">NEW</span><span>A thing</span></li></ul></article>';
+  const u = newestUpdate(html)!;
+  assert.equal(u.quick, true);
+  assert.equal(u.hotfix, false);
+  assert.match(updateEmbed(u).description!, /^(⚡|<:rc_quickadd:\d+>) \*\*Quick Add\*\*/);
 });

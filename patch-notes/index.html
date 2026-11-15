@@ -32,6 +32,7 @@
   .tag.new { color: var(--on-accent); background: var(--bright); border-color: var(--bright); }
   .tag.fix { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
   .tag.removed { color: #ff9b3d; border-color: rgba(255, 155, 61, 0.5); }
+  .tag.quick { color: #6fd3ee; border-color: rgba(111, 211, 238, 0.5); }
   .log img.emoji { width: 22px; height: 22px; image-rendering: pixelated; align-self: start; }
   .log li span img.emoji { vertical-align: -5px; margin: 0 1px; }
   @media (max-width: 640px) {
@@ -65,8 +66,24 @@
     <span class="tag">CHANGED</span>, <span class="tag fix">FIXED</span>.
   -->
 
+  <article class="log release" id="center-stage" aria-labelledby="r-center-stage">
+    <div class="label"><span class="tag live">LATEST</span><span class="tag quick">QUICK ADD</span><span>November 2026</span><a href="#center-stage">#</a></div>
+    <h2 id="r-center-stage">Center Stage</h2>
+    <p>The Trading Floor's big screen follows what you're doing now.</p>
+
+    <h3>THE TRADING FLOOR</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="quickadd" src="/bot/emojis/rc_quickadd.png" alt="" width="22" height="22"><span><strong>Five screens:</strong> 📈 Market, 🎰 Rend-Sino, 🌾 Farm, 💼 Desk and 🎣 Lake. Whatever you do switches to its screen, or pick one from the tabs.</span></li>
+      <li><img class="emoji" data-emoji="rocket" src="/bot/emojis/rc_rocket.png" alt="" width="22" height="22"><span><strong>Games play out full size</strong> on the Rend-Sino screen, buttons and all. Earlier games stack up underneath.</span></li>
+      <li><img class="emoji" data-emoji="farm" src="/bot/emojis/rc_farm.png" alt="" width="22" height="22"><span><strong>The Farm screen</strong> shows your field big, with buttons to water, harvest, sell, fertilize, compost, buy a plot and plant every crop.</span></li>
+      <li><img class="emoji" data-emoji="polygon" src="/bot/emojis/rc_polygon.png" alt="" width="22" height="22"><span><strong>The Desk</strong> shows your whole balance, and <strong>the Lake</strong> shows your catch and your bag.</span></li>
+      <li><img class="emoji" data-emoji="general" src="/bot/emojis/rc_general.png" alt="" width="22" height="22"><span><strong>Phones:</strong> the Trading Floor fits phone screens, stays clear of the notch and doesn't zoom in when you type.</span></li>
+      <li><span class="tag fix">FIXED</span><span>The farm card showed its field in one long line, with huge icons.</span></li>
+    </ul>
+  </article>
+
   <article class="log release" id="the-loose-ends" aria-labelledby="r-the-loose-ends">
-    <div class="label"><span class="tag live">LATEST</span><span class="tag fix">HOTFIX</span><span>November 2026</span><a href="#the-loose-ends">#</a></div>
+    <div class="label"><span class="tag fix">HOTFIX</span><span>November 2026</span><a href="#the-loose-ends">#</a></div>
     <h2 id="r-the-loose-ends">The Loose Ends</h2>
     <p>Tying up everything the last few updates left dangling.</p>
 
