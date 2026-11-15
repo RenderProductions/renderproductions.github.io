@@ -35,3 +35,8 @@ test('update posts use the bot\'s own emojis once they are uploaded, and flag ho
   assert.deepEqual(u.sections[0]!.items, ['<:rc_fixed:123> One', '🗑️ Two']);
   assert.match(updateEmbed(u).description!, /^<:rc_hotfix:456> \*\*Hotfix\*\*/);
 });
+
+test('an emoji image on the patch notes page becomes the bot\'s emoji in the post', () => {
+  assert.equal(toMarkdown('<img class="emoji" data-emoji="hotfix" src="/bot/emojis/rc_hotfix.png" alt=""><strong>Hotfix:</strong> quick'), '<:rc_hotfix:456> **Hotfix:** quick');
+  assert.equal(toMarkdown('<img class="emoji" data-emoji="nope" src="x.png">Text'), 'Text', 'unknown names are dropped');
+});

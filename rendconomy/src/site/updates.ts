@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { APIEmbed } from 'discord.js';
-import { emoji, type EmojiKey } from '../discord/emoji';
+import { FALLBACK, emoji, type EmojiKey } from '../discord/emoji';
 
 export interface UpdateEntry { id: string; title: string; date: string; hotfix?: boolean; intro: string; sections: { heading: string; items: string[] }[]; outro: string }
 
@@ -23,6 +23,8 @@ export function toMarkdown(html: string): string {
     .replace(/<span class="tag (?:changed)?">\s*CHANGED\s*<\/span>/gi, '\u0001changed\u0001 ')
     .replace(/<span class="tag fix">\s*FIXED\s*<\/span>/gi, '\u0001fixed\u0001 ')
     .replace(/<span class="tag removed">\s*REMOVED\s*<\/span>/gi, '\u0001removed\u0001 ')
+    // <img class="emoji" data-emoji="new" ...> on the page: the same emoji in Discord
+    .replace(/<img [^>]*data-emoji="(\w+)"[^>]*>/gi, (_, k: string) => `\u0001${k}\u0001 `)
     .replace(/<span class="tag[^"]*">[^<]*<\/span>/gi, '')
     .replace(/<\/?(strong|b)>/gi, '**')
     .replace(/<\/?(em|i)>/gi, '*')
@@ -31,7 +33,7 @@ export function toMarkdown(html: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/[ \t]+/g, ' ')
-    .replace(/\s*\n\s*/g, '\n')).trim().replace(/\u0001(\w+)\u0001/g, (_, k: string) => emoji(k as EmojiKey));
+    .replace(/\s*\n\s*/g, '\n')).trim().replace(/\u0001(\w+)\u0001 ?/g, (m, k: string) => (k in FALLBACK ? emoji(k as EmojiKey) + (m.endsWith(' ') ? ' ' : '') : '')).trim();
 }
 
 /** The newest update on the patch notes page, or null if the page can't be read. */

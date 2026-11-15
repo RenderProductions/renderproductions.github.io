@@ -32,6 +32,7 @@
   .tag.new { color: var(--on-accent); background: var(--bright); border-color: var(--bright); }
   .tag.fix { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.5); }
   .tag.removed { color: #ff9b3d; border-color: rgba(255, 155, 61, 0.5); }
+  .log img.emoji { width: 22px; height: 22px; image-rendering: pixelated; align-self: start; }
   @media (max-width: 640px) {
     .release li { grid-template-columns: 1fr; gap: 0.3rem; }
   }
@@ -63,8 +64,23 @@
     <span class="tag">CHANGED</span>, <span class="tag fix">FIXED</span>.
   -->
 
+  <article class="log release" id="rendconomy-emojis" aria-labelledby="r-rendconomy-emojis">
+    <div class="label"><span class="tag live">LATEST</span><span>November 2026</span><a href="#rendconomy-emojis">#</a></div>
+    <h2 id="r-rendconomy-emojis">RendConomy Emojis</h2>
+    <p>RendConomy has its own emojis now. You'll see them in update posts from here on.</p>
+
+    <h3>THE SET</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="new" src="/bot/emojis/rc_new.png" alt="" width="22" height="22"><span><strong>New:</strong> something added.</span></li>
+      <li><img class="emoji" data-emoji="changed" src="/bot/emojis/rc_changed.png" alt="" width="22" height="22"><span><strong>Changed:</strong> something that works differently now.</span></li>
+      <li><img class="emoji" data-emoji="fixed" src="/bot/emojis/rc_fixed.png" alt="" width="22" height="22"><span><strong>Fixed:</strong> a bug squashed.</span></li>
+      <li><img class="emoji" data-emoji="hotfix" src="/bot/emojis/rc_hotfix.png" alt="" width="22" height="22"><span><strong>Hotfix:</strong> a quick update that couldn't wait.</span></li>
+      <li><img class="emoji" data-emoji="removed" src="/bot/emojis/rc_removed.png" alt="" width="22" height="22"><span><strong>Removed:</strong> something taken out.</span></li>
+    </ul>
+  </article>
+
   <article class="log release" id="animation-expansion" aria-labelledby="r-animation-expansion">
-    <div class="label"><span class="tag live">LATEST</span><span class="tag fix">HOTFIX</span><span>November 2026</span><a href="#animation-expansion">#</a></div>
+    <div class="label"><span class="tag fix">HOTFIX</span><span>November 2026</span><a href="#animation-expansion">#</a></div>
     <h2 id="r-animation-expansion">Animation Expansion</h2>
     <p>The first round of polish since the rebuild. RendConomy has more to say, and the Rend-Sino has moving parts again.</p>
 
