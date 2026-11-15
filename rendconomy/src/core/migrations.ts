@@ -377,5 +377,29 @@ export const MIGRATIONS: readonly string[] = [
     seed          INTEGER NOT NULL,
     PRIMARY KEY (guild_id, user_id, slot)
   );
+  `,
+
+  /* v16: Polygon Holidays: advent doors and Secret Santa (per server). */ `
+  CREATE TABLE holiday_doors (
+    guild_id  TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    year      INTEGER NOT NULL,
+    day       INTEGER NOT NULL,
+    opened_at INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id, year, day)
+  );
+  CREATE TABLE santa (
+    guild_id   TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    year       INTEGER NOT NULL,
+    target_id  TEXT,
+    gift_cents INTEGER NOT NULL DEFAULT 0,
+    gift_item  TEXT,
+    note       TEXT,
+    gifted_at  INTEGER,
+    delivered  INTEGER NOT NULL DEFAULT 0,
+    told       INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id, year)
+  );
   `
 ];

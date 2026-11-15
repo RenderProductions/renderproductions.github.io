@@ -1,3 +1,4 @@
+import { categoryE, lockedE, rarityE } from '../discord/icons';
 import { format } from '../core/money';
 import { RARITY, ACHIEVEMENTS, CATEGORIES, type Category } from '../achievements/list';
 import { rarityStats, unlocked } from '../achievements/achievements';
@@ -21,21 +22,22 @@ function view(ctx: Ctx, st: AchState, cat: Category | 'all', sessionId: string):
     : shown
   ).slice(0, 25).map((a) => {
     const got = have.get(a.id);
-    if (got) return `${RARITY[a.rarity].emoji} **${a.name}**: ${a.desc} · ${discordTime(got.unlocked_at, 'f')}`;
-    return a.secret ? `🔒 **???**: Secret achievement` : `🔒 ${a.name}: ${a.desc} · ${stats.pct(a.id)}% of players`;
+    if (got) return `${rarityE(a.rarity)} **${a.name}**: ${a.desc} · ${discordTime(got.unlocked_at, 'f')}`;
+    return a.secret ? `${lockedE()} **???**: Secret achievement` : `${lockedE()} ${a.name}: ${a.desc} · ${rarityE(a.rarity)} · ${stats.pct(a.id)}% of players`;
   });
   const total = ACHIEVEMENTS.length;
   const cats = Object.keys(CATEGORIES) as Category[];
   const btns: Button[] = [{ label: 'Unlocked', id: sessions.buttonId(sessionId, 'all'), style: cat === 'all' ? 'primary' : 'secondary' },
-    ...cats.map((c) => ({ label: CATEGORIES[c].label, emoji: CATEGORIES[c].emoji, id: sessions.buttonId(sessionId, c), style: (c === cat ? 'primary' : 'secondary') as Button['style'] }))];
+    ...cats.map((c) => ({ label: CATEGORIES[c].label, emoji: categoryE(c), id: sessions.buttonId(sessionId, c), style: (c === cat ? 'primary' : 'secondary') as Button['style'] }))];
   const rows: Button[][] = [];
   btns.forEach((b, i) => { if (i % 4 === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
   return {
     embeds: [embed('social', `Achievements: ${st.targetName}`, [
       `${have.size} of ${total} unlocked.`,
-      cat === 'all' ? '' : `**${CATEGORIES[cat].emoji} ${CATEGORIES[cat].label}**`,
-      ...(lines.length ? lines : ['None yet.'])
-    ], { footer: { text: Object.values(RARITY).map((r) => `${r.emoji} ${r.label}`).join(' · ') } })],
+      cat === 'all' ? '' : `${categoryE(cat)} **${CATEGORIES[cat].label}**`,
+      ...(lines.length ? lines : ['None yet.']),
+      '', `-# ${Object.entries(RARITY).map(([k, r]) => `${rarityE(k as keyof typeof RARITY)} ${r.label}`).join(' · ')}`
+    ], {})],
     buttons: rows, session: sessionId
   };
 }

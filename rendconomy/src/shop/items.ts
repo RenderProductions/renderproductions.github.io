@@ -4,7 +4,7 @@ import { CROPS } from '../farming/farming';
 import { polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 
-export type Shelf = 'work' | 'market' | 'casino' | 'fun' | 'tackle' | 'garden' | 'style' | 'rare';
+export type Shelf = 'work' | 'market' | 'casino' | 'fun' | 'tackle' | 'garden' | 'style' | 'rare' | 'holiday';
 
 export interface Item {
   id: string;
@@ -54,11 +54,13 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('paint_terminal', '🖥️', 'TODD Terminal Paint', 3000, 2, 'style', 'Green on black, like TODD sees the world.'),
   item('paint_sunset', '🌇', 'Sunset Paint', 3000, 2, 'style', 'Warm orange and pink.'),
   item('paint_void', '🕳️', 'Void Paint', 3000, 2, 'style', 'Black and white. Nothing else.'),
-  item('paint_goldrush', '🪙', 'Gold Rush Paint', 4000, 2, 'style', 'Shimmering gold, for the rich (or the hopeful).')
+  item('paint_goldrush', '🪙', 'Gold Rush Paint', 4000, 2, 'style', 'Shimmering gold, for the rich (or the hopeful).'),
+  item('paint_candycane', '🍬', 'Candy Cane Paint', 3000, 2, 'holiday', 'Red and white stripes. Only in December.'),
+  item('paint_frost', '❄️', 'Frost Paint', 3000, 2, 'holiday', 'Ice blue, with snow on the banner. Only in December.')
 ].map((i) => [i.id, i]));
 
 /** Collectibles: no effect, pure bragging rights. One is on sale each week, 3 for everyone. */
-export const COLLECTIBLES: Record<string, Item> = Object.fromEntries([
+const ROTATING: Record<string, Item> = Object.fromEntries([
   item('col_nacho', '🧀', 'The Golden Nacho', 2500, 3, 'rare', "De Nacho's first nacho, dipped in gold. Do not eat."),
   item('col_todd', '🖥️', 'TODD Bobblehead', 2500, 3, 'rare', 'Nods at everything you say. Like TODD, but nicer.'),
   item('col_cart', '👾', 'Signed BSTG Cartridge', 3000, 3, 'rare', 'Signed by the whole Bastardly Glory dev team. It still has bugs.'),
@@ -68,6 +70,17 @@ export const COLLECTIBLES: Record<string, Item> = Object.fromEntries([
   item('col_abacus', '🧮', 'The BNW Abacus', 2500, 3, 'rare', "BNW's original computer. Faster than the new one."),
   item('col_coin', '🪙', "Marquez's Lucky Coin", 4000, 3, 'rare', "Marquez swears it's lucky. Marquez also swears it's not for sale.")
 ].map((i) => [i.id, i]));
+/** The weekly special shelf goes round these. */
+export const ROTATION = Object.keys(ROTATING);
+/** Polygon Holidays: on the Holiday shelf in December only (one of each per customer), and behind advent doors. */
+export const HOLIDAY_COLLECTIBLES: Record<string, Item> = Object.fromEntries([
+  item('col_ornament', '🔴', 'Polygon Ornament', 500, 5, 'holiday', 'A glass Polygon for the tree. Handle with care.'),
+  item('col_gingerbread', '🍪', 'Gingerbread TODD', 800, 5, 'holiday', 'TODD, in gingerbread. He looks smug about it.'),
+  item('col_snowglobe', '🔮', 'Snow Globe', 1500, 4, 'holiday', 'A tiny Render Room, snowing forever.'),
+  item('col_nutcracker', '💂', 'Nutcracker', 2000, 3, 'holiday', 'Stands guard over your Polygons.'),
+  item('col_startopper', '⭐', 'Star Topper', 0, 0, 'holiday', 'Only behind the last door of the advent calendar.')
+].map((i) => [i.id, i]));
+export const COLLECTIBLES: Record<string, Item> = { ...ROTATING, ...HOLIDAY_COLLECTIBLES };
 
 export const SHELVES: Record<Shelf, { label: string; emoji: string }> = {
   work: { label: 'Work', emoji: '💼' },
@@ -77,7 +90,8 @@ export const SHELVES: Record<Shelf, { label: string; emoji: string }> = {
   tackle: { label: 'Bait & Tackle', emoji: '🎣' },
   garden: { label: 'Garden', emoji: '🌾' },
   style: { label: 'Profile', emoji: '🎨' },
-  rare: { label: 'Collectible', emoji: '🗃️' }
+  rare: { label: 'Collectible', emoji: '🗃️' },
+  holiday: { label: 'Holiday', emoji: '🎄' }
 };
 
 export const anyItem = (id: string): Item | undefined => ITEMS[id] ?? COLLECTIBLES[id];
@@ -126,7 +140,10 @@ const LINES: Record<string, string[]> = {
   crops: ['Marquez turns a tomato over in his hand. "Good soil out there, {n}."', '"Fresh from the field. Thank you, {n}."', 'Marquez nods at the basket. "You\'ve been busy, {n}."',
     '"These\'ll be gone before lunch, {n}," Marquez says.', 'Marquez weighs the basket and smiles a little. "Honest work, {n}."'],
   square: ['Marquez sets the square pumpkin on the counter and just looks at it for a while. "...How, {n}?"'],
-  golden: ['Marquez squints at the gold. "That\'s not paint, is it, {n}?"']
+  golden: ['Marquez squints at the gold. "That\'s not paint, is it, {n}?"'],
+  holiday: ['Marquez is wearing a Santa hat. He does not mention it. "Evening, {n}."', 'There\'s tinsel on the register. "Happy holidays, {n}," Marquez says.',
+    'Marquez hums along to the radio, quietly. "Cocoa\'s on the house, {n}. Have a look around."', '"Cold one out there, {n}," Marquez says. "Warm up a minute."',
+    'A string of lights blinks over the counter. Marquez looks almost cheerful. "Hello, {n}."']
 };
 
 export function marquez(kind: keyof typeof LINES, rng: Rng): string {

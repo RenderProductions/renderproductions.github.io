@@ -1,13 +1,16 @@
 // World events: every few hours something happens across the whole economy for an hour, announced in the
 // market news. Some follow the market: a booming company gets a hiring spree, a sliding one a fire sale.
+import { emojiOr } from '../discord/emoji';
 import type { Db } from '../core/db';
 import type { Rng } from '../core/rng';
 import { HOUR } from '../core/time';
 import type { MarketData } from '../market/engine';
 import { addWeather } from '../farming/farming';
+import { isHoliday } from '../holidays/holidays';
 
 export const EVENTS: Record<string, { emoji: string; name: string; desc: (t?: string) => string }> = {
   labor_shortage: { emoji: '👷', name: 'Labor Shortage', desc: () => 'Nobody wants to work. Shifts and gigs pay **1.5x**.' },
+  snow_day: { emoji: '❄️', name: 'Snow Day', desc: () => 'The roads are closed. **No work today**, but chat pay is **doubled**. Go build a snowman.' },
   rain: { emoji: '🌧️', name: 'Rain', desc: () => 'Rain over every farm. Crops are **watered for free** while it lasts.' },
   storm: { emoji: '⛈️', name: 'Storm', desc: () => 'A storm rolls in. Crops outside a **Greenhouse** can be flattened.' },
   fish_frenzy: { emoji: '🎣', name: 'Fish Frenzy', desc: () => 'The fish are biting. Cast every **90 seconds**, and plain bait works like a lure.' },
@@ -25,9 +28,11 @@ const write = (db: Db, e: WorldEvent) => db.setMeta('world.event', JSON.stringif
 
 export function activeEvent(db: Db, now = Date.now()): WorldEvent | null { const s = read(db); return s.id && (s.until ?? 0) > now ? s : null; }
 export const isEvent = (db: Db, id: string, ticker?: string, now = Date.now()): boolean => { const e = activeEvent(db, now); return !!e && e.id === id && (!ticker || e.ticker === ticker); };
-export const describeEvent = (e: WorldEvent): string => { const E = EVENTS[e.id!]!; return `${E.emoji} **${E.name}**: ${E.desc(e.ticker)}`; };
+const EVENT_EMOJI: Record<string, string> = { snow_day: 'snowday', rain: 'rain', storm: 'storm', fish_frenzy: 'fishing', chatty: 'social' };
+export const describeEvent = (e: WorldEvent): string => { const E = EVENTS[e.id!]!; return `${EVENT_EMOJI[e.id!] ? emojiOr(EVENT_EMOJI[e.id!]!, E.emoji) : E.emoji} **${E.name}**: ${E.desc(e.ticker)}`; };
 
-export function pickEvent(m: MarketData | null, rng: Rng): WorldEvent {
+export function pickEvent(m: MarketData | null, rng: Rng, now = Date.now()): WorldEvent {
+  if (isHoliday(now) && rng.chance(0.25)) return { id: 'snow_day' };
   const changes = m ? m.companies.map((c) => [c.id, Number(m.changes?.[c.id] ?? 0)] as const).filter(([id]) => m.statuses?.[id] !== 'bankrupt') : [];
   const up = changes.filter(([, x]) => x >= 8).sort((a, b) => b[1] - a[1])[0];
   const down = changes.filter(([, x]) => x <= -8).sort((a, b) => a[1] - b[1])[0];
@@ -43,7 +48,7 @@ export function worldTick(db: Db, m: MarketData | null, now: number, rng: Rng): 
   if (!s.next) { write(db, { next: now + WORLD.firstMs }); return null; }
   if (s.id && (s.until ?? 0) > now) return null;
   if (now < s.next) { if (s.id) write(db, { next: s.next }); return null; }
-  const e: WorldEvent = { ...pickEvent(m, rng), until: now + WORLD.lengthMs };
+  const e: WorldEvent = { ...pickEvent(m, rng, now), until: now + WORLD.lengthMs };
   e.next = e.until! + WORLD.gapMinMs + Math.floor(rng.next() * (WORLD.gapMaxMs - WORLD.gapMinMs));
   write(db, e);
   if (e.id === 'rain' || e.id === 'storm') addWeather(db, e.id, now, e.until!);

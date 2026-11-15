@@ -21,6 +21,7 @@ export const CATEGORIES = {
   heists: { label: 'Heists & Schemes', emoji: '🦹' },
   fishing: { label: 'Fishing', emoji: '🎣' },
   farming: { label: 'Farming', emoji: '🌾' },
+  holiday: { label: 'Polygon Holidays', emoji: '🎄' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
 } as const;
@@ -117,6 +118,10 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['bumper_crop', 'Bumper Crop', 'Harvest 500 crops', 'farming', 'epic'],
   ['cash_crop', 'Cash Crop', 'Earn ⬡100,000 selling crops', 'farming', 'legendary'],
   ['forbidden_fruit', 'Forbidden Fruit', 'Harvest a Polygon Fruit', 'farming', 'legendary'],
+
+  ['secret_santa', 'Secret Santa', 'Give your Secret Santa gift', 'holiday', 'rare'],
+  ['every_door', 'Every Door', 'Open all 25 doors of the advent calendar', 'holiday', 'epic'],
+  ['regift', 'Regift', 'Give a holiday collectible as your Secret Santa gift', 'holiday', 'common'],
 
   ['weathered', 'Weathered', 'Lose 3 crops to a single storm', 'secret', 'rare', true],
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],

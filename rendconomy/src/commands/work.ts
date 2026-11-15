@@ -1,3 +1,4 @@
+import { isEvent } from '../events/world';
 import { emoji } from '../discord/emoji';
 import { GameError } from '../core/errors';
 import { format } from '../core/money';
@@ -35,6 +36,7 @@ export const work: Command = {
     const p = player;
     if (!p.job) throw new GameError('work.nojob', `You do not have a job. Apply with \`${ctx.config.prefix}apply <ticker>\` (${tickers()}), or take a \`${ctx.config.prefix}gig\`.`);
     midTask(ctx);
+    if (isEvent(ctx.db, 'snow_day', undefined, ctx.now)) throw new GameError('work.snow', `❄️ **Snow Day!** The office is closed. Chat pay is doubled instead, and there's always \`${ctx.config.prefix}gig\`.`);
     const m = loadMarket(ctx.db);
     if (m?.statuses?.[p.job] === 'bankrupt') { const out = layOff(ctx, guildId, p.job); if (out) return out; }
     if (!takeCooldown(ctx.db, 'work', subject(ctx), JOB_RULES.workCooldownMs, ctx.now)) {

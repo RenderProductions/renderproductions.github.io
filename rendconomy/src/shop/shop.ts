@@ -8,24 +8,26 @@ import { format, polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { HOUR, DAY } from '../core/time';
 import { addItem } from './inventory';
-import { COLLECTIBLES, ITEMS, anyItem, isCollectible, type Item } from './items';
+import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, ROTATION, anyItem, isCollectible, type Item } from './items';
+import { isHoliday, season } from '../holidays/holidays';
 
 export const SHOP_RULES = { restockMs: HOUR, weekMs: 7 * DAY, mystery: [75, 100] as const };
 
 const week = (now: number) => Math.floor(now / SHOP_RULES.weekMs);
-export const collectibleOfWeek = (now = Date.now()): string => { const ids = Object.keys(COLLECTIBLES); return ids[week(now) % ids.length]!; };
+export const collectibleOfWeek = (now = Date.now()): string => ROTATION[week(now) % ROTATION.length]!;
 
 /** Restocks if an hour has passed (and rolls a new Mystery price); the collectible restocks weekly. */
 export function restock(db: Db, rng: Rng, now = Date.now()): number {
   return db.tx(() => {
     const wk = String(week(now));
     if (db.meta('shop.week') !== wk) {
-      for (const id of Object.keys(COLLECTIBLES)) setStock(db, id, id === collectibleOfWeek(now) ? COLLECTIBLES[id]!.stock : 0);
+      for (const id of ROTATION) setStock(db, id, id === collectibleOfWeek(now) ? COLLECTIBLES[id]!.stock : 0);
       db.setMeta('shop.week', wk);
     }
     const last = Number(db.meta('shop.restocked') ?? 0);
     if (now < last + SHOP_RULES.restockMs) return last;
     for (const it of Object.values(ITEMS)) setStock(db, it.id, it.stock);
+    for (const it of Object.values(HOLIDAY_COLLECTIBLES)) setStock(db, it.id, isHoliday(now) ? it.stock : 0);
     db.setMeta('shop.mystery', polygons(rng.int(SHOP_RULES.mystery[0], SHOP_RULES.mystery[1])));
     db.setMeta('shop.restocked', now);
     return now;
@@ -51,7 +53,16 @@ export function buy(db: Db, rng: Rng, guildId: string, userId: string, id: strin
   if (!it) throw new ShopError('unknown', 'Marquez does not stock that.');
   if (!it.ready) throw new ShopError('unavailable', `${it.name} is not on sale yet.`);
   return db.tx(() => {
-    if (isCollectible(id)) {
+    if (it.shelf === 'holiday') {
+      if (!isHoliday(now)) throw new ShopError('unavailable', `${it.name} is holiday stock. It's back in December.`);
+      if (!it.stock) throw new ShopError('unavailable', `${it.name} isn't for sale. It's behind the last door of the advent calendar.`);
+    }
+    if (HOLIDAY_COLLECTIBLES[id]) {
+      if (qty !== 1) throw new ShopError('once', 'Collectibles are one per customer.');
+      const period = `holiday-${season(now)}`;
+      if (db.get('SELECT 1 FROM shop_buys WHERE guild_id = ? AND user_id = ? AND item = ? AND period = ?', guildId, userId, id, period)) throw new ShopError('once', `You already have this year's ${it.name}.`);
+      db.run('INSERT INTO shop_buys (guild_id, user_id, item, period) VALUES (?, ?, ?, ?)', guildId, userId, id, period);
+    } else if (isCollectible(id)) {
       if (id !== collectibleOfWeek(now)) throw new ShopError('notThisWeek', `${it.name} is not on the special shelf this week.`);
       if (qty !== 1) throw new ShopError('once', 'Collectibles are one per customer.');
       const period = String(week(now));

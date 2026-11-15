@@ -1,10 +1,13 @@
+import { itemE } from '../discord/icons';
+import { emojiOr } from '../discord/emoji';
 import { nameOf, receipt } from '../social/receipts';
 import { GameError } from '../core/errors';
 import { format, parseCount } from '../core/money';
 import * as sessions from '../core/sessions';
 import { embed } from '../discord/style';
 import { items as invItems, takeItem } from '../shop/inventory';
-import { COLLECTIBLES, ITEMS, SHELVES, anyItem, findItem, marquez, type Shelf } from '../shop/items';
+import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, SHELVES, anyItem, findItem, marquez, type Shelf } from '../shop/items';
+import { isHoliday } from '../holidays/holidays';
 import { SHOP_RULES, ShopError, buy, collectibleOfWeek, priceOf, restock, stockOf } from '../shop/shop';
 import { useItem } from '../shop/use';
 import { FISHING, isCatch } from '../fishing/fishing';
@@ -13,7 +16,9 @@ import { me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
 
 const shelfItems = (shelf: Shelf, now: number) =>
-  shelf === 'rare' ? [COLLECTIBLES[collectibleOfWeek(now)]!] : Object.values(ITEMS).filter((i) => i.shelf === shelf && i.ready);
+  shelf === 'rare' ? [COLLECTIBLES[collectibleOfWeek(now)]!]
+    : shelf === 'holiday' ? (isHoliday(now) ? [...Object.values(HOLIDAY_COLLECTIBLES).filter((i) => i.stock > 0), ...Object.values(ITEMS).filter((i) => i.shelf === 'holiday')] : [])
+    : Object.values(ITEMS).filter((i) => i.shelf === shelf && i.ready);
 const shelves = (now: number) => (Object.keys(SHELVES) as Shelf[]).filter((s) => shelfItems(s, now).length);
 
 function shopView(ctx: Ctx, shelf: Shelf, sessionId: string, line: string): ReplyObject {
@@ -21,12 +26,12 @@ function shopView(ctx: Ctx, shelf: Shelf, sessionId: string, line: string): Repl
   const list = shelfItems(shelf, ctx.now);
   const lines = list.map((i) => {
     const left = stockOf(ctx.db, i.id);
-    return `${i.emoji} **${i.name}** · ${format(priceOf(ctx.db, i.id))} · ${left ? `${left} in stock` : 'sold out'}\n-# ${i.desc}`;
+    return `${itemE(i.id, i.emoji)} **${i.name}** · ${format(priceOf(ctx.db, i.id))} · ${left ? `${left} in stock` : 'sold out'}\n-# ${i.desc}`;
   });
   const tabs: Button[] = shelves(ctx.now).map((s) => ({ label: SHELVES[s].label, emoji: SHELVES[s].emoji, id: sessions.buttonId(sessionId, `shelf:${s}`), style: s === shelf ? 'primary' : 'secondary' }));
-  const buys: Button[] = list.map((i) => ({ label: `Buy ${i.name}`.slice(0, 80), emoji: i.emoji, id: sessions.buttonId(sessionId, `buy:${i.id}`), style: 'success', disabled: stockOf(ctx.db, i.id) === 0 }));
+  const buys: Button[] = list.map((i) => ({ label: `Buy ${i.name}`.slice(0, 80), emoji: itemE(i.id, i.emoji), id: sessions.buttonId(sessionId, `buy:${i.id}`), style: 'success', disabled: stockOf(ctx.db, i.id) === 0 }));
   const rows: Button[][] = [];
-  const pushRows = (bs: Button[]) => bs.forEach((b, i) => { if (i % 4 === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
+  const pushRows = (bs: Button[]) => bs.forEach((b, i) => { if (i % 5 === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
   pushRows(tabs); pushRows(buys);
   return {
     embeds: [embed('wallet', `Marquez's Shop · ${SHELVES[shelf].emoji} ${SHELVES[shelf].label}`, [
@@ -48,7 +53,7 @@ export const shop: Command = {
     const want = String(args.shelf ?? '').trim().toLowerCase();
     const shelf = (shelves(ctx.now).find((s) => s === want || SHELVES[s].label.toLowerCase().startsWith(want)) ?? 'work') as Shelf;
     const s = sessions.create(ctx.db, { kind: 'shop', guildId, channelId: ctx.channelId, userId: ctx.user.id, state: { shelf }, ttlMs: 10 * 60_000, now: ctx.now });
-    return shopView(ctx, shelf, s.id, marquez('greet', ctx.rng));
+    return shopView(ctx, shelf, s.id, marquez(isHoliday(ctx.now) ? 'holiday' : 'greet', ctx.rng));
   }
 };
 
@@ -62,14 +67,14 @@ export function onShopButton(ctx: Ctx, s: sessions.Session<{ shelf: Shelf }>, va
   const [kind, id] = value.split(':') as [string, string];
   if (kind === 'shelf' && id in SHELVES) {
     sessions.save(ctx.db, s.id, { shelf: id as Shelf });
-    const { session: _x, ...v } = shopView(ctx, id as Shelf, s.id, marquez('greet', ctx.rng));
+    const { session: _x, ...v } = shopView(ctx, id as Shelf, s.id, marquez(isHoliday(ctx.now) ? 'holiday' : 'greet', ctx.rng));
     return { update: v };
   }
   if (kind === 'buy') {
     let line: string;
     try {
       const r = buy(ctx.db, ctx.rng, s.guild_id!, ctx.user.id, id, 1, ctx.now);
-      line = `${marquez('thanks', ctx.rng)}\nPurchased: ${r.item.emoji} ${r.item.name} for ${format(r.cost)}. Balance: ${format(r.cash)}.`;
+      line = `${marquez('thanks', ctx.rng)}\nPurchased: ${itemE(r.item.id, r.item.emoji)} ${r.item.name} for ${format(r.cost)}. Balance: ${format(r.cash)}.`;
     } catch (e) { line = marquezFor(e, ctx); }
     const { session: _x, ...v } = shopView(ctx, s.state.shelf, s.id, line);
     return { update: v };
@@ -97,8 +102,8 @@ export const purchase: Command = {
     const qty = parseCount(amount || '1', { max: 10 });
     try {
       const r = buy(ctx.db, ctx.rng, guildId, ctx.user.id, id, qty, ctx.now);
-      receipt(ctx.db, guildId, ctx.user.id, `Bought ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name}`, [['Item', `${r.item.emoji} ${r.item.name}`], ['Quantity', String(r.qty)], ['Price', format(r.cost)], ['Balance', format(r.cash)]]);
-      return { embeds: [embed('wallet', `🛍️ ${r.item.emoji} ${r.item.name}${r.qty > 1 ? ` × ${r.qty}` : ''}`, [`*${marquez('thanks', ctx.rng)}*`, `${r.qty} × ${r.item.emoji} ${r.item.name}: ${format(r.cost)}`, `Balance: ${format(r.cash)}`,
+      receipt(ctx.db, guildId, ctx.user.id, `Bought ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name}`, [['Item', `${itemE(r.item.id, r.item.emoji)} ${r.item.name}`], ['Quantity', String(r.qty)], ['Price', format(r.cost)], ['Balance', format(r.cash)]]);
+      return { embeds: [embed('wallet', `🛍️ ${r.item.emoji} ${r.item.name}${r.qty > 1 ? ` × ${r.qty}` : ''}`, [`*${marquez('thanks', ctx.rng)}*`, `${r.qty} × ${itemE(r.item.id, r.item.emoji)} ${r.item.name}: ${format(r.cost)}`, `Balance: ${format(r.cash)}`,
         r.item.passive ? '-# This item works on its own while it is in your inventory.' : `-# Use it with \`${ctx.config.prefix}use ${r.item.name.toLowerCase()}\`.`])] };
     } catch (e) {
       throw new GameError('shop.refused', marquezFor(e, ctx));
@@ -120,10 +125,10 @@ export const inventory: Command = {
     const fish = all.filter((r) => isCatch(r.item)).reduce((s, r) => s + r.qty, 0);
     const lines = list.map(({ item, qty }) => {
       const it = anyItem(item);
-      return it ? `${it.emoji} **${it.name}** × ${qty}${it.passive ? ' · works on its own' : ''}` : `${item} × ${qty}`;
+      return it ? `${itemE(it.id, it.emoji)} **${it.name}** × ${qty}${it.passive ? ' · works on its own' : ''}` : `${item} × ${qty}`;
     });
-    if (crops) lines.push(`🧺 **Harvest basket** (${crops}) · \`${ctx.config.prefix}farm\``);
-    if (fish || list.some((r) => r.item === 'rod')) lines.push(`🎣 **Fishing bag** (${fish}/${FISHING.bagMax}) · \`${ctx.config.prefix}fish bag\``);
+    if (crops) lines.push(`${emojiOr('harvest', '🧺')} **Harvest basket** (${crops}) · \`${ctx.config.prefix}farm\``);
+    if (fish || list.some((r) => r.item === 'rod')) lines.push(`${emojiOr('fishing', '🎣')} **Fishing bag** (${fish}/${FISHING.bagMax}) · \`${ctx.config.prefix}fish bag\``);
     return { embeds: [embed('wallet', `Inventory: ${ctx.user.name}`, lines.length ? lines : ['Your inventory is empty. Marquez is open: `/shop`.'],
       { footer: { text: `${ctx.config.prefix}use <item> to use one` } })] };
   }
@@ -140,7 +145,7 @@ export const use: Command = {
     const id = findItem(String(args.item ?? ''));
     if (!id) throw new GameError('use.unknown', 'That item does not exist.');
     const it = anyItem(id)!;
-    return { embeds: [embed('wallet', `${it.emoji} ${it.name}`, [useItem(ctx, guildId, id)])] };
+    return { embeds: [embed('wallet', `${it.emoji} ${it.name}`, [`${itemE(it.id, it.emoji)} ${useItem(ctx, guildId, id)}`])] };
   }
 };
 

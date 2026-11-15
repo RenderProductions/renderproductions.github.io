@@ -1,3 +1,4 @@
+import { itemE } from '../discord/icons';
 import { unlocked } from '../achievements/achievements';
 import { ACHIEVEMENTS } from '../achievements/list';
 import { GameError } from '../core/errors';
@@ -67,7 +68,7 @@ export const profile: Command = {
         `**Shifts worked:** ${shifts} · **Best Rend-Sino hit:** ${format(best)}`,
         `**Achievements:** ${ach.length} of ${ACHIEVEMENTS.length}`,
         cols.length ? `**Collectibles:** ${cols.map((c) => COLLECTIBLES[c]!.emoji).join(' ')}` : null,
-        st.pin && COLLECTIBLES[st.pin] ? `**Pinned:** ${COLLECTIBLES[st.pin]!.emoji} ${COLLECTIBLES[st.pin]!.name}` : null
+        st.pin && COLLECTIBLES[st.pin] ? `**Pinned:** ${itemE(st.pin, COLLECTIBLES[st.pin]!.emoji)} ${COLLECTIBLES[st.pin]!.name}` : null
       ].filter(Boolean).join('\n'),
       footer: { text: target === ctx.user.id ? 'Customize your look on your profile page: open the title link' : 'View the full profile on the site' }
     }] };

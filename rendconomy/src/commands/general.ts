@@ -1,3 +1,4 @@
+import { sectionE } from '../discord/icons';
 import { embed } from '../discord/style';
 import { GameError } from '../core/errors';
 import * as sessions from '../core/sessions';
@@ -39,17 +40,17 @@ function helpPage(ctx: Ctx, page: System | 'home', sessionId: string): ReplyObje
     lines = [
       'Choose a section below, or look up one command with `' + p + 'help <command>`.',
       '',
-      ...systems.map((s) => `${SECTIONS[s].emoji} **${SECTIONS[s].label}**: ${((n) => `${n} ${n === 1 ? "command" : "commands"}`)(cmds.filter((c) => c.system === s).length)}`),
+      ...systems.map((s) => `${sectionE(s, SECTIONS[s].emoji)} **${SECTIONS[s].label}**: ${((n) => `${n} ${n === 1 ? "command" : "commands"}`)(cmds.filter((c) => c.system === s).length)}`),
       '',
       `Every command works as \`/command\` or with the \`${p}\` prefix, for example \`${p}daily\`.`
     ];
   } else {
-    lines = [`${SECTIONS[page].emoji} **${SECTIONS[page].label}**`, ...cmds.filter((c) => c.system === page).map((c) => line(c, p))];
+    lines = [`${sectionE(page, SECTIONS[page].emoji)} **${SECTIONS[page].label}**`, ...cmds.filter((c) => c.system === page).map((c) => line(c, p))];
     // A section that ever grows past the limit is cut short, never refused by Discord
     while (lines.join('\n').length > 3900) lines.pop();
   }
   const btns: Button[] = [{ label: 'Overview', id: sessions.buttonId(sessionId, 'home'), style: page === 'home' ? 'primary' : 'secondary' },
-    ...systems.map((s) => ({ label: SECTIONS[s].label, emoji: SECTIONS[s].emoji, id: sessions.buttonId(sessionId, s), style: (s === page ? 'primary' : 'secondary') as Button['style'] }))];
+    ...systems.map((s) => ({ label: SECTIONS[s].label, emoji: sectionE(s, SECTIONS[s].emoji), id: sessions.buttonId(sessionId, s), style: (s === page ? 'primary' : 'secondary') as Button['style'] }))];
   const rows: Button[][] = [];
   btns.forEach((b, i) => { if (i % 5 === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
   return { embeds: [embed(page === 'home' ? 'general' : page, `${ctx.config.name} commands`, lines)], buttons: rows, session: sessionId };

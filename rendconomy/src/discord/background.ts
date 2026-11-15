@@ -1,6 +1,6 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
-import { emoji } from './emoji';
+import { emoji, emojiOr } from './emoji';
 import http from 'node:http';
 import type { Client } from 'discord.js';
 import { ActivityType } from 'discord.js';
@@ -14,6 +14,9 @@ import { netWorth } from '../social/worth';
 import { execute, parsePrefix } from './router';
 import { CROPS, plotsOf, simulate, weatherLog } from '../farming/farming';
 import { count } from '../shop/inventory';
+import { holidayTick, isHoliday, season } from '../holidays/holidays';
+import { anyItem } from '../shop/items';
+import { cryptoRng } from '../core/rng';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
 export function startReminders(db: Db, client: Client, prefix: string): void {
@@ -32,6 +35,20 @@ export function startReminders(db: Db, client: Client, prefix: string): void {
   }, MINUTE).unref();
 }
 
+/** Polygon Holidays: Secret Santa draws, DMs and Christmas deliveries. Quiet outside December and early January. */
+export function startHolidays(db: Db, client: Client, prefix: string): void {
+  const tick = () => {
+    const now = Date.now();
+    if (!isHoliday(now) && !db.get('SELECT 1 FROM santa WHERE year = ? AND delivered = 0 AND target_id IS NOT NULL LIMIT 1', season(now))) return;
+    holidayTick(db, now, cryptoRng(), (userId, guildId, text) => {
+      const server = client.guilds.cache.get(guildId)?.name ?? 'your server';
+      client.users.fetch(userId).then((u) => u.send({ content: text(server), allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+    }, (id) => anyItem(id)?.name ?? id, prefix);
+  };
+  setInterval(tick, 5 * MINUTE).unref();
+  setTimeout(tick, 30_000).unref();
+}
+
 /** DMs farmers (with /farm remind on) once a crop is ready. Looks ahead without saving, so nothing else changes. */
 export function startFarmReminders(db: Db, client: Client, prefix: string): void {
   setInterval(() => {
@@ -42,7 +59,7 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
       const ready = plotsOf(db, f.guild_id, f.user_id).filter((p) => !p.reminded && !p.wilted).filter((p) => { const r = simulate(p, env, now); return !r.gone && r.plot.ready_at !== null; });
       if (!ready.length) continue;
       for (const p of ready) db.run('UPDATE farm_plots SET reminded = 1 WHERE guild_id = ? AND user_id = ? AND slot = ?', f.guild_id, f.user_id, p.slot);
-      const what = ready.map((p) => `${CROPS[p.crop]!.emoji} ${CROPS[p.crop]!.name}`).join(', ');
+      const what = ready.map((p) => `${emojiOr(p.crop, CROPS[p.crop]!.emoji)} ${CROPS[p.crop]!.name}`).join(', ');
       const server = client.guilds.cache.get(f.guild_id)?.name;
       const text = `${emoji('harvest')} Ready to harvest${server ? ` in **${server}**` : ''}: ${what}. Pick ${ready.length === 1 ? 'it' : 'them'} with \`${prefix}harvest\`.\n-# Turn these off with \`${prefix}farm remind off\`.`;
       client.users.fetch(f.user_id).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });

@@ -13,5 +13,5 @@ export function installWorld(): void {
   installed = true;
   onTick((db, m, now, rng) => { const e = worldTick(db, m, now, rng); if (e) announce(e); });
   setShortFeeWaiver((db, ticker) => isEvent(db, 'bear_rumors') || isEvent(db, 'fire_sale', ticker));
-  setChatMultiplier((db) => (isEvent(db, 'chatty') ? 2 : 1));
+  setChatMultiplier((db) => (isEvent(db, 'chatty') || isEvent(db, 'snow_day') ? 2 : 1));
 }

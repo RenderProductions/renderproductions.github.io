@@ -93,16 +93,21 @@ export function updateEmbed(u: UpdateEntry): APIEmbed {
   const fields: { name: string; value: string }[] = [];
   let budget = 5000 - u.title.length - u.intro.length;
   for (const s of u.sections.slice(0, 20)) {
-    let value = '';
+    // a long section (custom emojis are ~38 characters each) carries on in a second field instead of being cut
+    const chunks: string[] = [''];
     for (const it of s.items) {
-      const line = `• ${it}\n`;
-      if (value.length + line.length > 1000) { value += '…and more on the patch notes page.'; break; }
-      value += line;
+      const line = `• ${it}`.slice(0, 1000) + '\n';
+      if (chunks[chunks.length - 1]!.length + line.length > 1024) chunks.push('');
+      chunks[chunks.length - 1] += line;
     }
-    value = value.trim() || '—';
-    if (budget - value.length - s.heading.length < 0) { fields.push({ name: 'More', value: `The rest is on the [patch notes page](${PATCH_NOTES_URL}#${u.id}).` }); break; }
-    budget -= value.length + s.heading.length;
-    fields.push({ name: s.heading.slice(0, 256), value });
+    let full = false;
+    for (const [i, c] of chunks.entries()) {
+      const value = c.trim() || '—', name = i === 0 ? s.heading.slice(0, 256) : '\u200b';
+      if (budget - value.length - name.length < 0) { fields.push({ name: 'More', value: `The rest is on the [patch notes page](${PATCH_NOTES_URL}#${u.id}).` }); full = true; break; }
+      budget -= value.length + name.length;
+      fields.push({ name, value });
+    }
+    if (full) break;
   }
   return {
     title: u.title.slice(0, 256),

@@ -1,7 +1,7 @@
-import { setCustomEmojis } from '../src/discord/emoji';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { setCustomEmojis, EMOJI_DIR } from '../src/discord/emoji';
 import { PATCH_NOTES_FILE, allUpdates, findUpdate, newestUpdate, pendingUpdates, readAllUpdates, readNewestUpdate, toMarkdown, updateEmbed } from '../src/site/updates';
 
 test('the real patch notes page parses into an update', () => {
@@ -52,12 +52,25 @@ test('restarts post every entry added since the last post, oldest first; /announ
   assert.equal(findUpdate(all, 'entry b')!.id, 'b');
   assert.equal(findUpdate(all, '')!.id, 'c');
   assert.equal(findUpdate(all, 'nope'), null);
-  // the real page: the next restart posts Animation Expansion, Glossy Makeover, then farming
+  // the real page: the next restart posts Animation Expansion, Glossy Makeover, farming, then Polygon Holidays
   const real = readAllUpdates();
-  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy']);
+  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays']);
   assert.equal(findUpdate(real, 'animation')!.id, 'animation-expansion');
 });
 
 test('a plain CHANGED tag (class="tag") becomes the changed emoji too', () => {
   assert.equal(toMarkdown('<span class="tag">CHANGED</span><span>Balance and portfolio are one view</span>'), '🔧 Balance and portfolio are one view');
+});
+
+test('a section full of custom emojis carries on in a second field instead of being cut off', () => {
+  setCustomEmojis(fs.readdirSync(EMOJI_DIR).filter((f) => /^rc_.*\.png$/.test(f)).map((f, i) => ({ name: f.slice(0, -4), id: String(1_400_000_000_000_000_000n + BigInt(i)) })));
+  try {
+    const e = updateEmbed(findUpdate(readAllUpdates(), 'polygon holidays')!);
+    const fields = e.fields ?? [];
+    assert.ok(fields.every((f) => f.value.length <= 1024), 'every field fits');
+    assert.ok(!fields.some((f) => /and more on the patch notes/.test(f.value)), 'nothing cut off');
+    assert.ok(fields.some((f) => f.name === '\u200b'), 'a long section carried on');
+    assert.ok(JSON.stringify(e).length < 6000, 'the embed fits');
+    assert.match(fields.map((f) => f.value).join('\n'), /<:rc_advent:\d+>/);
+  } finally { setCustomEmojis([]); }
 });

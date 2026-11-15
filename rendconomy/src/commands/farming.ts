@@ -95,9 +95,10 @@ function farmView(ctx: Ctx, guildId: string, top: string[] = []): ReplyObject {
   const raining = isEvent(ctx.db, 'rain', undefined, ctx.now), storming = isEvent(ctx.db, 'storm', undefined, ctx.now);
   const seeds = CROP_ORDER.map((id) => [id, count(ctx.db, guildId, ctx.user.id, seedItem(id))] as const).filter(([, q]) => q > 0);
   return {
+    // the field on its own, as plain emoji-only text: Discord shows that at jumbo size (an embed never would)
+    content: grid.join('\n'),
     embeds: [embed('farm', `🌾 ${ctx.user.name}'s farm`, [
       ...top, ...n, (top.length || n.length) ? '' : null,
-      ...grid, '',
       ...Array.from({ length: owned }, (_, i) => plotLine(at(i), i, ctx.now)),
       '',
       raining ? `${emoji('rain')} It's raining: every crop is watered for free.` : null,

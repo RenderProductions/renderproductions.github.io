@@ -8,6 +8,7 @@ import { makeHelp, ping } from './general';
 import { history } from './history';
 import { buy, chart, dividends, market, money, sell } from './market';
 import { farmCommands } from './farming';
+import { holidayCommands } from './holidays';
 import { reserve } from './reserve';
 import { announce } from './announce';
 import { event, heist } from './heists';
@@ -27,7 +28,7 @@ import { apply, gig, job, quit, work } from './work';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, settitle, fish, sellfish, ...farmCommands, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
+commands.push(daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, settitle, fish, sellfish, ...farmCommands, ...holidayCommands, achievements, gift, leaderboard, savings, work, gig, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
 
 installAchievementListeners();
 installLoans();

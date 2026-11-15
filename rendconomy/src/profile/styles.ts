@@ -13,7 +13,8 @@ export const PRESETS: Record<string, { label: string; hex: string }> = {
 };
 export const PAINTS: Record<string, { label: string; hex: string; emoji: string }> = {
   holo: { label: 'Holographic', hex: '#c9a7ff', emoji: '🌈' }, terminal: { label: 'TODD Terminal', hex: '#33ff66', emoji: '🖥️' },
-  sunset: { label: 'Sunset', hex: '#ff7a59', emoji: '🌇' }, void: { label: 'Void', hex: '#e8e8e8', emoji: '🕳️' }, goldrush: { label: 'Gold Rush', hex: '#ffcf33', emoji: '🪙' }
+  sunset: { label: 'Sunset', hex: '#ff7a59', emoji: '🌇' }, void: { label: 'Void', hex: '#e8e8e8', emoji: '🕳️' }, goldrush: { label: 'Gold Rush', hex: '#ffcf33', emoji: '🪙' },
+  candycane: { label: 'Candy Cane', hex: '#ff4d5e', emoji: '🍬' }, frost: { label: 'Frost', hex: '#9fe3ff', emoji: '❄️' }
 };
 export const BANNERS: Record<string, string> = { gradient: 'Gradient', scanlines: 'Scanlines', honeycomb: 'Honeycomb', grid: 'Grid', stars: 'Stars', crown: 'Crown (legendary achievements)' };
 export const FRAMES: Record<string, string> = { none: 'None', glow: 'Glow (legendary achievements)' };
