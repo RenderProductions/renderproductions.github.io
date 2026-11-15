@@ -13,14 +13,18 @@ import { netWorth } from '../social/worth';
 import { execute, parsePrefix } from './router';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
-export function startReminders(db: Db, client: Client): void {
+export function startReminders(db: Db, client: Client, prefix: string): void {
   setInterval(() => {
     const now = Date.now();
     for (const r of db.all<{ key: string; value: string }>("SELECT key, value FROM meta WHERE key LIKE 'remind:%' AND value != '0'")) {
       if (Number(r.value) > now) continue;
       db.setMeta(r.key, 0);
-      const userId = r.key.split(':')[2]!;
-      client.users.fetch(userId).then((u) => u.send('Your next shift is ready.')).catch(() => { /* DMs closed */ });
+      const [, guildId, userId] = r.key.split(':') as [string, string, string];
+      const job = db.get<{ job: string | null }>('SELECT job FROM players WHERE guild_id = ? AND user_id = ?', guildId, userId)?.job;
+      if (!job) continue;   // they quit since
+      const server = client.guilds.cache.get(guildId)?.name;
+      const text = `⏰ Your next shift at **${job}** is ready${server ? ` in **${server}**` : ''}. Clock in with \`${prefix}work\`.\n-# Turn these off with \`${prefix}job remind off\`.`;
+      client.users.fetch(userId).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     }
   }, MINUTE).unref();
 }

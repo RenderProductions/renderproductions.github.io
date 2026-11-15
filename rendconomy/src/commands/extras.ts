@@ -266,13 +266,15 @@ export const dropin: Command = {
 };
 
 export const receipts: Command = {
-  name: 'receipts', aliases: ['receipt'], description: 'DMs about filled orders, broker reports and margin calls: on or off', system: 'wallet',
+  name: 'receipts', aliases: ['receipt'], description: 'DM receipts for trades, purchases, gifts, loans and company money: on or off', system: 'wallet',
   options: [{ name: 'setting', type: 'string', description: 'on or off' }],
   run(ctx, args) {
     const v = String(args.setting ?? '').trim().toLowerCase();
     if (v === 'on' || v === 'off') ctx.db.setMeta(`receipts.off:${ctx.user.id}`, v === 'off' ? '1' : '0');
     const off = ctx.db.meta(`receipts.off:${ctx.user.id}`) === '1';
-    return { content: `DM receipts are **${off ? 'off' : 'on'}**. Use \`${ctx.config.prefix}receipts ${off ? 'on' : 'off'}\` to change it.`, ephemeral: true };
+    return { content: off
+      ? `🧾 Receipts are **off**. No more DMs about trades, purchases, gifts, loans, company money or filled orders. Turn them back on with \`${ctx.config.prefix}receipts on\`.`
+      : `🧾 Receipts are **on**. Trades, shop purchases, gifts, loans, company money and filled orders are sent to your DMs. Turn them off with \`${ctx.config.prefix}receipts off\`.`, ephemeral: true };
   }
 };
 

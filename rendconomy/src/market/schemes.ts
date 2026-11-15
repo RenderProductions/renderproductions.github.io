@@ -65,26 +65,35 @@ export function checkOrders(db: Db, m: MarketData, now = Date.now()): Order[] {
   const filled: Order[] = [];
   if (closedReason(m)) return filled;
   for (const o of db.all<Order>('SELECT * FROM orders ORDER BY id')) {
-    if (now - o.created_at > ORDERS.expireMs) { cancelOrder(db, o, now); notify(o.guild_id, o.user_id, `Your order expired: ${describeOrder(o)}.`); continue; }
+    if (now - o.created_at > ORDERS.expireMs) {
+      cancelOrder(db, o, now);
+      notify(o.guild_id, o.user_id, `⌛ Your order expired after a week without filling: ${describeOrder(o)}.${o.reserved > 0 ? ` The ${format(o.reserved)} set aside for it is back in your wallet.` : ''}`);
+      continue;
+    }
     const q = quote(m, o.ticker);
     if (!q || q.status === 'bankrupt' || q.priceCents <= 0) continue;
     const hit = o.side === 'buy' ? q.priceCents <= o.price : o.kind === 'stop' ? q.priceCents <= o.price : q.priceCents >= o.price;
     if (!hit) continue;
     try {
-      db.tx(() => {
+      const r = db.tx(() => {
+        let done: ReturnType<typeof buy> | null = null;
         if (o.side === 'buy') {
           transfer(db, { from: escrow(o.guild_id, o.user_id), to: wallet(o.guild_id, o.user_id), cents: o.reserved, reason: 'order.release', guildId: o.guild_id, actorId: o.user_id, now });
-          buy(db, m, { guildId: o.guild_id, userId: o.user_id, ticker: o.ticker, qty: o.qty!, now });
+          done = buy(db, m, { guildId: o.guild_id, userId: o.user_id, ticker: o.ticker, qty: o.qty!, now });
         } else {
           const held = sharesOf(db, m, o.guild_id, o.user_id, o.ticker);
           const qty = Math.min(o.qty ?? held, held);
-          if (qty > 0) sell(db, m, { guildId: o.guild_id, userId: o.user_id, ticker: o.ticker, qty, now });
+          if (qty > 0) done = sell(db, m, { guildId: o.guild_id, userId: o.user_id, ticker: o.ticker, qty, now });
         }
         db.run('DELETE FROM orders WHERE id = ?', o.id);
+        return done;
       });
       filled.push(o);
       award(db, o.guild_id, o.user_id, 'set_and_forget', now);
-      notify(o.guild_id, o.user_id, `Order filled at ${format(q.priceCents)}: ${describeOrder(o)}.`);
+      const what = o.side === 'buy' ? 'Limit buy' : o.kind === 'stop' ? 'Stop-loss' : 'Limit sell';
+      notify(o.guild_id, o.user_id, r
+        ? `${o.side === 'buy' ? '📈' : '📉'} **${what} filled:** ${o.side === 'buy' ? 'bought' : 'sold'} **${r.qty} ${o.ticker}** at ${format(r.priceCents)} each, ${format(r.totalCents)} in all. You now hold ${r.shares} ${o.ticker}; balance ${format(r.cash)}.`
+        : `${what} on ${o.ticker} reached its price, but you no longer held any shares, so nothing was sold. The order is closed.`);
     } catch (e) { console.error('[orders]', e); }
   }
   return filled;
@@ -221,7 +230,8 @@ function brokerSell(db: Db, b: Broker, m: MarketData, q: Quote, qty: number, why
   }
   h.shares -= qty; h.cost -= costPart;
   blog(b, `Sold ${qty} ${q.id} at ${format(q.priceCents)} (${why === 'stop' ? 'stop-loss' : why === 'hunch' ? 'on a hunch' : 'target reached'})${profit > 0 ? `, profit ${format(profit)}, cut ${format(cut)}` : ''}.`);
-  notify(b.guild_id, b.user_id, `Broker report from ${b.name}: sold ${qty} ${q.id} at ${format(q.priceCents)}.`);
+  const reason = why === 'stop' ? 'its stop-loss was hit' : why === 'hunch' ? 'on a hunch' : 'its target was reached';
+  notify(b.guild_id, b.user_id, `💼 **Broker report from ${b.name}:** sold ${qty} ${q.id} at ${format(q.priceCents)} each (${format(qty * q.priceCents)}) because ${reason}. ${profit > 0 ? `Profit ${format(profit)}; ${b.name}'s cut was ${format(cut)}.` : `Loss ${format(Math.abs(profit))}.`}`);
 }
 
 // ================================================================ shorts
@@ -293,11 +303,11 @@ export function checkShorts(db: Db, m: MarketData, now = Date.now()): void {
     const price = settlePrice(s, q);
     if (price === 0) {
       const r = coverShort(db, s, 0, now);
-      notify(s.guild_id, s.user_id, `${s.ticker} went bankrupt. Your short paid out in full: ${format(r.back)}.`);
+      notify(s.guild_id, s.user_id, `💥 **${s.ticker} went bankrupt.** Your short on ${s.shares} shares (opened at ${format(s.entry)}) paid out in full: ${format(r.back)} is back in your wallet, a profit of ${format(r.pnl)}.`);
     } else if (-shortPnl(s, price) >= s.margin * SHORTS.call) {
       const r = coverShort(db, s, price, now);
       award(db, s.guild_id, s.user_id, 'margin_call', now);
-      notify(s.guild_id, s.user_id, `Margin call: your ${s.ticker} short was covered at ${format(price)}. Returned: ${format(r.back)}.`);
+      notify(s.guild_id, s.user_id, `⚠️ **Margin call:** ${s.ticker} rose to ${format(price)}, so your short on ${s.shares} shares (opened at ${format(s.entry)}) was covered automatically. Loss ${format(Math.abs(r.pnl))}; ${format(r.back)} of your margin came back to your wallet.`);
     }
   }
 }

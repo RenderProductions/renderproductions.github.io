@@ -152,7 +152,9 @@ export const job: Command = {
     const r = /^(?:remind\s+)?(on|off)$/i.exec(String(args.remind ?? '').trim());
     if (r) {
       ctx.db.setMeta(`remind.on:${ctx.user.id}`, r[1]!.toLowerCase() === 'on' ? '1' : '0');
-      return { content: `Shift reminders are **${r[1]!.toLowerCase()}**.`, ephemeral: true };
+      return { content: r[1]!.toLowerCase() === 'on'
+        ? `⏰ Shift reminders are **on**. After each shift, you'll get a DM when the next one at your job is ready. Turn them off with \`${ctx.config.prefix}job remind off\`.`
+        : `⏰ Shift reminders are **off**. Turn them back on with \`${ctx.config.prefix}job remind on\`.`, ephemeral: true };
     }
     const { player } = me(ctx);
     const guildId = guildOf(ctx);

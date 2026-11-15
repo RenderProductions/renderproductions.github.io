@@ -1,3 +1,4 @@
+import { nameOf, receipt } from '../social/receipts';
 import { economy } from '../config';
 import { player as ensurePlayer } from '../core/economy';
 import { GameError } from '../core/errors';
@@ -61,6 +62,8 @@ export const gift: Command = {
       if (wrapped) useEffect(ctx.db, guildId, ctx.user.id, 'wrap');
     });
     emit('gift.sent', { guildId, fromId: ctx.user.id, toId: to, cents });
+    receipt(ctx.db, guildId, ctx.user.id, `Gift to ${nameOf(ctx.db, to)}`, [['Sent', format(cents)], ['Fee', wrapped ? 'None (Gift Wrap)' : format(fee)], note ? ['Note', note] : null, ['Balance', format(balance(ctx.db, from))]]);
+    receipt(ctx.db, guildId, to, `Gift from ${ctx.user.name}`, [['Received', format(cents)], note ? ['Note', note] : null, ['Balance', format(balance(ctx.db, wallet(guildId, to)))]]);
     return { embeds: [embed('social', 'Gift sent', [
       `<@${to}> received **${format(cents)}**.`,
       wrapped ? 'Gift Wrap: no fee.' : `Fee: ${format(fee)}`,

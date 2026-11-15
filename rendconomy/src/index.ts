@@ -1,4 +1,6 @@
 // RendConomy: starts the bot.
+import { COLORS } from './discord/style';
+import { setReceiptSender } from './social/receipts';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { botConfig, economy, loadEnv } from './config';
 import { dailyBackup } from './core/backups';
@@ -104,9 +106,20 @@ async function main(): Promise<void> {
   client.once(Events.ClientReady, async (c) => {
     console.log(`[${config.name}] logged in as ${c.user.tag}`);
     // DMs about things that happened while a player was away (orders filled, broker reports, margin calls)
-    setNotifier((_g, userId, text) => {
+    // Receipts: a small embed per transaction, with the server it happened in
+    setReceiptSender((r) => {
+      const server = c.guilds.cache.get(r.guildId)?.name;
+      c.users.fetch(r.userId).then((u) => u.send({ embeds: [{
+        title: `🧾 ${r.title}`, color: COLORS.wallet,
+        fields: r.lines.map(([name, value]) => ({ name, value: value.slice(0, 1024), inline: true })),
+        footer: { text: `${server ? `${server} · ` : ''}Turn these off with ${config.prefix}receipts off` }, timestamp: new Date().toISOString()
+      }], allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+    });
+    setNotifier((guildId, userId, text) => {
       if (db.meta(`receipts.off:${userId}`) === '1') return;
-      c.users.fetch(userId).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+      const server = c.guilds.cache.get(guildId)?.name;
+      const content = `${text}\n-# ${server ? `${server} · ` : ''}Turn these off with ${config.prefix}receipts off`;
+      c.users.fetch(userId).then((u) => u.send({ content, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     });
     setLotteryAnnouncer((guildId, text) => {
       const chId = db.meta(`lottery.channel:${guildId}`);
@@ -132,7 +145,7 @@ async function main(): Promise<void> {
         if (ok) { db.setMeta('updates.last', latest.id); console.log(`[updates] posted "${latest.title}"`); }
       }).catch((e: unknown) => console.error('[updates]', e));
     }
-    startReminders(db, c);
+    startReminders(db, c, config.prefix);
     startActivity(db, config, rng, c);
     startApi(db, c);
     startStatus(db, c);

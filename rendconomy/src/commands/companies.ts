@@ -1,3 +1,4 @@
+import { nameOf, receipt } from '../social/receipts';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
 import { balance } from '../core/ledger';
@@ -70,6 +71,7 @@ export const invest: Command = {
     if (c.status !== 'pending' && c.status !== 'private' && c.status !== 'public') throw new GameError('co.dead', 'That company is closed.');
     const cents = parseAmount(args.amount, { all: balance(ctx.db, wallet) });
     investCo(ctx.db, c, guildId, ctx.user.id, cents, ctx.now);
+    receipt(ctx.db, guildId, ctx.user.id, `Invested in ${c.name}`, [['Invested', format(cents)], ['Treasury now', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, wallet))]]);
     return { embeds: [embed('market', 'Invested', [`${format(cents)} into ${c.name}. Treasury: ${format(treasury(ctx.db, c))}.`])] };
   }
 };
@@ -101,6 +103,7 @@ export const salary: Command = {
     if (!alive(c)) throw new GameError('co.pending', 'The company must be approved first.');
     const cents = parseAmount(args.amount, { all: Math.floor(treasury(ctx.db, c) * CO.salaryMaxPct) });
     salaryCo(ctx.db, c, cents, ctx.now);
+    receipt(ctx.db, c.owner_guild, ctx.user.id, `Salary from ${c.name}`, [['Paid to you', format(cents)], ['Treasury left', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, `wallet:${c.owner_guild}:${ctx.user.id}`))]]);
     return { embeds: [embed('market', 'Salary paid', [`${format(cents)} from ${c.name}. Treasury: ${format(treasury(ctx.db, c))}.`])] };
   }
 };

@@ -1,3 +1,4 @@
+import { nameOf, receipt } from '../social/receipts';
 import { GameError } from '../core/errors';
 import { format, parseCount } from '../core/money';
 import * as sessions from '../core/sessions';
@@ -94,6 +95,7 @@ export const purchase: Command = {
     const qty = parseCount(amount || '1', { max: 10 });
     try {
       const r = buy(ctx.db, ctx.rng, guildId, ctx.user.id, id, qty, ctx.now);
+      receipt(ctx.db, guildId, ctx.user.id, `Bought ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name}`, [['Item', `${r.item.emoji} ${r.item.name}`], ['Quantity', String(r.qty)], ['Price', format(r.cost)], ['Balance', format(r.cash)]]);
       return { embeds: [embed('wallet', 'Purchase complete', [`*${marquez('thanks', ctx.rng)}*`, `${r.qty} × ${r.item.emoji} ${r.item.name}: ${format(r.cost)}`, `Balance: ${format(r.cash)}`,
         r.item.passive ? '-# This item works on its own while it is in your inventory.' : `-# Use it with \`${ctx.config.prefix}use ${r.item.name.toLowerCase()}\`.`])] };
     } catch (e) {
