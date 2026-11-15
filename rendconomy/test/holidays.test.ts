@@ -104,7 +104,7 @@ test('Secret Santa: sign up, draw a loop, wrap gifts, delivered on Christmas mor
   // A wraps Polygons and a holiday collectible; B wraps an item; C forgets
   addItem(db, G, A, 'col_snowglobe'); addItem(db, G, B, 'coffee');
   const targetOf = (u: string) => rows.find((r) => r.user_id === u)!.target_id!;
-  assert.match(text(await run('santa', { action: 'gift', amount: '500', item: 'snow globe' }, A)), /You wrap \*\*⬡500\.00\*\* and .*Snow Globe/);
+  assert.match(text(await run('santa', { action: 'gift', amount: '500', item: 'snow globe | Merry Christmas, friend!' }, A)), /You wrap \*\*⬡500\.00\*\* and .*Snow Globe[\s\S]*Merry Christmas, friend!/);
   assert.match(text(await run('santa', { action: 'gift', amount: 'coffee' }, B)), /You wrap .*Coffee/);
   assert.match(text(await run('santa', { action: 'gift', amount: '50' }, A)), /already wrapped/);
   assert.ok(has(db, A, 'secret_santa') && has(db, A, 'regift'));
@@ -124,6 +124,7 @@ test('Secret Santa: sign up, draw a loop, wrap gifts, delivered on Christmas mor
   assert.equal(count(db, G, targetOf(B), 'coffee') >= 1, true);
   assert.equal(before(targetOf(C)) - beforeC, polygons(250), 'C forgot, so Marquez covers it');
   assert.ok(xmas.some((d) => /forgot, so Marquez/.test(d.text)) && xmas.some((d) => new RegExp(`was <@${A}>`).test(d.text)));
+  assert.ok(xmas.some((d) => /was <@\d+>[\s\S]*> Merry Christmas, friend!/.test(d.text)), 'the note comes with the gift');
   holidayTick(db, now(), seededRng(2), send, (id) => id, 'r!');
   assert.equal(dms.length, 6, 'delivered once');
   assert.match(text(await run('santa', {}, targetOf(A))), new RegExp(`Secret Santa was <@${A}>`));

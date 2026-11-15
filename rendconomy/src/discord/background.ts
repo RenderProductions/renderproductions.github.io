@@ -11,7 +11,9 @@ import type { Rng } from '../core/rng';
 import { MINUTE } from '../core/time';
 import { load as loadMarket } from '../market/market';
 import { netWorth } from '../social/worth';
-import { execute, parsePrefix } from './router';
+import { execute, parsePrefix, press } from './router';
+import * as sessions from '../core/sessions';
+import type { ReplyObject } from '../commands/types';
 import { CROPS, plotsOf, simulate, weatherLog } from '../farming/farming';
 import { count } from '../shop/inventory';
 import { holidayTick, isHoliday, season } from '../holidays/holidays';
@@ -69,9 +71,49 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
-const CHAT_ONLY: Record<string, string> = { rocket: 'Rocket', blackjack: 'Blackjack', bus: 'Ride the Bus', hilo: 'Higher or Lower', mines: 'Minesweeper', derby: 'The Derby', heist: 'Heists' };
+// ---------------------------------------------------------------- the Trading Floor's buttons and live updates
+// The Activity can't receive message edits, so it asks: "__press <button id>" presses a button (at the moment
+// the player clicked), and "__poll <key>" fetches the next frame of anything live (the Rocket's multiplier,
+// the Derby race, a heist's countdown). Live updates are kept here in memory for 15 minutes.
+type RelayButton = { label?: string; emoji?: string; id: string; style?: string; disabled?: boolean };
+export interface Relay { content?: string; embeds?: { title?: string; description?: string; fields?: unknown; color?: number; footer?: string }[]; buttons?: RelayButton[][]; live?: string; everyMs?: number }
+const relayLive = new Map<string, { next?: () => ReplyObject | null; everyMs: number; later?: { at: number; edit: ReplyObject }; session?: string; until: number }>();
+let liveSeq = 0;
+
+export function toRelay(out: ReplyObject, now: number): Relay {
+  const r: Relay = {};
+  if (out.content !== undefined) r.content = out.content;
+  if (out.embeds !== undefined) r.embeds = out.embeds.map((e) => ({ title: e.title, description: e.description, fields: e.fields, color: e.color, footer: e.footer?.text }));
+  if (out.buttons !== undefined) r.buttons = out.buttons.map((row) => row.map((x) => ({ label: x.label, emoji: x.emoji, id: x.id, style: x.style, disabled: x.disabled })));
+  if (out.live || out.later) {
+    const key = out.session ?? `live${++liveSeq}`;
+    const old = relayLive.get(key);
+    relayLive.set(key, {
+      next: out.live?.next ?? old?.next, everyMs: Math.max(1500, out.live?.everyMs ?? old?.everyMs ?? 2500),
+      later: out.later ? { at: now + out.later.ms, edit: out.later.edit } : old?.later, session: out.session, until: now + 15 * MINUTE
+    });
+    r.live = key; r.everyMs = relayLive.get(key)!.everyMs;
+  }
+  for (const [k, v] of relayLive) if (v.until < now) relayLive.delete(k);
+  return r;
+}
+
+/** The next frame of something live, for the Activity. done: nothing more will come. */
+export function pollRelay(db: Db, key: string, now: number): { update?: Relay; done: boolean } {
+  const e = relayLive.get(key);
+  if (!e) return { done: true };
+  let out: ReplyObject | null = null;
+  if (e.later && now >= e.later.at) {
+    const later = e.later; e.later = undefined;
+    if (!e.session || sessions.get(db, e.session, now)) out = later.edit;
+  }
+  if (!out && e.next) { try { out = e.next(); } catch (err) { console.error('[live]', err); out = null; } if (!out) e.next = undefined; }
+  const done = !e.next && !e.later;
+  if (done) relayLive.delete(key);
+  return { update: out ? toRelay(out, now) : undefined, done };
+}
 
 /** Polls the Cloudflare Worker for commands sent from the Activity, runs them as that player, sends replies back. */
 export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Client): void {
@@ -79,17 +121,26 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
   if (!url || !secret) { console.log('[activity] ACTIVITY_URL / ACTIVITY_SECRET not set, so the Trading Floor relay is off.'); return; }
   const headers = { 'X-Bot-Secret': secret, 'Content-Type': 'application/json' };
   let busy = false, failing = false;
-  const runOne = async (a: { id: string; guild_id: string; user_id: string; line: string }) => {
+  type Action = { id: string; guild_id: string; user_id: string; line: string; created?: number };
+  const runOne = async (a: Action): Promise<unknown> => {
     const guild = client.guilds.cache.get(a.guild_id);
     if (!guild) return { content: 'The bot is not in this server.' };
     const member = await guild.members.fetch(a.user_id).catch(() => null);
     if (!member) return { content: 'You are not a member of this server.' };
-    const parsed = parsePrefix(config.prefix + String(a.line).replace(/^\S*?!/, ''), config.prefix);
+    // when the player clicked, if the Worker says so (and it's recent): a Rocket cash-out counts from the click
+    const now = Date.now(), at = a.created && now - a.created < 30_000 && a.created <= now ? a.created : now;
+    const ctx = { db, config, rng, now: at, guildId: a.guild_id, channelId: `activity:${a.guild_id}`, user: { id: member.user.id, name: member.user.globalName ?? member.user.username }, isOwner: false, isMod: false, notes: [] as string[] };
+    const line = String(a.line);
+    if (line.startsWith('__poll ')) return pollRelay(db, line.slice(7).trim(), now);
+    if (line.startsWith('__press ')) {
+      const r = press(ctx, line.slice(8).trim());
+      return { update: r.update ? toRelay(r.update, now) : undefined, followUp: r.followUp ? toRelay(r.followUp, now) : undefined, notice: r.notice };
+    }
+    const parsed = parsePrefix(config.prefix + line.replace(/^\S*?!/, ''), config.prefix);
     if (!parsed || 'unknown' in parsed) return { content: 'Unknown command.' };
-    if (CHAT_ONLY[parsed.cmd.name]) return { content: `${CHAT_ONLY[parsed.cmd.name]} needs live buttons. Play it in chat: \`${config.prefix}${parsed.cmd.name}\`.` };
     if (!ALLOWED.has(parsed.cmd.name)) return { content: `\`${parsed.cmd.name}\` does not work from the Trading Floor. Use it in chat.` };
-    const out = await execute(find(parsed.cmd.name)!, { db, config, rng, now: Date.now(), guildId: a.guild_id, channelId: 'activity', user: { id: member.user.id, name: member.user.globalName ?? member.user.username }, isOwner: false, isMod: false, notes: [] }, parsed.args);
-    return { content: out.content ?? '', embeds: (out.embeds ?? []).map((e) => ({ title: e.title, description: e.description, fields: e.fields, color: e.color, footer: e.footer?.text })) };
+    const out = await execute(find(parsed.cmd.name)!, ctx, parsed.args);
+    return { content: '', ...toRelay(out, now) };
   };
   setInterval(async () => {
     if (busy) return;
@@ -97,7 +148,7 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
     try {
       const r = await fetch(`${url}/bot/actions`, { headers });
       if (!r.ok) throw new Error(`Worker said ${r.status}`);
-      const { actions = [] } = (await r.json()) as { actions?: { id: string; guild_id: string; user_id: string; line: string }[] };
+      const { actions = [] } = (await r.json()) as { actions?: Action[] };
       if (actions.length) {
         const results = [];
         for (const a of actions) results.push({ id: a.id, result: await runOne(a).catch((e: unknown) => { console.error('[activity]', e); return { content: 'Something broke. It has been logged.' }; }) });

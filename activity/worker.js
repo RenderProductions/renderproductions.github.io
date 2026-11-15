@@ -84,9 +84,10 @@ async function api(req, env, path, cors) {
     // from the site, only profile changes
     if (cors['Access-Control-Allow-Origin'] && !/^profile (theme|color|banner|frame|pin|reset|private)\b/i.test(String(line))) return out({ error: 'not allowed from the site' }, 403);
     await setup(env);
-    // At most 30 commands a minute per player
-    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM actions WHERE user_id = ? AND created > ?').bind(u.id, Date.now() - 60_000).first();
-    if (recent && recent.n >= 30) return out({ error: 'slow down' }, 429);
+    // At most 30 commands a minute per player; live updates ("__poll", a Rocket in flight) have their own 120
+    const poll = String(line).startsWith('__poll ');
+    const recent = await env.DB.prepare(`SELECT COUNT(*) AS n FROM actions WHERE user_id = ? AND created > ? AND line ${poll ? '' : 'NOT '}LIKE '\\_\\_poll %' ESCAPE '\\'`).bind(u.id, Date.now() - 60_000).first();
+    if (recent && recent.n >= (poll ? 120 : 30)) return out({ error: 'slow down' }, 429);
     const r = await env.DB.prepare('INSERT INTO actions (user_id, username, guild_id, line, created) VALUES (?, ?, ?, ?, ?)')
       .bind(u.id, u.username, g, String(line), Date.now()).run();
     return out({ id: r.meta.last_row_id });
@@ -109,7 +110,7 @@ async function api(req, env, path, cors) {
     if (path === '/bot/actions') {
       // Hand over new commands, and tidy up anything older than an hour
       await env.DB.prepare('DELETE FROM actions WHERE created < ?').bind(Date.now() - 3600_000).run();
-      const { results } = await env.DB.prepare("SELECT id, user_id, username, guild_id, line FROM actions WHERE status = 'new' ORDER BY id LIMIT 25").all();
+      const { results } = await env.DB.prepare("SELECT id, user_id, username, guild_id, line, created FROM actions WHERE status = 'new' ORDER BY id LIMIT 25").all();
       if (results.length) await env.DB.prepare(`UPDATE actions SET status = 'taken' WHERE id IN (${results.map(() => '?').join(',')})`).bind(...results.map((r) => r.id)).run();
       return out({ actions: results });
     }
@@ -133,6 +134,11 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: cors['Access-Control-Allow-Origin'] ? 204 : 403, headers: cors });
     try {
       if (path.startsWith('/api/') || path.startsWith('/bot/')) return await api(req, env, path, cors);
+      // The bot's emojis (rc_*.png), for showing them in the Activity
+      if (/^\/emojis\/rc_[a-z0-9_]{1,40}\.png$/.test(path)) {
+        const r = await fetch(`${REPO}/${env.ACTIVITY_BRANCH || 'main'}/bot${path}`, { cf: { cacheTtl: 3600 } });
+        return r.ok ? new Response(r.body, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' } }) : new Response('Not found', { status: 404 });
+      }
       // Everything else is the Activity's own files, from the repo
       const file = path === '/' ? '/index.html' : path;
       if (!/^\/[a-z0-9._-]+$/i.test(file) || file === '/worker.js') return json({ error: 'not found' }, 404);

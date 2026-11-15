@@ -13,6 +13,7 @@ import { startEvent } from '../src/events/world';
 import { has } from '../src/achievements/achievements';
 import { CROPS, FARMING, newPlot, parseCropItem, plotsOf, simulate, type Env, type Plot } from '../src/farming/farming';
 import { addItem, count } from '../src/shop/inventory';
+import { approve, found } from '../src/companies/companies';
 
 const G = 'g1', A = '111111111111111111';
 const text = (r: ReplyObject | undefined | null) => [r?.content ?? '', ...(r?.embeds ?? []).map((e) => `${e.title}\n${e.description}`)].join('\n');
@@ -166,4 +167,32 @@ test('farming: rain from the world events, and every crop at once', async () => 
   assert.match(last, /raining/);
   assert.ok(has(db, A, 'something_for_everyone'));
   assert.ok(plotsOf(db, G, A).every((p) => p.watered === 1));
+});
+
+test('the farmers\' market pays 10% more and the company earns from it; pumpkins sell for 25% more in October', async () => {
+  const db = freshDb();
+  let now = eastern('2026-10-15T12:00', -5);
+  const B = '222222222222222222';
+  const ctx = (user = A): Ctx => ({ db, config: botConfig(), rng: seededRng(4), now, guildId: G, channelId: 'c', user: { id: user, name: 'Farmer' }, isOwner: false, isMod: false, notes: [] });
+  const run = (name: string, args: Record<string, string> = {}, user = A) => execute(find(name)!, ctx(user), args);
+  await run('balance'); await run('balance', {}, B);
+  transfer(db, { from: RESERVE, to: wallet(G, B), cents: polygons(10_000), reason: 'mod.give' });
+  found(db, G, B, 'Bee', 'FARM', 'Farm to Fork', ['RRM', 'NACH', 'BLU', 'BNW', 'BSTG'], now); approve(db, 'FARM', now);
+  addItem(db, G, A, 'crop_pumpkin', 2);
+  assert.match(text(await run('farm')), new RegExp(`worth \\*\\*⬡${(220 * 1.25 * 2).toLocaleString('en-US')}\\.00`), 'October prices in the basket');
+  assert.match(text(await run('farm', { action: 'sell NOPE' })), /no player company called NOPE/);
+  assert.match(text(await run('farm', { action: 'sell FARM' }, B)), /basket is empty|own company/);
+  const cash = balance(db, wallet(G, A)), tr = balance(db, 'company:FARM');
+  const r = text(await run('farm', { action: 'sell farm' }));
+  assert.match(r, /farmers' market[\s\S]*Farm to Fork[\s\S]*Pumpkin season[\s\S]*10% more than Marquez/);
+  const paid = balance(db, wallet(G, A)) - cash;
+  assert.equal(paid, Math.round(polygons(220) * 1.25 * 2 * 1.1));
+  assert.equal(balance(db, 'company:FARM') - tr, Math.round(paid * 0.25));
+  // November: back to normal
+  now = eastern('2026-11-15T12:00', -5);
+  addItem(db, G, A, 'crop_pumpkin');
+  const c2 = balance(db, wallet(G, A));
+  await run('sellcrops');
+  assert.equal(balance(db, wallet(G, A)) - c2, polygons(220));
+  assert.ok(audit(db).ok);
 });

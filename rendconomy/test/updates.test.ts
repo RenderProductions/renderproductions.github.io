@@ -52,9 +52,9 @@ test('restarts post every entry added since the last post, oldest first; /announ
   assert.equal(findUpdate(all, 'entry b')!.id, 'b');
   assert.equal(findUpdate(all, '')!.id, 'c');
   assert.equal(findUpdate(all, 'nope'), null);
-  // the real page: the next restart posts Animation Expansion, Glossy Makeover, farming, then Polygon Holidays
+  // the real page: the next restart posts Animation Expansion, Glossy Makeover, farming, Polygon Holidays, then The Loose Ends
   const real = readAllUpdates();
-  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays']);
+  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays', 'the-loose-ends']);
   assert.equal(findUpdate(real, 'animation')!.id, 'animation-expansion');
 });
 

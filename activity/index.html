@@ -111,6 +111,7 @@
   .casino { display: flex; align-items: center; gap: 10px; }
   .casino img { width: 44px; height: 44px; }
   .casino-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .casino-btns + .casino-btns { margin-top: 6px; }
   .log-head { margin: 14px 12px 6px; display: flex; justify-content: space-between; align-items: baseline; }
   .log { flex: 1 0 auto; min-height: 160px; padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
   .msg { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--gold-2); border-radius: 6px; padding: 8px 10px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; animation: pop .2s ease-out; }
@@ -120,6 +121,18 @@
   .msg .sub { color: var(--dim); font-size: 10.5px; display: block; }
   .msg code { background: rgba(255, 255, 255, 0.07); padding: 0 4px; border-radius: 3px; }
   .msg .ft { color: var(--faint); font-size: 10.5px; margin-top: 4px; }
+  .msg img.emo { width: 18px; height: 18px; vertical-align: -4px; image-rendering: pixelated; }
+  .msg .jumbo img.emo, .farm .jumbo img.emo { width: 34px; height: 34px; vertical-align: 0; }
+  .msg .jumbo, .farm .jumbo { line-height: 1.05; display: block; margin: 2px 0 4px; }
+  .msg .btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; white-space: normal; }
+  .msg .btns button { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 9px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 5px; }
+  .msg .btns button.success { border-color: rgba(61, 220, 132, 0.6); color: #b9ffd5; } .msg .btns button.danger { border-color: rgba(255, 92, 97, 0.6); color: #ffc2c4; }
+  .msg .btns button.primary { border-color: var(--gold); color: var(--gold); } .msg .btns button:disabled { opacity: 0.4; cursor: default; }
+  .msg .btns img.emo { width: 16px; height: 16px; vertical-align: 0; }
+  .msg .note { color: var(--dim); font-size: 10.5px; margin-top: 4px; display: block; }
+  .farm .jumbo { text-align: center; }
+  .farm-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  #farm-lines { font-size: 11.5px; color: var(--dim); white-space: pre-wrap; }
   form.cl { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; border-top: 1px solid var(--line); background: var(--bg); }
   form.cl span { padding-left: 12px; color: var(--gold); font-family: var(--display); font-size: 20px; }
   form.cl input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; padding: 12px 12px 12px 6px; outline: none; }
@@ -177,6 +190,14 @@
     <div class="card">
       <div class="casino"><img src="art-rendsino.png" alt=""><div><div class="disp" style="font-size:24px;color:var(--gold)">THE REND-SINO</div><div class="label">Quick bets · ⬡ <span id="bet-v">25</span></div></div></div>
       <div class="casino-btns"><button class="sbtn" type="button" data-game="slots {b}">🎰 Slots</button><button class="sbtn" type="button" data-game="coinflip {b} heads">🪙 Flip</button><button class="sbtn" type="button" data-game="roulette {b} red">🎡 Red</button><button class="sbtn" type="button" data-game="dice {b} over 50">🎲 Over 50</button><button class="sbtn" type="button" data-game="roulette {b} 17">🎡 Lucky 17</button><button class="sbtn" type="button" data-game="gambling">📊 Record</button></div>
+      <div class="casino-btns"><button class="sbtn" type="button" data-game="rocket {b}">🚀 Rocket</button><button class="sbtn" type="button" data-game="blackjack {b}">🃏 Blackjack</button><button class="sbtn" type="button" data-game="mines {b}">💣 Mines</button><button class="sbtn" type="button" data-game="hilo {b}">🔼 Hi-Lo</button><button class="sbtn" type="button" data-game="bus {b}">🚌 The Bus</button><button class="sbtn" type="button" data-game="derby">🐎 Derby</button></div>
+      <div class="casino-btns"><button class="sbtn" type="button" data-game="heist vault">🦹 Heist: vault</button><button class="sbtn" type="button" data-game="heist stash">🦹 Stash</button><button class="sbtn" type="button" data-game="heist reserve">🏦 Reserve</button></div>
+    </div>
+    <div class="card farm" id="farm-card">
+      <div class="label">Your farm</div>
+      <div class="jumbo" id="farm-grid">—</div>
+      <div id="farm-lines"></div>
+      <div class="farm-btns"><button class="sbtn" type="button" data-farm="water">💧 Water</button><button class="sbtn" type="button" data-farm="harvest">🧺 Harvest</button><button class="sbtn" type="button" data-farm="farm sell">💰 Sell</button><button class="sbtn" type="button" data-farm="plant carrot">🥕 Plant</button></div>
     </div>
     <div class="log-head"><span class="label">The tape</span><span class="label" style="text-transform:none;letter-spacing:0">type any command below</span></div>
     <div class="log" id="log" aria-live="polite"></div>
@@ -184,6 +205,7 @@
   </aside>
 </main>
 
+<script src="holiday.js" defer></script>
 <script type="module">
 import { DiscordSDK } from './sdk.js';
 
@@ -204,7 +226,10 @@ const EVENTS = {
   bear_rumors: () => '🐻 Bear Rumors: shorts open with no fee',
   chatty: () => '💬 Gossip Hour: chat pay is doubled',
   spotlight: (t) => `🔦 Hiring Spree: ${t} shifts pay 2x`,
-  fire_sale: (t) => `🔥 Fire Sale: shorts on ${t} open with no fee`
+  fire_sale: (t) => `🔥 Fire Sale: shorts on ${t} open with no fee`,
+  rain: () => '🌧️ Rain: every crop is watered for free',
+  storm: () => '⛈️ Storm: crops outside a Greenhouse can be flattened',
+  snow_day: () => '❄️ Snow Day: no work today, chat pay is doubled'
 };
 let sdk = null, token = null, me = null, market = null, week = null, pick = null, range = 24;
 const nameOf = (c) => (market.names && market.names[c.id]) || c.name;
@@ -216,6 +241,7 @@ function md(text) {
     if (line.startsWith('-# ')) { small = true; line = line.slice(3); }
     line = line
       .replace(/&lt;t:(\d+)(?::([A-Za-z]))?&gt;/g, (_, s, f) => { const d = new Date(Number(s) * 1000); if (f === 'R') { const m = Math.round((d - Date.now()) / 60000); return Math.abs(m) < 60 ? (m >= 0 ? `in ${m}m` : `${-m}m ago`) : (m >= 0 ? `in ${Math.round(m / 60)}h` : `${Math.round(-m / 60)}h ago`); } return d.toLocaleString(); })
+      .replace(/&lt;a?:(rc_[a-z0-9_]+):\d+&gt;/gi, '<img class="emo" src="emojis/$1.png" alt="">').replace(/&lt;a?:\w+:\d+&gt;/g, '')
       .replace(/&lt;#\d+&gt;/g, '#channel').replace(/&lt;@!?\d+&gt;/g, '@someone')
       .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/^# (.*)$/, '<b style="font-family:var(--display);font-size:24px">$1</b>');
@@ -224,7 +250,8 @@ function md(text) {
 }
 function render(result) {
   if (!result) return '';
-  let h = result.content ? md(result.content) : '';
+  const onlyEmoji = result.content && /^(\s|<a?:\w+:\d+>|\p{Extended_Pictographic}|\uFE0F)+$/u.test(result.content);
+  let h = result.content ? (onlyEmoji ? `<span class="jumbo">${md(result.content)}</span>` : md(result.content)) : '';
   for (const e of result.embeds || []) {
     if (e.title) h += `<h4>${md(e.title)}</h4>`;
     if (e.description) h += md(e.description);
@@ -250,15 +277,75 @@ async function run(line, quiet) {
   if (!quiet) log(line, { content: "The bot didn't answer. It might be restarting." });
   return null;
 }
+// A reply in the tape. Game replies carry buttons (pressed through the bot) and may be live (polled for frames).
 function log(line, result) {
+  if (!result) return;
   const d = document.createElement('div');
   d.className = 'msg';
-  const color = result && result.embeds && result.embeds[0] && result.embeds[0].color;
-  if (color) d.style.borderLeftColor = '#' + color.toString(16).padStart(6, '0');
-  const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  d.innerHTML = `<div class="cmd"><span>r!${esc(line)}</span><span>${time}</span></div>` + render(result);
+  d._state = { content: result.content, embeds: result.embeds, buttons: result.buttons };
+  d._line = line;
+  paint(d);
   $('log').prepend(d);
   while ($('log').children.length > 40) $('log').lastChild.remove();
+  if (result.live) follow(d, result.live, result.everyMs);
+}
+function paint(d) {
+  const st = d._state;
+  const color = st.embeds && st.embeds[0] && st.embeds[0].color;
+  if (color) d.style.borderLeftColor = '#' + color.toString(16).padStart(6, '0');
+  const time = d._time || (d._time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
+  d.innerHTML = `<div class="cmd"><span>r!${esc(d._line)}</span><span>${time}</span></div>` + render(st) + (d._note ? `<span class="note">${md(d._note)}</span>` : '');
+  const rows = (st.buttons || []).flat();
+  if (rows.length) {
+    const box = document.createElement('div');
+    box.className = 'btns';
+    for (const b of rows) {
+      const x = document.createElement('button');
+      x.type = 'button'; x.className = b.style || ''; x.disabled = !!b.disabled;
+      x.innerHTML = (b.emoji ? (/^<a?:/.test(b.emoji) ? md(b.emoji) : esc(b.emoji)) + ' ' : '') + esc(b.label || '');
+      x.addEventListener('click', () => pressBtn(d, b.id));
+      box.appendChild(x);
+    }
+    d.appendChild(box);
+  }
+}
+function apply(d, u) {
+  if (!u) return;
+  for (const k of ['content', 'embeds', 'buttons']) if (u[k] !== undefined) d._state[k] = u[k];
+  paint(d);
+  if (u.live && u.live !== d._live) follow(d, u.live, u.everyMs);
+}
+async function pressBtn(d, id) {
+  d.querySelectorAll('.btns button').forEach((b) => { b.disabled = true; });
+  const r = await run('__press ' + id, true);
+  if (!r) { d._note = "Couldn't reach the bot. Try again."; paint(d); return; }
+  d._note = r.notice || '';
+  if (r.update) apply(d, r.update); else paint(d);
+  if (r.followUp) log(d._line, r.followUp);
+  refreshDesk();
+}
+// Live frames: the Rocket climbing, the Derby race, a heist's countdown. Stops when the bot says it's done.
+function follow(d, key, every) {
+  d._live = key;
+  const tick = async () => {
+    if (d._live !== key || !d.isConnected) return;
+    const r = await run('__poll ' + key, true);
+    if (d._live !== key) return;
+    if (r && r.update) apply(d, r.update);
+    if (!r || r.done) { d._live = null; refreshDesk(); return; }
+    setTimeout(tick, Math.max(1500, every || 2500));
+  };
+  setTimeout(tick, Math.max(1500, every || 2500));
+}
+
+// ---------- the farm card ----------
+async function refreshFarm() {
+  const r = await run('farm', true);
+  if (!r) return;
+  $('farm-grid').innerHTML = r.content ? md(r.content) : '—';
+  const e = r.embeds && r.embeds[0];
+  const lines = e && e.description ? e.description.split('\n').filter((l) => /^\*\*\d+\.\*\*|Basket:/.test(l)) : [];
+  $('farm-lines').innerHTML = lines.map(md).join('\n');
 }
 // Your desk: pulls the numbers out of r!balance
 async function refreshDesk() {
@@ -266,9 +353,10 @@ async function refreshDesk() {
   const e = r && r.embeds && r.embeds[0];
   if (!e || !e.description) return;
   const pick = (label) => { const m = e.description.match(new RegExp(label + ':\\s*\\*\\*([^*]+)\\*\\*')); return m ? m[1].trim() : null; };
-  const nw = pick('Net worth');
-  $('worth').innerHTML = nw ? '<span class="hx">⬡</span>' + esc(nw.replace(/^[⬡⬢]\s*/, '')) : '—';
-  const rows = [['Polygons', pick('Polygons')], ['Stocks', pick('Stocks')], ['In savings', pick('In savings')], ['Shorts', pick('Shorts')], ['Owed to TODD', pick('Owed to TODD')]].filter((x) => x[1]);
+  const nwm = e.description.match(/Net worth:\s*([^*\n]+)\*\*/);
+  const nw = nwm ? nwm[1].trim() : null;
+  $('worth').innerHTML = nw ? (nw.startsWith('−') ? '−' : '') + '<span class="hx">⬡</span>' + esc(nw.replace(/^−?\s*[⬡⬢]\s*/, '')) : '—';
+  const rows = [['Cash', pick('Cash')], ['Shares', pick('Shares')], ['Savings', pick('Savings')], ['Shorts', pick('Short positions')], ['Loans to repay', pick('Loans to repay')], ['Owed to TODD', pick('Owed to TODD')]].filter((x) => x[1]);
   $('desk-lines').innerHTML = rows.map(([k, v]) => `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>`).join('');
 }
 
@@ -409,6 +497,7 @@ document.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click',
 })));
 document.querySelectorAll('[data-cmd]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.cmd); refreshDesk(); })));
 document.querySelectorAll('[data-game]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.game.replace('{b}', $('bet-v').textContent)); refreshDesk(); })));
+document.querySelectorAll('[data-farm]').forEach((b) => b.addEventListener('click', () => busy(async () => { await run(b.dataset.farm); refreshFarm(); refreshDesk(); })));
 $('cl').addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = $('line').value.trim().replace(/^[rt]!/i, '');
@@ -442,6 +531,8 @@ async function start() {
     presence();
     refreshDesk();
     setInterval(refreshDesk, 60000);
+    refreshFarm();
+    setInterval(refreshFarm, 120000);
     log('welcome', { content: "**Welcome to the Trading Floor.** Pick a company to trade it, try a quick bet at the Rend-Sino, or type any command below.\n-# Everything here runs through Render's Vision, as you, in this server." });
   } catch (e) {
     console.error(e);

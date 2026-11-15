@@ -149,7 +149,7 @@ export function holidayTick(db: Db, now: number, rng: Rng, send: Send, itemName:
     }
     for (const d of deliver(db, g, now)) {
       send(d.to, g, (s) => d.from
-        ? `🎁 **Merry Christmas!** Your Secret Santa in **${s}** was <@${d.from}>. They gave you ${giftText(d.cents, d.item, itemName)}.`
+        ? `🎁 **Merry Christmas!** Your Secret Santa in **${s}** was <@${d.from}>. They gave you ${giftText(d.cents, d.item, itemName)}.${d.note ? `\n> ${d.note}` : ''}`
         : `🎁 **Merry Christmas!** Your Secret Santa in **${s}** forgot, so Marquez left something under the tree for you: **${format(d.cents)}**. "Happy holidays, friend."`);
     }
   }

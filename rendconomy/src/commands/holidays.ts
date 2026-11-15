@@ -46,7 +46,8 @@ export const santa: Command = {
   options: [
     { name: 'action', type: 'string', description: 'Blank for your status, or: join, leave, gift' },
     { name: 'amount', type: 'string', description: 'For gift: Polygons to give (no fee)' },
-    { name: 'item', type: 'string', description: 'For gift: an item from your inventory to give' }
+    { name: 'item', type: 'string', description: 'For gift: an item from your inventory, then "| a note" if you like' },
+    { name: 'note', type: 'string', description: 'For gift: a note, read on Christmas morning' }
   ],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -74,7 +75,12 @@ export const santa: Command = {
       if (state !== 'drawn' || !me_?.target_id) throw new GameError('santa.notdrawn', state === 'cancelled' ? 'Secret Santa is off in this server this year.' : `Names are drawn on December ${HOLIDAY.drawDay}. Gift after that.`);
       if (me_.gifted_at) throw new GameError('santa.done', 'Your gift is already wrapped and under the tree.');
       if (!isHoliday(ctx.now) || day >= HOLIDAY.revealDay) throw new GameError('santa.late', 'Christmas has come and gone. Next year!');
-      let amountText = String(args.amount ?? '').trim(), itemText = String(args.item ?? '').trim();
+      // "r!santa gift 500 coffee | Merry Christmas!": everything after the | is the note
+      const all = `${String(args.amount ?? '')} ${String(args.item ?? '')}`;
+      const bar = all.indexOf('|');
+      const note = (bar >= 0 ? all.slice(bar + 1) : String(args.note ?? '')).replace(/[`*_~]/g, '').trim().slice(0, 200);
+      const before = bar >= 0 ? all.slice(0, bar).trim().split(/\s+/) : [String(args.amount ?? '').trim(), String(args.item ?? '').trim()];
+      let amountText = (before[0] ?? '').trim(), itemText = before.slice(1).join(' ').trim();
       if (amountText && !/^[\d.,]+[kmb]?$/i.test(amountText)) { itemText = `${amountText} ${itemText}`.trim(); amountText = ''; }
       const cents = amountText ? parseAmount(amountText, { min: HOLIDAY.giftMin }) : 0;
       if (cents > HOLIDAY.giftMax) throw new GameError('santa.max', `Secret Santa gifts go up to ${format(HOLIDAY.giftMax)}.`);
@@ -84,11 +90,12 @@ export const santa: Command = {
       if (balance(ctx.db, wallet) < cents) throw new GameError('funds.short', `The balance is ${format(balance(ctx.db, wallet))}.`);
       ctx.db.tx(() => {
         if (item) takeItem(ctx.db, guildId, ctx.user.id, item);
-        wrapGift(ctx.db, guildId, ctx.user.id, cents, item, '', ctx.now);
+        wrapGift(ctx.db, guildId, ctx.user.id, cents, item, note, ctx.now);
       });
       awardHere('secret_santa');
       if (item && HOLIDAY_COLLECTIBLES[item]) awardHere('regift');
       return say([`🎁 You wrap ${[cents ? `**${format(cents)}**` : null, item ? itemLabel(item) : null].filter(Boolean).join(' and ')} for <@${me_.target_id}> and slip it under the tree.`,
+        note ? `With a note: *"${note}"*` : `-# Add a note next time with \`${P}santa gift 500 | Merry Christmas!\``,
         'They\'ll find out who it was from on Christmas morning. No fee, Santa\'s orders.']);
     }
 
@@ -100,9 +107,9 @@ export const santa: Command = {
     if (state === 'cancelled') return say(['Secret Santa is off in this server this year: it needs at least 3 people.']);
     return say([
       `You're shopping for <@${fromMe.target_id}>.`,
-      fromMe.gifted_at ? `🎁 Under the tree: ${[fromMe.gift_cents ? `**${format(fromMe.gift_cents)}**` : null, fromMe.gift_item ? itemLabel(fromMe.gift_item) : null].filter(Boolean).join(' and ')}.${fromMe.delivered ? ' Delivered!' : ''}`
+      fromMe.gifted_at ? `🎁 Under the tree: ${[fromMe.gift_cents ? `**${format(fromMe.gift_cents)}**` : null, fromMe.gift_item ? itemLabel(fromMe.gift_item) : null].filter(Boolean).join(' and ')}.${fromMe.note ? ` Note: *"${fromMe.note}"*` : ''}${fromMe.delivered ? ' Delivered!' : ''}`
         : `Nothing wrapped yet: \`${P}santa gift <amount> [item]\`, before Christmas.`,
-      forMe?.delivered ? `\nYour own Secret Santa was <@${forMe.user_id}>.` : day >= HOLIDAY.revealDay || !isHoliday(ctx.now) ? null : `\nSomeone is shopping for you too. You'll find out who on Christmas morning.`
+      forMe?.delivered ? `\nYour own Secret Santa was <@${forMe.user_id}>.${forMe.note ? ` Their note: *"${forMe.note}"*` : ''}` : day >= HOLIDAY.revealDay || !isHoliday(ctx.now) ? null : `\nSomeone is shopping for you too. You'll find out who on Christmas morning.`
     ]);
   }
 };

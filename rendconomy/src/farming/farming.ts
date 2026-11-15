@@ -9,7 +9,7 @@
 import type { Db } from '../core/db';
 import { polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
-import { HOUR, MINUTE } from '../core/time';
+import { HOUR, MINUTE, dayKey } from '../core/time';
 
 export const FARMING = {
   startPlots: 3, maxPlots: 9,
@@ -53,6 +53,11 @@ export function parseCropItem(item: string): { crop: Crop; mut: Mutation | null;
   return { crop: c, mut, value: c.value * (mut ? MUTATIONS[mut].mult : 1), name: mut ? `${MUTATIONS[mut].label} ${c.name}` : c.name, emojiKey: mut ? `${mut}_${c.id}` : c.id, emoji: c.emoji };
 }
 export const isCropItem = (item: string): boolean => parseCropItem(item) !== null;
+
+/** Pumpkin season: every pumpkin (golden, rainbow and square too) sells for 25% more in October, Eastern time. */
+export const MARKET = { octoberPumpkins: 1.25, farmersMarket: 1.1, companyCut: 0.25 };
+export const isOctober = (now: number): boolean => dayKey(now).slice(5, 7) === '10';
+export const saleValue = (c: { crop: Crop; value: Cents }, now: number): Cents => Math.round(c.value * (c.crop.id === 'pumpkin' && isOctober(now) ? MARKET.octoberPumpkins : 1));
 
 /** Rolls what a harvest comes out as. */
 export function rollMutation(cropId: string, rng: Rng): Mutation | null {

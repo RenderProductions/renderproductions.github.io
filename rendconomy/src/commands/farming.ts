@@ -1,4 +1,5 @@
 // Farming commands: /farm, /plant, /water, /harvest, /sellcrops, /fertilize, /compost, /buyplot.
+import { addRevenue, alive, getCompany } from '../companies/companies';
 import { awardHere, bump, getProgress, sameDay, setProgress } from '../achievements/achievements';
 import { economy } from '../config';
 import { payFromReserve, payoutFactor } from '../core/economy';
@@ -10,7 +11,7 @@ import { emoji, emojiOr } from '../discord/emoji';
 import { embed } from '../discord/style';
 import { isEvent } from '../events/world';
 import {
-  CROPS, CROP_ORDER, FARMING, MUTATIONS, cropItem, newPlot, nextPlotPrice, parseCropItem, plotCount, readyEstimate, remindOn, resolveFarm, rollMutation,
+  CROPS, CROP_ORDER, FARMING, MARKET, MUTATIONS, isOctober, saleValue, cropItem, newPlot, nextPlotPrice, parseCropItem, plotCount, readyEstimate, remindOn, resolveFarm, rollMutation,
   savePlot, clearPlot, seedItem, setPlotCount, setRemind, stageOf, weatherLog, type Env, type FarmEvent, type Mutation, type Plot
 } from '../farming/farming';
 import { addItem, count, items, takeItem } from '../shop/inventory';
@@ -90,7 +91,7 @@ function farmView(ctx: Ctx, guildId: string, top: string[] = []): ReplyObject {
   for (let r = 0; r < 3; r++) grid.push([0, 1, 2].map((c) => tile(at(r * 3 + c), r * 3 + c >= owned)).join(''));
   const b = basket(ctx, guildId);
   const inBasket = b.reduce((s, r) => s + r.qty, 0);
-  const worth = Math.floor(b.reduce((s, r) => s + r.c.value * r.qty, 0) * payoutFactor(ctx.db, economy.reserveStart));
+  const worth = Math.floor(b.reduce((s, r) => s + saleValue(r.c, ctx.now) * r.qty, 0) * payoutFactor(ctx.db, economy.reserveStart));
   const price = nextPlotPrice(owned);
   const raining = isEvent(ctx.db, 'rain', undefined, ctx.now), storming = isEvent(ctx.db, 'storm', undefined, ctx.now);
   const seeds = CROP_ORDER.map((id) => [id, count(ctx.db, guildId, ctx.user.id, seedItem(id))] as const).filter(([, q]) => q > 0);
@@ -116,7 +117,7 @@ export const farm: Command = {
   run(ctx, args) {
     const { guildId } = me(ctx);
     const [word = '', ...rest] = String(args.action ?? '').trim().toLowerCase().split(/\s+/);
-    if (word === 'sell') return sellcrops.run(ctx, {});
+    if (word === 'sell') return sellcrops.run(ctx, { company: rest.join(' ') });
     if (word === 'water') return water.run(ctx, {});
     if (['harvest', 'reap', 'pick'].includes(word)) return harvest.run(ctx, {});
     if (['buy', 'expand', 'plot'].includes(word)) return buyplot.run(ctx, {});
@@ -235,21 +236,35 @@ export const harvest: Command = {
 };
 
 export const sellcrops: Command = {
-  name: 'sellcrops', aliases: ['sellharvest', 'sellcrop', 'sellbasket'], description: 'Sell your whole harvest to Marquez', system: 'farm', guildOnly: true,
-  run(ctx) {
+  name: 'sellcrops', aliases: ['sellharvest', 'sellcrop', 'sellbasket'], description: 'Sell your whole harvest to Marquez, or to a player company at the farmers\' market', system: 'farm', guildOnly: true,
+  options: [{ name: 'company', type: 'string', description: 'A player company\'s ticker: it pays 10% more and earns from the sale' }],
+  run(ctx, args) {
     const { guildId, wallet } = me(ctx);
+    const P = ctx.config.prefix;
     const b = basket(ctx, guildId);
-    if (!b.length) throw new GameError('farm.empty', `Your basket is empty. Harvest something first: \`${ctx.config.prefix}harvest\`.`);
+    if (!b.length) throw new GameError('farm.empty', `Your basket is empty. Harvest something first: \`${P}harvest\`.`);
+    const ticker = String(args.company ?? '').trim().toUpperCase();
+    const co = ticker ? getCompany(ctx.db, ticker) : null;
+    if (ticker && !alive(co)) throw new GameError('farm.market', `There's no player company called ${ticker}. \`${P}companies\` lists them.`);
+    if (co && co.owner_id === ctx.user.id) throw new GameError('farm.own', 'Selling to your own company? Marquez raises an eyebrow. Pick someone else\'s.');
     return ctx.db.tx(() => {
-      const total = b.reduce((s, r) => s + r.c.value * r.qty, 0);
+      const value = (r: (typeof b)[number]) => saleValue(r.c, ctx.now);
+      const base = b.reduce((s, r) => s + value(r) * r.qty, 0);
+      const total = co ? Math.round(base * MARKET.farmersMarket) : base;
       for (const r of b) takeItem(ctx.db, guildId, ctx.user.id, r.item, r.qty);
-      const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: total, reason: 'farm.sell', guildId, actorId: ctx.user.id, now: ctx.now });
+      const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: total, reason: 'farm.sell', guildId, actorId: ctx.user.id, now: ctx.now, note: co ? { company: co.ticker } : undefined });
+      if (co) addRevenue(ctx.db, co.ticker, Math.round(paid * MARKET.companyCut), ctx.now);
       if (bump(ctx.db, ctx.user.id, 'farm_earned', paid) >= polygons(100_000)) awardHere('cash_crop');
       const n = b.reduce((x, r) => x + r.qty, 0);
       const say = b.some((r) => r.c.mut === 'square') ? 'square' : b.some((r) => r.c.mut) ? 'golden' : 'crops';
-      return { embeds: [embed('farm', '🧺 Harvest sold', [`*${marquez(say, ctx.rng)}*`, '',
-        ...b.sort((x, y) => y.c.value - x.c.value).map((r) => `${emojiOr(r.c.emojiKey, r.c.emoji)} ${r.c.name} × ${r.qty}: ${format(r.c.value * r.qty)}`), '',
-        `He pays **${format(paid)}** for ${n} ${n === 1 ? 'crop' : 'crops'}.`, `-# Balance: ${format(balance(ctx.db, wallet))}`])] };
+      const october = isOctober(ctx.now) && b.some((r) => r.c.crop.id === 'pumpkin');
+      return { embeds: [embed('farm', co ? `🧺 Sold at the farmers' market` : '🧺 Harvest sold', [
+        co ? `${emoji('company')} **${co.name}** (${co.ticker}) buys your whole basket for its kitchens.` : `*${marquez(say, ctx.rng)}*`, '',
+        ...b.sort((x, y) => value(y) - value(x)).map((r) => `${emojiOr(r.c.emojiKey, r.c.emoji)} ${r.c.name} × ${r.qty}: ${format(value(r) * r.qty)}`), '',
+        october ? `🎃 Pumpkin season: pumpkins sell for ${Math.round((MARKET.octoberPumpkins - 1) * 100)}% more all October.` : null,
+        co ? `They pay **${format(paid)}** for ${n} ${n === 1 ? 'crop' : 'crops'}, ${Math.round((MARKET.farmersMarket - 1) * 100)}% more than Marquez, and ${co.ticker} earns ${format(Math.round(paid * MARKET.companyCut))} from it.`
+          : `He pays **${format(paid)}** for ${n} ${n === 1 ? 'crop' : 'crops'}.`,
+        `-# Balance: ${format(balance(ctx.db, wallet))}${co ? '' : ` · Player companies pay 10% more: \`${P}farm sell <ticker>\``}`])] };
     });
   }
 };
