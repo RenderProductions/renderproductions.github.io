@@ -10,7 +10,7 @@ import { payFromReserve } from '../core/economy';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
 import { guildOf, me } from './shared';
-import { buyShares as buyCompanyShares, getCompany, holding as companyHolding, sellShares as sellCompanyShares } from '../companies/companies';
+import { buyShares as buyCompanyShares, change, fairValue, getCompany, holding as companyHolding, sellShares as sellCompanyShares, spark } from '../companies/companies';
 import { TICKERS } from '../market/market';
 import type { Ctx } from './types';
 
@@ -219,7 +219,23 @@ export const chart: Command = {
     const m = current(ctx.db);
     const t = String(args.ticker ?? '').trim().toUpperCase();
     const q = quote(m, t);
-    if (!q) throw new GameError('stock.unknown', `There is no company with the ticker ${t}. Tickers: ${m.companies.map((c) => c.id).join(', ')}.`);
+    if (!q) {
+      // a player company: its own 24 hours, and the full chart on its page on the site
+      const c = getCompany(ctx.db, t);
+      if (c && c.status === 'public') {
+        const h = c.history.length ? c.history : [c.price];
+        const ch = change(c), fair = fairValue(ctx.db, c);
+        return { embeds: [embed('market', `${c.name} (${c.ticker})`, [
+          `**${format(Math.round(c.price * 100))}**  ${emoji(ch >= 0 ? 'up' : 'down')} ${ch >= 0 ? '+' : ''}${ch.toFixed(2)}%`,
+          spark(h),
+          `24h high **${format(Math.round(Math.max(...h) * 100))}** · low **${format(Math.round(Math.min(...h) * 100))}**`,
+          `A share is really worth about **${format(Math.round(fair * 100))}**; the price drifts toward it.`,
+          `-# Player company · the full chart is on its page (click the title)`
+        ], { footer: { text: 'Last 24 hours' } })] };
+      }
+      if (c && c.status === 'private') throw new GameError('stock.private', `${c.name} (${c.ticker}) is a private company, so it has no share price yet.`);
+      throw new GameError('stock.unknown', `There is no company with the ticker ${t}. Tickers: ${m.companies.map((c) => c.id).join(', ')}, or a public player company.`);
+    }
     const url = (m.charts as Record<string, string> | undefined)?.[t];
     return { embeds: [embed('market', `${q.name} (${t})`, [`**${format(q.priceCents)}**  ${pct(q.change)}`, q.spark, q.status !== 'ok' ? plain(q.statusText) : null],
       url ? { image: { url }, footer: { text: 'Last 24 hours · prices update every 5 minutes' } } : { footer: { text: 'Last 24 hours' } })] };

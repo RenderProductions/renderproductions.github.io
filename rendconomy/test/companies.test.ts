@@ -41,7 +41,9 @@ test('found, approve or reject, invest, upgrade, go public, trade shares, salary
   await run('invest', { amount: '20000' });
   assert.match(text(await run('upgrade')), /now a Small Business/);
   assert.match(text(await run('upgrade')), /now a Firm/);
+  assert.match(text(await run('chart', { ticker: 'MEOW' })), /private company/);
   assert.match(text(await run('ipo')), /Cat Corp is public[\s\S]*Opening price/);
+  assert.match(text(await run('chart', { ticker: 'MEOW' })), /Cat Corp \(MEOW\)[\s\S]*24h high[\s\S]*really worth/);
   assert.match(text(await run('buy', { ticker: 'MEOW', amount: '10' })), /cannot own shares of your own company/);
   const before = treasury(db, getCompany(db, 'MEOW')!);
   assert.match(text(await run('buy', { ticker: 'MEOW', amount: '10' }, B)), /Bought 10 MEOW/);
