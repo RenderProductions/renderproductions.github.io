@@ -1,5 +1,6 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
+import { consoleFromDm } from './console';
 import { emoji, emojiOr } from './emoji';
 import http from 'node:http';
 import type { Client } from 'discord.js';
@@ -147,6 +148,11 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
   let busy = false, failing = false;
   type Action = { id: string; guild_id: string; user_id: string; line: string; created?: number };
   const runOne = async (a: Action): Promise<unknown> => {
+    // the site's admin console: owners only (the Worker has already checked who's logged in)
+    if (String(a.line).startsWith('__console ')) {
+      if (!config.ownerIds.includes(a.user_id)) return { content: 'ACCESS DENIED', denied: true };
+      return { content: await consoleFromDm(String(a.line).slice(10)) };
+    }
     const guild = client.guilds.cache.get(a.guild_id);
     if (!guild) return { content: 'The bot is not in this server.' };
     const member = await guild.members.fetch(a.user_id).catch(() => null);

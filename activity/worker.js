@@ -36,7 +36,7 @@ async function setup(env) {
   ready = true;
 }
 // What the site may ask the bot to do (the first word of the line). The bot checks again.
-const SITE_COMMANDS = /^(__press|__poll|profile|balance|bal|daily|dividends|savings|buy|sell|short|cover|shop|purchase|inventory|inv|use|gift|trade|showcase|inbox|oddjob|farm|plant|water|harvest|sellcrops|fertilize|compost|buyplot|farmhand|achievements|market|history|loans|advent|santa)\b/i;
+const SITE_COMMANDS = /^(__console|__press|__poll|profile|balance|bal|daily|dividends|savings|buy|sell|short|cover|shop|purchase|inventory|inv|use|gift|trade|showcase|inbox|oddjob|farm|plant|water|harvest|sellcrops|fertilize|compost|buyplot|farmhand|achievements|market|history|loans|advent|santa)\b/i;
 
 const SITE = 'https://renderproductions.github.io';
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra } });
@@ -92,7 +92,7 @@ async function api(req, env, path, cors) {
     const u = await user(req);
     if (!u) return out({ error: 'not logged in' }, 401);
     const { guild_id: g, line } = await req.json().catch(() => ({}));
-    if (!/^\d{5,25}$/.test(String(g || '')) || !line || String(line).length > 200) return out({ error: 'bad request' }, 400);
+    if (!/^\d{5,25}$/.test(String(g || '')) || !line || String(line).length > (String(line).startsWith('__console ') ? 1200 : 200)) return out({ error: 'bad request' }, 400);
     // from the site, only the site's commands
     if (cors['Access-Control-Allow-Origin'] && !SITE_COMMANDS.test(String(line))) return out({ error: 'not allowed from the site' }, 403);
     await setup(env);
