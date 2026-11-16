@@ -14,6 +14,8 @@ import { onHelpButton } from './general';
 import { onQuitButton, onStrikeButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
 
+import { onOddjobText } from './connections';
+
 export interface SessionHandler {
   onButton(ctx: Ctx, s: Session<any>, value: string): SessionReply;
   /** Typed answers in the session's channel (optional). Return null to ignore the message. */
@@ -22,6 +24,7 @@ export interface SessionHandler {
 
 export const handlers: Record<string, SessionHandler> = {
   [shift.KIND]: { onButton: shift.onButton, onText: shift.onText },
+  oddjob: { onButton: () => ({}), onText: onOddjobText },
   quit: { onButton: onQuitButton },
   strike: { onButton: onStrikeButton },
   wipe: { onButton: onWipeButton },

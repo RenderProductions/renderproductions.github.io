@@ -9,7 +9,7 @@ import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import { DAY, HOUR } from '../src/core/time';
 import * as sessions from '../src/core/sessions';
-import { execute } from '../src/discord/router';
+import { execute, typedAnswer } from '../src/discord/router';
 import { award, has } from '../src/achievements/achievements';
 import { addItem, count } from '../src/shop/inventory';
 import { unread } from '../src/social/inbox';
@@ -75,7 +75,7 @@ test('the inbox collects receipts and market notes; the showcase pins unlocked a
 });
 
 test('odd jobs: right answers pay, wrong ones do not, and there is a daily cap', async () => {
-  const { db, run } = setup();
+  const { db, run, ctx } = setup();
   await run('balance');
   const job = async () => { await run('oddjob'); return sessions.active<{ answer: string; pay: number }>(db, 'oddjob', G, A)!.state; };
   let s = await job();
@@ -84,7 +84,13 @@ test('odd jobs: right answers pay, wrong ones do not, and there is a daily cap',
   assert.equal(balance(db, wallet(G, A)) - b, s.pay);
   s = await job();
   assert.match(text(await run('oddjob', { answer: s.answer + 'x' })), /Not quite/);
-  for (let i = 0; i < 9; i++) { s = await job(); await run('oddjob', { answer: s.answer }); }
+  // or just type it in the channel, like a work shift (other users and commands are left alone)
+  s = await job();
+  assert.equal(typedAnswer(ctx(B), s.answer), null);
+  assert.equal(typedAnswer(ctx(), 'r!balance'), null);
+  assert.match(text(typedAnswer(ctx(), ' ' + s.answer.toUpperCase() + ' ')!.reply), /Right! You earn/);
+  assert.equal(typedAnswer(ctx(), s.answer), null, 'the job is over once answered');
+  for (let i = 0; i < 8; i++) { s = await job(); await run('oddjob', { answer: s.answer }); }
   assert.match(text(await run('oddjob')), /all 10 odd jobs for today/);
 });
 

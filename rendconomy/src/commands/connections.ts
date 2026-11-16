@@ -19,7 +19,7 @@ import { nameOf, receipt } from '../social/receipts';
 import { addItem, count, items, takeItem } from '../shop/inventory';
 import { anyItem } from '../shop/items';
 import { me } from './shared';
-import type { Command, Ctx } from './types';
+import type { Command, Ctx, ReplyObject } from './types';
 
 // ---------------------------------------------------------------- inbox
 export const inbox: Command = {
@@ -206,30 +206,43 @@ export function makeJob(rng: Ctx['rng']): Omit<Job, 'pay'> {
   const w = rng.pick(WORDS).toLowerCase();
   return { prompt: `**Mailroom:** a letter came in backwards. Type **${w.split('').reverse().join('')}** the right way round.`, answer: w };
 }
+/** Checks an answer to the job in progress and pays for a right one. Ends the job either way. */
+function gradeJob(ctx: Ctx, cur: sessions.Session<Job>, text: string): ReplyObject {
+  const { guildId, wallet } = me(ctx);
+  const P = ctx.config.prefix;
+  const today = Number(dayKey(ctx.now).replace(/-/g, ''));
+  const done = getProgress(ctx.db, ctx.user.id, 'oddjobs_day') === today ? getProgress(ctx.db, ctx.user.id, 'oddjobs_today') : 0;
+  sessions.end(ctx.db, cur.id);
+  if (text.trim().toLowerCase().replace(/\s+/g, '') !== cur.state.answer) return { embeds: [embed('work', '🧰 Odd job', [`${emoji('no')} Not quite: it was **${cur.state.answer}**. No pay this time.`, `-# Another? \`${P}oddjob\``])] };
+  const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: cur.state.pay, reason: 'oddjob', guildId, actorId: ctx.user.id, now: ctx.now });
+  setProgress(ctx.db, ctx.user.id, 'oddjobs_day', today); setProgress(ctx.db, ctx.user.id, 'oddjobs_today', done + 1);
+  if (bump(ctx.db, ctx.user.id, 'oddjobs') >= 50) awardHere('odd_one_out');
+  return { embeds: [embed('work', '🧰 Odd job done', [`${emoji('yes')} Right! You earn **${format(paid)}**.`, `-# ${done + 1}/${ODDJOBS.perDay} today · Balance ${format(balance(ctx.db, wallet))} · Another? \`${P}oddjob\``])] };
+}
+
+/** Just type the answer in the channel, like a work shift. */
+export function onOddjobText(ctx: Ctx, s: sessions.Session<Job>, text: string): ReplyObject | null {
+  if (!text.trim() || text.trim().startsWith(ctx.config.prefix)) return null;
+  return gradeJob(ctx, s, text);
+}
+
 export const oddjob: Command = {
   name: 'oddjob', aliases: ['odd', 'chore'], description: `A quick odd job for a little pay (up to ${ODDJOBS.perDay} a day)`, system: 'work', guildOnly: true,
-  options: [{ name: 'answer', type: 'string', description: 'Your answer to the current job (blank for a new one)' }],
+  options: [{ name: 'answer', type: 'string', description: 'Your answer to the current job (you can also just type it in the channel)' }],
   run(ctx, args) {
-    const { guildId, wallet } = me(ctx);
+    const { guildId } = me(ctx);
     const P = ctx.config.prefix;
     const today = Number(dayKey(ctx.now).replace(/-/g, ''));
     const done = getProgress(ctx.db, ctx.user.id, 'oddjobs_day') === today ? getProgress(ctx.db, ctx.user.id, 'oddjobs_today') : 0;
     const cur = sessions.active<Job>(ctx.db, 'oddjob', guildId, ctx.user.id, ctx.now);
-    const answer = String(args.answer ?? '').trim().toLowerCase();
-    if (cur && answer) {
-      sessions.end(ctx.db, cur.id);
-      if (answer.replace(/\s+/g, '') !== cur.state.answer) return { embeds: [embed('work', '🧰 Odd job', [`${emoji('no')} Not quite: it was **${cur.state.answer}**. No pay this time.`, `-# Another? \`${P}oddjob\``])] };
-      const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: cur.state.pay, reason: 'oddjob', guildId, actorId: ctx.user.id, now: ctx.now });
-      setProgress(ctx.db, ctx.user.id, 'oddjobs_day', today); setProgress(ctx.db, ctx.user.id, 'oddjobs_today', done + 1);
-      if (bump(ctx.db, ctx.user.id, 'oddjobs') >= 50) awardHere('odd_one_out');
-      return { embeds: [embed('work', '🧰 Odd job done', [`${emoji('yes')} Right! You earn **${format(paid)}**.`, `-# ${done + 1}/${ODDJOBS.perDay} today · Balance ${format(balance(ctx.db, wallet))} · Another? \`${P}oddjob\``])] };
-    }
-    if (cur) return { embeds: [embed('work', '🧰 Odd job', [cur.state.prompt, '', `Answer with \`${P}oddjob <answer>\` before ${discordTime(cur.expires_at)}.`])] };
+    const answer = String(args.answer ?? '').trim();
+    if (cur && answer) return gradeJob(ctx, cur, answer);
+    if (cur) return { embeds: [embed('work', '🧰 Odd job', [cur.state.prompt, '', `Type your answer here before ${discordTime(cur.expires_at)}.`])] };
     if (answer) throw new GameError('oddjob.none', `No job in progress. Get one with \`${P}oddjob\`.`);
     if (done >= ODDJOBS.perDay) throw new GameError('oddjob.cap', `That's all ${ODDJOBS.perDay} odd jobs for today. Come back tomorrow.`);
     const job = { ...makeJob(ctx.rng), pay: polygons(ctx.rng.int(ODDJOBS.minPay, ODDJOBS.maxPay)) };
     const s = sessions.create<Job>(ctx.db, { kind: 'oddjob', guildId, channelId: ctx.channelId, userId: ctx.user.id, state: job, ttlMs: ODDJOBS.ttlMs, now: ctx.now });
-    return { embeds: [embed('work', '🧰 Odd job', [job.prompt, '', `Pays **${format(job.pay)}**. Answer with \`${P}oddjob <answer>\` before ${discordTime(s.expires_at)}.`, `-# ${done}/${ODDJOBS.perDay} done today`])] };
+    return { embeds: [embed('work', '🧰 Odd job', [job.prompt, '', `Pays **${format(job.pay)}**. Type your answer here before ${discordTime(s.expires_at)}.`, `-# ${done}/${ODDJOBS.perDay} done today`])] };
   }
 };
 
