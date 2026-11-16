@@ -169,7 +169,11 @@
   var DODGE_CHANCE = 0.45;   // first chance the window glides away instead of closing; halves after every dodge
   var MAX_OPEN = 5;
 
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Settings from the profile page's Settings tab (localStorage rp_prefs: { popups, sound, peekers, comeback, holiday, emoji, motion }).
+  function pref(k) { try { return (JSON.parse(localStorage.getItem('rp_prefs') || '{}'))[k] !== false; } catch (e) { return true; } }
+  var reduce = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || !pref('motion');
+  // /face/ is the pop-up toy itself, so it keeps them on even when they're switched off elsewhere.
+  var toyPage = location.pathname.indexOf('/face/') === 0;
   var me = document.currentScript;
 
   // Which page are we on?
@@ -328,7 +332,7 @@
   // Turn it off from the console with RenderPopup.sound(false) (remembered in this browser).
   var SOUND_KEY = 'rvPopupSound', soundOn = true, playing = 0, MAX_BUMS = 8;
   var BUM_SRC = '/face/media/xp-error.mp3';
-  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) {}
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off' && pref('sound'); } catch (e) {}
   try { new Audio(BUM_SRC).preload = 'auto'; } catch (e) {}
   function playBum() {
     if (!soundOn || playing >= MAX_BUMS) return;   // a cap so a huge burst can't blow out ears
@@ -344,6 +348,7 @@
 
   function spawn(opts) {
     opts = opts || {};
+    if (!opts.force && !toyPage && !pref('popups')) return null;   // switched off in Settings (a preview or the Konami code still shows)
     if (open.length >= MAX_OPEN) return null;
 
     var win = document.createElement('div');
@@ -430,6 +435,12 @@
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && open.length) close(open[open.length - 1]);
+  });
+
+  // Switching pop-ups off in Settings closes any that are open right now.
+  document.addEventListener('rp:prefs', function () {
+    soundOn = pref('sound');
+    if (!pref('popups') && !toyPage) open.slice().forEach(close);
   });
 
   window.RenderPopup = {

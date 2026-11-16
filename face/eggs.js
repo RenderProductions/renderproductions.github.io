@@ -18,7 +18,9 @@
   if (window.RenderEggs) return;
   window.RenderEggs = {};
 
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Settings from the profile page's Settings tab (localStorage rp_prefs: { popups, sound, peekers, comeback, holiday, emoji, motion }).
+  function pref(k) { try { return (JSON.parse(localStorage.getItem('rp_prefs') || '{}'))[k] !== false; } catch (e) { return true; } }
+  var reduce = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || !pref('motion');
   function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
   var backstage = location.pathname.indexOf('/backstage/') === 0;
 
@@ -48,6 +50,7 @@
   var realTitle = document.title, awayTimer = null, leftAt = 0;
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
+      if (!pref('comeback')) return;
       realTitle = document.title;
       leftAt = Date.now();
       var list = backstage ? AWAY_TITLES_BACKSTAGE : AWAY_TITLES;
@@ -58,7 +61,8 @@
         awayTimer = setTimeout(swap, 4000);
       }, 1500);
     } else {
-      clearTimeout(awayTimer);
+      if (!awayTimer && !leftAt) return;
+      clearTimeout(awayTimer); awayTimer = null;
       document.title = realTitle;
       var gone = Date.now() - leftAt;
       if (leftAt && gone > 20000 && Math.random() < 0.35 && window.RenderPopup) {
@@ -126,7 +130,7 @@
     if (window.RenderPopup) {
       LAUGHS.forEach(function (msg, n) {
         setTimeout(function () {
-          window.RenderPopup.spawn({ title: 'Render Vision', message: msg, mood: 'angry', theme: 'red' });
+          window.RenderPopup.spawn({ title: 'Render Vision', message: msg, mood: 'angry', theme: 'red', force: true });
         }, 400 + n * 300);
       });
     }
@@ -327,7 +331,7 @@
   // Shares the on/off switch with the popups: RenderPopup.sound(false) silences these too.
   var sfxPlaying = 0;
   function sfx(src, volume, maxAtOnce, rate) {
-    try { if (localStorage.getItem('rvPopupSound') === 'off') return; } catch (e) {}
+    try { if (localStorage.getItem('rvPopupSound') === 'off' || !pref('sound')) return; } catch (e) {}
     if (sfxPlaying >= maxAtOnce) return;
     try {
       var a = new Audio(src);
@@ -540,7 +544,7 @@
   function scheduleAt(at) {
     saveNext(at);
     setTimeout(function () {
-      if (Math.random() < PEEK_CHANCE) peek(Math.random() < SWARM_CHANCE ? MAX_PEEKS : pick(GROUP_SIZES));
+      if (pref('peekers') && Math.random() < PEEK_CHANCE) peek(Math.random() < SWARM_CHANCE ? MAX_PEEKS : pick(GROUP_SIZES));
       scheduleAt(Date.now() + secs(PEEK_AGAIN));
     }, Math.max(0, at - Date.now()));
   }
@@ -552,6 +556,11 @@
     else if (due <= Date.now()) scheduleAt(Date.now() + secs(PEEK_LATE)); // came due while changing pages
     else scheduleAt(due);                                          // pick up where the last page left off
   }
+
+  // Switching the peepers off in Settings sends any on screen away.
+  document.addEventListener('rp:prefs', function () {
+    if (!pref('peekers')) document.querySelectorAll('.rv-peek').forEach(function (w) { w.classList.remove('up'); setTimeout(function () { w.remove(); }, 900); });
+  });
 
   window.RenderEggs = { peek: peek, takeover: takeover, kills: kills };
 })();

@@ -16,6 +16,27 @@
 <link rel="icon" type="image/x-icon" href="../favicon.ico">
 <link rel="stylesheet" href="../style.css">
 <style>
+  /* Settings tab */
+  .ptabs { display: flex; gap: .4rem; margin: 1.2rem 0 0; }
+  .ptabs button { font: inherit; font-size: 14px; padding: .5rem .95rem; color: var(--grey); background: var(--panel); border: 1px solid var(--line); cursor: pointer; }
+  .ptabs button[aria-selected="true"] { color: var(--bright); border-color: var(--bright); background: rgba(var(--accent-rgb), .08); }
+  .settings { max-width: 760px; }
+  body.on-settings #login, body.on-settings #card, body.on-settings #players, body.on-settings #status { display: none !important; }
+  .settings h1 { font-size: 44px; }
+  .sw-list { list-style: none; margin: 1.2rem 0 0; padding: 0; border-top: 1px solid var(--line); }
+  .sw-row { display: flex; align-items: center; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid var(--line); }
+  .sw-row .txt { flex: 1; min-width: 0; }
+  .sw-row b { color: var(--bright); font-weight: 600; }
+  .sw-row small { display: block; color: var(--grey); font-size: 13px; margin-top: .15rem; line-height: 1.45; }
+  .sw-row .try { font: inherit; font-size: 12px; color: var(--grey); background: none; border: 1px solid var(--line-strong); padding: .25rem .55rem; cursor: pointer; }
+  .sw-row .try:hover { color: var(--bright); border-color: var(--bright); }
+  .toggle { position: relative; flex: none; width: 52px; height: 26px; border: 2px solid var(--line-strong); background: var(--bg); cursor: pointer; padding: 0; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--grey); transition: left .15s, background .15s; }
+  .toggle[aria-checked="true"] { border-color: var(--bright); background: rgba(var(--accent-rgb), .15); }
+  .toggle[aria-checked="true"]::after { left: 29px; background: var(--bright); box-shadow: 0 0 8px rgba(var(--accent-rgb), .7); }
+  .toggle:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
+  .sw-all { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .sw-saved { color: var(--grey); font-size: 13px; margin-left: auto; align-self: center; }
   .login { max-width: 760px; margin: 1.5rem 0 2.5rem; padding: 1.75rem; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line-strong); }
   .login h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 56px; line-height: 1; letter-spacing: 2px; color: var(--bright); text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35); }
   .login p { color: var(--lime); max-width: 60ch; margin: 0.75rem 0; }
@@ -177,6 +198,20 @@
     </ul>
   </nav>
     <nav class="subnav" aria-label="Rend-Conomy"><a href="/rend-conomy/">Market</a><a href="/rend-conomy/exchange/">Exchange</a><a href="/rend-conomy/map/">Map</a><a href="/play/">Play</a><a href="/bot/">Bot</a><a href="/profile/" aria-current="page">Players</a></nav>
+
+  <div class="ptabs" role="tablist" aria-label="Profile">
+    <button type="button" role="tab" id="tab-profile" aria-selected="true">👤 Profile</button>
+    <button type="button" role="tab" id="tab-settings" aria-selected="false">⚙️ Settings</button>
+  </div>
+
+  <!-- Settings: switch the site's distractions off (saved in this browser, no login needed) -->
+  <section class="login settings" id="settings" hidden aria-labelledby="set-h">
+    <h1 id="set-h">SETTINGS</h1>
+    <p>Render Vision likes attention. Here's how to get some peace. These are saved in this browser and work whether you're logged in or not.</p>
+    <ul class="sw-list" id="sw-list"></ul>
+    <div class="sw-all"><button class="btn" type="button" id="sw-off">Turn everything off</button><button class="btn" type="button" id="sw-on">Turn everything back on</button><span class="sw-saved" id="sw-saved" aria-live="polite"></span></div>
+    <p class="note" style="margin-top:1.2rem">Pop-ups always show on <a href="/face/">/face/</a> (that's what it's for), and the Konami code still works if you type it.</p>
+  </section>
 
   <!-- Logged out: log in, or look someone up -->
   <section class="login" id="login" hidden>
@@ -872,6 +907,58 @@
     input.oninput = search;
     search();
   }
+
+
+  // ---- Settings ----
+  var PREFS = [
+    ['popups', 'Render Vision pop-ups', 'The "System Alert!" windows that show up now and then.', function () { window.RenderPopup && RenderPopup.spawn({ force: true, title: 'Settings', message: 'LIKE THIS. YOU\'LL MISS ME.' }); }],
+    ['sound', 'Pop-up sounds', 'The error "bum" when a pop-up appears, and the peepers\' squeaks.'],
+    ['peekers', 'Peeking faces (the peepers)', 'Little Render Visions that peek in from the edge of the screen and stare.', function () { window.RenderEggs && RenderEggs.peek(1); }],
+    ['comeback', '"Come back" tab titles', 'While you\'re on another tab, this one begs you to return.'],
+    ['holiday', 'Holiday lights and snow', 'December only: lights along the top and falling snow.'],
+    ['motion', 'Shakes and glitches', 'Pop-ups shaking, the screen quaking, things gliding around.'],
+    ['emoji', 'Pixel emojis', 'The bot\'s own pixel emojis in place of standard ones on the Rend-Conomy pages (from the next page you open).']
+  ];
+  function prefs() { try { return JSON.parse(localStorage.getItem('rp_prefs') || '{}') || {}; } catch (e) { return {}; } }
+  function savePrefs(p) {
+    try {
+      localStorage.setItem('rp_prefs', JSON.stringify(p));
+      localStorage.setItem('rvPopupSound', p.sound === false ? 'off' : 'on');   // the older sound switch
+    } catch (e) {}
+    document.dispatchEvent(new CustomEvent('rp:prefs'));
+    $('sw-saved').textContent = 'Saved.';
+    clearTimeout(savePrefs.t); savePrefs.t = setTimeout(function () { $('sw-saved').textContent = ''; }, 1500);
+  }
+  function drawPrefs() {
+    var p = prefs(), list = $('sw-list');
+    if (p.sound === undefined) { try { if (localStorage.getItem('rvPopupSound') === 'off') p.sound = false; } catch (e) {} }
+    list.textContent = '';
+    PREFS.forEach(function (d) {
+      var on = p[d[0]] !== false;
+      var li = el('li', 'sw-row');
+      var t = el('div', 'txt'); t.appendChild(el('b', null, d[1])); t.appendChild(el('small', null, d[2])); li.appendChild(t);
+      if (d[3]) { var tr = el('button', 'try', 'Show me'); tr.type = 'button'; tr.onclick = d[3]; li.appendChild(tr); }
+      var b = el('button', 'toggle'); b.type = 'button'; b.setAttribute('role', 'switch'); b.setAttribute('aria-checked', String(on)); b.setAttribute('aria-label', d[1]);
+      b.onclick = function () { var q = prefs(); q[d[0]] = !(q[d[0]] !== false); savePrefs(q); b.setAttribute('aria-checked', String(q[d[0]])); };
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+  }
+  $('sw-off').onclick = function () { var q = {}; PREFS.forEach(function (d) { q[d[0]] = false; }); savePrefs(q); drawPrefs(); };
+  $('sw-on').onclick = function () { savePrefs({}); drawPrefs(); };
+  // Settings hides the profile views with one class, so whatever they were doing is there when you come back
+  function settingsTab(on) {
+    $('tab-settings').setAttribute('aria-selected', String(on));
+    $('tab-profile').setAttribute('aria-selected', String(!on));
+    document.body.classList.toggle('on-settings', on);
+    $('settings').hidden = !on;
+    if (on) drawPrefs();
+    history.replaceState(null, '', location.pathname + location.search + (on ? '#settings' : ''));
+  }
+  $('tab-settings').onclick = function () { settingsTab(true); };
+  $('tab-profile').onclick = function () { settingsTab(false); };
+  window.addEventListener('hashchange', function () { settingsTab(location.hash === '#settings'); });
+  if (location.hash === '#settings') settingsTab(true);
 
   // ---- Start ----
   var params = new URLSearchParams(location.search);

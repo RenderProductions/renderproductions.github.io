@@ -2,6 +2,7 @@
 // (Eastern time, like the bot). Reduced motion gets the lights without the snow or the twinkle.
 // Preview any time with ?holiday=1. (A copy lives in activity/holiday.js for the Trading Floor.)
 (function () {
+  try { if ((JSON.parse(localStorage.getItem('rp_prefs') || '{}')).holiday === false) return; } catch (e) {}   // Settings on the profile page
   try {
     var month = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'numeric' }).format(new Date());
     if (month !== '12' && !/[?&]holiday=1\b/.test(location.search)) return;

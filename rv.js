@@ -310,6 +310,7 @@
   var PIX_PAGES = /^\/(rend-conomy|play|profile|bot|patch-notes)(\/|$)/;
   function pixelEmoji() {
     if (!PIX_PAGES.test(location.pathname) || document.documentElement.hasAttribute('data-noemoji')) return;
+    try { if ((JSON.parse(localStorage.getItem('rp_prefs') || '{}')).emoji === false) return; } catch (e) {}   // Settings on the profile page
     emojify(document.body);
     new MutationObserver(function (list) {
       list.forEach(function (r) { r.addedNodes.forEach(function (x) { if (x.nodeType === 1 && x.classList.contains('rv-px')) return; emojify(x); }); });
