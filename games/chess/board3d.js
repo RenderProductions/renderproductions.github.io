@@ -57,9 +57,72 @@
     // Act 3: the Hollow Kingdom (violet stone over fire)
     act3: { bg: 0x0a0510, light: 0x2e2140, dark: 0x1a1226, wall: 0x170f22, wallEdge: 0xb57edc, edge: 0x3a2a4e, key: 0xf0d8ff, rim: 0xff6a3d, amb: 0x8a78a8, mote: 0xff8a50, rock: 0x1c1228 }
   };
-  let theme = THEMES.free, fireOn = false;
+  let theme = THEMES.free, themeName = 'free', fireOn = false;
+
+  // A painted sky behind everything, one per act (drawn once on a canvas)
+  const octPath = (g, cx, cy, r) => { g.beginPath(); for (let i = 0; i < 8; i++) { const a = Math.PI / 8 + (i * Math.PI) / 4; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); };
+  function skyTexture(name) {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
+    const g = c.getContext('2d');
+    const grad = (stops) => { const l = g.createLinearGradient(0, 0, 0, 1024); stops.forEach(([o, col]) => l.addColorStop(o, col)); g.fillStyle = l; g.fillRect(0, 0, 1024, 1024); };
+    const stars = (n, col, maxY) => { g.fillStyle = col; for (let i = 0; i < n; i++) { const s = Math.random() < 0.1 ? 3 : 2; g.globalAlpha = 0.3 + Math.random() * 0.7; g.fillRect(Math.random() * 1024, Math.random() * maxY, s, s); } g.globalAlpha = 1; };
+    // a skyline of ruined towers and broken arches along the horizon
+    const ruins = (y, col, seed) => {
+      g.fillStyle = col; let x = -20, r = seed;
+      const rnd = () => { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+      g.beginPath(); g.moveTo(0, 1024); g.lineTo(0, y);
+      while (x < 1044) {
+        const w = 30 + rnd() * 70, h = 20 + rnd() * 140;
+        if (rnd() < 0.35) { g.lineTo(x, y - h); g.lineTo(x + w * 0.3, y - h - 18); g.lineTo(x + w * 0.6, y - h); g.lineTo(x + w, y - h + 10); }
+        else g.lineTo(x + w * 0.5, y - h * 0.3);
+        g.lineTo(x + w, y); x += w + rnd() * 30;
+      }
+      g.lineTo(1024, 1024); g.closePath(); g.fill();
+    };
+    if (name === 'act1') {
+      grad([[0, '#140c1e'], [0.42, '#3b1d33'], [0.62, '#8a3b2c'], [0.72, '#e07b3a'], [0.74, '#2a1410'], [1, '#0d0806']]);
+      g.fillStyle = 'rgba(255,190,110,0.9)'; octPath(g, 640, 735, 120); g.fill();
+      g.fillStyle = 'rgba(255,230,160,0.35)'; octPath(g, 640, 735, 170); g.fill();
+      stars(80, '#ffd9a0', 380);
+      ruins(760, '#1a0e0a', 7); ruins(800, '#0d0806', 3);
+    } else if (name === 'act2') {
+      grad([[0, '#03060c'], [0.5, '#0e2032'], [0.72, '#3a5a72'], [0.76, '#1a2c3a'], [1, '#060b12']]);
+      g.fillStyle = 'rgba(220,236,255,0.12)'; octPath(g, 330, 175, 95); g.fill();
+      g.fillStyle = 'rgba(220,236,255,0.85)'; octPath(g, 330, 175, 52); g.fill();
+      stars(140, '#d8ecff', 600);
+      ruins(790, '#0b1622', 11);
+      for (let i = 0; i < 6; i++) { g.fillStyle = `rgba(160,190,220,${0.05 + Math.random() * 0.06})`; g.fillRect(0, 640 + i * 40 + Math.random() * 20, 1024, 14 + Math.random() * 18); }
+    } else if (name === 'act3') {
+      grad([[0, '#040108'], [0.45, '#170a24'], [0.7, '#3a1020'], [0.82, '#7a2410'], [1, '#160404']]);
+      g.fillStyle = 'rgba(255,106,42,0.18)'; octPath(g, 330, 175, 110); g.fill();
+      g.fillStyle = '#ff6a2a'; octPath(g, 330, 175, 76); g.fill();
+      g.fillStyle = '#0a0410'; octPath(g, 330, 175, 70); g.fill();        // an eclipse with a burning rim
+      stars(120, '#ffb090', 700);
+      ruins(820, '#120612', 5); ruins(870, '#080208', 19);
+    } else {
+      grad([[0, '#03050b'], [0.6, '#0a1222'], [1, '#050810']]);
+      stars(160, '#fff6b0', 1024);
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace || t.colorSpace;
+    return t;
+  }
   const lights = {};
-  const fx = { fires: [], embers: null, emberData: [], glow: [], motes: null, rocks: [] };   // your army's colors (piece skins)
+  const fx = { fires: [], embers: null, emberData: [], glow: [], motes: null, rocks: [], pillars: [], under: [], debris: [], perimeter: [], lavaTex: null, nextCrumble: 0 };
+  function lavaTexture() {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#b52a05'; g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 60; i++) {
+      const x = Math.random() * 128, y = Math.random() * 128, r = 6 + Math.random() * 18;
+      const l = g.createRadialGradient(x, y, 0, x, y, r);
+      l.addColorStop(0, Math.random() < 0.5 ? '#ffd34d' : '#ff8a1d'); l.addColorStop(1, 'rgba(181,42,5,0)');
+      g.fillStyle = l;
+      [[0, 0], [128, 0], [-128, 0], [0, 128], [0, -128]].forEach(([ox, oy]) => { g.beginPath(); g.arc(x + ox, y + oy, r, 0, 7); g.fill(); });   // tiles seamlessly
+    }
+    for (let i = 0; i < 14; i++) { g.strokeStyle = 'rgba(40,6,0,0.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(Math.random() * 128, Math.random() * 128); g.lineTo(Math.random() * 128, Math.random() * 128); g.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+  }   // your army's colors (piece skins)
   let host, renderer, scene, camera, raycaster, mouse;
   let tileSig = '';           // what the tiles were last built from
   let W = 8, H = 8;
@@ -70,7 +133,10 @@
   let anims = [];
   let state = null;
   let handlers = { cell() {}, hover() {}, cancel() {} };
-  const view = { rot: 0, cur: 0, zoom: 1, px: 0, pz: 0 };   // px/pz: panned offset
+  // el: camera elevation in degrees (true isometric is 35.3). Lower shows more of the world; Z / X tilt it.
+  let savedTilt = 27;
+  try { savedTilt = Math.max(14, Math.min(55, Number(localStorage.getItem('isochess_tilt')) || 27)); } catch (e) { /* default */ }
+  const view = { rot: 0, cur: 0, zoom: 1, px: 0, pz: 0, el: savedTilt, elCur: savedTilt };   // px/pz: panned offset
 
   const wx = (x) => x - (W - 1) / 2;
   const wz = (y) => (H - 1) / 2 - y;
@@ -244,6 +310,7 @@
     const rim = new THREE.DirectionalLight(theme.rim, 0.35); rim.position.set(12, 6, -10); scene.add(rim); lights.rim = rim;
     const fill = new THREE.DirectionalLight(0x9fb0cc, 0.22); fill.position.set(8, 10, 12); scene.add(fill);
 
+    scene.background = skyTexture(themeName);
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
     new ResizeObserver(resize).observe(host);
@@ -265,7 +332,8 @@
   }
   function placeCamera() {
     const th = Math.PI / 4 + view.cur;
-    const el = Math.atan(1 / Math.SQRT2);  // true isometric elevation
+    view.elCur += (view.el - view.elCur) * 0.14;
+    const el = (view.elCur * Math.PI) / 180;
     const d = 30;
     camera.position.set(d * Math.cos(el) * Math.sin(th), d * Math.sin(el), d * Math.cos(el) * Math.cos(th));
     // aim a little toward the viewer and right, so the board sits
@@ -275,8 +343,14 @@
     const down = 0.75 * f * (view.offset === undefined ? 1 : view.offset);
     const tx = down * Math.sin(th) + side * Math.cos(th) + view.px, tz = down * Math.cos(th) - side * Math.sin(th) + view.pz;
     camera.position.x += tx; camera.position.z += tz;
+    if (view.shake > 0.001) {
+      const k = view.shake;
+      camera.position.x += (Math.random() - 0.5) * k; camera.position.y += (Math.random() - 0.5) * k; camera.position.z += (Math.random() - 0.5) * k;
+      view.shake *= 0.88;
+    }
     camera.lookAt(tx, -0.6, tz);
   }
+  function shake(k) { view.shake = Math.max(view.shake || 0, k); }
 
   /* ---------- input ---------- */
   function setMouse(e) {
@@ -484,7 +558,10 @@
     fx.glow.forEach((l) => scene.remove(l));
     [fx.embers, fx.motes].forEach((p) => { if (p) { scene.remove(p); p.geometry.dispose(); p.material.dispose(); } });
     fx.rocks.forEach((r) => { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); r.line.geometry.dispose(); r.line.material.dispose(); });
-    fx.fires = []; fx.glow = []; fx.embers = null; fx.motes = null; fx.rocks = []; fx.emberData = [];
+    fx.pillars.forEach((p) => { scene.remove(p.group); p.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); });
+    fx.under.forEach((m) => { scene.remove(m); m.geometry.dispose(); if (m.material.map && m.userData.mist === 0) m.material.map.dispose(); m.material.dispose(); });
+    fx.debris.forEach((d) => { scene.remove(d.m); d.m.geometry.dispose(); d.m.material.dispose(); });
+    fx.fires = []; fx.glow = []; fx.embers = null; fx.motes = null; fx.rocks = []; fx.emberData = []; fx.pillars = []; fx.under = []; fx.debris = []; fx.perimeter = [];
   }
   function buildWorld(s) {
     clearWorld();
@@ -497,7 +574,7 @@
         const group = new THREE.Group();
         group.position.set(wx(c.x), PIT_TOP + 0.02, wz(c.y));
         const flames = [];
-        [[0xff3d00, 0.34, 1.05, 0.55], [0xff8a1d, 0.25, 0.9, 0.7], [0xffd34d, 0.14, 0.62, 0.85]].forEach(([color, r, h, op], k) => {
+        [[0xff3d00, 0.34, 1.45, 0.55], [0xff8a1d, 0.25, 1.2, 0.7], [0xffd34d, 0.14, 0.85, 0.85]].forEach(([color, r, h, op], k) => {
           for (let j = 0; j < (k === 2 ? 1 : 3); j++) {
             const m = new THREE.Mesh(flameGeo(r, h), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, blending: add, depthWrite: false, side: THREE.DoubleSide }));
             const a = (j / 3) * Math.PI * 2 + i;
@@ -507,9 +584,10 @@
             group.add(m); flames.push(m);
           }
         });
-        // a glow on the pit floor
-        const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), new THREE.MeshBasicMaterial({ color: 0xff5a1a, transparent: true, opacity: 0.55, blending: add, depthWrite: false }));
-        glow.rotation.x = -Math.PI / 2; glow.position.y = 0.01; group.add(glow);
+        // a pool of lava in the pit, slowly churning
+        if (!fx.lavaTex) fx.lavaTex = lavaTexture();
+        const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.96, 0.96), new THREE.MeshBasicMaterial({ map: fx.lavaTex, transparent: true, opacity: 1 }));
+        glow.rotation.x = -Math.PI / 2; glow.position.y = 0.02; group.add(glow);
         scene.add(group);
         fx.fires.push({ group, flames, glow });
         if (i < 4) { const l = new THREE.PointLight(0xff6a1d, 1.1, 3.2, 2); l.position.set(wx(c.x), 0.5, wz(c.y)); l.userData.phase = Math.random() * 6; scene.add(l); fx.glow.push(l); }
@@ -527,20 +605,92 @@
         scene.add(fx.embers);
       }
     }
+    // the board is a floating island: rock hangs underneath it, and its edges crumble on fire levels
+    const solid = (x, y) => x >= 0 && y >= 0 && x < W && y < H && s.tiles[x][y].kind !== 'void';
+    for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) {
+      if (!solid(x, y)) continue;
+      const edgeDirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => !solid(x + dx, y + dy));
+      edgeDirs.forEach(([dx, dy]) => fx.perimeter.push({ x, y, dx, dz: -dy }));
+      const inner = Math.min(x, y, W - 1 - x, H - 1 - y);
+      const h = 0.5 + Math.random() * 0.6 + inner * 0.55 + (Math.random() < 0.15 ? 1.2 : 0);
+      const g = new THREE.ConeGeometry(0.5 + Math.random() * 0.12, h, 6);
+      g.rotateX(Math.PI); g.translate(0, -h / 2, 0);
+      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: theme.rock, roughness: 0.95, flatShading: true }));
+      m.position.set(wx(x) + (Math.random() - 0.5) * 0.2, BOTTOM, wz(y) + (Math.random() - 0.5) * 0.2);
+      m.rotation.y = Math.random() * Math.PI;
+      scene.add(m); fx.under.push(m);
+    }
     // dust (or ash) hanging in the air over the board
     const m = 90, mp = new Float32Array(m * 3);
     for (let i = 0; i < m; i++) { mp[i * 3] = (Math.random() - 0.5) * (W + 6); mp[i * 3 + 1] = Math.random() * 4 - 0.5; mp[i * 3 + 2] = (Math.random() - 0.5) * (H + 6); }
     const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(mp, 3));
     fx.motes = new THREE.Points(mg, new THREE.PointsMaterial({ color: theme.mote, size: 2, sizeAttenuation: false, transparent: true, opacity: 0.35, blending: add, depthWrite: false }));
     scene.add(fx.motes);
-    // broken pieces of the kingdom, drifting below and around the board
+    // giant ruined pillars rising out of the void around the board (the ones between you and the board fade out)
     const R = Math.max(W, H) / 2;
+    for (let i = 0; i < 12; i++) {
+      const group = new THREE.Group();
+      const a = (i / 12) * Math.PI * 2 + 0.13 + (i % 2) * 0.12;
+      const d = R + 8 + (i % 3) * 2.5;
+      const rad = 0.9 + (i % 3) * 0.35;
+      const tall = 9 + ((i * 5) % 7) * 1.4;
+      const broken = i % 3 === 1;
+      const mat = () => new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.85, flatShading: true, transparent: true });
+      const edgeMat = () => new THREE.LineBasicMaterial({ color: 0xffffff, vertexColors: true, transparent: true });
+      // each pillar sinks into the dark below: its color (and its outline) fades to the sky's darkness toward the bottom
+      const fade = (geo, y, top, bottom) => {
+        const p = geo.attributes.position, col = new Float32Array(p.count * 3), a = new THREE.Color(top), b = new THREE.Color(bottom), c = new THREE.Color();
+        for (let i = 0; i < p.count; i++) {
+          const k = Math.max(0, Math.min(1, (p.getY(i) + y + 9) / 7));
+          c.copy(b).lerp(a, k * k); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+        }
+        geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        return geo;
+      };
+      const part = (geo, y, rot) => {
+        const m = new THREE.Mesh(fade(geo, y, theme.wall, theme.bg), mat()); m.position.y = y; if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+        const e = new THREE.LineSegments(fade(new THREE.EdgesGeometry(geo, 25), y, theme.wallEdge, theme.bg), edgeMat()); e.position.copy(m.position); e.rotation.copy(m.rotation);
+        group.add(m, e);
+      };
+      part(new THREE.CylinderGeometry(rad, rad * 1.08, tall, 8), -10 + tall / 2);                       // the shaft
+      part(new THREE.CylinderGeometry(rad * 1.35, rad * 1.35, 0.5, 8), -10 + tall);                    // its capital
+      if (broken) part(new THREE.CylinderGeometry(rad, rad, 1.6, 8), -10 + tall + 1.3, [0.35, 0, 0.25]);   // a chunk slipping off
+      else part(new THREE.CylinderGeometry(rad * 0.9, rad * 1.2, 0.9, 8), -10 + tall + 0.7);
+      // a band of light near the top, to catch the eye
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(rad * 1.02, rad * 1.02, 0.16, 8, 1, true),
+        new THREE.MeshBasicMaterial({ color: theme.rim, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      band.position.y = -10 + tall - 1.2; band.userData.band = true; group.add(band);
+      // fire levels: a brazier burning on top of the whole pillars
+      if (fireOn && !broken) {
+        const f = new THREE.Mesh(new THREE.ConeGeometry(rad * 0.7, 1.8, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xff7a1d, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+        f.geometry.translate(0, 0.9, 0); f.position.y = -10 + tall + 1.15; f.userData.flame = Math.random() * 6; group.add(f);
+      }
+      group.position.set(Math.cos(a) * d, 0, Math.sin(a) * d);
+      scene.add(group);
+      const dir = new THREE.Vector2(Math.cos(a), Math.sin(a)), th = Math.PI / 4 + view.cur;
+      const fadeNow = dir.dot(new THREE.Vector2(Math.sin(th), Math.cos(th))) > -0.6 ? 0 : 1;   // start already faded if it's in front
+      group.visible = fadeNow > 0;
+      fx.pillars.push({ group, dir, fade: fadeNow });
+    }
+    // a dark mist in the void below: stacked soft layers that swallow the bottoms of the pillars, rocks and the island
+    const mc = document.createElement('canvas'); mc.width = mc.height = 128;
+    const mg2 = mc.getContext('2d'), rad = mg2.createRadialGradient(64, 64, 8, 64, 64, 64);
+    rad.addColorStop(0, 'rgba(255,255,255,1)'); rad.addColorStop(0.6, 'rgba(255,255,255,0.7)'); rad.addColorStop(1, 'rgba(255,255,255,0)');
+    mg2.fillStyle = rad; mg2.fillRect(0, 0, 128, 128);
+    const mistTex = new THREE.CanvasTexture(mc);
+    for (let i = 0; i < 4; i++) {
+      const size = (R + 3) * 2.4;   // only under the island, so the sky stays clear
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ color: theme.bg, map: mistTex, transparent: true, opacity: 0.28, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2; m.position.y = -1.4 - i * 0.9; m.userData.mist = i;
+      scene.add(m); fx.under.push(m);
+    }
+    // broken pieces of the kingdom, drifting below and around the board
     for (let i = 0; i < 12; i++) {
       const g = new THREE.DodecahedronGeometry(0.25 + Math.random() * 0.55, 0);
       const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: theme.rock, roughness: 0.9, flatShading: true }));
       const line = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: theme.edge }));
       const a = Math.random() * Math.PI * 2, d = R + 1.5 + Math.random() * 4;
-      const base = new THREE.Vector3(Math.cos(a) * d, -2.5 - Math.random() * 3, Math.sin(a) * d);
+      const base = new THREE.Vector3(Math.cos(a) * d, -1.8 - Math.random() * 4, Math.sin(a) * d);
       mesh.position.copy(base); line.position.copy(base);
       scene.add(mesh); scene.add(line);
       fx.rocks.push({ mesh, line, base, phase: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.004 });
@@ -555,8 +705,24 @@
         m.rotation.y = t * 0.8 + u.phase;
         m.material.opacity = u.op * (0.8 + w * 0.25);
       });
-      f.glow.material.opacity = 0.45 + Math.sin(t * 7) * 0.1;
     });
+    if (fx.lavaTex) { fx.lavaTex.offset.set(Math.sin(t * 0.3) * 0.2, t * 0.04); }
+    // fire levels: the edges of the board crumble away into the void
+    if (fireOn && fx.perimeter.length && t > fx.nextCrumble) {
+      fx.nextCrumble = t + 0.35 + Math.random() * 0.6;
+      const c = fx.perimeter[Math.floor(Math.random() * fx.perimeter.length)];
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.08 + Math.random() * 0.14, 0.08 + Math.random() * 0.12, 0.08 + Math.random() * 0.14),
+        new THREE.MeshStandardMaterial({ color: Math.random() < 0.3 ? 0xff6a1d : theme.dark, emissive: Math.random() < 0.3 ? 0x7a2000 : 0x000000, flatShading: true, transparent: true }));
+      m.position.set(wx(c.x) + c.dx * 0.5, BOTTOM + Math.random() * 0.5, wz(c.y) + c.dz * 0.5);
+      scene.add(m);
+      fx.debris.push({ m, vy: 0, spin: Math.random() * 0.1 });
+    }
+    for (let i = fx.debris.length - 1; i >= 0; i--) {
+      const d = fx.debris[i];
+      d.vy -= 0.0016; d.m.position.y += d.vy; d.m.rotation.x += d.spin; d.m.rotation.z += d.spin;
+      if (d.m.position.y < -7) { scene.remove(d.m); d.m.geometry.dispose(); d.m.material.dispose(); fx.debris.splice(i, 1); }
+      else if (d.m.position.y < -4) d.m.material.opacity = (d.m.position.y + 7) / 3;
+    }
     fx.glow.forEach((l) => { l.intensity = 0.9 + Math.sin(t * 9 + l.userData.phase) * 0.25 + Math.random() * 0.15; });
     if (fx.embers) {
       const a = fx.embers.geometry.attributes.position.array;
@@ -567,6 +733,20 @@
       fx.embers.geometry.attributes.position.needsUpdate = true;
     }
     if (fx.motes) fx.motes.rotation.y = t * 0.01;
+    flare *= 0.985;
+    // pillars between the camera and the board fade away; the ones behind it stand tall
+    const th = Math.PI / 4 + view.cur, cam = new THREE.Vector2(Math.sin(th), Math.cos(th));
+    fx.pillars.forEach((p) => {
+      const front = p.dir.dot(cam) > -0.6;   // only the ones well behind the board stay
+      p.fade += ((front ? 0 : 1) - p.fade) * 0.12;
+      p.group.visible = p.fade > 0.02;
+      p.group.traverse((o) => {
+        if (!o.material) return;
+        if (o.userData.band) { o.material.opacity = (0.6 + Math.sin(t * 1.5) * 0.25 + flare) * p.fade; o.material.color.setHex(flare > 0.05 ? 0xff3030 : theme.rim); }
+        else if (o.userData.flame !== undefined) { o.material.opacity = 0.75 * p.fade; o.scale.y = 0.85 + Math.sin(t * 8 + o.userData.flame) * 0.15; }
+        else o.material.opacity = p.fade;
+      });
+    });
     fx.rocks.forEach((r) => {
       const y = r.base.y + Math.sin(t * 0.5 + r.phase) * 0.25;
       r.mesh.position.y = y; r.line.position.y = y;
@@ -576,6 +756,8 @@
   function setTheme(name, fire) {
     theme = THEMES[name] || THEMES.free; fireOn = !!fire;
     if (renderer) renderer.setClearColor(theme.bg, 1);
+    if (scene && name !== themeName) { if (scene.background && scene.background.dispose) scene.background.dispose(); scene.background = skyTexture(name); }
+    themeName = name;
     if (lights.key) { lights.key.color.setHex(theme.key); lights.rim.color.setHex(theme.rim); lights.amb.color.setHex(theme.amb); }
     tileSig = '';   // rebuild the board in the new look on the next sync
   }
@@ -631,7 +813,47 @@
       rec.group.position.y += Math.sin(Math.PI * e) * hop;
     }).then(() => { rec.busy = false; });
   }
+  // the piece bursts into shards that tumble away and fall into the void
+  function shatter(rec) {
+    const color = rec.mat.color.getHex(), edge = rec.lineMat.color.getHex();
+    const at = rec.group.position.clone();
+    const big = rec.boss ? 1.6 : 1;
+    const shards = [];
+    for (let i = 0; i < 16; i++) {
+      const g = new THREE.TetrahedronGeometry((0.05 + Math.random() * 0.08) * big, 0);
+      const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.5, transparent: true }));
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: edge, transparent: true }));
+      m.add(e);
+      m.position.set(at.x + (Math.random() - 0.5) * 0.3, at.y + 0.15 + Math.random() * 0.8 * big, at.z + (Math.random() - 0.5) * 0.3);
+      const a = Math.random() * Math.PI * 2, sp = 0.025 + Math.random() * 0.04;
+      shards.push({ m, e, v: new THREE.Vector3(Math.cos(a) * sp, 0.04 + Math.random() * 0.06, Math.sin(a) * sp), r: new THREE.Vector3(Math.random() * 0.3, Math.random() * 0.3, Math.random() * 0.3) });
+      scene.add(m);
+    }
+    // a flash ring on the tile
+    const ring = new THREE.Mesh(ringGeo(0.1, 0.18), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+    ring.position.set(at.x, at.y + 0.03, at.z); scene.add(ring);
+    tween(900, (k) => {
+      shards.forEach((sh) => {
+        sh.v.y -= 0.0045; sh.m.position.add(sh.v);
+        sh.m.rotation.x += sh.r.x; sh.m.rotation.y += sh.r.y; sh.m.rotation.z += sh.r.z;
+        const o = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4; sh.m.material.opacity = o; sh.e.material.opacity = o;
+      });
+      ring.scale.setScalar(1 + k * 5); ring.material.opacity = 0.9 * (1 - k);
+    }).then(() => {
+      shards.forEach((sh) => { scene.remove(sh.m); sh.m.geometry.dispose(); sh.m.material.dispose(); sh.e.geometry.dispose(); sh.e.material.dispose(); });
+      scene.remove(ring); ring.geometry.dispose(); ring.material.dispose();
+    });
+    shake(rec.boss ? 0.35 : 0.08);
+  }
   function animateCapture(pid) {
+    const rec = pieces[pid]; if (!rec) return Promise.resolve();
+    rec.dying = true;
+    shatter(rec);
+    rec.mat.transparent = true; rec.lineMat.transparent = true;
+    return tween(140, (k) => { rec.group.scale.setScalar((rec.boss ? 1.35 : 1) * (1 - k)); rec.mat.opacity = 1 - k; rec.lineMat.opacity = 1 - k; })
+      .then(() => disposePiece(pid));
+  }
+  function animateCaptureOld(pid) {
     const rec = pieces[pid]; if (!rec) return Promise.resolve();
     rec.dying = true;
     const y0 = rec.group.position.y;
@@ -644,6 +866,40 @@
       rec.mat.opacity = 1 - k; rec.lineMat.opacity = 1 - k;
     }).then(() => disposePiece(pid));
   }
+  // a boss drops out of the sky onto its square: a shockwave, a shake, and the pillars flare
+  function bossEntrance(pid) {
+    const rec = pieces[pid]; if (!rec) return Promise.resolve();
+    rec.busy = true;
+    const to = rec.group.position.clone(), from = to.clone(); from.y += 9;
+    rec.group.position.copy(from);
+    flare = 1;
+    return new Promise((r) => setTimeout(r, 450)).then(() => tween(700, (k) => {
+      const e = k * k * k;
+      rec.group.position.lerpVectors(from, to, e);
+      rec.group.rotation.y = (1 - e) * Math.PI * 2;
+    })).then(() => {
+      rec.group.rotation.y = 0;
+      shake(0.6);
+      const wave = new THREE.Mesh(ringGeo(0.3, 0.45), new THREE.MeshBasicMaterial({ color: 0xff6b6b, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      wave.position.set(to.x, to.y + 0.05, to.z); scene.add(wave);
+      const dust = [];
+      for (let i = 0; i < 24; i++) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), new THREE.MeshBasicMaterial({ color: theme.mote, transparent: true }));
+        const a = (i / 24) * Math.PI * 2; m.position.set(to.x, to.y + 0.1, to.z); scene.add(m);
+        dust.push({ m, v: new THREE.Vector3(Math.cos(a) * 0.06, 0.03 + Math.random() * 0.04, Math.sin(a) * 0.06) });
+      }
+      return tween(900, (k) => {
+        wave.scale.setScalar(1 + k * 14); wave.material.opacity = 0.9 * (1 - k);
+        dust.forEach((d) => { d.v.y -= 0.003; d.m.position.add(d.v); d.m.material.opacity = 1 - k; });
+      }).then(() => {
+        scene.remove(wave); wave.geometry.dispose(); wave.material.dispose();
+        dust.forEach((d) => { scene.remove(d.m); d.m.geometry.dispose(); d.m.material.dispose(); });
+        rec.busy = false;
+      });
+    });
+  }
+  let flare = 0;   // the pillars' bands flare red for a boss
+
   // a small shake to show a telegraphed move fizzling out
   function animateFizzle(pid) {
     const rec = pieces[pid]; if (!rec) return Promise.resolve();
@@ -672,10 +928,11 @@
 
   window.Board3D = {
     init(el, h) { Object.assign(handlers, h); build(el); },
-    sync, setHighlights, setIntents, animateMove, animateCapture, animateFizzle,
+    sync, setHighlights, setIntents, animateMove, animateCapture, animateFizzle, bossEntrance, shake,
     setSkin(color, edge) { skin = { color, edge }; Object.keys(pieces).forEach(disposePiece); },
     setTheme,
     rotate(dir) { view.rot += (dir * Math.PI) / 2; },
+    tilt(deg) { view.el = Math.max(14, Math.min(55, view.el + deg)); try { localStorage.setItem('isochess_tilt', String(view.el)); } catch (e) { /* blocked */ } },
     // how far to nudge the board away from the game's HUD (0 = centered, for the editor)
     setFraming(k) { view.offset = k; },
     setZoom(z) { view.zoom = z; if (renderer) resize(); },

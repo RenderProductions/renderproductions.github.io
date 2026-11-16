@@ -185,6 +185,9 @@
     say(`${cfg.name}. ${goalText()}. Red arcs show what the enemy will do after your move.`);
     planIntents();
     startPlayerTurn();
+    // a boss makes an entrance: it drops onto the board before you can act
+    const boss = S.pieces.find((p) => p.boss);
+    if (boss) { S.busy = true; refresh(); Board3D.bossEntrance(boss.id).then(() => { S.busy = false; refresh(); }); }
   }
   function goalText() {
     const o = S.objective;
@@ -715,6 +718,8 @@
       if (e.key === 'Escape') cancel();
       else if (e.key === 'q' || e.key === 'Q') Board3D.rotate(-1);
       else if (e.key === 'e' || e.key === 'E') Board3D.rotate(1);
+      else if (e.key === 'z' || e.key === 'Z') Board3D.tilt(-4);
+      else if (e.key === 'x' || e.key === 'X') Board3D.tilt(4);
       else if (e.key === 'Enter' && S && S.phase === 'player') endPlayerTurn();
     });
     if (new URLSearchParams(location.search).has('test') || new URLSearchParams(location.search).has('arena') || !window.IsoRun) loadArenaList();

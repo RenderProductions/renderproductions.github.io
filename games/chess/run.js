@@ -452,6 +452,8 @@
       title();
       fetchOwned().then(() => { if (!screen().hidden && screen().classList.contains('scr-title')) title(); applySkin(); });
     },
-    get run() { return R; }
+    get run() { return R; },
+    // for play-testing: jump straight into a fight of this kind in the current act
+    _fight(kind) { R.pending = kind; battle(kind); }
   };
 })();
