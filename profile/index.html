@@ -409,8 +409,9 @@
   // A shareable picture of a profile, drawn in the site's own style with the player's theme, banner and frame.
   // Opens a preview with Copy (paste straight into Discord) and Download.
   function shareCard(data, u, id) {
-    var W = 1200, H = 630, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    var g = cv.getContext('2d'), cs = getComputedStyle(document.documentElement);
+    // drawn at 2× so it stays sharp after Discord and phones resize it
+    var W = 1200, H = 630, S = 2, cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    var g = cv.getContext('2d'), cs = getComputedStyle(document.documentElement); g.scale(S, S);
     var v = function (k, d) { return cs.getPropertyValue(k).trim() || d; };
     var C = { bright: v('--bright', '#ffe600'), lime: v('--lime', '#b8a600'), dim: v('--dim', '#6b6000'), bg: v('--bg', '#05070d'), panel: v('--panel', '#090e1a'), panel2: v('--panel-2', '#0d1322'), grey: v('--grey', '#8e97bd'), rgb: v('--accent-rgb', '255, 230, 0') };
     var A = function (a) { return 'rgba(' + C.rgb + ',' + a + ')'; };
@@ -531,9 +532,8 @@
       g.fillStyle = C.grey; g.font = '15px ' + MONO; g.fillText('renderproductions.github.io/profile', 60, 606);
       g.textAlign = 'right'; g.fillStyle = C.lime; g.fillText('Play: r!help in The Render Room', W - 60, 606); g.textAlign = 'left';
 
-      // CRT finish: scanlines, vignette, frame
-      g.fillStyle = 'rgba(0,0,0,0.16)'; for (var ly = 0; ly < H; ly += 3) g.fillRect(0, ly, W, 1);
-      var vg = g.createRadialGradient(W / 2, H / 2, H * .45, W / 2, H / 2, W * .72); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      // finish: a light vignette and the frame (no scanlines: they turn to mush once the image is resized)
+      var vg = g.createRadialGradient(W / 2, H / 2, H * .55, W / 2, H / 2, W * .75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.28)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
       g.strokeStyle = A(0.55); g.lineWidth = 2; g.strokeRect(17, 17, W - 34, H - 34);
       g.fillStyle = C.bright; [[16, 16, 1, 1], [W - 16, 16, -1, 1], [16, H - 16, 1, -1], [W - 16, H - 16, -1, -1]].forEach(function (c) { g.fillRect(c[0] - (c[2] < 0 ? 28 : 0), c[1] - (c[3] < 0 ? 4 : 0), 28, 4); g.fillRect(c[0] - (c[2] < 0 ? 4 : 0), c[1] - (c[3] < 0 ? 28 : 0), 4, 28); });
 
