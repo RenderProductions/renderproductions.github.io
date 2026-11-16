@@ -193,6 +193,9 @@
     '.rv-bell svg{width:18px;height:18px;display:block;shape-rendering:crispEdges}.rv-bell.on svg{filter:drop-shadow(0 0 4px rgba(var(--accent-rgb),.7));animation:rv-ring 2.4s ease-in-out infinite;transform-origin:50% 0}' +
     '@keyframes rv-ring{0%,70%,100%{transform:rotate(0)}74%{transform:rotate(14deg)}80%{transform:rotate(-12deg)}86%{transform:rotate(8deg)}92%{transform:rotate(-4deg)}}' +
     '@media (prefers-reduced-motion:reduce){.rv-bell.on svg{animation:none}}' +
+    '.nav ul a.rv-me{display:inline-flex;padding:0;color:var(--grey);border:0}.nav ul a.rv-me:hover,.nav ul a.rv-me[aria-current]{color:var(--bright)}' +
+    '.rv-me svg{width:18px;height:18px;display:block;shape-rendering:crispEdges;margin:2px 4px}.rv-me img{width:22px;height:22px;display:block;border:1px solid var(--line-strong);image-rendering:auto}' +
+    '.rv-me:hover img,.rv-me[aria-current] img{border-color:var(--bright);box-shadow:0 0 6px rgba(var(--accent-rgb),.6)}' +
     '.rv-bell i{position:absolute;top:-7px;right:-9px;min-width:15px;height:15px;padding:0 3px;background:#ff5c61;color:#fff;font:700 10px/15px var(--mono,monospace);text-align:center;font-style:normal;box-shadow:0 0 0 2px var(--bg)}' +
     '.rv-epop{position:absolute;z-index:50;right:0;top:2.2rem;width:min(360px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line-strong);padding:.6rem .8rem;box-shadow:0 12px 40px rgba(0,0,0,.5);text-align:left;font-size:.9rem}';
   document.head.appendChild(css);
@@ -223,5 +226,23 @@
     else check();
     setInterval(check, 120000);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bell); else bell();
+  // ------------------------------------------------------------- your profile
+  // Sits after the bell: your Discord picture when logged in, a pixel person when not.
+  function account() {
+    var nav = document.querySelector('.nav ul');
+    if (!nav || document.querySelector('.rv-me')) return;
+    var me = RV.me(), li = document.createElement('li'), a = document.createElement('a');
+    a.className = 'rv-me'; a.href = me ? '/profile/?id=' + encodeURIComponent(me.id) : '/profile/';
+    a.title = me ? 'Your profile' : 'Profiles and log in'; a.setAttribute('aria-label', a.title);
+    if (location.pathname.indexOf('/profile') === 0) a.setAttribute('aria-current', 'page');
+    var person = '<svg viewBox="0 0 12 12" aria-hidden="true"><g fill="currentColor"><rect x="4" y="1" width="4" height="1"/><rect x="3" y="2" width="6" height="3"/><rect x="4" y="5" width="4" height="1"/><rect x="2" y="7" width="8" height="1"/><rect x="1" y="8" width="10" height="3"/></g></svg>';
+    if (me && me.avatar) {
+      var img = document.createElement('img'); img.src = me.avatar; img.alt = ''; img.width = 22; img.height = 22;
+      img.onerror = function () { a.innerHTML = person; };
+      a.appendChild(img);
+    } else a.innerHTML = person;
+    li.appendChild(a); nav.appendChild(li);
+  }
+  function start() { bell(); account(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
