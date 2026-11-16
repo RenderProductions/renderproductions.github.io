@@ -22,12 +22,13 @@ import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { startActivity, startApi, startFarmReminders, startHolidays, startReminders, startStatus } from './discord/background';
+import { startActivity, startLiveFeed, startApi, startFarmReminders, startHolidays, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
 import { importOnStartup, oldDbFile } from './achievements/import';
 import { runFixes } from './fixes';
+import { addInbox } from './social/inbox';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -128,6 +129,7 @@ async function main(): Promise<void> {
       }], allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     });
     setNotifier((guildId, userId, text) => {
+      addInbox(db, userId, guildId, 'Market', text.replace(/<a?:\w+:\d+>\s*/g, ''));
       if (db.meta(`receipts.off:${userId}`) === '1') return;
       const server = c.guilds.cache.get(guildId)?.name;
       const content = `${text}\n-# ${server ? `${server} · ` : ''}Turn these off with ${config.prefix}receipts off`;
@@ -164,6 +166,7 @@ async function main(): Promise<void> {
     startFarmReminders(db, c, config.prefix);
     startHolidays(db, c, config.prefix);
     startActivity(db, config, rng, c);
+    startLiveFeed(db);
     startApi(db, c);
     startStatus(db, c);
     startPublishing(db, config, {

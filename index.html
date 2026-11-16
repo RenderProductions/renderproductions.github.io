@@ -35,6 +35,7 @@
     <ul>
       <li><a href="/" aria-current="page">Home</a></li>
       <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/play/">Play</a></li>
       <li><a href="/bot/">Bot</a></li>
       <li><a href="/profile/">Profile</a></li>
       <li><a href="/games/">Games</a></li>
@@ -179,5 +180,6 @@
   // Already logged in on the profile page? Say so on the button.
   try { var me = JSON.parse(localStorage.getItem('rv_me')); if (me && me.name) document.getElementById('profile-btn').textContent = 'My profile (' + me.name + ')'; } catch (e) {}
 </script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

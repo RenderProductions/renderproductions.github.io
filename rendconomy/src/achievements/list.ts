@@ -123,6 +123,9 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['every_door', 'Every Door', 'Open all 25 doors of the advent calendar', 'holiday', 'epic'],
   ['regift', 'Regift', 'Give a holiday collectible as your Secret Santa gift', 'holiday', 'common'],
 
+  ['dealmaker', 'Dealmaker', 'Complete a trade with another player', 'social', 'common'],
+  ['odd_one_out', 'Odd One Out', 'Finish 50 odd jobs', 'jobs', 'rare'],
+  ['gentleman_farmer', 'Gentleman Farmer', 'Hire a Farmhand', 'farming', 'common'],
   ['redemption_arc', 'Redemption Arc', 'Win back a lost slots bet with Redeem yourself', 'casino', 'rare'],
 
   ['weathered', 'Weathered', 'Lose 3 crops to a single storm', 'secret', 'rare', true],

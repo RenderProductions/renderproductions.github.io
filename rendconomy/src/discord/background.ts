@@ -16,6 +16,9 @@ import * as sessions from '../core/sessions';
 import type { ReplyObject } from '../commands/types';
 import { CROPS, plotsOf, simulate, weatherLog } from '../farming/farming';
 import { count } from '../shop/inventory';
+import { RESERVE, balance } from '../core/ledger';
+import { activeEvent, EVENTS } from '../events/world';
+import { addInbox } from '../social/inbox';
 import { holidayTick, isHoliday, season } from '../holidays/holidays';
 import { anyItem } from '../shop/items';
 import { cryptoRng } from '../core/rng';
@@ -62,6 +65,7 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
       if (!ready.length) continue;
       for (const p of ready) db.run('UPDATE farm_plots SET reminded = 1 WHERE guild_id = ? AND user_id = ? AND slot = ?', f.guild_id, f.user_id, p.slot);
       const what = ready.map((p) => `${emojiOr(p.crop, CROPS[p.crop]!.emoji)} ${CROPS[p.crop]!.name}`).join(', ');
+      addInbox(db, f.user_id, f.guild_id, 'Crops ready', `${ready.map((p) => CROPS[p.crop]!.name).join(', ')} ready to harvest.`);
       const server = client.guilds.cache.get(f.guild_id)?.name;
       const text = `${emoji('harvest')} Ready to harvest${server ? ` in **${server}**` : ''}: ${what}. Pick ${ready.length === 1 ? 'it' : 'them'} with \`${prefix}harvest\`.\n-# Turn these off with \`${prefix}farm remind off\`.`;
       client.users.fetch(f.user_id).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
@@ -71,7 +75,7 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 // ---------------------------------------------------------------- the Trading Floor's buttons and live updates
 // The Activity can't receive message edits, so it asks: "__press <button id>" presses a button (at the moment
@@ -113,6 +117,26 @@ export function pollRelay(db: Db, key: string, now: number): { update?: Relay; d
   const done = !e.next && !e.later;
   if (done) relayLive.delete(key);
   return { update: out ? toRelay(out, now) : undefined, done };
+}
+
+/** The live feed: prices and the world event, pushed to the Worker every 30 seconds for the site and the Floor. */
+export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> {
+  const m = loadMarket(db);
+  const e = activeEvent(db, now);
+  return {
+    at: now,
+    market: m ? { status: m.market.status, open: m.market.open, text: m.market.text } : null,
+    prices: m?.prices ?? {}, changes: m?.changes ?? {}, statuses: m?.statuses ?? {},
+    event: e ? { id: e.id, ticker: e.ticker ?? null, until: e.until, name: EVENTS[e.id!]?.name, emoji: EVENTS[e.id!]?.emoji, text: EVENTS[e.id!]?.desc(e.ticker) } : null,
+    reserve: balance(db, RESERVE) / 100
+  };
+}
+export function startLiveFeed(db: Db): void {
+  const url = process.env.ACTIVITY_URL ?? '', secret = process.env.ACTIVITY_SECRET ?? '';
+  if (!url || !secret) return;
+  const push = () => fetch(`${url}/bot/live`, { method: 'POST', headers: { 'X-Bot-Secret': secret, 'Content-Type': 'application/json' }, body: JSON.stringify(liveSnapshot(db)) }).catch(() => { /* next time */ });
+  setInterval(push, 30_000).unref();
+  setTimeout(push, 5_000).unref();
 }
 
 /** Polls the Cloudflare Worker for commands sent from the Activity, runs them as that player, sends replies back. */

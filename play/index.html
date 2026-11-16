@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="gold">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play | Render Productions</title>
+<meta name="description" content="Play Rend-Conomy from the site: your desk, Marquez's shop, your farm, odd jobs, trades and notifications. Log in with Discord.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Play Rend-Conomy | Render Productions">
+<meta property="og:description" content="Your desk, Marquez's shop, your farm, odd jobs, trades and notifications, right on the site.">
+<meta property="og:url" content="https://renderproductions.github.io/play/">
+<meta property="og:image" content="https://renderproductions.github.io/og/bot.png">
+<meta name="theme-color" content="#ffe600">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/x-icon" href="../favicon.ico">
+<link rel="stylesheet" href="../style.css">
+<style>
+  .hub-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0 1rem; }
+  .hub-head h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 56px; line-height: 1; letter-spacing: 2px; color: var(--bright); text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35); }
+  .hub-head p { margin: .4rem 0 0; color: var(--lime); }
+  .who { display: flex; align-items: center; gap: .6rem; color: var(--grey); font-size: 14px; }
+  .who img { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line-strong); }
+  .strip { display: flex; gap: 1.2rem; overflow-x: auto; padding: .55rem .8rem; border: 1px solid var(--line); background: var(--panel); font-size: 13px; white-space: nowrap; margin-bottom: 1rem; }
+  .strip b { color: var(--bright); margin-right: .35rem; } .strip .up { color: #3ddc84; } .strip .down { color: #ff5c61; } .strip .ev { color: var(--lime); }
+  .tabs { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .tabs button { font: inherit; font-size: 14px; padding: .5rem .95rem; color: var(--grey); background: var(--panel); border: 1px solid var(--line); cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--bright); border-color: var(--bright); background: rgba(var(--accent-rgb), .08); }
+  .pane { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1rem; align-items: start; margin-bottom: 2.5rem; }
+  .pane[hidden] { display: none; }
+  .stage { min-height: 220px; padding: 1rem 1.1rem; background: var(--panel); border: 1px solid var(--line-strong); }
+  .last { margin-bottom: .8rem; padding-bottom: .8rem; border-bottom: 1px dashed var(--line); }
+  .last:empty { display: none; }
+  .side h2 { margin: 0 0 .6rem; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--grey); font-weight: 600; }
+  .side .box { padding: .9rem; background: var(--panel); border: 1px solid var(--line); margin-bottom: .8rem; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+  .acts .rv-b { width: 100%; text-align: left; }
+  .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .6rem; font-size: 13px; color: var(--grey); }
+  .field input, .field select { font: inherit; font-size: 14px; color: var(--bright); background: var(--bg); border: 1px solid var(--line-strong); padding: .45rem .55rem; }
+  .gate { padding: 1.75rem; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line-strong); max-width: 760px; margin-bottom: 2.5rem; }
+  .gate p { color: var(--lime); }
+  .btn.discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+  .wait { color: var(--grey); }
+  @media (max-width: 820px) { .pane { grid-template-columns: 1fr; } .hub-head h1 { font-size: 42px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/play/" aria-current="page">Play</a></li>
+      <li><a href="/bot/">Bot</a></li>
+      <li><a href="/profile/">Profile</a></li>
+      <li><a href="/games/">Games</a></li>
+      <li><a href="/face/">Face</a></li>
+      <li><a href="/patch-notes/">Patch Notes</a></li>
+      <li><a href="/discord/">Discord</a></li>
+    </ul>
+  </nav>
+
+  <header class="hub-head">
+    <div>
+      <h1>PLAY</h1>
+      <p>Rend-Conomy, right here. Everything runs through Render's Vision, as you, in your server.</p>
+    </div>
+    <div class="who" id="who"></div>
+  </header>
+
+  <section class="gate" id="gate" hidden>
+    <p>Log in with Discord to check your desk, shop at Marquez's, tend your farm, take odd jobs and trade with other players.</p>
+    <button class="btn discord" type="button" id="login">Log in with Discord</button>
+    <p class="note">This only tells the site your Discord name and picture. It never sees your password or messages.</p>
+  </section>
+
+  <div id="hub" hidden>
+    <div class="strip" id="strip" aria-label="Live market"><span class="rv-dim">Market feed loading…</span></div>
+    <div class="tabs" role="tablist" aria-label="Hub">
+      <button type="button" role="tab" data-tab="desk">💼 Desk</button>
+      <button type="button" role="tab" data-tab="shop">🛍️ Shop</button>
+      <button type="button" role="tab" data-tab="farm">🌾 Farm</button>
+      <button type="button" role="tab" data-tab="jobs">🧰 Odd Jobs</button>
+      <button type="button" role="tab" data-tab="trades">🤝 Trades</button>
+      <button type="button" role="tab" data-tab="inbox">🔔 Inbox</button>
+    </div>
+
+    <section class="pane" data-pane="desk" hidden>
+      <div class="stage"><div class="last" id="desk-last"></div><div id="desk-main" class="wait">Opening the books…</div></div>
+      <aside class="side"><div class="box"><h2>Your desk</h2><div class="acts">
+        <button class="rv-b" data-act="daily">🎁 Daily</button><button class="rv-b" data-act="dividends">💸 Dividends</button>
+        <button class="rv-b" data-act="savings">🐖 Savings</button><button class="rv-b" data-act="loans">📜 Loans</button>
+        <button class="rv-b" data-act="history">🧾 History</button><button class="rv-b" data-act="showcase">🏆 Showcase</button>
+      </div></div>
+      <div class="box"><h2>Savings</h2>
+        <div class="field"><label for="save-amt">Deposit</label><input id="save-amt" inputmode="decimal" placeholder="500 or all"></div>
+        <div class="field"><label for="save-days">For</label><select id="save-days"><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option></select></div>
+        <button class="rv-b" data-form="savings deposit {save-amt} {save-days}">Lock it away</button>
+        <div class="field" style="margin-top:.8rem"><label for="save-id">Withdraw early (account #)</label><input id="save-id" inputmode="numeric" placeholder="1"></div>
+        <button class="rv-b" data-form="savings withdraw {save-id}">Withdraw</button>
+      </div></aside>
+    </section>
+
+    <section class="pane" data-pane="shop" hidden>
+      <div class="stage"><div class="last" id="shop-last"></div><div id="shop-main" class="wait">Marquez unlocks the door…</div></div>
+      <aside class="side"><div class="box"><h2>Your stuff</h2><div id="inv" class="wait">…</div></div>
+      <div class="box"><h2>Use an item</h2><div class="field"><input id="use-item" placeholder="coffee"></div><button class="rv-b" data-form="use {use-item}">Use</button></div></aside>
+    </section>
+
+    <section class="pane" data-pane="farm" hidden>
+      <div class="stage"><div class="last" id="farm-last"></div><div id="farm-main" class="wait">Walking out to the field…</div></div>
+      <aside class="side"><div class="box"><h2>Work the field</h2><div class="acts">
+        <button class="rv-b" data-act="water">💧 Water</button><button class="rv-b" data-act="harvest">🧺 Harvest</button>
+        <button class="rv-b" data-act="farm sell">💰 Sell</button><button class="rv-b" data-act="fertilize">🧪 Fertilize</button>
+        <button class="rv-b" data-act="compost">♻️ Compost</button><button class="rv-b" data-act="buyplot">🪧 Buy plot</button>
+      </div></div>
+      <div class="box"><h2>Plant</h2><div class="acts">
+        <button class="rv-b" data-act="plant carrot">🥕 Carrots</button><button class="rv-b" data-act="plant corn">🌽 Corn</button>
+        <button class="rv-b" data-act="plant tomato">🍅 Tomatoes</button><button class="rv-b" data-act="plant pumpkin">🎃 Pumpkins</button>
+        <button class="rv-b" data-act="plant polygon fruit">✨ Polygon Fruit</button>
+      </div></div>
+      <div class="box"><h2>Farmhand</h2><p class="rv-dim" style="margin:.2rem 0 .6rem;font-size:13px">⬡150 a day: waters everything and harvests what's ready into your basket.</p><div class="acts">
+        <button class="rv-b" data-act="farmhand hire">🧑‍🌾 Hire</button><button class="rv-b" data-act="farmhand fire">👋 Let go</button>
+      </div></div>
+      <div class="box"><h2>Farmers' market</h2><div class="field"><label for="mkt">A player company's ticker</label><input id="mkt" placeholder="REND" autocapitalize="characters"></div><button class="rv-b" data-form="farm sell {mkt}">Sell the basket there (+10%)</button></div>
+      </aside>
+    </section>
+
+    <section class="pane" data-pane="jobs" hidden>
+      <div class="stage"><div class="last" id="jobs-last"></div><div id="jobs-main" class="wait">Checking the job board…</div>
+        <form id="job-form" style="display:flex;gap:.5rem;margin-top:1rem"><input id="job-ans" style="flex:1;min-width:0;font:inherit;color:var(--bright);background:var(--bg);border:1px solid var(--line-strong);padding:.5rem .6rem" placeholder="Your answer" autocomplete="off"><button class="rv-b primary" type="submit">Answer</button></form>
+      </div>
+      <aside class="side"><div class="box"><h2>Odd jobs</h2><p class="rv-dim" style="font-size:13px;margin-top:0">Quick tasks for a little pay: up to 10 a day. You have 90 seconds for each.</p><button class="rv-b" data-act="oddjob">🧰 New job</button></div></aside>
+    </section>
+
+    <section class="pane" data-pane="trades" hidden>
+      <div class="stage"><div class="last" id="trades-last"></div><div id="trades-main" class="wait">…</div></div>
+      <aside class="side">
+        <div class="box"><h2>Answer an offer</h2><div class="field"><label for="t-id">Trade number</label><input id="t-id" inputmode="numeric" placeholder="3"></div>
+          <div class="acts"><button class="rv-b success" data-form="trade accept {t-id}">Accept</button><button class="rv-b danger" data-form="trade decline {t-id}">Decline</button><button class="rv-b" data-form="trade cancel {t-id}">Cancel mine</button></div></div>
+        <div class="box"><h2>Make an offer</h2>
+          <div class="field"><label for="t-to">Player</label><select id="t-to"></select></div>
+          <div class="field"><label for="t-give">You give</label><input id="t-give" placeholder="500 and 2 coffee"></div>
+          <div class="field"><label for="t-want">For their</label><input id="t-want" placeholder="snow globe"></div>
+          <button class="rv-b primary" id="t-send">Send the offer</button>
+          <p class="rv-dim" style="font-size:12px;margin:.5rem 0 0">What you give is held until they answer (24 hours).</p></div>
+        <div class="box"><h2>Send Polygons</h2><div class="field"><label for="g-amt">Amount (5% fee)</label><input id="g-amt" inputmode="decimal" placeholder="250"></div><button class="rv-b" id="g-send">Gift to the player above</button></div>
+      </aside>
+    </section>
+
+    <section class="pane" data-pane="inbox" hidden>
+      <div class="stage"><div id="inbox-main" class="wait">…</div></div>
+      <aside class="side"><div class="box"><h2>Notifications</h2><p class="rv-dim" style="font-size:13px;margin-top:0">Receipts, market reports, takeover bids, ready crops and trade offers. The 🔔 in the menu shows new ones on every page.</p><button class="rv-b" data-act="inbox">Refresh</button></div></aside>
+    </section>
+  </div>
+</div>
+
+<script src="/rv.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  // what each tab shows, and the command that refreshes it
+  var TABS = { desk: 'balance', shop: 'shop', farm: 'farm', jobs: 'oddjob', trades: 'trade', inbox: 'inbox' };
+  // farm actions answer with the farm itself; everything else goes in "last" and the tab refreshes
+  var SELF = { farm: /^(farm(?! sell)|water|harvest|plant|fertilize|buyplot|farmhand)/, shop: /^shop/, jobs: /^oddjob/, trades: /^trade$/, inbox: /^inbox/, desk: /^balance/ };
+  var tab = 'desk', players = [];
+
+  function err(e) { return e.message === 'login' ? 'Your login ran out. <a href="#" onclick="RV.login();return false">Log in again</a>.' : RV.esc(e.message); }
+  function refresh(t) {
+    var main = $(t + '-main');
+    return RV.run(TABS[t]).then(function (r) { main.classList.remove('wait'); RV.show(main, TABS[t], r, after(t)); }).catch(function (e) { main.innerHTML = err(e); });
+  }
+  function after(t) { return function () { if (t === 'shop') inventory(); }; }
+  function inventory() { RV.run('inventory').then(function (r) { RV.show($('inv'), 'inventory', r); }).catch(function () {}); }
+  function act(line) {
+    var t = tab, last = $(t + '-last');
+    last.innerHTML = '<span class="rv-dim">…</span>';
+    return RV.run(line).then(function (r) {
+      if (SELF[t] && SELF[t].test(line)) { last.textContent = ''; RV.show($(t + '-main'), line, r, after(t)); }
+      else { RV.show(last, line, r, after(t)); if (t !== 'jobs') refresh(t); }
+      if (t === 'shop') inventory();
+    }).catch(function (e) { last.innerHTML = err(e); });
+  }
+  function go(t) {
+    tab = TABS[t] ? t : 'desk';
+    document.querySelectorAll('[data-tab]').forEach(function (b) { b.setAttribute('aria-selected', String(b.dataset.tab === tab)); });
+    document.querySelectorAll('[data-pane]').forEach(function (p) { p.hidden = p.dataset.pane !== tab; });
+    history.replaceState(null, '', '#' + tab);
+    refresh(tab);
+    if (tab === 'shop') inventory();
+  }
+  document.querySelectorAll('[data-tab]').forEach(function (b) { b.onclick = function () { go(b.dataset.tab); }; });
+  window.addEventListener('hashchange', function () { var t = location.hash.slice(1); if (t !== tab && !$('hub').hidden) go(t); });
+  document.querySelectorAll('[data-act]').forEach(function (b) { b.onclick = function () { act(b.dataset.act); }; });
+  document.querySelectorAll('[data-form]').forEach(function (b) {
+    b.onclick = function () {
+      var bad = false;
+      var line = b.dataset.form.replace(/\{([\w-]+)\}/g, function (_, id) { var v = $(id).value.trim(); if (!v) bad = true; return v; });
+      if (bad) return;
+      act(line);
+    };
+  });
+  $('job-form').onsubmit = function (e) { e.preventDefault(); var a = $('job-ans').value.trim(); if (!a) return; $('job-ans').value = ''; act('oddjob ' + a); };
+  $('t-send').onclick = function () {
+    var to = $('t-to').value, give = $('t-give').value.trim(), want = $('t-want').value.trim();
+    if (to && give && want) act('trade <@' + to + '> ' + give + ' for ' + want);
+  };
+  $('g-send').onclick = function () { var to = $('t-to').value, amt = $('g-amt').value.trim(); if (to && amt) act('gift <@' + to + '> ' + amt); };
+
+  // other players in the chosen server, for trades and gifts
+  function fillPlayers(guild) {
+    RV.profiles().then(function (d) {
+      var me = RV.me(), sel = $('t-to'), want = new URLSearchParams(location.search).get('to');
+      players = d ? Object.keys(d.users).filter(function (id) { return id !== me.id && d.users[id].servers.some(function (s) { return s.id === guild; }); })
+        .map(function (id) { return { id: id, name: d.users[id].name }; }).sort(function (a, b) { return a.name.localeCompare(b.name); }) : [];
+      sel.textContent = '';
+      if (!players.length) { var o = document.createElement('option'); o.textContent = 'No other players here yet'; o.value = ''; sel.appendChild(o); return; }
+      players.forEach(function (p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.name; if (p.id === want) o.selected = true; sel.appendChild(o); });
+    });
+  }
+
+  // the live market strip
+  RV.live(function (f) {
+    var h = Object.keys(f.prices || {}).map(function (t) {
+      var c = Number((f.changes || {})[t] || 0);
+      return '<span><b>' + RV.esc(t) + '</b>⬡' + Number(f.prices[t]).toFixed(2) + ' <span class="' + (c >= 0 ? 'up' : 'down') + '">' + (c >= 0 ? '▲' : '▼') + Math.abs(c).toFixed(2) + '%</span></span>';
+    });
+    if (f.event) h.push('<span class="ev">' + RV.esc((f.event.emoji || '') + ' ' + (f.event.name || '') + ': ' + (f.event.text || '').replace(/\*\*/g, '')) + '</span>');
+    $('strip').innerHTML = h.join('') || '<span class="rv-dim">The market is quiet.</span>';
+  });
+
+  // ---- start ----
+  var me = RV.me();
+  if (!me || !RV.token()) { $('gate').hidden = false; $('login').onclick = RV.login; return; }
+  $('who').innerHTML = (me.avatar ? '<img src="' + RV.esc(me.avatar) + '" alt="">' : '') + '<span>' + RV.esc(me.name) + '</span><span id="pick"></span>';
+  RV.picker($('pick'), function (g) { if (!g) return; $('hub').hidden = false; fillPlayers(g); go((location.hash || '#desk').slice(1)); }).then(function (g) {
+    if (!g) { $('gate').hidden = false; $('gate').innerHTML = '<p>You\'re logged in as <b>' + RV.esc(me.name) + '</b>, but you haven\'t played in a server with Render\'s Vision yet. Try <code>r!daily</code> in Discord, then come back in a few minutes.</p>'; }
+  });
+})();
+</script>
+<script src="/face/popup.js" data-odds="10"></script>
+<script src="/holiday.js" defer></script>
+</body>
+</html>

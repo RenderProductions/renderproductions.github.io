@@ -75,6 +75,7 @@
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/rend-conomy/" aria-current="page">Rend-Conomy</a></li>
+      <li><a href="/play/">Play</a></li>
       <li><a href="/bot/">Bot</a></li>
       <li><a href="/profile/">Profile</a></li>
       <li><a href="/games/">Games</a></li>
@@ -467,9 +468,24 @@
     }
 
     load(true);
+
+    // The live feed (every 20 seconds, from the bot): prices and moves between the slower full updates
+    window.addEventListener('DOMContentLoaded', function () {
+      if (!window.RV) return;
+      RV.live(function (f) {
+        rows.forEach(function (r) {
+          var p = f.prices && f.prices[r.c.id];
+          if (p == null || !r.priceEl) return;
+          var ch = Number((f.changes || {})[r.c.id] || 0), up = ch >= 0;
+          r.priceEl.textContent = '⬡ ' + Number(p).toFixed(2);
+          if (r.changeEl) { r.changeEl.textContent = (up ? '▲ +' : '▼ ') + ch.toFixed(2) + '%'; r.changeEl.className = 'num change ' + (up ? 'up' : 'down'); }
+        });
+      });
+    });
   })();
 </script>
 <script src="/face/popup.js" data-odds="10"></script>
 <script src="/holiday.js" defer></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

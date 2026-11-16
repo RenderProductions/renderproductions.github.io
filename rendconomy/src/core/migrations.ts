@@ -401,5 +401,34 @@ export const MIGRATIONS: readonly string[] = [
     told       INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (guild_id, user_id, year)
   );
+  `,
+
+  /* v17: Connections pt. 2: the inbox, trade offers, and the Farmhand. */ `
+  CREATE TABLE inbox (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id  TEXT NOT NULL,
+    guild_id TEXT,
+    title    TEXT NOT NULL,
+    body     TEXT NOT NULL,
+    created  INTEGER NOT NULL,
+    read     INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX inbox_user ON inbox (user_id, id);
+  CREATE TABLE trades (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    TEXT NOT NULL,
+    from_id     TEXT NOT NULL,
+    to_id       TEXT NOT NULL,
+    give_cents  INTEGER NOT NULL DEFAULT 0,
+    give_item   TEXT,
+    give_qty    INTEGER NOT NULL DEFAULT 0,
+    want_cents  INTEGER NOT NULL DEFAULT 0,
+    want_item   TEXT,
+    want_qty    INTEGER NOT NULL DEFAULT 0,
+    status      TEXT NOT NULL DEFAULT 'open',
+    created     INTEGER NOT NULL,
+    expires     INTEGER NOT NULL
+  );
+  ALTER TABLE farms ADD COLUMN farmhand_until INTEGER;
   `
 ];

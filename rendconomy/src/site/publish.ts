@@ -2,6 +2,7 @@
 // grows and the site never rebuilds). The file formats match what the old bot wrote, so the site's pages
 // keep working unchanged: prices.json, player-companies.json, profiles.json, history-7d.json.
 // Only the main bot publishes (PUBLISH_SITE_DATA=1 plus GITHUB_TOKEN).
+import { showcaseOf } from '../commands/connections';
 import { ACHIEVEMENTS, BY_ID } from '../achievements/list';
 import { rarityStats } from '../achievements/achievements';
 import type { BotConfig } from '../config';
@@ -50,6 +51,7 @@ export function profilesSnapshot(db: Db, dir: Directory = {}) {
     const u = (users[p.user_id] ??= { name: p.name ?? 'Player', avatar: null, achievements: [], servers: [] });
     const career = p.job ? db.get<{ rank: number }>('SELECT rank FROM careers WHERE guild_id = ? AND user_id = ? AND ticker = ?', p.guild_id, p.user_id, p.job) : undefined;
     u.servers.push({
+      id: p.guild_id,
       server: dir.serverName?.(p.guild_id) ?? 'A RendConomy server',
       title: p.title,
       worth: netWorth(db, m, p.guild_id, p.user_id) / 100,
@@ -69,6 +71,8 @@ export function profilesSnapshot(db: Db, dir: Directory = {}) {
     (u.servers as { worth: number }[]).sort((a, b) => b.worth - a.worth);
     // what the site's customizer may offer them, and a server to send their changes through
     (u as { looks?: unknown }).looks = looksFor(db, id);
+    const sc = showcaseOf(db, id);
+    if (sc.length) (u as { showcase?: string[] }).showcase = sc;
     const home = db.get<{ guild_id: string }>('SELECT guild_id FROM players WHERE user_id = ? ORDER BY joined_at LIMIT 1', id);
     if (home) (u as { guild?: string }).guild = home.guild_id;
     // Their profile look, as checked names only (the site maps them to its own CSS)

@@ -89,6 +89,9 @@
   .ach .n { font-size: 13.5px; color: var(--bright); overflow-wrap: anywhere; }
   .ach .d { font-size: 12px; color: var(--grey); margin-top: 0.15rem; }
   .ach .r { font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; margin-top: 0.3rem; color: var(--rc); }
+  .pinbtn { position: absolute; top: 6px; right: 6px; font-size: 14px; padding: 2px 5px; background: transparent; border: 1px solid transparent; cursor: pointer; opacity: .45; }
+  .ach:hover .pinbtn, .pinbtn.on { opacity: 1; } .pinbtn:hover { border-color: var(--line-strong); }
+  .ach { position: relative; }
   .ach.locked { opacity: 0.5; } .ach.locked .m { background: #2a2d33; filter: grayscale(1); } .ach.locked .r { color: var(--grey); }
   .ach.legendary:not(.locked) { border-color: rgba(255, 210, 63, 0.55); box-shadow: 0 0 16px rgba(255, 210, 63, 0.15); }
   .ach.epic:not(.locked) { border-color: rgba(181, 126, 220, 0.45); }
@@ -168,6 +171,7 @@
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/play/">Play</a></li>
       <li><a href="/bot/">Bot</a></li>
       <li><a href="/profile/" aria-current="page">Profile</a></li>
       <li><a href="/games/">Games</a></li>
@@ -247,6 +251,7 @@
   var RC = { common: '#8e9297', rare: '#3ba7f2', epic: '#b57edc', legendary: '#ffd23f', mythic: '#ff6ad5' };
   var ICON = { start: '🌱', market: '📈', jobs: '💼', casino: '🎰', social: '🤝', companies: '🏢', heists: '🦹', fishing: '🎣', farming: '🌾', holiday: '🎄', mastery: '🌈', secret: '❓' };
   var filter = 'all'; // all | got | locked | a category
+  var pins = null;     // on your own profile: { list: [achievement ids pinned to the showcase], guild }
   var $ = function (id) { return document.getElementById(id); };
   var store = {
     get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
@@ -294,6 +299,16 @@
     var find = el('a', 'btn', 'Find players'); find.href = '#players';
     find.onclick = function (e) { e.preventDefault(); $('players').scrollIntoView({ behavior: 'smooth' }); setTimeout(function () { $('find').focus({ preventScroll: true }); }, 400); };
     actions.appendChild(find);
+    if (u && me && !mine && token()) {
+      var gift = el('a', 'btn', '⬡ Send Polygons'); gift.href = '/play/?to=' + encodeURIComponent(id) + '#trades';
+      var offer = el('a', 'btn', '🤝 Offer a trade'); offer.href = '/play/?to=' + encodeURIComponent(id) + '#trades';
+      actions.appendChild(gift); actions.appendChild(offer);
+    }
+    if (u) {
+      var share = el('a', 'btn', '🖼️ Share card'); share.href = '#';
+      share.onclick = function (e) { e.preventDefault(); shareCard(data, u, id); };
+      actions.appendChild(share);
+    }
     if (mine && u) {
       var cz = el('a', 'btn', 'Customize'); cz.href = '#';
       cz.onclick = function (e) { e.preventDefault(); openEditor(data, u); };
@@ -328,6 +343,7 @@
     $('p-title').textContent = top.title ? '🏷️ ' + top.title : '';
 
     var got = new Map(u.achievements.map(function (a) { return [a[0], a]; }));
+    pins = mine && token() ? { list: (u.showcase || []).slice(), guild: u.guild } : null;
     renderAchievements(data, got);
 
     // Chips under the name
@@ -363,11 +379,26 @@
     }
     server(0);
 
-    // Showcase: their three rarest
+    renderShowcase(data, got, u);
+    var cols = $('p-cols');
+    cols.textContent = '';
+    var have = {};
+    u.servers.forEach(function (s) { s.collectibles.forEach(function (c) { have[c] = true; }); });
+    var owned = data.collectibles.filter(function (c) { return have[c.id]; });
+    if (!owned.length) cols.appendChild(el('p', 'note', 'None yet. Marquez stocks one each week.'));
+    owned.forEach(function (c) { var d = el('span', 'col', c.emoji + ' ' + c.name); d.title = c.desc; cols.appendChild(d); });
+  }
+
+  // Showcase: what they pinned (r!showcase, or the 📍 on their achievements), else their three rarest
+  var showFor = null;
+  function renderShowcase(data, got, u) {
+    if (u) showFor = u; else u = showFor;
     var show = $('p-show');
     show.textContent = '';
-    var mineList = u.achievements.map(function (x) { return { x: x, d: byId(data, x[0]) }; }).filter(function (o) { return o.d; })
-      .sort(function (p, q) { return p.d.pct - q.d.pct || q.x[1] - p.x[1]; }).slice(0, 3);
+    var pinned = (pins ? pins.list : (u.showcase || [])).map(function (id) { return got.get(id); }).filter(Boolean);
+    var mineList = (pinned.length ? pinned : u.achievements).map(function (x) { return { x: x, d: byId(data, x[0]) }; }).filter(function (o) { return o.d; })
+      .sort(function (p, q) { return pinned.length ? 0 : p.d.pct - q.d.pct || q.x[1] - p.x[1]; }).slice(0, 3);
+    $('p-show-section').querySelector('h2').textContent = pinned.length ? 'Showcase 📌' : 'Showcase';
     $('p-show-section').hidden = !mineList.length;
     mineList.forEach(function (o) {
       var m = el('div', 'medal'); m.style.setProperty('--rc', RC[o.d.rarity]);
@@ -376,13 +407,40 @@
       m.appendChild(t); show.appendChild(m);
     });
 
-    var cols = $('p-cols');
-    cols.textContent = '';
-    var have = {};
-    u.servers.forEach(function (s) { s.collectibles.forEach(function (c) { have[c] = true; }); });
-    var owned = data.collectibles.filter(function (c) { return have[c.id]; });
-    if (!owned.length) cols.appendChild(el('p', 'note', 'None yet. Marquez stocks one each week.'));
-    owned.forEach(function (c) { var d = el('span', 'col', c.emoji + ' ' + c.name); d.title = c.desc; cols.appendChild(d); });
+  }
+
+  // A shareable picture of a profile: name, picture, net worth, achievements and showcase, in their colors
+  function shareCard(data, u, id) {
+    var W = 1200, H = 630, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    var g = cv.getContext('2d'), cs = getComputedStyle(document.documentElement);
+    var bright = cs.getPropertyValue('--bright').trim() || '#ffe600', bg = cs.getPropertyValue('--bg').trim() || '#05070d', panel = cs.getPropertyValue('--panel').trim() || '#090e1a';
+    var grad = g.createLinearGradient(0, 0, W, H); grad.addColorStop(0, panel); grad.addColorStop(1, bg);
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    g.strokeStyle = bright; g.lineWidth = 6; g.strokeRect(18, 18, W - 36, H - 36);
+    var top = u.servers[0] || {}, got = u.achievements.length, all = data.achievements.length;
+    var draw = function (img) {
+      if (img) { g.save(); g.beginPath(); g.arc(170, 190, 100, 0, 7); g.clip(); g.drawImage(img, 70, 90, 200, 200); g.restore(); g.beginPath(); g.arc(170, 190, 100, 0, 7); g.lineWidth = 6; g.stroke(); }
+      g.fillStyle = bright; g.font = 'bold 72px system-ui, sans-serif'; g.fillText(u.name.slice(0, 22), 310, 175);
+      g.fillStyle = '#c9cfdd'; g.font = '30px system-ui, sans-serif';
+      if (top.title) g.fillText('🏷️ ' + top.title, 310, 225);
+      g.fillText((top.server || 'Rend-Conomy') + (top.job ? ' · ' + top.job.rank + ' at ' + top.job.ticker : ''), 310, top.title ? 268 : 225);
+      var stat = function (x, k, v) { g.fillStyle = '#8e97bd'; g.font = '24px system-ui, sans-serif'; g.fillText(k, x, 380); g.fillStyle = bright; g.font = 'bold 54px system-ui, sans-serif'; g.fillText(v, x, 440); };
+      stat(70, 'NET WORTH', '⬡' + Number(top.worth || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }));
+      stat(470, 'ACHIEVEMENTS', got + ' / ' + all);
+      stat(830, 'BEST HIT', '⬡' + Number(top.bestHit || 0).toLocaleString(undefined, { maximumFractionDigits: 0 }));
+      var sc = (u.showcase && u.showcase.length ? u.showcase : u.achievements.map(function (x) { return x[0]; })).map(function (a) { return byId(data, a); }).filter(Boolean).slice(0, 3);
+      g.font = '26px system-ui, sans-serif';
+      sc.forEach(function (a, i) { g.fillStyle = RC[a.rarity]; g.fillText('🏆 ' + (a.secret ? 'Secret' : a.name), 70 + i * 360, 520); });
+      g.fillStyle = '#8e97bd'; g.font = '22px system-ui, sans-serif'; g.fillText('renderproductions.github.io/profile/?id=' + id, 70, 585);
+      cv.toBlob(function (b) {
+        var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = u.name.replace(/[^\w-]+/g, '_') + '-rend-conomy.png';
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 5000);
+      });
+    };
+    if (!u.avatar) return draw(null);
+    var img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = function () { draw(img); }; img.onerror = function () { draw(null); };
+    img.src = u.avatar;
   }
 
   function byId(data, id) { if (!data._by) { data._by = {}; data.achievements.forEach(function (a) { data._by[a.id] = a; }); } return data._by[id]; }
@@ -482,9 +540,10 @@
       var paint = !!t[3], locked = !looks.kit || (paint && looks.paints.indexOf(t[0]) < 0);
       var b = el('button', 'sw' + (paint ? ' paint' : '') + (locked ? ' locked' : '')); b.type = 'button';
       b.style.setProperty('--c', t[2]); b.style.background = t[2];
-      b.title = t[1] + (locked ? (paint && looks.kit ? ' (a Profile Paint: buy it from Marquez)' : ' (needs a Customizer Kit)') : '');
+      b.title = t[1] + (locked ? (paint && looks.kit ? ' (try it on: buy the paint from Marquez to keep it)' : ' (try it on: needs a Customizer Kit to keep)') : '');
       b.setAttribute('aria-label', b.title);
-      b.onclick = function () { if (locked) return; draft.theme = t[0]; draft.color = null; preview(); };
+      // locked looks can still be tried on: the card previews them, Save says how to get them
+      b.onclick = function () { draft.theme = t[0]; draft.color = null; draft.trying = locked ? t[1] : null; preview(); };
       refreshers.push(function () { b.setAttribute('aria-pressed', String(!draft.color && (draft.theme || 'gold') === t[0])); });
       sws.appendChild(b);
     });
@@ -537,6 +596,7 @@
       if (draft.frame !== (cur.frame || 'none') && !(draft.reset && draft.frame === 'none')) lines.push('profile frame ' + draft.frame);
       if (draft.pin !== (cur.pin || '') && !(draft.reset && !draft.pin)) lines.push('profile pin ' + (draft.pin || 'none'));
       if (draft.hidden) lines.push('profile private on');
+      if (draft.trying) { msg.className = 'ed-msg bad'; msg.textContent = 'You\'re trying on ' + draft.trying + '. ' + (looks.kit ? 'Buy the paint from Marquez (/shop style) to keep it.' : 'A Customizer Kit from Marquez (/shop style) lets you keep a look.'); return; }
       if (!lines.length) { msg.textContent = 'Nothing has changed.'; return; }
       if (!u.guild) { msg.className = 'ed-msg bad'; msg.textContent = 'Play once in Discord first, then try again.'; return; }
       save.disabled = reset.disabled = true; msg.className = 'ed-msg'; msg.textContent = 'Saving…';
@@ -619,6 +679,26 @@
         body.appendChild(el('div', 'd', desc));
         body.appendChild(el('div', 'r', RARITY[a.rarity] + ' · ' + a.pct + '%' + (mine ? ' · ' + new Date(mine[1]).toLocaleDateString() : '')));
         card.appendChild(body);
+        if (mine && pins && window.RV) {
+          // pin it to (or take it off) your showcase, through the bot
+          var on = pins.list.indexOf(a.id) >= 0;
+          var pb = el('button', 'pinbtn' + (on ? ' on' : ''), on ? '📌' : '📍'); pb.type = 'button';
+          pb.title = on ? 'Take it off your showcase' : 'Pin it to your showcase (up to 3)';
+          pb.setAttribute('aria-label', pb.title);
+          pb.onclick = function () {
+            if (pins.guild && !RV.guild()) RV.setGuild(pins.guild);
+            pb.disabled = true;
+            RV.run('showcase ' + (on ? 'remove ' : 'add ') + name).then(function (r) {
+              var e = r.embeds && r.embeds[0];
+              if (e && /Showcase/.test(e.title || '')) {
+                if (on) pins.list = pins.list.filter(function (x) { return x !== a.id; }); else pins.list.push(a.id);
+                renderShowcase(data, got);
+                renderAchievements(data, got);
+              } else { pb.disabled = false; pb.title = ((e && e.description) || r.content || 'The bot said no.').replace(/\*\*|`/g, ''); alert(pb.title); }
+            }).catch(function (err) { pb.disabled = false; alert(err.message === 'login' ? 'Your login ran out. Log in again.' : err.message); });
+          };
+          card.appendChild(pb);
+        }
         grid.appendChild(card);
         shown++;
       });
@@ -667,6 +747,10 @@
     fromRedirect(),
     fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; })
   ]).then(function (res) {
+    // logged in from another page (the hub, a company page...): go back there
+    var back = null;
+    try { back = sessionStorage.getItem('rv_return'); sessionStorage.removeItem('rv_return'); } catch (e) {}
+    if (res[0] && back && back.indexOf('/profile') !== 0) { location.replace(back); return; }
     var me = res[0] || store.get('rv_me');
     var data = res[1];
     $('status').textContent = data ? 'Profiles update every few minutes · ' + data.players + ' players · Customize your look from your own profile' : "Profiles couldn't be loaded right now.";
@@ -687,5 +771,6 @@
 </script>
 <script src="/face/popup.js" data-odds="10"></script>
 <script src="/holiday.js" defer></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

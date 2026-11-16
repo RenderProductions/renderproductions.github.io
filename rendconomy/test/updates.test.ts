@@ -54,7 +54,7 @@ test('restarts post every entry added since the last post, oldest first; /announ
   assert.equal(findUpdate(all, 'nope'), null);
   // the real page: the next restart posts Animation Expansion, Glossy Makeover, farming, Polygon Holidays, The Loose Ends, Center Stage, Redeem Yourself, then Hold the Line
   const real = readAllUpdates();
-  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays', 'the-loose-ends', 'center-stage', 'redeem-yourself', 'hold-the-line']);
+  assert.deepEqual(pendingUpdates(real, 'rendconomy').map((e) => e.id), ['animation-expansion', 'glossy-makeover', 'plants-in-this-economy', 'polygon-holidays', 'the-loose-ends', 'center-stage', 'redeem-yourself', 'hold-the-line', 'connections-pt-2']);
   assert.equal(findUpdate(real, 'animation')!.id, 'animation-expansion');
 });
 

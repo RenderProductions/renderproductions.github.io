@@ -16,7 +16,9 @@ export const FARMING = {
   /** What plots 4 to 9 cost. */
   plotPrices: [1000, 1500, 2500, 3500, 5000, 7500].map(polygons),
   wiltMs: 12 * HOUR, dryRate: 0.5, fertRate: 1.5, stormChance: 0.25,
-  earlyBirdMs: MINUTE
+  earlyBirdMs: MINUTE,
+  /** The Farmhand waters everything and harvests what's ready, for a daily wage. */
+  farmhandWage: polygons(150)
 };
 
 export interface Crop { id: string; emoji: string; name: string; plural: string; growMs: number; harvests: number; value: Cents; seedPrice: number; seedStock: number; crowChance: number }
@@ -181,6 +183,10 @@ export function setPlotCount(db: Db, guildId: string, userId: string, n: number)
 }
 export function setRemind(db: Db, guildId: string, userId: string, on: boolean): void {
   db.run(`INSERT INTO farms (guild_id, user_id, plots, remind) VALUES (?, ?, ?, ?) ON CONFLICT (guild_id, user_id) DO UPDATE SET remind = excluded.remind`, guildId, userId, FARMING.startPlots, on ? 1 : 0);
+}
+export const farmhandUntil = (db: Db, guildId: string, userId: string): number | null => db.get<{ farmhand_until: number | null }>('SELECT farmhand_until FROM farms WHERE guild_id = ? AND user_id = ?', guildId, userId)?.farmhand_until ?? null;
+export function setFarmhand(db: Db, guildId: string, userId: string, until: number | null): void {
+  db.run(`INSERT INTO farms (guild_id, user_id, plots, farmhand_until) VALUES (?, ?, ?, ?) ON CONFLICT (guild_id, user_id) DO UPDATE SET farmhand_until = excluded.farmhand_until`, guildId, userId, FARMING.startPlots, until);
 }
 export const remindOn = (db: Db, guildId: string, userId: string): boolean => (db.get<{ remind: number }>('SELECT remind FROM farms WHERE guild_id = ? AND user_id = ?', guildId, userId)?.remind ?? 0) === 1;
 /** What the next plot costs, or null at the most. */

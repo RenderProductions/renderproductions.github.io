@@ -124,7 +124,7 @@
       '</section>' +
       '<section class="co-section" aria-label="Trade">' +
         '<div class="section-head"><h2>Trade ' + ticker + '</h2><span>in The Render Room</span></div>' +
-        '<div class="panel prose"><p>Trading happens in Discord with the <a href="/bot/">Rend-Conomy bot</a>, 3 AM to 9 PM Eastern, every day.</p>' +
+        '<div class="panel prose trade-panel"><div class="tp"></div><p>Or in Discord with the <a href="/bot/">Rend-Conomy bot</a>, 3 AM to 9 PM Eastern, every day.</p>' +
         '<div class="cmds"></div></div>' +
       '</section>';
     var cmds = [
@@ -545,6 +545,53 @@
     drawPeers(data);
     $('.co-note', top).textContent = 'Shaded stretches are after hours (9 PM to 3 AM Eastern), when prices only drift.';
   }
+
+  // ---- Trading from the page (Connections pt. 2): through Render's Vision, as you, in your server ----
+  function tradePanel() {
+    var box = bottom && bottom.querySelector('.tp');
+    if (!box || !window.RV) return;
+    var css = document.createElement('style');
+    css.textContent = '.tp{margin-bottom:1rem}.tp-row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin:.4rem 0}.tp input{width:90px;font:inherit;color:var(--bright);background:var(--bg);border:1px solid var(--line-strong);padding:.4rem .5rem}.tp-out{margin-top:.7rem}.tp-live{color:var(--grey);font-size:.9em}.tp-live b{color:var(--bright)}';
+    document.head.appendChild(css);
+    if (!RV.me() || !RV.token()) {
+      box.innerHTML = '<p>Trade ' + ticker + ' right here: log in with Discord and pick your server.</p><button type="button" class="btn">Log in to trade</button>';
+      box.querySelector('button').onclick = RV.login;
+      return;
+    }
+    box.innerHTML = '<div class="tp-row"><span class="tp-pick"></span><span class="tp-live">Live: ⬡<b class="tp-px">--</b></span></div>' +
+      '<div class="tp-row"><label>Shares <input class="tp-q" type="number" min="1" value="5"></label>' +
+      '<button type="button" class="rv-b success" data-a="buy">Buy</button><button type="button" class="rv-b danger" data-a="sell">Sell</button><button type="button" class="rv-b" data-a="all">Sell all</button><button type="button" class="rv-b" data-a="mine">My shares</button></div>' +
+      '<div class="tp-out"></div>';
+    RV.picker(box.querySelector('.tp-pick'));
+    var out = box.querySelector('.tp-out');
+    box.querySelectorAll('[data-a]').forEach(function (b) {
+      b.onclick = function () {
+        var q = Math.max(1, Math.floor(Number(box.querySelector('.tp-q').value) || 1)), a = b.dataset.a;
+        var line = a === 'all' ? 'sell ' + ticker + ' all' : a === 'mine' ? 'balance' : a + ' ' + ticker + ' ' + q;
+        out.innerHTML = '<span class="rv-dim">…</span>';
+        RV.run(line).then(function (r) { RV.show(out, line, r); }).catch(function (e) { out.innerHTML = e.message === 'login' ? 'Your login ran out. <a href="#" onclick="RV.login();return false">Log in again</a>.' : RV.esc(e.message); });
+      };
+    });
+  }
+  // The live feed (every 20 seconds): the price at the top and in the trade box follow it
+  function liveFeed() {
+    if (!window.RV) return;
+    RV.live(function (f) {
+      var p = f.prices && f.prices[ticker];
+      if (p == null) return;
+      var px = bottom && bottom.querySelector('.tp-px');
+      if (px) px.textContent = Number(p).toFixed(2);
+      var num = $('.co-num', top);
+      if (num && last && Math.abs(Number(p) - last.c.price) > 1e-9) {
+        num.textContent = money(Number(p));
+        num.classList.remove('co-tick'); void num.offsetWidth; num.classList.add('co-tick');
+        var ch = Number((f.changes || {})[ticker] || 0), pill = $('.co-pill', top);
+        if (pill) { pill.textContent = pct(ch) + ' 24h'; pill.className = 'co-pill ' + (ch >= 0 ? 'up' : 'down'); }
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { tradePanel(); liveFeed(); });
+  else setTimeout(function () { tradePanel(); liveFeed(); }, 0);
 
   function newestPrices(url) {
     // The market's prices live in two places: /prices.json (the GitHub Action) and the data branch (when the

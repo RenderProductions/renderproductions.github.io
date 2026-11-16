@@ -3,6 +3,7 @@
 // Receipts are queued with the request and only sent once it succeeds.
 import type { Db } from '../core/db';
 import { afterRequest } from '../core/request';
+import { addInbox } from './inbox';
 
 export type ReceiptLine = [label: string, value: string];
 export interface Receipt { guildId: string; userId: string; title: string; lines: ReceiptLine[] }
@@ -12,8 +13,9 @@ export const setReceiptSender = (fn: (r: Receipt) => void): void => { sender = f
 export const receiptsOn = (db: Db, userId: string): boolean => db.meta(`receipts.off:${userId}`) !== '1';
 
 export function receipt(db: Db, guildId: string, userId: string, title: string, lines: (ReceiptLine | false | null | undefined)[]): void {
-  if (!receiptsOn(db, userId)) return;
   const r: Receipt = { guildId, userId, title, lines: lines.filter((l): l is ReceiptLine => !!l) };
+  addInbox(db, userId, guildId, title, r.lines.map(([k, v]) => `${k}: ${v}`).join('\n'));
+  if (!receiptsOn(db, userId)) return;
   afterRequest(() => sender(r));
 }
 

@@ -48,6 +48,7 @@
     <ul>
       <li><a href="/">Home</a></li>
       <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+      <li><a href="/play/">Play</a></li>
       <li><a href="/bot/">Bot</a></li>
       <li><a href="/profile/">Profile</a></li>
       <li><a href="/games/">Games</a></li>
@@ -66,8 +67,47 @@
     <span class="tag">CHANGED</span>, <span class="tag fix">FIXED</span>.
   -->
 
+  <article class="log release" id="connections-pt-2" aria-labelledby="r-connections-pt-2">
+    <div class="label"><span class="tag live">LATEST</span><span>November 2026</span><a href="#connections-pt-2">#</a></div>
+    <h2 id="r-connections-pt-2">Connections Pt. 2</h2>
+    <p>The site stops just watching and starts playing. Log in with Discord and most of Rend-Conomy works from a browser, as you, in your server.</p>
+
+    <h3>PLAY ON THE SITE</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span><strong><a href="/play/">Play</a></strong> is a new page with six tabs: your <strong>Desk</strong> (balance, daily, dividends, savings, loans, history), <strong>Marquez's Shop</strong>, your <strong>Farm</strong>, <strong>Odd Jobs</strong>, <strong>Trades</strong> and your <strong>Inbox</strong>. Buttons work the same as in Discord.</span></li>
+      <li><img class="emoji" data-emoji="company" src="/bot/emojis/rc_company.png" alt="" width="22" height="22"><span><strong>Buy and sell from company pages.</strong> Every company page has a trade box with Buy, Sell, Sell all and My shares.</span></li>
+      <li><img class="emoji" data-emoji="stonks" src="/bot/emojis/rc_stonks.png" alt="" width="22" height="22"><span><strong>Live prices.</strong> Prices on the Rend-Conomy page, company pages and Play now update every half minute instead of every ten.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Server picker.</strong> Play in more than one server? Pick which one the site acts in. It remembers your choice.</span></li>
+    </ul>
+
+    <h3>NOTIFICATIONS</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="bell" src="/bot/emojis/rc_bell.png" alt="" width="22" height="22"><span><strong>The bell.</strong> A bell in the site's menu lights up with unread news: trade offers, gifts, takeover bids, price alerts and your farm. In Discord, <code>r!inbox</code> shows the same list.</span></li>
+    </ul>
+
+    <h3>PLAYER TO PLAYER</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span><strong>Trade offers:</strong> <code>r!trade @player 500 and coffee for snow globe</code>. What you offer is held until they accept or decline, and comes back if they don't answer within 24 hours. Up to 3 open offers at a time.</span></li>
+      <li><img class="emoji" data-emoji="gift" src="/bot/emojis/rc_gift.png" alt="" width="22" height="22"><span>Other players' profiles now have <strong>Send Polygons</strong> and <strong>Offer a trade</strong> buttons.</span></li>
+    </ul>
+
+    <h3>WORK AND THE FARM</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="work" src="/bot/emojis/rc_work.png" alt="" width="22" height="22"><span><strong>Odd jobs:</strong> <code>r!oddjob</code> gives you a quick puzzle (math, unscramble, count, reverse). Answer within 90 seconds for ⬡25–60, up to 10 a day.</span></li>
+      <li><img class="emoji" data-emoji="farmhand" src="/bot/emojis/rc_farmhand.png" alt="" width="22" height="22"><span><strong>The Farmhand:</strong> <code>r!farmhand hire</code>. For ⬡150 a day they water everything and harvest what's ready into your basket. If you can't pay, they leave.</span></li>
+    </ul>
+
+    <h3>PROFILES</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="achievement" src="/bot/emojis/rc_achievement.png" alt="" width="22" height="22"><span><strong>Pin achievements:</strong> pin up to 3 achievements to your showcase from your profile, or with <code>r!showcase add &lt;name&gt;</code>.</span></li>
+      <li><img class="emoji" data-emoji="paint_holo" src="/bot/emojis/rc_paint_holo.png" alt="" width="22" height="22"><span><strong>Try on paints:</strong> preview locked paints on your card before you've earned them. You can't save them until they're unlocked.</span></li>
+      <li><span class="tag new">NEW</span><span><strong>Share card:</strong> download your profile as an image to post anywhere.</span></li>
+      <li><span class="tag new">NEW</span><span>New achievements: <strong>Dealmaker</strong> (complete a trade), <strong>Odd One Out</strong> (finish 50 odd jobs) and <strong>Gentleman Farmer</strong> (hire a Farmhand).</span></li>
+    </ul>
+  </article>
+
   <article class="log release" id="hold-the-line" aria-labelledby="r-hold-the-line">
-    <div class="label"><span class="tag live">LATEST</span><span class="tag fix">HOTFIX</span><span>November 2026</span><a href="#hold-the-line">#</a></div>
+    <div class="label"><span class="tag fix">HOTFIX</span><span>November 2026</span><a href="#hold-the-line">#</a></div>
     <h2 id="r-hold-the-line">Hold the Line</h2>
     <p>Hostile takeovers could be spammed until an owner gave in. Not anymore.</p>
 
@@ -793,5 +833,6 @@
 </div>
 <script src="/face/popup.js" data-odds="10"></script>
 <script src="/holiday.js" defer></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

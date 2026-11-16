@@ -155,6 +155,7 @@ export const takeover: Command = {
       const c = getCompany(ctx.db, t ?? '');
       if (!c) throw new GameError('co.unknown', 'No such company.');
       const b = startBid(ctx.db, guildId, ctx.user.id, c, ctx.now);
+      receipt(ctx.db, c.owner_guild, c.owner_id, `Takeover bid on ${c.name}`, [['Bidder', ctx.user.name], ['Premium', format(b.premium)], ['Completes', new Date(b.ends_at).toUTCString()], ['Defend', `${ctx.config.prefix}takeover defend`]]);
       return { content: `<@${c.owner_id}>`, embeds: [embed('market', `Takeover bid: ${c.name}`, [`<@${ctx.user.id}> holds a controlling stake and bids a premium of **${format(b.premium)}** (set aside).`,
         `The owner may accept (\`${ctx.config.prefix}takeover accept\`) or defend with a poison pill costing ${format(Math.round(worthOf(ctx.db, c) * TAKEOVER.poisonPill))} (\`${ctx.config.prefix}takeover defend\`).`, `Otherwise it completes ${discordTime(b.ends_at)}.`,
         `-# If it's defended, the bidder loses a ${Math.round(TAKEOVER.breakFee * 100)}% break fee (${format(Math.round(b.premium * TAKEOVER.breakFee))}) and ${c.ticker} is shielded from takeovers for a week.`])] };

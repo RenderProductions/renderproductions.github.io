@@ -9,8 +9,10 @@
 //   3. Passes commands between the Activity and the bot through the D1 database. The Activity drops a
 //      command in, the bot (which can't be reached from the internet) picks it up every couple of
 //      seconds, runs it as that player, and leaves the reply for the Activity to collect.
-//   4. Lets the site's profile page use the same relay (only from the site itself), so players can
-//      customize their profile there. Only profile commands are accepted from the site.
+//   4. Lets the site use the same relay (only from the site itself), so players can play from it: their desk,
+//      Marquez's shop, the farm, trades, odd jobs, the inbox and profile changes. Only the commands in
+//      SITE_COMMANDS are accepted from the site (and the bot checks every one again).
+//   5. Keeps the live feed: the bot pushes prices and the world event every 30 seconds, anyone can read it.
 //
 // Settings on the Worker (Settings -> Variables and Secrets), never in this file:
 //   DISCORD_CLIENT_ID      text    Render's Vision's Application ID
@@ -30,8 +32,11 @@ async function setup(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS actions (
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, username TEXT, guild_id TEXT NOT NULL,
     line TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new', result TEXT, created INTEGER NOT NULL)`).run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS live (k TEXT PRIMARY KEY, v TEXT NOT NULL, at INTEGER NOT NULL)').run();
   ready = true;
 }
+// What the site may ask the bot to do (the first word of the line). The bot checks again.
+const SITE_COMMANDS = /^(__press|__poll|profile|balance|bal|daily|dividends|savings|buy|sell|short|cover|shop|purchase|inventory|inv|use|gift|trade|showcase|inbox|oddjob|farm|plant|water|harvest|sellcrops|fertilize|compost|buyplot|farmhand|achievements|market|history|loans|advent|santa)\b/i;
 
 const SITE = 'https://renderproductions.github.io';
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra } });
@@ -70,6 +75,13 @@ async function api(req, env, path, cors) {
     return out({ access_token: data.access_token });
   }
 
+  // The live feed (prices, changes, the world event), pushed by the bot every 30 seconds. Public.
+  if (path === '/api/live') {
+    await setup(env);
+    const row = await env.DB.prepare("SELECT v, at FROM live WHERE k = 'feed'").first();
+    return new Response(row ? row.v : '{}', { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+  }
+
   // Public market data (prices, the week's history, the world event), straight from the bot's data branch
   if (path === '/api/market' || path === '/api/week') {
     const r = await fetch(`${DATA}/${path === '/api/market' ? 'prices.json' : 'history-7d.json'}?t=${Date.now()}`, { cf: { cacheTtl: 30 } });
@@ -81,8 +93,8 @@ async function api(req, env, path, cors) {
     if (!u) return out({ error: 'not logged in' }, 401);
     const { guild_id: g, line } = await req.json().catch(() => ({}));
     if (!/^\d{5,25}$/.test(String(g || '')) || !line || String(line).length > 200) return out({ error: 'bad request' }, 400);
-    // from the site, only profile changes
-    if (cors['Access-Control-Allow-Origin'] && !/^profile (theme|color|banner|frame|pin|reset|private)\b/i.test(String(line))) return out({ error: 'not allowed from the site' }, 403);
+    // from the site, only the site's commands
+    if (cors['Access-Control-Allow-Origin'] && !SITE_COMMANDS.test(String(line))) return out({ error: 'not allowed from the site' }, 403);
     await setup(env);
     // At most 30 commands a minute per player; live updates ("__poll", a Rocket in flight) have their own 120
     const poll = String(line).startsWith('__poll ');
@@ -113,6 +125,12 @@ async function api(req, env, path, cors) {
       const { results } = await env.DB.prepare("SELECT id, user_id, username, guild_id, line, created FROM actions WHERE status = 'new' ORDER BY id LIMIT 25").all();
       if (results.length) await env.DB.prepare(`UPDATE actions SET status = 'taken' WHERE id IN (${results.map(() => '?').join(',')})`).bind(...results.map((r) => r.id)).run();
       return out({ actions: results });
+    }
+    if (path === '/bot/live' && req.method === 'POST') {
+      const body = await req.text();
+      if (body.length > 50_000) return out({ error: 'too big' }, 413);
+      await env.DB.prepare("INSERT INTO live (k, v, at) VALUES ('feed', ?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v, at = excluded.at").bind(body, Date.now()).run();
+      return out({ ok: true });
     }
     if (path === '/bot/results' && req.method === 'POST') {
       const { results = [] } = await req.json().catch(() => ({}));
