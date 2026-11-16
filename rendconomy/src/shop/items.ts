@@ -58,9 +58,9 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('paint_void', '🕳️', 'Void Paint', 3000, 2, 'style', 'Black and white. Nothing else.'),
   item('paint_goldrush', '🪙', 'Gold Rush Paint', 4000, 2, 'style', 'Shimmering gold, for the rich (or the hopeful).'),
   // Iso-Chess (renderproductions.github.io/games/chess): starting armies and piece skins, yours for good
-  item('chess_gambit', '♛', 'Iso-Chess: The Gambit', 1500, 3, 'chess', 'Unlocks the Gambit opening: a Queen up front, First Blood and extra energy.', { passive: true, unlock: true }),
-  item('chess_fortress', '♜', 'Iso-Chess: The Fortress', 1500, 3, 'chess', 'Unlocks the Fortress opening: two Rooks that pawns can\'t touch.', { passive: true, unlock: true }),
-  item('chess_cavalry', '♞', 'Iso-Chess: The Cavalry', 2000, 3, 'chess', 'Unlocks the Cavalry opening: three Knights and a King who rides like one.', { passive: true, unlock: true }),
+  item('chess_gambit', '👑', 'Iso-Chess: The Gambit', 1500, 3, 'chess', 'Unlocks the Gambit opening: a Queen up front, First Blood and extra energy.', { passive: true, unlock: true }),
+  item('chess_fortress', '🏰', 'Iso-Chess: The Fortress', 1500, 3, 'chess', 'Unlocks the Fortress opening: two Rooks that pawns can\'t touch.', { passive: true, unlock: true }),
+  item('chess_cavalry', '🐎', 'Iso-Chess: The Cavalry', 2000, 3, 'chess', 'Unlocks the Cavalry opening: three Knights and a King who rides like one.', { passive: true, unlock: true }),
   item('skin_obsidian', '⚫', 'Iso-Chess: Obsidian Pieces', 800, 3, 'chess', 'Black pieces with gold edges, for your Iso-Chess army.', { passive: true, unlock: true }),
   item('skin_jade', '🟢', 'Iso-Chess: Jade Pieces', 800, 3, 'chess', 'Green jade pieces for your Iso-Chess army.', { passive: true, unlock: true }),
   item('skin_crimson', '🔴', 'Iso-Chess: Crimson Pieces', 800, 3, 'chess', 'Red pieces for your Iso-Chess army.', { passive: true, unlock: true }),
