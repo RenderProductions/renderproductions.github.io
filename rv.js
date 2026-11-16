@@ -189,7 +189,11 @@
     '.rv-b.success{border-color:#3ddc84;color:#b9ffd5}.rv-b.danger{border-color:#ff5c61;color:#ffc2c4}.rv-b.primary{background:rgba(var(--accent-rgb),.14)}.rv-b:disabled{opacity:.45;cursor:default}' +
     '.rv-b .rv-emo{width:18px;height:18px;vertical-align:-4px}' +
     '.rv-select{font:inherit;color:var(--bright);background:var(--bg);border:1px solid var(--line-strong);padding:.3rem .5rem;margin-left:.3rem}' +
-    '.rv-bell{position:relative;font-size:1.1rem;text-decoration:none}.rv-bell i{position:absolute;top:-6px;right:-10px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ff5c61;color:#fff;font:700 10px/16px system-ui;text-align:center;font-style:normal}' +
+    '.nav ul a.rv-bell{position:relative;display:inline-flex;padding:2px 4px;color:var(--grey);border:0}.nav ul a.rv-bell:hover,.nav ul a.rv-bell.on{color:var(--bright)}' +
+    '.rv-bell svg{width:18px;height:18px;display:block;shape-rendering:crispEdges}.rv-bell.on svg{filter:drop-shadow(0 0 4px rgba(var(--accent-rgb),.7));animation:rv-ring 2.4s ease-in-out infinite;transform-origin:50% 0}' +
+    '@keyframes rv-ring{0%,70%,100%{transform:rotate(0)}74%{transform:rotate(14deg)}80%{transform:rotate(-12deg)}86%{transform:rotate(8deg)}92%{transform:rotate(-4deg)}}' +
+    '@media (prefers-reduced-motion:reduce){.rv-bell.on svg{animation:none}}' +
+    '.rv-bell i{position:absolute;top:-7px;right:-9px;min-width:15px;height:15px;padding:0 3px;background:#ff5c61;color:#fff;font:700 10px/15px var(--mono,monospace);text-align:center;font-style:normal;box-shadow:0 0 0 2px var(--bg)}' +
     '.rv-epop{position:absolute;z-index:50;right:0;top:2.2rem;width:min(360px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line-strong);padding:.6rem .8rem;box-shadow:0 12px 40px rgba(0,0,0,.5);text-align:left;font-size:.9rem}';
   document.head.appendChild(css);
 
@@ -198,9 +202,9 @@
     var nav = document.querySelector('.nav ul');
     if (!nav || !RV.token() || document.querySelector('.rv-bell')) return;
     var li = document.createElement('li'); li.style.position = 'relative';
-    var a = document.createElement('a'); a.href = '/play/#inbox'; a.className = 'rv-bell'; a.title = 'Notifications'; a.setAttribute('aria-label', 'Notifications'); a.textContent = '🔔';
+    var a = document.createElement('a'); a.href = '/play/#inbox'; a.className = 'rv-bell'; a.title = 'Notifications'; a.setAttribute('aria-label', 'Notifications'); a.innerHTML = '<svg viewBox="0 0 12 12" aria-hidden="true"><g fill="currentColor"><rect x="5" y="0" width="2" height="1"/><rect x="4" y="1" width="4" height="1"/><rect x="3" y="2" width="6" height="3"/><rect x="2" y="5" width="8" height="2"/><rect x="1" y="7" width="10" height="1"/><rect x="0" y="8" width="12" height="1"/><rect x="5" y="10" width="2" height="1"/></g><g fill="#fff" fill-opacity=".35"><rect x="4" y="2" width="1" height="3"/><rect x="3" y="5" width="1" height="2"/></g></svg>';
     li.appendChild(a); nav.appendChild(li);
-    var badge = function (n) { var i = a.querySelector('i'); if (!n) { if (i) i.remove(); return; } if (!i) { i = document.createElement('i'); a.appendChild(i); } i.textContent = n > 9 ? '9+' : n; a.setAttribute('aria-label', n + ' unread notifications'); };
+    var badge = function (n) { var i = a.querySelector('i'); a.classList.toggle('on', !!n); if (!n) { if (i) i.remove(); a.setAttribute('aria-label', 'Notifications'); return; } if (!i) { i = document.createElement('i'); a.appendChild(i); } i.textContent = n > 9 ? '9+' : n; a.setAttribute('aria-label', n + ' unread notifications'); };
     var check = function () {
       if (!RV.guild() || document.hidden) return;
       RV.run('inbox count').then(function (r) { var m = /^(\d+)/.exec(r.content || ''); badge(m ? Number(m[1]) : 0); }).catch(function () {});
