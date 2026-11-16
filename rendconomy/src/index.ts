@@ -23,7 +23,7 @@ import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType, type SendableChannels } from 'discord.js';
 import { consoleFromDm, onRainButton, startConsole } from './discord/console';
-import { startActivity, startLiveFeed, startApi, startFarmReminders, startHolidays, startReminders, startStatus } from './discord/background';
+import { startActivity, startLiveFeed, startProfilesFeed, startApi, startFarmReminders, startHolidays, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
@@ -183,12 +183,14 @@ async function main(): Promise<void> {
     startLiveFeed(db);
     startApi(db, c);
     startStatus(db, c);
-    startPublishing(db, config, {
-      serverName: (id) => c.guilds.cache.get(id)?.name ?? null,
-      user: (id) => { const u = c.users.cache.get(id); return u ? { name: u.globalName ?? u.username, avatar: u.displayAvatarURL({ size: 128 }) } : null; },
+    const dir = {
+      serverName: (id: string) => c.guilds.cache.get(id)?.name ?? null,
+      user: (id: string) => { const u = c.users.cache.get(id); return u ? { name: u.globalName ?? u.username, avatar: u.displayAvatarURL({ size: 128 }) } : null; },
       servers: () => c.guilds.cache.size,
       botId: () => c.user.id
-    });
+    };
+    startPublishing(db, config, dir);
+    if (config.publish) startProfilesFeed(db, dir);   // live profiles: main bot only, like the data branch
     try {
       const body: unknown[] = slashBody();
       if (config.devGuildId) await c.application.commands.set(body as never, config.devGuildId);

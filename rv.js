@@ -36,8 +36,14 @@
 
   // ---------------------------------------------------------------- servers
   var profiles = null, names = null;
+  /** Everyone's profiles: live from the Worker, or the data branch copy (up to 10 minutes old) if that's unavailable. */
+  RV.loadProfiles = function () {
+    var raw = function () { return fetch(PROFILES + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }); };
+    return fetch(RELAY + '/api/profiles', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : raw(); }, raw)
+      .then(function (d) { return d && d.users ? d : raw(); }).catch(function () { return null; });
+  };
   RV.profiles = function () {
-    if (!profiles) profiles = fetch(PROFILES + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { names = d && d.users; return d; }).catch(function () { return null; });
+    if (!profiles) profiles = RV.loadProfiles().then(function (d) { names = d && d.users; return d; });
     return profiles;
   };
   RV.servers = function () {

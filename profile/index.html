@@ -243,6 +243,13 @@
   var CLIENT_ID = '1569206837352337609';
   var REDIRECT = location.origin + '/profile/';
   var DATA = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/profiles.json';
+  var LIVE = 'https://rend-conomy.lowrendergaming.workers.dev/api/profiles';
+  // live from the Worker (pushed by the bot when anything changes), or the data branch copy if that's down
+  function loadData() {
+    var raw = function () { return fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+    var live = function (r) { return r.ok ? r.json().then(function (d) { if (d && d.users) { d._live = true; return d; } return raw(); }) : raw(); };
+    return fetch(LIVE, { cache: 'no-store' }).then(live, raw).catch(function () { return null; });
+  }
   var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', heists: '🦹 Heists & Schemes', fishing: '🎣 Fishing', farming: '🌾 Farming', holiday: '🎄 Polygon Holidays', mastery: '🌈 Mastery', secret: '❓ Secret' };
   var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
   var RC = { common: '#8e9297', rare: '#3ba7f2', epic: '#b57edc', legendary: '#ffd23f', mythic: '#ff6ad5' };
@@ -869,7 +876,7 @@
   var params = new URLSearchParams(location.search);
   Promise.all([
     fromRedirect(),
-    fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).catch(function () { return null; })
+    loadData()
   ]).then(function (res) {
     // logged in from another page (the hub, a company page...): go back there
     var back = null;
@@ -877,7 +884,7 @@
     if (res[0] && back && back.indexOf('/profile') !== 0) { location.replace(back); return; }
     var me = res[0] || store.get('rv_me');
     var data = res[1];
-    $('status').textContent = data ? 'Profiles update every few minutes · ' + data.players + ' players · Customize your look from your own profile' : "Profiles couldn't be loaded right now.";
+    $('status').textContent = data ? (data._live ? 'Live' : 'Updates every few minutes') + ' · ' + data.players + ' players · Customize your look from your own profile' : "Profiles couldn't be loaded right now.";
     var id = params.get('id') || (me && me.id);
     if (!data) {
       // No profile data yet (the bot hasn't published it). If they just logged in, say so instead of showing the login again.
@@ -890,6 +897,14 @@
     try { wantEdit = sessionStorage.getItem('rv_edit') === '1'; sessionStorage.removeItem('rv_edit'); } catch (e) {}
     if (wantEdit && me && data.users[me.id] && id === me.id && token()) openEditor(data, data.users[me.id]);
     showPlayers(data, id);
+    // keep the card up to date while it's open (not while customizing or sharing)
+    if (id) setInterval(function () {
+      if (document.hidden || !$('editor').hidden || document.getElementById('card-preview')) return;
+      loadData().then(function (fresh) {
+        if (!fresh || !fresh.users || JSON.stringify(fresh.users[id]) === JSON.stringify(data.users[id])) return;
+        data = fresh; show(data, id, me);
+      });
+    }, 60000);
   });
 })();
 </script>

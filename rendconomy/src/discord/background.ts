@@ -1,6 +1,7 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
 import { consoleFromDm } from './console';
+import { profilesSnapshot, type Directory } from '../site/publish';
 import { emoji, emojiOr } from './emoji';
 import http from 'node:http';
 import type { Client } from 'discord.js';
@@ -138,6 +139,25 @@ export function startLiveFeed(db: Db): void {
   const push = () => fetch(`${url}/bot/live`, { method: 'POST', headers: { 'X-Bot-Secret': secret, 'Content-Type': 'application/json' }, body: JSON.stringify(liveSnapshot(db)) }).catch(() => { /* next time */ });
   setInterval(push, 30_000).unref();
   setTimeout(push, 5_000).unref();
+}
+
+/** Pushes everyone's profile to the Worker whenever it changes (checked every minute), so /profile/ is live.
+ *  The data branch still gets its copy every 10 minutes, as a fallback. Main bot only. */
+export function startProfilesFeed(db: Db, dir: Directory): void {
+  const url = process.env.ACTIVITY_URL ?? '', secret = process.env.ACTIVITY_SECRET ?? '';
+  if (!url || !secret) return;
+  let last = '', warned = false;
+  const push = () => {
+    let body: string;
+    try { body = JSON.stringify(profilesSnapshot(db, dir)); } catch (e) { console.error('[profiles feed]', e); return; }
+    const key = body.replace(/"updated":"[^"]*"/, '');
+    if (key === last) return;
+    if (body.length > 1_800_000) { if (!warned) console.warn('[profiles feed] profiles are too big for the live feed; the site uses the data branch instead'); warned = true; return; }
+    fetch(`${url}/bot/profiles`, { method: 'POST', headers: { 'X-Bot-Secret': secret, 'Content-Type': 'application/json' }, body })
+      .then((r) => { if (r.ok) last = key; }).catch(() => { /* next time */ });
+  };
+  setInterval(push, 60_000).unref();
+  setTimeout(push, 10_000).unref();
 }
 
 /** Polls the Cloudflare Worker for commands sent from the Activity, runs them as that player, sends replies back. */

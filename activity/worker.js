@@ -12,7 +12,8 @@
 //   4. Lets the site use the same relay (only from the site itself), so players can play from it: their desk,
 //      Marquez's shop, the farm, trades, odd jobs, the inbox and profile changes. Only the commands in
 //      SITE_COMMANDS are accepted from the site (and the bot checks every one again).
-//   5. Keeps the live feed: the bot pushes prices and the world event every 30 seconds, anyone can read it.
+//   5. Keeps the live feed: the bot pushes prices and the world event every 30 seconds, and profiles
+//      whenever they change (checked every minute); anyone can read them (/api/live, /api/profiles).
 //
 // Settings on the Worker (Settings -> Variables and Secrets), never in this file:
 //   DISCORD_CLIENT_ID      text    Render's Vision's Application ID
@@ -82,6 +83,14 @@ async function api(req, env, path, cors) {
     return new Response(row ? row.v : '{}', { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
   }
 
+  // Live profiles (everyone's achievements, worth, looks...), pushed by the bot whenever they change. Public.
+  if (path === '/api/profiles') {
+    await setup(env);
+    const row = await env.DB.prepare("SELECT v, at FROM live WHERE k = 'profiles'").first();
+    if (!row) return new Response('{"error":"not yet"}', { status: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+    return new Response(row.v, { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' } });
+  }
+
   // Public market data (prices, the week's history, the world event), straight from the bot's data branch
   if (path === '/api/market' || path === '/api/week') {
     const r = await fetch(`${DATA}/${path === '/api/market' ? 'prices.json' : 'history-7d.json'}?t=${Date.now()}`, { cf: { cacheTtl: 30 } });
@@ -130,6 +139,12 @@ async function api(req, env, path, cors) {
       const body = await req.text();
       if (body.length > 50_000) return out({ error: 'too big' }, 413);
       await env.DB.prepare("INSERT INTO live (k, v, at) VALUES ('feed', ?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v, at = excluded.at").bind(body, Date.now()).run();
+      return out({ ok: true });
+    }
+    if (path === '/bot/profiles' && req.method === 'POST') {
+      const body = await req.text();
+      if (body.length > 1_800_000) return out({ error: 'too big' }, 413);
+      await env.DB.prepare("INSERT INTO live (k, v, at) VALUES ('profiles', ?, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v, at = excluded.at").bind(body, Date.now()).run();
       return out({ ok: true });
     }
     if (path === '/bot/results' && req.method === 'POST') {
