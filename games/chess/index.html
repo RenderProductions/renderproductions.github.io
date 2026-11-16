@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Iso-Chess | Render Productions</title>
-<meta name="description" content="Iso-Chess: an isometric roguelike chess prototype from Render Productions.">
+<meta name="description" content="Iso-Chess: a roguelike chess march in 3D. Build an army, lose pieces for good, and take back a broken kingdom.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Render Productions">
 <meta property="og:title" content="Iso-Chess | Render Productions">
-<meta property="og:description" content="Iso-Chess: an isometric roguelike chess prototype from Render Productions.">
+<meta property="og:description" content="A roguelike chess march in 3D. Build an army, lose pieces for good, and take back a broken kingdom.">
 <meta property="og:url" content="https://renderproductions.github.io/games/chess/">
 <meta property="og:image" content="https://renderproductions.github.io/og/games.png">
 <meta property="og:image:width" content="1200">
@@ -26,8 +26,9 @@
 
 <header class="hud-top">
   <a class="back" href="../">&larr; GAMES</a>
-  <div class="title">ISO-CHESS <span>PROTOTYPE</span></div>
+  <div class="title">ISO-CHESS <span id="mode-tag">RUN</span></div>
   <div class="stat">TURN <b id="turn">1</b></div>
+  <div class="stat goal-wrap">GOAL <span id="goal"></span></div>
   <div class="stat energy-wrap">ENERGY <span class="energy" id="energy" aria-label="Energy"></span></div>
   <label class="stat arena-wrap">ARENA
     <select id="arena-pick" aria-label="Arena"></select>
@@ -74,10 +75,14 @@
   </div>
 </div>
 
+<div class="run-screen" id="run-screen" hidden></div>
+
 <!-- Same three.js copy RFT uses -->
 <script src="../rft/vendor/three.min.js"></script>
 <script src="arena.js"></script>
 <script src="board3d.js"></script>
+<script src="/rv.js"></script>
+<script src="run.js"></script>
 <script src="chess.js"></script>
 <script src="/face/popup.js" data-odds="20"></script>
 </body>

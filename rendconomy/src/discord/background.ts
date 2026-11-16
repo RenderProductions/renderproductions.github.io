@@ -1,6 +1,8 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
 import { consoleFromDm } from './console';
+import { chessFinish, chessStatus } from '../games/chess';
+import { me } from '../commands/shared';
 import { change, listCompanies, treasury } from '../companies/companies';
 import { profilesSnapshot, type Directory } from '../site/publish';
 import { emoji, emojiOr } from './emoji';
@@ -184,6 +186,14 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
     const now = Date.now(), at = a.created && now - a.created < 30_000 && a.created <= now ? a.created : now;
     const ctx = { db, config, rng, now: at, guildId: a.guild_id, channelId: `activity:${a.guild_id}`, user: { id: member.user.id, name: member.user.globalName ?? member.user.username }, isOwner: false, isMod: false, notes: [] as string[] };
     const line = String(a.line);
+    // Iso-Chess on the site: unlocks, and paying for a finished run (needs an account in this server)
+    if (line.startsWith('__chess ')) {
+      me(ctx);
+      const rest = line.slice(8).trim();
+      if (rest === 'status') return { content: '', chess: chessStatus(db, a.guild_id, a.user_id, now) };
+      if (rest.startsWith('finish ')) return { content: chessFinish(db, a.guild_id, a.user_id, rest.slice(7), now) };
+      return { content: 'Unknown Iso-Chess request.' };
+    }
     if (line.startsWith('__poll ')) return pollRelay(db, line.slice(7).trim(), now);
     if (line.startsWith('__press ')) {
       const r = press(ctx, line.slice(8).trim());

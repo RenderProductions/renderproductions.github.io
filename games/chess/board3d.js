@@ -45,6 +45,21 @@
     frozen: 0x6fb8ff
   };
 
+  let skin = { color: COLORS.player, edge: COLORS.playerEdge };
+
+  /* ---------- looks: a theme per act, fire in the pits, the world around the board ---------- */
+  const THEMES = {
+    free: { bg: 0x050810, light: 0x233150, dark: 0x111a2e, wall: 0x0d1322, wallEdge: 0xa08c00, edge: 0x2c3242, key: 0xfff4cc, rim: 0xffe600, amb: 0x8a93ab, mote: 0xffe600, rock: 0x141b2e },
+    // Act 1: the Rabble Fields at dusk (warm, earthy)
+    act1: { bg: 0x0d0a08, light: 0x3a3a22, dark: 0x22200f, wall: 0x2a2014, wallEdge: 0xc49a3a, edge: 0x4a4228, key: 0xffd9a0, rim: 0xff9a3d, amb: 0x9a8a70, mote: 0xffc070, rock: 0x2a2316 },
+    // Act 2: the Archers' Causeway in cold fog
+    act2: { bg: 0x060b12, light: 0x24384a, dark: 0x132231, wall: 0x101c28, wallEdge: 0x6fb8ff, edge: 0x2b4256, key: 0xd8ecff, rim: 0x6fb8ff, amb: 0x7f97b0, mote: 0xbfe0ff, rock: 0x14202c },
+    // Act 3: the Hollow Kingdom (violet stone over fire)
+    act3: { bg: 0x0a0510, light: 0x2e2140, dark: 0x1a1226, wall: 0x170f22, wallEdge: 0xb57edc, edge: 0x3a2a4e, key: 0xf0d8ff, rim: 0xff6a3d, amb: 0x8a78a8, mote: 0xff8a50, rock: 0x1c1228 }
+  };
+  let theme = THEMES.free, fireOn = false;
+  const lights = {};
+  const fx = { fires: [], embers: null, emberData: [], glow: [], motes: null, rocks: [] };   // your army's colors (piece skins)
   let host, renderer, scene, camera, raycaster, mouse;
   let tileSig = '';           // what the tiles were last built from
   let W = 8, H = 8;
@@ -90,7 +105,11 @@
     [266.5, 195], [269, 219]];
 
   const GEO = {};
+  // the run's special enemy pieces reuse a base model and wear a colored ring (see MARK)
+  const MODEL = { A: 'B', X: 'P', M: 'Q' };
+  const MARK = { A: 0x6fb8ff, X: 0xff8a3d, M: 0xb57edc };
   function partsFor(type) {
+    if (MODEL[type]) return partsFor(MODEL[type]);
     if (GEO[type]) return GEO[type];
     let parts;
     switch (type) {
@@ -152,12 +171,12 @@
     const group = new THREE.Group();
     const mine = p.side === 'player';
     const mat = new THREE.MeshStandardMaterial({
-      color: mine ? COLORS.player : COLORS.enemy,
+      color: mine ? skin.color : COLORS.enemy,
       roughness: mine ? 0.62 : 0.45,
       metalness: mine ? 0.05 : 0.25,
       flatShading: true
     });
-    const lineMat = new THREE.LineBasicMaterial({ color: mine ? COLORS.playerEdge : COLORS.enemyEdge });
+    const lineMat = new THREE.LineBasicMaterial({ color: mine ? skin.edge : COLORS.enemyEdge });
     const meshes = [];
     partsFor(p.type).forEach((part) => {
       const m = new THREE.Mesh(part.g, mat);
@@ -172,7 +191,8 @@
       meshes.push(m);
     });
     scene.add(group);
-    const rec = { group, mat, lineMat, meshes, type: p.type, side: p.side, rings: {}, busy: false, dying: false };
+    if (p.boss) group.scale.setScalar(1.35);
+    const rec = { group, mat, lineMat, meshes, type: p.type, side: p.side, boss: !!p.boss, rings: {}, busy: false, dying: false };
     pieces[p.id] = rec;
     group.position.set(wx(p.x), tileTop(p.x, p.y), wz(p.y));
     return rec;
@@ -211,7 +231,7 @@
     host = el;
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(COLORS.bg, 1);
+    renderer.setClearColor(theme.bg, 1);
     host.appendChild(renderer.domElement);
     renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;outline:none;touch-action:none';
 
@@ -219,9 +239,9 @@
     camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 
     // light from the left, like the rim light on the cards
-    scene.add(new THREE.AmbientLight(0x8a93ab, 0.6));
-    const key = new THREE.DirectionalLight(0xfff4cc, 0.95); key.position.set(-10, 14, 6); scene.add(key);
-    const rim = new THREE.DirectionalLight(0xffe600, 0.35); rim.position.set(12, 6, -10); scene.add(rim);
+    lights.amb = new THREE.AmbientLight(theme.amb, 0.6); scene.add(lights.amb);
+    const key = new THREE.DirectionalLight(theme.key, 0.95); key.position.set(-10, 14, 6); scene.add(key); lights.key = key;
+    const rim = new THREE.DirectionalLight(theme.rim, 0.35); rim.position.set(12, 6, -10); scene.add(rim); lights.rim = rim;
     const fill = new THREE.DirectionalLight(0x9fb0cc, 0.22); fill.position.set(8, 10, 12); scene.add(fill);
 
     raycaster = new THREE.Raycaster();
@@ -371,13 +391,20 @@
 
   function setIntents(list) {
     clearList(intentObjs);
+    const mat = () => new THREE.MeshBasicMaterial({ color: COLORS.intent, transparent: true, opacity: 0.9, depthWrite: false });
+    const markAt = (x, y, big) => {
+      const m = new THREE.Mesh(big ? frameGeo(0.46, 0.1) : frameGeo(0.36, 0.06), mat());
+      m.position.set(wx(x), tileTop(x, y) + 0.02, wz(y));
+      m.renderOrder = 3; m.userData.pulse = true; scene.add(m); intentObjs.push(m);
+    };
     list.forEach((it) => {
+      // a blast (a Bomber about to go off): every tile it will hit
+      if (it.area) { it.area.forEach((c) => markAt(c.x, c.y, true)); return; }
       const a = new THREE.Vector3(wx(it.fx), tileTop(it.fx, it.fy) + 0.7, wz(it.fy));
       const b = new THREE.Vector3(wx(it.tx), tileTop(it.tx, it.ty) + 0.12, wz(it.ty));
-      const lift = it.type === 'N' ? 1.6 : 0.9 + a.distanceTo(b) * 0.12;
+      const lift = it.type === 'N' ? 1.6 : it.shot ? 0.3 : 0.9 + a.distanceTo(b) * 0.12;
       const mid = a.clone().add(b).multiplyScalar(0.5); mid.y = Math.max(a.y, b.y) + lift;
       const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-      const mat = () => new THREE.MeshBasicMaterial({ color: COLORS.intent, transparent: true, opacity: 0.9, depthWrite: false });
       const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.035, 6, false), mat());
       const head = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.26, 4), mat());
       const tan = curve.getTangent(1);
@@ -408,11 +435,11 @@
       const t = s.tiles[x][y];
       if (t.kind === 'void') continue;
       let color, edge;
-      if (t.kind === 'wall') { color = new THREE.Color(COLORS.wall); edge = new THREE.Color(COLORS.wallEdge); }
-      else if (t.kind === 'pit') { color = new THREE.Color(COLORS.pit); edge = new THREE.Color(COLORS.tileEdge); }
+      if (t.kind === 'wall') { color = new THREE.Color(theme.wall); edge = new THREE.Color(theme.wallEdge); }
+      else if (t.kind === 'pit') { color = new THREE.Color(fireOn ? 0x1a0602 : COLORS.pit); edge = new THREE.Color(fireOn ? 0x8a3010 : theme.edge); }
       else {
-        color = new THREE.Color((x + y) % 2 === 1 ? COLORS.light : COLORS.dark).lerp(cream, 0.06 * (t.h || 0));
-        edge = new THREE.Color(COLORS.tileEdge);
+        color = new THREE.Color((x + y) % 2 === 1 ? theme.light : theme.dark).lerp(cream, 0.06 * (t.h || 0));
+        edge = new THREE.Color(theme.edge);
       }
       cells.push({ x, y, top: topOf(t), color, edge });
     }
@@ -448,6 +475,109 @@
     scene.add(tileLines);
     tileCells = cells;
     pickables = [tileMesh];
+    buildWorld(s);
+  }
+
+  // Fire rising out of the pits (some levels), embers, dust in the air, and rocks drifting around the board
+  function clearWorld() {
+    fx.fires.forEach((f) => { scene.remove(f.group); f.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); });
+    fx.glow.forEach((l) => scene.remove(l));
+    [fx.embers, fx.motes].forEach((p) => { if (p) { scene.remove(p); p.geometry.dispose(); p.material.dispose(); } });
+    fx.rocks.forEach((r) => { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); r.line.geometry.dispose(); r.line.material.dispose(); });
+    fx.fires = []; fx.glow = []; fx.embers = null; fx.motes = null; fx.rocks = []; fx.emberData = [];
+  }
+  function buildWorld(s) {
+    clearWorld();
+    const add = THREE.AdditiveBlending;
+    const pits = [];
+    for (let x = 0; x < W; x++) for (let y = 0; y < H; y++) if (s.tiles[x][y].kind === 'pit') pits.push({ x, y });
+    if (fireOn) {
+      const flameGeo = (r, h) => { const g = new THREE.ConeGeometry(r, h, 6, 1, true); g.translate(0, h / 2, 0); return g; };
+      pits.forEach((c, i) => {
+        const group = new THREE.Group();
+        group.position.set(wx(c.x), PIT_TOP + 0.02, wz(c.y));
+        const flames = [];
+        [[0xff3d00, 0.34, 1.05, 0.55], [0xff8a1d, 0.25, 0.9, 0.7], [0xffd34d, 0.14, 0.62, 0.85]].forEach(([color, r, h, op], k) => {
+          for (let j = 0; j < (k === 2 ? 1 : 3); j++) {
+            const m = new THREE.Mesh(flameGeo(r, h), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, blending: add, depthWrite: false, side: THREE.DoubleSide }));
+            const a = (j / 3) * Math.PI * 2 + i;
+            if (k < 2) m.position.set(Math.cos(a) * 0.14, 0, Math.sin(a) * 0.14);
+            m.userData = { phase: Math.random() * 6.28, speed: 5 + Math.random() * 4, h, op };
+            m.renderOrder = 2;
+            group.add(m); flames.push(m);
+          }
+        });
+        // a glow on the pit floor
+        const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.95), new THREE.MeshBasicMaterial({ color: 0xff5a1a, transparent: true, opacity: 0.55, blending: add, depthWrite: false }));
+        glow.rotation.x = -Math.PI / 2; glow.position.y = 0.01; group.add(glow);
+        scene.add(group);
+        fx.fires.push({ group, flames, glow });
+        if (i < 4) { const l = new THREE.PointLight(0xff6a1d, 1.1, 3.2, 2); l.position.set(wx(c.x), 0.5, wz(c.y)); l.userData.phase = Math.random() * 6; scene.add(l); fx.glow.push(l); }
+      });
+      // embers drifting up out of every pit
+      const n = pits.length * 14;
+      if (n) {
+        const pos = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) {
+          const c = pits[Math.floor(i / 14)];
+          fx.emberData.push({ cx: wx(c.x), cz: wz(c.y), y: Math.random() * 2, v: 0.006 + Math.random() * 0.012, dx: (Math.random() - 0.5) * 0.7, dz: (Math.random() - 0.5) * 0.7 });
+        }
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        fx.embers = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffa040, size: 3, sizeAttenuation: false, transparent: true, opacity: 0.9, blending: add, depthWrite: false }));
+        scene.add(fx.embers);
+      }
+    }
+    // dust (or ash) hanging in the air over the board
+    const m = 90, mp = new Float32Array(m * 3);
+    for (let i = 0; i < m; i++) { mp[i * 3] = (Math.random() - 0.5) * (W + 6); mp[i * 3 + 1] = Math.random() * 4 - 0.5; mp[i * 3 + 2] = (Math.random() - 0.5) * (H + 6); }
+    const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(mp, 3));
+    fx.motes = new THREE.Points(mg, new THREE.PointsMaterial({ color: theme.mote, size: 2, sizeAttenuation: false, transparent: true, opacity: 0.35, blending: add, depthWrite: false }));
+    scene.add(fx.motes);
+    // broken pieces of the kingdom, drifting below and around the board
+    const R = Math.max(W, H) / 2;
+    for (let i = 0; i < 12; i++) {
+      const g = new THREE.DodecahedronGeometry(0.25 + Math.random() * 0.55, 0);
+      const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: theme.rock, roughness: 0.9, flatShading: true }));
+      const line = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: theme.edge }));
+      const a = Math.random() * Math.PI * 2, d = R + 1.5 + Math.random() * 4;
+      const base = new THREE.Vector3(Math.cos(a) * d, -2.5 - Math.random() * 3, Math.sin(a) * d);
+      mesh.position.copy(base); line.position.copy(base);
+      scene.add(mesh); scene.add(line);
+      fx.rocks.push({ mesh, line, base, phase: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.004 });
+    }
+  }
+  function animateWorld(ts) {
+    const t = ts / 1000;
+    fx.fires.forEach((f) => {
+      f.flames.forEach((m) => {
+        const u = m.userData, w = Math.sin(t * u.speed + u.phase) * 0.5 + Math.sin(t * u.speed * 1.7 + u.phase * 2) * 0.25;
+        m.scale.set(1 + w * 0.12, 0.85 + w * 0.3, 1 + w * 0.12);
+        m.rotation.y = t * 0.8 + u.phase;
+        m.material.opacity = u.op * (0.8 + w * 0.25);
+      });
+      f.glow.material.opacity = 0.45 + Math.sin(t * 7) * 0.1;
+    });
+    fx.glow.forEach((l) => { l.intensity = 0.9 + Math.sin(t * 9 + l.userData.phase) * 0.25 + Math.random() * 0.15; });
+    if (fx.embers) {
+      const a = fx.embers.geometry.attributes.position.array;
+      fx.emberData.forEach((e, i) => {
+        e.y += e.v; if (e.y > 2.4) { e.y = 0; e.dx = (Math.random() - 0.5) * 0.7; e.dz = (Math.random() - 0.5) * 0.7; }
+        a[i * 3] = e.cx + e.dx * (0.4 + e.y * 0.3) + Math.sin(t * 2 + i) * 0.05; a[i * 3 + 1] = PIT_TOP + e.y; a[i * 3 + 2] = e.cz + e.dz * (0.4 + e.y * 0.3);
+      });
+      fx.embers.geometry.attributes.position.needsUpdate = true;
+    }
+    if (fx.motes) fx.motes.rotation.y = t * 0.01;
+    fx.rocks.forEach((r) => {
+      const y = r.base.y + Math.sin(t * 0.5 + r.phase) * 0.25;
+      r.mesh.position.y = y; r.line.position.y = y;
+      r.mesh.rotation.y += r.spin; r.mesh.rotation.x += r.spin * 0.5; r.line.rotation.copy(r.mesh.rotation);
+    });
+  }
+  function setTheme(name, fire) {
+    theme = THEMES[name] || THEMES.free; fireOn = !!fire;
+    if (renderer) renderer.setClearColor(theme.bg, 1);
+    if (lights.key) { lights.key.color.setHex(theme.key); lights.rim.color.setHex(theme.rim); lights.amb.color.setHex(theme.amb); }
+    tileSig = '';   // rebuild the board in the new look on the next sync
   }
 
   /* ---------- sync with game state ---------- */
@@ -465,12 +595,16 @@
     s.pieces.forEach((p) => {
       alive.add(p.id);
       let rec = pieces[p.id];
-      if (rec && (rec.type !== p.type || rec.side !== p.side)) { disposePiece(p.id); rec = null; }   // promotion, or edited
+      if (rec && (rec.type !== p.type || rec.side !== p.side || rec.boss !== !!p.boss)) { disposePiece(p.id); rec = null; }   // promotion, or edited
       if (!rec) rec = makePiece(p);
       if (!rec.busy) rec.group.position.set(wx(p.x), tileTop(p.x, p.y), wz(p.y));
       setRing(rec, 'shield', !!p.shield, COLORS.shield, 0.4);
       setRing(rec, 'fortify', !!p.fortify, COLORS.fortify, 0.3);
       setRing(rec, 'haste', s.lockPiece === p.id, COLORS.haste, 0.5);
+      setRing(rec, 'mark', !!MARK[p.type], MARK[p.type], 0.36);
+      // a boss's health: one ring per point left
+      for (let i = 1; i <= 3; i++) setRing(rec, 'hp' + i, !!p.boss && (p.hp || 1) >= i, 0xff6b6b, 0.42 + i * 0.1);
+      setRing(rec, 'vet', !!(p.unit && p.unit.traits && p.unit.traits.length), 0xffe600, 0.22);
       rec.mat.emissive.setHex(p.frozen ? COLORS.frozen : 0x000000);
       rec.mat.emissiveIntensity = p.frozen ? 0.45 : 0;
     });
@@ -529,6 +663,7 @@
       if (k >= 1) { anims.splice(i, 1); a.res(); }
     }
     view.cur += (view.rot - view.cur) * 0.14;
+    animateWorld(ts);
     const pulse = 0.55 + 0.35 * Math.sin(ts / 260);
     intentObjs.forEach((m) => { m.material.opacity = pulse; });
     placeCamera();
@@ -538,6 +673,8 @@
   window.Board3D = {
     init(el, h) { Object.assign(handlers, h); build(el); },
     sync, setHighlights, setIntents, animateMove, animateCapture, animateFizzle,
+    setSkin(color, edge) { skin = { color, edge }; Object.keys(pieces).forEach(disposePiece); },
+    setTheme,
     rotate(dir) { view.rot += (dir * Math.PI) / 2; },
     // how far to nudge the board away from the game's HUD (0 = centered, for the editor)
     setFraming(k) { view.offset = k; },

@@ -7,7 +7,7 @@ import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { HOUR, DAY } from '../core/time';
-import { addItem } from './inventory';
+import { addItem, count } from './inventory';
 import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, ROTATION, anyItem, isCollectible, type Item } from './items';
 import { isHoliday, season } from '../holidays/holidays';
 
@@ -68,6 +68,10 @@ export function buy(db: Db, rng: Rng, guildId: string, userId: string, id: strin
       const period = String(week(now));
       if (db.get('SELECT 1 FROM shop_buys WHERE guild_id = ? AND user_id = ? AND item = ? AND period = ?', guildId, userId, id, period)) throw new ShopError('once', 'You already bought this week\'s collectible.');
       db.run('INSERT INTO shop_buys (guild_id, user_id, item, period) VALUES (?, ?, ?, ?)', guildId, userId, id, period);
+    }
+    if (it.unlock) {
+      if (qty !== 1) throw new ShopError('once', `${it.name} is one per customer.`);
+      if (count(db, guildId, userId, id) > 0) throw new ShopError('once', `You already have ${it.name}. It's yours for good.`);
     }
     const left = stockOf(db, id);
     if (left < qty) throw new ShopError('soldOut', left ? `Only ${left} ${it.name} left in stock.` : `${it.name} is sold out. Stock returns ${'within the hour'}.`);

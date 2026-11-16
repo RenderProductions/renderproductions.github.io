@@ -14,9 +14,10 @@
   'use strict';
 
   const MAX_ENERGY = 5;
-  const HAND_SIZE = 3;
-  const VALUE = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 100 };
-  const NAME = { P: 'Pawn', N: 'Knight', B: 'Bishop', R: 'Rook', Q: 'Queen', K: 'King' };
+  let HAND_SIZE = 3;
+  // A: Archer (shoots down a line without moving), X: Bomber (blows up the 3x3 around it), M: Necromancer (raises the dead)
+  const VALUE = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 100, A: 3, X: 2, M: 4 };
+  const NAME = { P: 'Pawn', N: 'Knight', B: 'Bishop', R: 'Rook', Q: 'Queen', K: 'King', A: 'Archer', X: 'Bomber', M: 'Necromancer' };
 
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -42,15 +43,17 @@
   const foe = (p) => p && p.side === 'enemy';
   const tileAt = (x, y) => (inB(x, y) ? S.tiles[x][y] : null);
 
-  function add(side, type, x, y) {
-    const p = { id: ++uid, side, type, x, y, moved: false, shield: false, fortify: false, frozen: false };
+  function add(side, type, x, y, extra) {
+    const p = Object.assign({ id: ++uid, side, type, x, y, moved: false, shield: false, fortify: false, frozen: false }, extra || {});
     S.pieces.push(p);
     return p;
   }
+  const has = (name) => !!(S.heirlooms && S.heirlooms.indexOf(name) >= 0);
+  const trait = (p, t) => !!(p && p.unit && p.unit.traits && p.unit.traits.indexOf(t) >= 0);
 
   function capturable(att, def) {
     if (def.shield && def.side !== att.side) return false;
-    if (def.fortify && att.type === 'P') return false;
+    if ((def.fortify || trait(def, 'iron')) && (att.type === 'P' || att.type === 'X')) return false;
     return true;
   }
 
@@ -63,7 +66,7 @@
   // (used by the enemy so it doesn't walk into captures).
   function movesFor(p, attack) {
     const out = [];
-    const boost = S.tiles[p.x][p.y].h > 0 ? 1 : 0;   // high ground: +1 range
+    const boost = S.tiles[p.x][p.y].h > 0 ? (trait(p, 'highborn') ? 2 : 1) : 0;   // high ground: +1 range
     const far = Math.max(S.w, S.h);
     const land = (x, y) => {
       if (!open(x, y)) return;
@@ -83,7 +86,33 @@
       }
     };
     switch (p.type) {
-      case 'K': ALL8.forEach(([dx, dy]) => ray(dx, dy, 1 + boost)); break;
+      case 'K':
+        ALL8.forEach(([dx, dy]) => ray(dx, dy, 1 + boost));
+        if (p.side === 'player' && has('knightking')) JUMPS.forEach(([dx, dy]) => land(p.x + dx, p.y + dy));
+        break;
+      case 'M': ALL8.forEach(([dx, dy]) => ray(dx, dy, 1)); break;
+      case 'A': {
+        // steps like a King without capturing; shoots straight down a line (up to 3) without moving
+        ALL8.forEach(([dx, dy]) => { const x = p.x + dx, y = p.y + dy; if (open(x, y) && !at(x, y)) out.push({ x, y, capture: null }); });
+        ORTH.forEach(([dx, dy]) => {
+          let x = p.x, y = p.y;
+          for (let i = 0; i < 3 + boost; i++) {
+            x += dx; y += dy;
+            if (!open(x, y)) return;
+            const o = at(x, y);
+            if (attack) { out.push({ x, y, capture: o && o.side !== p.side ? o : null, shot: true }); if (o) return; continue; }
+            if (o) { if (o.side !== p.side && capturable(p, o)) out.push({ x, y, capture: o, shot: true }); return; }
+          }
+        });
+        break;
+      }
+      case 'X': {
+        // shuffles forward one square at a time; its real threat is the blast (see planIntents)
+        const f = p.side === 'player' ? 1 : -1;
+        if (!attack && open(p.x, p.y + f) && !at(p.x, p.y + f)) out.push({ x: p.x, y: p.y + f, capture: null });
+        if (attack) ALL8.forEach(([dx, dy]) => { if (inB(p.x + dx, p.y + dy)) out.push({ x: p.x + dx, y: p.y + dy, capture: null }); });
+        break;
+      }
       case 'N': JUMPS.forEach(([dx, dy]) => land(p.x + dx, p.y + dy)); break;
       case 'B': DIAG.forEach(([dx, dy]) => ray(dx, dy, far)); break;
       case 'R': ORTH.forEach(([dx, dy]) => ray(dx, dy, far)); break;
@@ -97,6 +126,8 @@
             if (!open(p.x, y) || at(p.x, y)) break;
             out.push({ x: p.x, y, capture: null });
           }
+          // heirloom: your pawns can also step sideways
+          if (p.side === 'player' && has('sidestep')) [-1, 1].forEach((dx) => { if (open(p.x + dx, p.y) && !at(p.x + dx, p.y)) out.push({ x: p.x + dx, y: p.y, capture: null }); });
         }
         [-1, 1].forEach((dx) => {
           const x = p.x + dx, y = p.y + f;
@@ -119,26 +150,48 @@
   /* ---------- battle setup ---------- */
   let arena = null;          // the arena being played (from arena.js)
 
+  // A free battle: an arena file, both armies from the file, every power card.
   function newBattle() {
+    startBattle({
+      name: arena.name, w: arena.w, h: arena.h, tiles: arena.tiles, intents: arena.intents,
+      pieces: arena.pieces, deck: POWERS.filter((c) => !c.burn).map((c) => c.id), objective: { kind: 'king' }
+    });
+  }
+
+  /* A battle from a config (free play, or a fight in a run; see run.js):
+     { name, w, h, tiles, intents, pieces: [{side, type, x, y, unit?, boss?, hp?}], deck: [card ids],
+       heirlooms: [...], objective: {kind: 'king'|'rout'|'survive'|'escort', turns?}, energy?, onEnd(result) } */
+  function startBattle(cfg) {
     uid = 0;
+    HAND_SIZE = 3 + ((cfg.heirlooms || []).indexOf('fourth') >= 0 ? 1 : 0);
     S = {
-      w: arena.w, h: arena.h, intentCount: arena.intents,
-      pieces: [], tiles: [], turn: 0, energy: 1, hand: [], draw: [], intents: [],
+      w: cfg.w, h: cfg.h, intentCount: cfg.intents || 2, name: cfg.name,
+      pieces: [], tiles: [], turn: 0, energy: (cfg.energy || 1) - 1, hand: [], draw: [], intents: [],
       phase: 'player', movesLeft: 1, lockPiece: null, movedThisTurn: false,
-      selected: null, targeting: null, busy: false, over: false, fallen: [], log: []
+      selected: null, targeting: null, busy: false, over: false, fallen: [], log: [],
+      heirlooms: cfg.heirlooms || [], objective: cfg.objective || { kind: 'king' }, onEnd: cfg.onEnd || null,
+      lost: [], stats: { captures: 0, clever: 0 }, firstBlood: false, raiseEvery: 3
     };
-    S.tiles = arena.tiles.map((col) => col.map((t) => ({ kind: t.kind, h: t.h })));
-    arena.pieces.forEach((p) => add(p.side, p.type, p.x, p.y));
-
-    // every power goes into one shuffled draw pile; a played card is shuffled back in
-    S.draw = shuffle(POWERS.map((c) => c.id));
-
+    S.tiles = cfg.tiles.map((col) => col.map((t) => ({ kind: t.kind, h: t.h })));
+    cfg.pieces.forEach((p) => {
+      const q = add(p.side, p.type, p.x, p.y, { unit: p.unit || null, boss: !!p.boss, hp: p.hp || 1 });
+      if (q.side === 'player' && (trait(q, 'vigilant'))) q.shield = true;
+      if (q.side === 'player' && q.type === 'R' && has('bastion')) q.fortify = true;
+    });
+    // your deck is one shuffled draw pile; a played card is shuffled back in (burn cards are gone for this battle)
+    S.draw = shuffle(cfg.deck.slice());
     Board3D.reset();
     $('overlay').hidden = true;
-    S.log = [];
-    say(`${arena.name}. Red arcs show what the enemy will do after your move.`);
+    say(`${cfg.name}. ${goalText()}. Red arcs show what the enemy will do after your move.`);
     planIntents();
     startPlayerTurn();
+  }
+  function goalText() {
+    const o = S.objective;
+    if (o.kind === 'rout') return 'Goal: take every enemy piece';
+    if (o.kind === 'survive') return `Goal: keep your King alive for ${o.turns} turns`;
+    if (o.kind === 'escort') return 'Goal: get a Pawn to the far side';
+    return 'Goal: take the enemy King';
   }
 
   /* ---------- turn flow ---------- */
@@ -148,12 +201,13 @@
     S.energy = Math.min(MAX_ENERGY, S.energy + 1);
     const draws = S.turn === 1 ? HAND_SIZE : 1;
     for (let i = 0; i < draws && S.hand.length < HAND_SIZE && S.draw.length; i++) S.hand.push(S.draw.shift());
+    if (S.turn > 1 && S.hand.length < HAND_SIZE && S.draw.length && has('fourth')) S.hand.push(S.draw.shift());
     S.movesLeft = 1; S.lockPiece = null; S.movedThisTurn = false;
     refresh();
   }
 
   async function endPlayerTurn() {
-    if (S.over || S.phase !== 'player' || S.busy) return;
+    if (!S || S.over || S.phase !== 'player' || S.busy) return;
     S.phase = 'enemy'; S.selected = null; S.targeting = null; S.lockPiece = null;
     refresh();
     await sleep(280);
@@ -161,6 +215,7 @@
     if (S.over) return;
     S.pieces.forEach((p) => { if (p.side === 'player') p.shield = false; else p.frozen = false; });
     Board3D.sync(S);
+    if (S.objective.kind === 'survive' && S.turn >= S.objective.turns) { endBattle(true); return; }
     await sleep(150);
     planIntents();
     startPlayerTurn();
@@ -176,7 +231,15 @@
       // the arc being carried out disappears; the rest stay on screen
       Board3D.setIntents(list.slice(n + 1).filter((i) => byId(i.pid)).map(drawable));
       if (p.frozen) { say(`Enemy ${NAME[p.type]} is frozen and can't move.`); await Board3D.animateFizzle(p.id); continue; }
-      const m = movesFor(p).find((q) => q.x === it.x && q.y === it.y);
+      if (it.boom) { await blast(p); if (S.over) return; continue; }
+      if (it.raise) {
+        if (at(it.x, it.y) || !open(it.x, it.y)) { await Board3D.animateFizzle(p.id); continue; }
+        await Board3D.animateFizzle(p.id);
+        add('enemy', 'P', it.x, it.y, { moved: true });
+        say('The Necromancer raised a Pawn from the dead.');
+        Board3D.sync(S); await sleep(120); continue;
+      }
+      const m = movesFor(p).find((q) => q.x === it.x && q.y === it.y && !!q.shot === !!it.shot);
       if (!m) {
         const o = at(it.x, it.y);
         say(o && o.shield ? `Your shield stopped the enemy ${NAME[p.type]}.` : `Enemy ${NAME[p.type]} couldn't follow through.`);
@@ -192,6 +255,14 @@
 
   async function doMove(p, m) {
     S.busy = true;
+    if (m.shot) {
+      // an Archer looses an arrow: the target falls, the Archer stays put
+      await Board3D.animateFizzle(p.id);
+      await capture(m.capture, p);
+      S.busy = false; Board3D.sync(S);
+      if (!S.over) checkKings();
+      return;
+    }
     await Board3D.animateMove(p.id, m.x, m.y);
     if (m.capture) await capture(m.capture, p);
     p.x = m.x; p.y = m.y; p.moved = true;
@@ -201,36 +272,99 @@
     if (!S.over) checkKings();
   }
 
-  async function capture(victim, by) {
+  // the farthest empty floor tile from your pieces (where a hurt boss retreats to)
+  function retreatTile() {
+    let best = null;
+    for (let x = 0; x < S.w; x++) for (let y = 0; y < S.h; y++) {
+      if (!open(x, y) || at(x, y)) continue;
+      const d = Math.min(...S.pieces.filter(own).map((p) => cheb(p, { x, y })), 99);
+      if (!best || d > best.d) best = { x, y, d };
+    }
+    return best;
+  }
+
+  // how = 'pit' (shoved or fell), 'blast' (a Bomber), or nothing (an ordinary capture)
+  async function capture(victim, by, how) {
+    // a boss takes more than one hit: it staggers back across the board instead
+    if (victim.boss && victim.hp > 1) {
+      victim.hp--;
+      const r = retreatTile();
+      say(`The ${NAME[victim.type]} reels back, wounded (${victim.hp} left).`);
+      if (r) { await Board3D.animateMove(victim.id, r.x, r.y); victim.x = r.x; victim.y = r.y; }
+      if (by && by.side === 'player') gainFromKill(by, false);
+      return;
+    }
     const cap = Board3D.animateCapture(victim.id);
     S.pieces = S.pieces.filter((q) => q !== victim);
     S.intents = S.intents.filter((i) => i.pid !== victim.id);
     if (victim.side === 'player') {
       if (victim.type !== 'K') S.fallen.push(victim.type);
-      say(by ? `Enemy ${NAME[by.type]} took your ${NAME[victim.type]}.` : `Your ${NAME[victim.type]} was lost.`);
+      if (victim.unit) S.lost.push(victim.unit.uid);
+      say(by ? `Enemy ${NAME[by.type]} took your ${NAME[victim.type]}${victim.unit ? ', ' + victim.unit.name : ''}.` : `Your ${NAME[victim.type]} was lost.`);
     } else {
-      if (by && by.side === 'player') S.energy = Math.min(MAX_ENERGY, S.energy + 1);
-      say(by ? `Your ${NAME[by.type]} took the enemy ${NAME[victim.type]}. +1 energy.` : `Enemy ${NAME[victim.type]} fell and was lost.`);
+      S.stats.captures++;
+      const clever = how === 'pit' || how === 'blast' && by && by.side === 'enemy';
+      if (clever) {
+        S.stats.clever++;
+        S.energy = Math.min(MAX_ENERGY, S.energy + 1 + (has('gravedigger') ? 1 : 0));
+        say(`Enemy ${NAME[victim.type]} ${how === 'pit' ? 'fell into the pit' : 'was caught in the blast'}. Clever! +${1 + (has('gravedigger') ? 1 : 0)} energy.`);
+      } else if (by && by.side === 'player') {
+        gainFromKill(by, true);
+        say(`Your ${NAME[by.type]} took the enemy ${NAME[victim.type]}.`);
+      } else say(`Enemy ${NAME[victim.type]} was lost.`);
     }
     await cap;
+  }
+  function gainFromKill(by, kill) {
+    let e = 1;
+    if (trait(by, 'bloodthirsty')) e++;
+    if (!S.firstBlood && has('firstblood')) { e += 2; say('First blood: +2 energy.'); }
+    S.firstBlood = true;
+    S.energy = Math.min(MAX_ENERGY, S.energy + e);
+    if (kill && by.unit) by.unit.kills = (by.unit.kills || 0) + 1;
+  }
+
+  // a Bomber goes off: everything in the 3x3 around it is lost, friend or foe (shields hold)
+  async function blast(b) {
+    say('The Bomber goes off!');
+    const hit = S.pieces.filter((q) => q !== b && cheb(q, b) <= 1 && !(q.shield && q.side === 'player'));
+    await Board3D.animateCapture(b.id);
+    S.pieces = S.pieces.filter((q) => q !== b);
+    for (const q of hit) { if (S.pieces.indexOf(q) >= 0) await capture(q, b, 'blast'); }
+    Board3D.sync(S);
+    if (!S.over) checkKings();
   }
 
   function promote(p) {
     if (p.type !== 'P') return;
     if ((p.side === 'player' && p.y === S.h - 1) || (p.side === 'enemy' && p.y === 0)) {
+      if (p.side === 'player' && S.objective.kind === 'escort') { S.escorted = true; }
       p.type = 'Q';
+      if (p.unit) p.unit.type = 'Q';   // in a run, a promotion is for keeps
       say(p.side === 'player' ? 'Your Pawn promoted to a Queen.' : 'An enemy Pawn promoted to a Queen.');
     }
   }
 
   function checkKings() {
-    if (!kingOf('enemy')) return endBattle(true);
+    if (S.over) return;
     if (!kingOf('player')) return endBattle(false);
+    const o = S.objective.kind;
+    if (o === 'king' && !kingOf('enemy')) return endBattle(true);
+    if (o === 'rout' && !S.pieces.some(foe)) return endBattle(true);
+    if (o === 'escort' && S.escorted) return endBattle(true);
+    if (o !== 'king' && !S.pieces.some(foe)) return endBattle(true);
   }
   function endBattle(won) {
+    if (S.over) return;
     S.over = true; S.phase = 'over'; S.targeting = null; S.selected = null;
     Board3D.setIntents([]);
     refresh();
+    if (S.onEnd) {
+      const survivors = S.pieces.filter((p) => own(p) && p.unit).map((p) => p.unit.uid);
+      const r = { won, turns: S.turn, lost: S.lost.slice(), survivors, clever: S.stats.clever, captures: S.stats.captures };
+      setTimeout(() => S.onEnd(r), 900);
+      return;
+    }
     setTimeout(() => {
       $('overlay-title').textContent = won ? 'VICTORY' : 'DEFEAT';
       $('overlay-text').textContent = won
@@ -250,9 +384,19 @@
     S.pieces.filter(foe).forEach((e) => {
       let best = null;
       const inDanger = danger.has(key(e.x, e.y));
+      // a Bomber next to your pieces goes off; a Necromancer raises a Pawn every few turns
+      if (e.type === 'X') {
+        const near = S.pieces.filter((q) => q !== e && cheb(q, e) <= 1);
+        const mine = near.filter(own);
+        if (mine.length) { cands.push({ pid: e.id, x: e.x, y: e.y, boom: true, s: 60 + mine.reduce((a, q) => a + VALUE[q.type], 0) - near.filter(foe).length * 5 }); return; }
+      }
+      if (e.type === 'M' && S.turn % S.raiseEvery === 0) {
+        const spot = ALL8.map(([dx, dy]) => ({ x: e.x + dx, y: e.y + dy })).find((c) => open(c.x, c.y) && !at(c.x, c.y));
+        if (spot) { cands.push({ pid: e.id, x: spot.x, y: spot.y, raise: true, s: 35 }); return; }
+      }
       movesFor(e).forEach((m) => {
         let s = Math.random() * 1.5;
-        const unsafe = danger.has(key(m.x, m.y));
+        const unsafe = danger.has(key(m.shot ? e.x : m.x, m.shot ? e.y : m.y));
         if (m.capture) s += VALUE[m.capture.type] * 10;
         if (e.type === 'K') {
           if (inDanger && !unsafe) s += 400;
@@ -264,7 +408,7 @@
           if (pk) s += (cheb(e, pk) - Math.max(Math.abs(m.x - pk.x), Math.abs(m.y - pk.y))) * 2;
           if (e.type === 'P') s += 0.5;
         }
-        if (!best || s > best.s) best = { pid: e.id, x: m.x, y: m.y, s, capture: !!m.capture };
+        if (!best || s > best.s) best = { pid: e.id, x: m.x, y: m.y, s, capture: !!m.capture, shot: !!m.shot };
       });
       if (best && best.s > -30) cands.push(best);
     });
@@ -279,8 +423,13 @@
   }
   function drawable(it) {
     const p = byId(it.pid);
+    if (it.boom) {
+      const area = [];
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) if (inB(p.x + dx, p.y + dy)) area.push({ x: p.x + dx, y: p.y + dy });
+      return { area };
+    }
     const tgt = at(it.x, it.y);
-    return { fx: p.x, fy: p.y, tx: it.x, ty: it.y, type: p.type, capture: !!(tgt && tgt.side === 'player') };
+    return { fx: p.x, fy: p.y, tx: it.x, ty: it.y, type: p.type, shot: !!it.shot, capture: !!(tgt && tgt.side === 'player') };
   }
 
   /* ---------- power cards ---------- */
@@ -329,7 +478,7 @@
         await Board3D.animateMove(p.id, d.x, d.y);
         p.x = d.x; p.y = d.y;
         // shoved into a pit, or off the edge of the arena
-        if (!open(d.x, d.y)) { await capture(p, null); checkKings(); }
+        if (!open(d.x, d.y)) { await capture(p, null, 'pit'); checkKings(); }
       } },
     { id: 'martyr', name: 'Martyr', file: 'Martyr', cost: 1, text: 'Sacrifice a pawn to revive a captured piece next to your king.',
       playable: () => !S.fallen.length ? 'None of your pieces have fallen yet.'
@@ -341,6 +490,7 @@
       async apply([pawn, t]) {
         await Board3D.animateCapture(pawn.id);
         S.pieces = S.pieces.filter((q) => q !== pawn);
+        if (pawn.unit) S.lost.push(pawn.unit.uid);
         const best = S.fallen.slice().sort((a, b) => VALUE[b] - VALUE[a])[0];
         S.fallen.splice(S.fallen.indexOf(best), 1);
         const p = add('player', best, t.x, t.y); p.moved = true;
@@ -355,10 +505,25 @@
         await Board3D.animateCapture(gone.id);
         S.pieces = S.pieces.filter((q) => q !== gone);
         pawn.type = 'Q';
+        if (pawn.unit) pawn.unit.type = 'Q';
+        if (gone.unit) S.lost.push(gone.unit.uid);
         say('Your Pawn rises as a Queen.');
       } }
   ];
-  const CARD = Object.fromEntries(POWERS.map((c) => [c.id, c]));
+  const BASE_CARD = Object.fromEntries(POWERS.map((c) => [c.id, c]));
+  // "shove+" is an upgraded Shove: one energy cheaper
+  const UP = {};
+  function cardOf(id) {
+    if (!id.endsWith('+')) return BASE_CARD[id];
+    if (!UP[id]) { const b = BASE_CARD[id.slice(0, -1)]; UP[id] = Object.assign({}, b, { id, name: b.name + '+', cost: Math.max(0, b.cost - 1), up: true }); }
+    return UP[id];
+  }
+  const CARD = new Proxy({}, { get: (_, id) => (typeof id === 'string' ? cardOf(id) : undefined) });
+  /** A card's face: its art if it has one (with a + for an upgrade), else a drawn card. */
+  function cardFace(c) {
+    if (c.file) return `<img src="cards/powers/${c.file}.svg" alt="${c.name}: ${c.text} Costs ${c.cost} energy.">${c.up ? '<span class="card-up">+</span><span class="card-cost">' + c.cost + '</span>' : ''}`;
+    return `<div class="cardx${c.burn ? ' burn' : ''}"><b class="cx-cost">${c.cost}</b><div class="cx-name">${c.name}</div><div class="cx-icon">${c.icon || '✦'}</div><div class="cx-text">${c.text}</div>${c.burn ? '<div class="cx-burn">BURN</div>' : ''}</div>`;
+  }
 
   function playCard(id) {
     if (S.phase !== 'player' || S.busy || S.over) return;
@@ -369,9 +534,11 @@
     if (why) { say(why); return; }
     S.selected = null;
     S.targeting = { card: c, picks: [] };
+    if (!c.targets.length) { resolveCard(); return; }   // no targets: plays at once
     refresh();
   }
   function cancel() {
+    if (!S) return;
     if (S.targeting) { S.targeting = null; refresh(); return; }
     if (S.selected && !S.lockPiece) { S.selected = null; refresh(); }
   }
@@ -386,11 +553,15 @@
     if (!t || !spec.ok(t, T.picks)) { flash('prompt'); return; }
     T.picks.push(t);
     if (T.picks.length < c.targets.length) { refresh(); return; }
-    // resolve: the card is paid for, leaves your hand, and goes back
-    // into the draw pile at a random spot, so it can come around again
+    await resolveCard();
+  }
+  async function resolveCard() {
+    const T = S.targeting, c = T.card;
+    // resolve: the card is paid for, leaves your hand, and goes back into the draw pile at a random
+    // spot, so it can come around again (a burn card is spent for the rest of this battle)
     S.energy -= c.cost;
     S.hand.splice(S.hand.indexOf(c.id), 1);
-    S.draw.splice(Math.floor(Math.random() * (S.draw.length + 1)), 0, c.id);
+    if (!c.burn) S.draw.splice(Math.floor(Math.random() * (S.draw.length + 1)), 0, c.id);
     S.targeting = null;
     S.busy = true;
     refresh();
@@ -404,6 +575,7 @@
 
   /* ---------- clicks ---------- */
   async function onCell(x, y) {
+    if (!S) return;
     if (S.phase !== 'player' || S.busy || S.over) return;
     if (S.targeting) { if (x >= 0) pickTarget(x, y); return; }
     const sel = S.selected && byId(S.selected);
@@ -471,13 +643,20 @@
       const c = CARD[id];
       const poor = S.energy < c.cost || (c.playable && c.playable());
       const active = S.targeting && S.targeting.card === c;
-      return `<button class="card${poor ? ' poor' : ''}${active ? ' active' : ''}" data-id="${id}" title="${c.name} (${c.cost} energy): ${c.text}">
-        <img src="cards/powers/${c.file}.svg" alt="${c.name}: ${c.text} Costs ${c.cost} energy."></button>`;
+      return `<button class="card${poor ? ' poor' : ''}${active ? ' active' : ''}" data-id="${id}" title="${c.name} (${c.cost} energy${c.burn ? ', burns' : ''}): ${c.text}">${cardFace(c)}</button>`;
     }).join('') || '<p class="empty-hand">No cards in hand.</p>';
 
     // prompt
     let prompt = '';
+    const pk = kingOf('player');
+    const check = pk && S.phase === 'player' && !S.over && S.intents.some((i) => {
+      if (!byId(i.pid)) return false;
+      if (i.boom) return cheb(byId(i.pid), pk) <= 1 && !pk.shield;
+      return i.x === pk.x && i.y === pk.y && !pk.shield;
+    });
+    document.body.classList.toggle('in-check', !!check);
     if (S.phase === 'enemy') prompt = 'ENEMY TURN';
+    else if (check && !S.targeting) prompt = '<b class="check">CHECK</b> Your King is in the line of fire. Move it, block, or shield it.';
     else if (S.targeting) prompt = S.targeting.card.targets[S.targeting.picks.length].prompt + ' <span>Esc or right-click to cancel</span>';
     else if (S.lockPiece && S.movesLeft > 1) prompt = 'Haste: move the glowing piece again.';
     else if (S.lockPiece && S.movesLeft === 1 && S.movedThisTurn) prompt = 'Haste: one more move with that piece.';
@@ -487,8 +666,10 @@
     // threats list
     $('threats').innerHTML = S.intents.filter((i) => byId(i.pid)).map((i) => {
       const p = byId(i.pid), t = at(i.x, i.y);
-      return `<li>${NAME[p.type]} <b>→</b> ${t && own(t) ? 'takes your ' + NAME[t.type] : 'moves'}</li>`;
+      const what = i.boom ? 'blows up everything around it' : i.raise ? 'raises a Pawn' : t && own(t) ? (i.shot ? 'shoots your ' : 'takes your ') + NAME[t.type] : 'moves';
+      return `<li>${NAME[p.type]} <b>→</b> ${what}</li>`;
     }).join('') || '<li class="quiet">Nothing telegraphed.</li>';
+    const g = $('goal'); if (g) g.textContent = goalText().replace('Goal: ', '') + (S.objective.kind === 'survive' ? ` (${Math.min(S.turn, S.objective.turns)}/${S.objective.turns})` : '');
 
     inspect();
   }
@@ -498,9 +679,13 @@
     const img = $('inspect-card'), info = $('inspect-info');
     if (!p) { img.hidden = true; info.innerHTML = '<span class="quiet">Hover a piece to see its card.</span>'; return; }
     img.hidden = false;
-    img.src = `cards/pieces/${NAME[p.type]}.svg`;
+    const base = { A: 'Bishop', X: 'Pawn', M: 'Queen' }[p.type] || NAME[p.type];
+    img.src = `cards/pieces/${base}.svg`;
     img.alt = NAME[p.type] + ' card';
     const tags = [own(p) ? 'YOURS' : 'ENEMY'];
+    if (p.unit) { tags.push(p.unit.name.toUpperCase()); (p.unit.traits || []).forEach((t) => tags.push(t.toUpperCase())); }
+    if (p.boss) tags.push('BOSS · ' + (p.hp || 1) + ' HP');
+    if (['A', 'X', 'M'].indexOf(p.type) >= 0) tags.push(NAME[p.type].toUpperCase());
     if (p.shield) tags.push('SHIELDED');
     if (p.fortify) tags.push('FORTIFIED');
     if (p.frozen) tags.push('FROZEN');
@@ -519,19 +704,21 @@
       const b = e.target.closest('.card');
       if (b) playCard(b.dataset.id);
     });
-    $('end-turn').addEventListener('click', () => { S.selected = null; endPlayerTurn(); });
+    $('end-turn').addEventListener('click', () => { if (!S) return; S.selected = null; endPlayerTurn(); });
     $('rot-l').addEventListener('click', () => Board3D.rotate(-1));
     $('rot-r').addEventListener('click', () => Board3D.rotate(1));
     $('again').addEventListener('click', () => newBattle());
     $('arena-pick').addEventListener('change', (e) => loadArena(e.target.value));
+    // a run (run.js) takes over from here; free play only starts when asked (or for the editor's test arenas)
     window.addEventListener('keydown', (e) => {
       if (e.target.closest && e.target.closest('input,textarea,select')) return;
       if (e.key === 'Escape') cancel();
       else if (e.key === 'q' || e.key === 'Q') Board3D.rotate(-1);
       else if (e.key === 'e' || e.key === 'E') Board3D.rotate(1);
-      else if (e.key === 'Enter' && S.phase === 'player') endPlayerTurn();
+      else if (e.key === 'Enter' && S && S.phase === 'player') endPlayerTurn();
     });
-    loadArenaList();
+    if (new URLSearchParams(location.search).has('test') || new URLSearchParams(location.search).has('arena') || !window.IsoRun) loadArenaList();
+    else window.IsoRun.boot();
   }
 
   /* ---------- arenas ---------- */
@@ -581,7 +768,8 @@
   }
 
   // test hooks for automated play-testing
-  window.IsoChess = { get state() { return S; }, onCell, playCard, endPlayerTurn, movesFor: (p) => movesFor(p) };
+  window.IsoChess = { get state() { return S; }, onCell, playCard, endPlayerTurn, movesFor: (p) => movesFor(p),
+    startBattle, cardOf, cardFace, POWERS, NAME, VALUE, freePlay: () => loadArenaList() };
 
   if (!window.THREE) {
     document.body.classList.add('no-3d');
