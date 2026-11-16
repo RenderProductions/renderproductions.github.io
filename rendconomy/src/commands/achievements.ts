@@ -6,7 +6,7 @@ import { importFromOldBot, oldDbFile } from '../achievements/import';
 import { GameError } from '../core/errors';
 import * as sessions from '../core/sessions';
 import { discordTime } from '../core/time';
-import { embed } from '../discord/style';
+import { embed, SITE } from '../discord/style';
 import { guildOf } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
 
@@ -37,7 +37,7 @@ function view(ctx: Ctx, st: AchState, cat: Category | 'all', sessionId: string):
       cat === 'all' ? '' : `${categoryE(cat)} **${CATEGORIES[cat].label}**`,
       ...(lines.length ? lines : ['None yet.']),
       '', `-# ${Object.entries(RARITY).map(([k, r]) => `${rarityE(k as keyof typeof RARITY)} ${r.label}`).join(' · ')}`
-    ], {})],
+    ], { url: `${SITE}/profile/?id=${st.targetId}` })],
     buttons: rows, session: sessionId
   };
 }

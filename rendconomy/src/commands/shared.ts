@@ -62,6 +62,7 @@ export const REASONS: Record<string, string> = {
   'trade.held': 'Trade offer (held)',
   'trade.refund': 'Trade offer returned',
   'oddjob': 'Odd job',
+  'rain': 'Polygon rain',
   'holiday.advent': 'Advent calendar',
   'holiday.santa': 'Secret Santa',
   'order.reserve': 'Order (set aside)',

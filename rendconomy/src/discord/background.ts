@@ -215,6 +215,8 @@ export function startApi(db: Db, client: Client): void {
 /** A status that follows the market: crashes, booms, or the Reserve. */
 export function startStatus(db: Db, client: Client): void {
   const set = () => {
+    const custom = db.meta('status.custom');   // set from the console: "status <text>"
+    if (custom) { client.user?.setPresence({ activities: [{ name: 'Custom', state: custom, type: ActivityType.Custom }], status: 'online' }); return; }
     const m = loadMarket(db);
     const crash = m?.crash as { phase?: string } | null | undefined;
     const text = crash?.phase === 'crash' ? 'the market crash' : m?.boost ? 'a market boom' : m?.market?.status === 'open' ? 'the market' : 'the market (closed)';

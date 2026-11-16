@@ -21,7 +21,8 @@ import { setEventAnnouncer } from './events/install';
 import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
-import { ButtonStyle, ComponentType } from 'discord.js';
+import { ButtonStyle, ComponentType, type SendableChannels } from 'discord.js';
+import { onRainButton, startConsole } from './discord/console';
 import { startActivity, startLiveFeed, startApi, startFarmReminders, startHolidays, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
@@ -90,6 +91,13 @@ async function main(): Promise<void> {
   console.log(`[${config.name}] market running (${market.TICKERS.join(', ')})`);
 
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+  // TODD drops into a channel with a quick question (from chat, or from the console)
+  const toddDrop = async (ch: SendableChannels, guildId: string, now = Date.now()) => {
+    const drop = startDrop(market.load(db), guildId, ch.id, now, rng);
+    await ch.send({ embeds: [{ author: { name: 'TODD has entered the chat' }, title: 'DROP-IN', color: 0x38e1ff, description: `${drop.q}\n\nFirst right answer wins **${format(drop.pot)}**. You have 60 seconds.` }], allowedMentions: { parse: [] } });
+    setTimeout(() => { if (expireDrop(ch.id, drop)) ch.send({ content: `Time is up. The answer was **${drop.shown}**. TODD keeps the Polygons.`, allowedMentions: { parse: [] } }).catch(() => {}); }, 60_000).unref();
+  };
+
   const deps: Deps = {
     db, config, rng, ping: () => client.ws.ping, botId: () => client.user?.id,
     // Ordinary chat: TODD drop-in answers, chat pay, and sometimes a new drop-in
@@ -105,10 +113,8 @@ async function main(): Promise<void> {
       const everyone = msg.guild?.roles.everyone;
       const open = !!everyone && 'permissionsFor' in ch && !!ch.permissionsFor(everyone)?.has(['ViewChannel', 'SendMessages']);
       if (!open || !ctx.guildId || !shouldDrop(db, ctx.guildId, msg.channelId, ctx.now, rng)) return;
-      const drop = startDrop(market.load(db), ctx.guildId, msg.channelId, ctx.now, rng);
       if (!ch.isSendable()) return;
-      await ch.send({ embeds: [{ author: { name: 'TODD has entered the chat' }, title: 'DROP-IN', color: 0x38e1ff, description: `${drop.q}\n\nFirst right answer wins **${format(drop.pot)}**. You have 60 seconds.` }], allowedMentions: { parse: [] } });
-      setTimeout(() => { if (expireDrop(msg.channelId, drop) && ch.isSendable()) ch.send({ content: `Time is up. The answer was **${drop.shown}**. TODD keeps the Polygons.`, allowedMentions: { parse: [] } }).catch(() => {}); }, 60_000).unref();
+      await toddDrop(ch, ctx.guildId, ctx.now);
     }
   };
 
@@ -154,6 +160,14 @@ async function main(): Promise<void> {
       return true;
     });
     // every entry added since the last post, oldest first; read after the emojis are in, so posts show them
+    const postNext = async (): Promise<string | null> => {
+      const u = pendingUpdates(readAllUpdates(), db.meta('updates.last'))[0];
+      if (!u) return null;
+      if (!(await postUpdate(u))) throw new Error('Could not post (is UPDATES_CHANNEL_ID set?)');
+      db.setMeta('updates.last', u.id);
+      return u.title;
+    };
+    startConsole({ db, client: c, config, rng, todd: (ch, g) => toddDrop(ch, g), postNext });
     if (config.updatesChannelId) emojisReady.then(async () => {
       for (const u of pendingUpdates(readAllUpdates(), db.meta('updates.last'))) {
         const ok = await postUpdate(u).catch((e: unknown) => { console.error('[updates]', e); return false; });
@@ -204,7 +218,7 @@ async function main(): Promise<void> {
   client.on(Events.MessageCreate, (m) => { onMessage(deps, m).catch((e) => console.error('[message]', e)); });
   client.on(Events.InteractionCreate, (i) => {
     if (i.isChatInputCommand()) onSlash(deps, i).catch((e) => console.error('[slash]', e));
-    else if (i.isButton()) onButton(deps, i).catch((e) => console.error('[button]', e));
+    else if (i.isButton()) onRainButton(i).then((done) => { if (!done) return onButton(deps, i); }).catch((e) => console.error('[button]', e));
   });
 
   const stop = () => { console.log(`[${config.name}] shutting down`); client.destroy(); db.close(); process.exit(0); };
