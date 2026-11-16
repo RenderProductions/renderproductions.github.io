@@ -90,7 +90,8 @@ test('console: Polygon rain pays the first few grabbers once each', async () => 
 test('embed titles link to the matching site page', () => {
   assert.equal(siteLink('The market'), 'https://renderproductions.github.io/rend-conomy/');
   assert.equal(siteLink('Render Room (RRM)'), 'https://renderproductions.github.io/rend-conomy/rrm/');
-  assert.equal(siteLink('Some Player Co (ZZZ)'), 'https://renderproductions.github.io/rend-conomy/exchange/');
+  assert.equal(siteLink('Some Player Co (ZZZ)'), 'https://renderproductions.github.io/rend-conomy/exchange/co/?t=ZZZ');
+  assert.equal(siteLink('Founded: Some Player Co (ZZZ)'), 'https://renderproductions.github.io/rend-conomy/exchange/co/?t=ZZZ');
   assert.equal(siteLink('🌾 Ana\'s farm'), 'https://renderproductions.github.io/play/#farm');
   assert.equal(siteLink('Bet placed'), undefined);
 });

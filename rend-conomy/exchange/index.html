@@ -29,6 +29,7 @@
 <style>
   /* Exchange (page-specific) */
   .board .owner { font-size: 13px; color: var(--grey); margin-top: 2px; }
+  .board .name a { color: var(--text, #e8ecff); } .board .name a:hover { color: var(--bright); }
   .board .tag { margin-left: 0.5rem; }
   .board .tag.warn { color: #f0b232; border-color: rgba(240,178,50,0.6); }
   .board .tag.ipo { color: var(--lime); }
@@ -169,7 +170,9 @@
 
     function nameCell(c) {
       var td = el('td');
-      var name = el('div', 'name', c.name);
+      var name = el('div', 'name');
+      var link = el('a', null, c.name); link.href = '/rend-conomy/exchange/co/?t=' + encodeURIComponent(c.ticker);
+      name.appendChild(link);
       name.appendChild(el('span', 'tkr', c.ticker));
       name.appendChild(tag(String(c.levelName).toUpperCase()));
       if (c.strikes > 0) name.appendChild(tag('BEHIND ON UPKEEP', 'warn'));

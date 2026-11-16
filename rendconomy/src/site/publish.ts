@@ -16,7 +16,7 @@ import { netWorth } from '../social/worth';
 import { activeEvent } from '../events/world';
 import { rankName } from '../work/jobs';
 import { BANNERS, FRAMES, PAINTS, PRESETS, getStyle, looksFor } from '../profile/styles';
-import { CO, LEVELS, change, employees, listCompanies, levelOf, sharesHeld, treasury } from '../companies/companies';
+import { CO, LEVELS, change, employees, fairValue, listCompanies, levelOf, sharesHeld, treasury } from '../companies/companies';
 
 /** Lookups only the live Discord client can answer (server names, avatars). */
 export interface Directory { serverName?: (id: string) => string | null; user?: (id: string) => { name: string; avatar: string | null } | null; servers?: () => number | null; botId?: () => string | null }
@@ -101,7 +101,14 @@ export function companiesSnapshot(db: Db, now = Date.now()) {
     history: c.status === 'public' ? c.history.filter((_, i, a) => i % 3 === 0 || i === a.length - 1) : [],
     treasury: treasury(db, c) / 100, upkeep: levelOf(c).upkeep / 100, strikes: c.strikes, employees: employees(db, c.ticker),
     available: c.status === 'public' ? CO.float - sharesHeld(db, c.ticker) : null, offeringLeft: c.status === 'public' ? c.offering_left : null,
-    founded: new Date(c.approved_at ?? c.created_at).toISOString(), ipo: c.ipo_at ? new Date(c.ipo_at).toISOString() : null
+    founded: new Date(c.approved_at ?? c.created_at).toISOString(), ipo: c.ipo_at ? new Date(c.ipo_at).toISOString() : null,
+    // for the company's own page
+    ownerId: db.meta(`private:${c.owner_id}`) === '1' ? null : c.owner_id,
+    worth: (treasury(db, c) + levelOf(c).value) / 100, levelValue: levelOf(c).value / 100,
+    fair: c.status === 'public' ? Math.round(fairValue(db, c) * 100) / 100 : null,
+    next: LEVELS[c.level] ? { name: LEVELS[c.level]!.name, cost: LEVELS[c.level]!.cost / 100 } : null,
+    payMult: levelOf(c).payMult, totalShares: CO.totalShares, float: CO.float,
+    fullHistory: c.status === 'public' ? c.history : []
   });
   return {
     companies: listCompanies(db, ['public', 'private']).map(card),

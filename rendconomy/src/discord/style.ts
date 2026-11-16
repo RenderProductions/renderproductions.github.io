@@ -25,10 +25,10 @@ const strip = (t: string) => t.replace(/<a?:\w+:\d+>/g, '').replace(/[^\p{L}\p{N
 export function siteLink(title: string): string | undefined {
   const t = strip(title);
   const ticker = /\(([A-Z]{2,5})\)$/.exec(t)?.[1] ?? /^(?:Bought|Sold|Short opened:|Short covered:)\s+\d+\s+([A-Z]{2,5})$/.exec(t)?.[1];
-  if (ticker) return PAGES.has(ticker) ? `${SITE}/rend-conomy/${ticker.toLowerCase()}/` : `${SITE}/rend-conomy/exchange/`;
+  if (ticker) return PAGES.has(ticker) ? `${SITE}/rend-conomy/${ticker.toLowerCase()}/` : `${SITE}/rend-conomy/exchange/co/?t=${ticker}`;
   const rules: [RegExp, string][] = [
     [/^(The market|Compare|World event( started)?|Market (crash|boom))$/i, '/rend-conomy/'],
-    [/^(The player exchange|Founded: |Takeover |Merger )/i, '/rend-conomy/exchange/'],
+    [/^(The player exchange|Takeover |Merger )/i, '/rend-conomy/exchange/'],
     [/^(Balance|Savings|Loans|TODD Loans|Transaction history|Dividends)\b/i, '/play/#desk'],
     [/^(Marquez's Shop|Inventory)\b/i, '/play/#shop'],
     [/(\'s farm|^Farmhand|^Compost|^Harvest sold|farmers' market)/i, '/play/#farm'],

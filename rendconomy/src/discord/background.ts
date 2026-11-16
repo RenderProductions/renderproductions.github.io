@@ -1,6 +1,7 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
 import { consoleFromDm } from './console';
+import { change, listCompanies, treasury } from '../companies/companies';
 import { profilesSnapshot, type Directory } from '../site/publish';
 import { emoji, emojiOr } from './emoji';
 import http from 'node:http';
@@ -130,7 +131,9 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     market: m ? { status: m.market.status, open: m.market.open, text: m.market.text } : null,
     prices: m?.prices ?? {}, changes: m?.changes ?? {}, statuses: m?.statuses ?? {},
     event: e ? { id: e.id, ticker: e.ticker ?? null, until: e.until, name: EVENTS[e.id!]?.name, emoji: EVENTS[e.id!]?.emoji, text: EVENTS[e.id!]?.desc(e.ticker) } : null,
-    reserve: balance(db, RESERVE) / 100
+    reserve: balance(db, RESERVE) / 100,
+    // player companies: prices for public ones, treasuries for all (for /rend-conomy/exchange/co/)
+    players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
 }
 export function startLiveFeed(db: Db): void {

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="market">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player company | The Exchange | Render Productions</title>
+<meta name="description" content="A player-run company on the Rend-Conomy Exchange: its share price, treasury, level and staff, live.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="A player company | The Exchange">
+<meta property="og:description" content="A player-run company on the Rend-Conomy Exchange: its share price, treasury, level and staff, live.">
+<meta property="og:image" content="https://renderproductions.github.io/og/rend-conomy.png">
+<meta name="theme-color" content="#3ddc84">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/rend-conomy/company.css">
+<style>
+  .pc-chart { position: relative; height: 240px; margin: 14px 54px 30px 12px; }
+  .pc-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .pc-chart .area { fill: rgba(var(--accent-rgb), 0.09); }
+  .pc-chart .line { fill: none; stroke: var(--bright); stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+  .pc-chart.down .area { fill: rgba(255, 107, 107, 0.09); } .pc-chart.down .line { stroke: #ff6b6b; }
+  .pc-chart .fair { stroke: var(--lime); stroke-dasharray: 4 4; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .pc-chart .lab { position: absolute; right: -50px; font-size: 11px; color: var(--grey); transform: translateY(-50%); font-variant-numeric: tabular-nums; }
+  .pc-chart .lab.fair-lab { color: var(--lime); }
+  .ladder { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: .5rem; }
+  .ladder div { padding: .55rem .5rem; border: 1px solid var(--line); background: var(--panel); font-size: 12px; color: var(--grey); text-align: center; }
+  .ladder div.done { color: var(--bright); border-color: rgba(var(--accent-rgb), .5); }
+  .ladder div.here { color: var(--on-accent); background: var(--bright); border-color: var(--bright); }
+  .bar { height: 8px; background: var(--bg); border: 1px solid var(--line); margin: .6rem 0 .3rem; }
+  .bar i { display: block; height: 100%; background: var(--bright); }
+  .pc-owner a { color: var(--bright); }
+  .tp { margin-bottom: 1rem; } .tp-row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: .4rem 0; }
+  .tp input { width: 90px; font: inherit; color: var(--bright); background: var(--bg); border: 1px solid var(--line-strong); padding: .4rem .5rem; }
+  .tp-out { margin-top: .7rem; } .tp-live { color: var(--grey); font-size: .9em; } .tp-live b { color: var(--bright); }
+  .pc-cmd { color: var(--bright); font-family: var(--mono); white-space: nowrap; }
+  @media (max-width: 600px) { .ladder { grid-template-columns: repeat(3, 1fr); } .pc-chart { margin-right: 46px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/" aria-current="true">Rend-Conomy</a></li>
+      <li><a href="/games/">Games</a></li>
+      <li><a href="/patch-notes/">Patch Notes</a></li>
+      <li><a href="/discord/">Discord</a></li>
+    </ul>
+  </nav>
+  <nav class="subnav" aria-label="Rend-Conomy"><a href="/rend-conomy/">Market</a><a href="/rend-conomy/exchange/" aria-current="true">Exchange</a><a href="/play/">Play</a><a href="/bot/">Bot</a><a href="/profile/">Players</a></nav>
+
+  <p class="crumb"><a href="/rend-conomy/exchange/">&larr; The Exchange</a> / <span id="crumb-t">…</span></p>
+
+  <header class="hero co-head" id="head">
+    <div class="co-top-row"><span class="co-badge" id="badge">…</span><div class="co-chips" id="chips"></div></div>
+    <h1 class="page-title co-name" id="name">Loading…</h1>
+    <p class="co-desc pc-owner" id="owner"></p>
+    <div class="co-quote" id="quote"><span class="co-price"><span class="co-num" id="price">--</span><small>⬡ Polygons a share</small></span><span class="co-pill" id="pill"></span></div>
+    <div class="co-sub" id="sub"></div>
+  </header>
+
+  <section id="chart-sec" aria-label="Share price" hidden>
+    <div class="section-head"><h2>Share price</h2><span>The last 24 hours · dashed line: what a share is really worth</span></div>
+    <div class="co-chart-wrap"><div class="pc-chart" id="chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon class="area"/><polyline class="line"/><line class="fair" x1="0" x2="100"/></svg></div></div>
+  </section>
+
+  <section class="co-section" aria-label="The company">
+    <div class="section-head"><h2>The company</h2><span id="founded"></span></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="co-section" aria-label="Level">
+    <div class="section-head"><h2>Level</h2><span id="lvl-side"></span></div>
+    <div class="ladder" id="ladder"></div>
+    <div id="next"></div>
+  </section>
+
+  <section class="co-section" id="trade-sec" aria-label="Trade" hidden>
+    <div class="section-head"><h2>Trade <span class="tkr-text"></span></h2><span>as you, in your server</span></div>
+    <div class="panel prose"><div class="tp" id="tp"></div>
+      <p class="pc-cmds">Or in Discord: <span class="pc-cmd" id="c-buy"></span> · <span class="pc-cmd" id="c-sell"></span> · <span class="pc-cmd" id="c-co"></span></p></div>
+  </section>
+
+  <section class="co-section" id="private-sec" aria-label="Not public yet" hidden>
+    <div class="section-head"><h2>Not public yet</h2></div>
+    <div class="panel prose"><p>This company is private, so its shares can't be bought yet. Once it reaches <strong>Firm</strong> level its owner can list it with <span class="pc-cmd">r!ipo</span>, and <span id="float-n">400</span> shares go up for sale.</p>
+      <p>You can still work here: <span class="pc-cmd" id="c-apply"></span></p></div>
+  </section>
+
+  <p class="empty" id="note">Loading the Exchange…</p>
+
+  <footer class="footer">
+    <span>Render Productions</span>
+    <span>Player-run, fictional company. Nothing here is financial advice.</span>
+  </footer>
+</div>
+<script src="/rv.js"></script>
+<script>
+(function () {
+  var DATA = 'https://raw.githubusercontent.com/RenderProductions/renderproductions.github.io/data/player-companies.json';
+  var $ = function (id) { return document.getElementById(id); };
+  var ticker = (new URLSearchParams(location.search).get('t') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  var co = null, LEVELS = [];
+  var money = function (n) { return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var amt = function (n) { return '⬡ ' + money(n); };
+  var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  var tag = function (text, cls) { return el('span', 'tag' + (cls ? ' ' + cls : ''), text); };
+  var date = function (iso) { return iso ? new Date(iso).toLocaleDateString([], { dateStyle: 'medium' }) : '--'; };
+  function stat(k, v, s) { var d = el('div', 'stat'); d.appendChild(el('div', 'k', k)); d.appendChild(el('div', 'v', v)); if (s) d.appendChild(el('div', 's', s)); return d; }
+
+  if (!ticker) { $('name').textContent = 'No company picked'; $('note').innerHTML = 'Pick one from <a href="/rend-conomy/exchange/">the Exchange</a>.'; return; }
+  $('crumb-t').textContent = ticker; $('badge').textContent = ticker;
+  document.querySelectorAll('.tkr-text').forEach(function (x) { x.textContent = ticker; });
+
+  function chart(h, fair) {
+    var box = $('chart'); if (!h || h.length < 2) { $('chart-sec').hidden = true; return; }
+    $('chart-sec').hidden = false;
+    var lo = Math.min.apply(null, h.concat(fair ? [fair] : [])), hi = Math.max.apply(null, h.concat(fair ? [fair] : []));
+    var pad = (hi - lo) * 0.12 || hi * 0.05 || 1; lo -= pad; hi += pad;
+    var Y = function (v) { return 100 - ((v - lo) / (hi - lo)) * 100; }, n = h.length - 1;
+    var pts = h.map(function (v, i) { return ((i / n) * 100).toFixed(2) + ',' + Y(v).toFixed(2); }).join(' ');
+    box.querySelector('.line').setAttribute('points', pts);
+    box.querySelector('.area').setAttribute('points', '0,100 ' + pts + ' 100,100');
+    var f = box.querySelector('.fair'); f.style.display = fair ? '' : 'none';
+    if (fair) { f.setAttribute('y1', Y(fair)); f.setAttribute('y2', Y(fair)); }
+    box.classList.toggle('down', h[n] < h[0]);
+    box.querySelectorAll('.lab').forEach(function (x) { x.remove(); });
+    [[hi - pad, ''], [lo + pad, '']].forEach(function (p) { var l = el('div', 'lab', money(p[0])); l.style.top = Y(p[0]) + '%'; box.appendChild(l); });
+    if (fair) { var fl = el('div', 'lab fair-lab', 'worth ' + money(fair)); fl.style.top = Y(fair) + '%'; box.appendChild(fl); }
+  }
+
+  function draw(data) {
+    var c = (data.companies || []).filter(function (x) { return x.ticker === ticker; })[0];
+    var dead = (data.closed || []).filter(function (x) { return x.ticker === ticker; })[0];
+    LEVELS = data.levels || LEVELS;
+    if (!c) {
+      $('name').textContent = dead ? dead.name : 'Not on the Exchange';
+      $('note').textContent = dead ? 'Closed ' + date(dead.died) + '. ' + (dead.cause || '') : 'No open company has the ticker ' + ticker + '. It may have closed or never existed.';
+      $('chips').innerHTML = ''; if (dead) $('chips').appendChild(tag('CLOSED', 'off'));
+      $('quote').style.display = 'none'; return;
+    }
+    co = c;
+    document.title = c.name + ' (' + c.ticker + ') | The Exchange | Render Productions';
+    $('name').textContent = c.name;
+    $('owner').innerHTML = '';
+    $('owner').appendChild(document.createTextNode('Run by '));
+    if (c.ownerId) { var a = el('a', null, c.owner); a.href = '/profile/?id=' + encodeURIComponent(c.ownerId); $('owner').appendChild(a); }
+    else $('owner').appendChild(document.createTextNode(c.owner));
+    $('owner').appendChild(document.createTextNode(' · a ' + c.levelName));
+    var chips = $('chips'); chips.innerHTML = '';
+    chips.appendChild(tag(c.status === 'public' ? 'PUBLIC' : 'PRIVATE', c.status === 'public' ? 'live' : ''));
+    chips.appendChild(tag(String(c.levelName).toUpperCase()));
+    if (c.strikes > 0) chips.appendChild(tag('BEHIND ON UPKEEP (' + c.strikes + ')', 'bk'));
+    if (c.offeringLeft > 0) chips.appendChild(tag('IPO SHARES LEFT: ' + c.offeringLeft));
+    var pub = c.status === 'public';
+    $('quote').style.display = pub ? '' : 'none';
+    if (pub) {
+      $('price').textContent = money(c.price);
+      var up = (c.change || 0) >= 0;
+      $('pill').textContent = (up ? '▲ +' : '▼ ') + Number(c.change || 0).toFixed(2) + '% 24h'; $('pill').className = 'co-pill ' + (up ? 'up' : 'down');
+      $('head').classList.toggle('is-down', !up);
+    }
+    chart(c.fullHistory && c.fullHistory.length ? c.fullHistory : c.history, c.fair);
+    $('sub').textContent = data.updated ? 'Details updated ' + new Date(data.updated).toLocaleTimeString([], { timeStyle: 'short' }) + (pub ? ' · price is live' : '') : '';
+    $('founded').textContent = 'Founded ' + date(c.founded) + (c.ipo ? ' · public since ' + date(c.ipo) : '');
+    var st = $('stats'); st.innerHTML = '';
+    st.appendChild(stat('TREASURY', amt(c.treasury), 'Upkeep ' + amt(c.upkeep) + ' a day'));
+    st.appendChild(stat('WORTH', amt(c.worth != null ? c.worth : c.treasury), 'Treasury + ' + amt(c.levelValue || 0) + ' for its level'));
+    if (pub) {
+      st.appendChild(stat('SHARE VALUE', c.fair != null ? amt(c.fair) : '--', 'Worth ÷ ' + (c.totalShares || 1000) + ' shares; the price drifts toward it'));
+      st.appendChild(stat('PUBLIC SHARES', (c.available != null ? c.available : '--') + ' / ' + (c.float || 400), 'still available to buy'));
+    }
+    st.appendChild(stat('STAFF', String(c.employees), 'Pay ×' + (c.payMult || 1).toFixed(2) + ' per shift'));
+    var lad = $('ladder'); lad.innerHTML = '';
+    LEVELS.forEach(function (l, i) { lad.appendChild(el('div', i + 1 < c.level ? 'done' : i + 1 === c.level ? 'here' : '', l.name)); });
+    $('lvl-side').textContent = 'Level ' + c.level + ' of ' + (LEVELS.length || 5);
+    var nx = $('next'); nx.innerHTML = '';
+    if (c.next) {
+      var pctN = Math.max(0, Math.min(100, (c.treasury / c.next.cost) * 100));
+      var b = el('div', 'bar'), fill = el('i'); fill.style.width = pctN.toFixed(1) + '%'; b.appendChild(fill); nx.appendChild(b);
+      nx.appendChild(el('p', 'muted', 'Next: ' + c.next.name + ' for ' + amt(c.next.cost) + ' from the treasury (' + Math.floor(pctN) + '% there).'));
+    } else nx.appendChild(el('p', 'muted', 'Top level. It doesn’t get bigger than this.'));
+    $('trade-sec').hidden = !pub; $('private-sec').hidden = pub;
+    $('c-buy').textContent = 'r!buy ' + c.ticker + ' 5'; $('c-sell').textContent = 'r!sell ' + c.ticker + ' all'; $('c-co').textContent = 'r!company ' + c.ticker;
+    $('c-apply').textContent = 'r!apply ' + c.ticker; $('float-n').textContent = c.float || 400;
+    $('note').textContent = c.strikes > 0 ? (pub ? 'This company missed its upkeep. Each missed day halves what a share is worth, and a share price of zero closes it.' : 'This company missed its upkeep. Three missed days in a row and it closes.') : '';
+    if (lastLive) applyLive(lastLive);
+  }
+
+  function tradePanel() {
+    var box = $('tp');
+    if (!RV.me() || !RV.token()) {
+      box.innerHTML = '<p>Trade ' + ticker + ' right here: log in with Discord and pick your server.</p><button type="button" class="btn">Log in to trade</button>';
+      box.querySelector('button').onclick = RV.login; return;
+    }
+    box.innerHTML = '<div class="tp-row"><span class="tp-pick"></span><span class="tp-live">Live: ⬡<b class="tp-px">--</b></span></div>' +
+      '<div class="tp-row"><label>Shares <input class="tp-q" type="number" min="1" value="5"></label>' +
+      '<button type="button" class="rv-b success" data-a="buy">Buy</button><button type="button" class="rv-b danger" data-a="sell">Sell</button><button type="button" class="rv-b" data-a="all">Sell all</button><button type="button" class="rv-b" data-a="mine">My shares</button></div><div class="tp-out"></div>';
+    RV.picker(box.querySelector('.tp-pick'));
+    var out = box.querySelector('.tp-out');
+    box.querySelectorAll('[data-a]').forEach(function (b) {
+      b.onclick = function () {
+        var q = Math.max(1, Math.floor(Number(box.querySelector('.tp-q').value) || 1)), a = b.dataset.a;
+        var line = a === 'all' ? 'sell ' + ticker + ' all' : a === 'mine' ? 'balance' : a + ' ' + ticker + ' ' + q;
+        out.innerHTML = '<span class="rv-dim">…</span>';
+        RV.run(line).then(function (r) { RV.show(out, line, r); }).catch(function (e) { out.innerHTML = e.message === 'login' ? 'Your login ran out. <a href="#" onclick="RV.login();return false">Log in again</a>.' : RV.esc(e.message); });
+      };
+    });
+  }
+
+  // the live feed (every 20 seconds) moves the price and treasury between the 10-minute data updates
+  var lastLive = null;
+  RV.live(applyLive);
+  function applyLive(f) {
+    lastLive = f;
+    var p = f.players && f.players[ticker];
+    if (!p || !co) return;
+    if (p.price != null && Math.abs(p.price - co.price) > 1e-9) {
+      co.price = p.price; $('price').textContent = money(p.price);
+      var n = $('price'); n.classList.remove('co-tick'); void n.offsetWidth; n.classList.add('co-tick');
+      var up = (p.change || 0) >= 0; $('pill').textContent = (up ? '▲ +' : '▼ ') + Number(p.change || 0).toFixed(2) + '% 24h'; $('pill').className = 'co-pill ' + (up ? 'up' : 'down');
+      $('head').classList.toggle('is-down', !up);
+    }
+    var px = document.querySelector('.tp-px'); if (px && p.price != null) px.textContent = Number(p.price).toFixed(2);
+  }
+
+  function load() {
+    fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(draw).catch(function () { $('note').textContent = 'The Exchange could not be loaded right now.'; })
+      .then(function () { setTimeout(load, 120000); });
+  }
+  load();
+  tradePanel();
+})();
+</script>
+<script src="/face/popup.js" data-odds="10"></script>
+</body>
+</html>
