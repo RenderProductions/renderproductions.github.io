@@ -626,17 +626,18 @@
   function relay(guild, line) {
     var headers = { Authorization: 'Bearer ' + token(), 'Content-Type': 'application/json' };
     return fetch(RELAY + '/api/run', { method: 'POST', headers: headers, body: JSON.stringify({ guild_id: guild, line: line }) })
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(r.status === 401 ? 'login' : j.error || r.status); return j.id; }); })
-      .then(function (id) {
-        var tries = 0;
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(r.status === 401 ? 'login' : j.error || r.status); return j; }); })
+      .then(function (j) {
+        // the bot answers a change in plain text, and a refusal as an embed
+        var verdict = function (res) { return res.content ? { ok: true, text: res.content } : { ok: false, text: (res.embeds && res.embeds[0] && res.embeds[0].description) || 'The bot could not make that change.' }; };
+        if (j.status === 'done') return verdict(j.result || {});   // live: the reply came with the request
+        var id = j.id, tries = 0;
         return new Promise(function (resolve, reject) {
           (function poll() {
             if (++tries > 20) return reject(new Error('The bot did not answer. It may be offline; try again in a minute.'));
             fetch(RELAY + '/api/result?id=' + id, { headers: { Authorization: headers.Authorization } }).then(function (r) { return r.json(); }).then(function (j) {
               if (j.status !== 'done') return setTimeout(poll, 1200);
-              // the bot answers a change in plain text, and a refusal as an embed
-              var res = j.result || {};
-              resolve(res.content ? { ok: true, text: res.content } : { ok: false, text: (res.embeds && res.embeds[0] && res.embeds[0].description) || 'The bot could not make that change.' });
+              resolve(verdict(j.result || {}));
             }).catch(function () { setTimeout(poll, 1500); });
           })();
         });

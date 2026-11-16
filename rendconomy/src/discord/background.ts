@@ -166,6 +166,14 @@ export function startProfilesFeed(db: Db, dir: Directory): void {
 }
 
 /** Polls the Cloudflare Worker for commands sent from the Activity, runs them as that player, sends replies back. */
+/** The bits of a WebSocket the relay uses (Node 22 has one built in). */
+interface LiveSocket {
+  send(data: string): void;
+  close(): void;
+  addEventListener(type: 'open' | 'close' | 'error', fn: () => void): void;
+  addEventListener(type: 'message', fn: (ev: { data: unknown }) => void): void;
+}
+
 export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Client): void {
   const url = process.env.ACTIVITY_URL ?? '', secret = process.env.ACTIVITY_SECRET ?? '';
   if (!url || !secret) { console.log('[activity] ACTIVITY_URL / ACTIVITY_SECRET not set, so the Trading Floor relay is off.'); return; }
@@ -205,8 +213,52 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
     const out = await execute(find(parsed.cmd.name)!, ctx, parsed.args);
     return { content: '', ...toRelay(out, now) };
   };
+  // The live connection: commands arrive the moment they're sent and the reply goes straight back.
+  // While it's open, the old check below only runs every 30 seconds (in case anything waited in the queue).
+  let live = false;
+  const run = (a: Action) => runOne(a).catch((e: unknown) => { console.error('[activity]', e); return { content: 'Something broke. It has been logged.' }; });
+  const WS = (globalThis as unknown as { WebSocket?: new (url: string) => LiveSocket }).WebSocket;
+  let wait = 5_000;
+  const connect = (): void => {
+    if (!WS) return;
+    let sock: LiveSocket;
+    try { sock = new WS(url.replace(/^http/, 'ws').replace(/\/$/, '') + '/ws/bot'); } catch { setTimeout(connect, wait).unref(); return; }
+    let ping: NodeJS.Timeout | undefined, pong = Date.now(), mine = false;
+    sock.addEventListener('open', () => sock.send(JSON.stringify({ type: 'hello', secret })));
+    sock.addEventListener('message', (ev) => {
+      const text = String(ev.data);
+      if (text === 'pong') { pong = Date.now(); return; }
+      let m: { type?: string; action?: Action };
+      try { m = JSON.parse(text); } catch { return; }
+      if (m.type === 'ready') {
+        mine = true; live = true; wait = 5_000;
+        console.log('[activity] Live connection to the Worker is open');
+        ping = setInterval(() => {
+          if (Date.now() - pong > 90_000) { sock.close(); return; }
+          try { sock.send('ping'); } catch { /* closing */ }
+        }, 30_000);
+        ping.unref();
+        return;
+      }
+      if (m.type === 'run' && m.action) {
+        const a = m.action;
+        void run(a).then((result) => { try { sock.send(JSON.stringify({ type: 'result', id: a.id, result })); } catch { /* closed; the site will say so */ } });
+      }
+    });
+    sock.addEventListener('close', () => {
+      if (ping) clearInterval(ping);
+      if (mine) { live = false; console.log('[activity] Live connection closed; checking the queue until it reconnects'); }
+      setTimeout(connect, wait + Math.random() * 2_000).unref();
+      wait = Math.min(wait * 2, 5 * 60_000);
+    });
+    sock.addEventListener('error', () => { /* "close" comes next */ });
+  };
+  connect();
+
+  let ticks = 0;
   setInterval(async () => {
     if (busy) return;
+    if (live && ++ticks % 15) return;
     busy = true;
     try {
       const r = await fetch(`${url}/bot/actions`, { headers });
@@ -214,7 +266,7 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
       const { actions = [] } = (await r.json()) as { actions?: Action[] };
       if (actions.length) {
         const results = [];
-        for (const a of actions) results.push({ id: a.id, result: await runOne(a).catch((e: unknown) => { console.error('[activity]', e); return { content: 'Something broke. It has been logged.' }; }) });
+        for (const a of actions) results.push({ id: a.id, result: await run(a) });
         await fetch(`${url}/bot/results`, { method: 'POST', headers, body: JSON.stringify({ results }) });
       }
       if (failing) console.log('[activity] Reconnected to the Worker');

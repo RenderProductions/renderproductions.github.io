@@ -75,9 +75,9 @@ test('the inbox collects receipts and market notes; the showcase pins unlocked a
 });
 
 test('odd jobs: right answers pay, wrong ones do not, and there is a daily cap', async () => {
-  const { db, run, ctx } = setup();
+  const { db, run, ctx, now } = setup();
   await run('balance');
-  const job = async () => { await run('oddjob'); return sessions.active<{ answer: string; pay: number }>(db, 'oddjob', G, A)!.state; };
+  const job = async () => { await run('oddjob'); return sessions.active<{ answer: string; pay: number }>(db, 'oddjob', G, A, now())!.state; };
   let s = await job();
   const b = balance(db, wallet(G, A));
   assert.match(text(await run('oddjob', { answer: s.answer })), /Right! You earn/);

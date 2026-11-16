@@ -1,0 +1,22 @@
+# The Rend-Conomy Worker. GitHub deploys it (.github/workflows/worker.yml) whenever this file or worker.js
+# changes on main. The database ID is filled in from the repo's D1_DATABASE_ID secret when it deploys.
+name = "rend-conomy"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+# Keep the variables set in the dashboard (DISCORD_CLIENT_ID, ACTIVITY_BRANCH). Secrets are always kept.
+keep_vars = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "rend-conomy"
+database_id = "D1_DATABASE_ID"
+
+# The Hub: holds the bot's live connection and every open page's live feed
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]

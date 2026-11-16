@@ -82,9 +82,11 @@
     if (!guild) return Promise.reject(new Error('Pick a server first.'));
     var auth = { Authorization: 'Bearer ' + token };
     return fetch(RELAY + '/api/run', { method: 'POST', headers: { Authorization: auth.Authorization, 'Content-Type': 'application/json' }, body: JSON.stringify({ guild_id: guild, line: line }) })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (r.status === 401) throw new Error('login'); if (!r.ok) throw new Error(j.error === 'slow down' ? 'Slow down a little.' : j.error || 'The bot could not be reached.'); return j.id; }); })
-      .then(function (id) {
-        var tries = 0;
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (r.status === 401) throw new Error('login'); if (!r.ok) throw new Error(j.error === 'slow down' ? 'Slow down a little.' : j.error || 'The bot could not be reached.'); return j; }); })
+      .then(function (j) {
+        // the bot is connected live: the reply came back with the request
+        if (j.status === 'done') return j.result || {};
+        var id = j.id, tries = 0;
         return new Promise(function (resolve, reject) {
           (function poll() {
             if (++tries > 30) return reject(new Error("The bot didn't answer. It may be restarting; try again in a minute."));
@@ -179,7 +181,22 @@
         feed = j; listeners.forEach(function (f) { try { f(j); } catch (e) {} });
       }).catch(function () {});
     };
-    get(); setInterval(function () { if (!document.hidden) get(); }, 20000);
+    // Live: the Worker sends each new feed down an open connection the moment the bot pushes it.
+    // Until that's open (or if it drops), it's fetched every 20 seconds instead.
+    var open = false, wait = 5000;
+    var connect = function () {
+      if (!window.WebSocket) return;
+      var ws, ping;
+      try { ws = new WebSocket(RELAY.replace(/^http/, 'ws') + '/ws/live'); } catch (e) { return; }
+      ws.onopen = function () { open = true; wait = 5000; ping = setInterval(function () { try { ws.send('ping'); } catch (e) {} }, 45000); };
+      ws.onmessage = function (ev) {
+        if (ev.data === 'pong') return;
+        try { var j = JSON.parse(ev.data); if (j && j.prices) { feed = j; listeners.forEach(function (f) { try { f(j); } catch (e) {} }); } } catch (e) {}
+      };
+      ws.onclose = function () { open = false; clearInterval(ping); setTimeout(connect, wait); wait = Math.min(wait * 2, 120000); };
+    };
+    get(); connect();
+    setInterval(function () { if (!document.hidden && !open) get(); }, 20000);
   };
 
   // ---------------------------------------------------------------- styles
