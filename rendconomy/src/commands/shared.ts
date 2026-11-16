@@ -82,6 +82,7 @@ export const REASONS: Record<string, string> = {
   'company.buyout': 'Merger buyout',
   'takeover.premium': 'Takeover premium (set aside)',
   'takeover.premium.paid': 'Takeover premium',
+  'takeover.breakfee': 'Takeover break fee',
   'takeover.refund': 'Takeover premium returned',
   'takeover.poisonpill': 'Poison pill',
   'heist.stake': 'Heist stake',

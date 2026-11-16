@@ -12,7 +12,7 @@ import { seededRng } from '../src/core/rng';
 import { DAY } from '../src/core/time';
 import { execute } from '../src/discord/router';
 import { tick } from '../src/market/market';
-import { companiesTick, getCompany, treasury, treasuryId, holding } from '../src/companies/companies';
+import { bidOn, companiesTick, getCompany, treasury, treasuryId, holding, worthOf } from '../src/companies/companies';
 import { siteFiles } from '../src/site/publish';
 
 const G = 'g1', A = '111111111111111111', B = '222222222222222222', OWNER = '999999999999999999';
@@ -98,5 +98,33 @@ test('takeover: a controlling stake bids; with no defense it completes', async (
   assert.match(text(await run('takeover', { action: 'bid PREY' }, B)), /Takeover bid: Prey Inc/);
   companiesTick(db, now() + DAY + 1000, () => 0.5);
   assert.equal(getCompany(db, 'PREY')!.owner_id, B);
+  assert.ok(audit(db).ok);
+});
+
+test('takeover: a poison pill costs the bidder a break fee and shields the company for a week', async () => {
+  const { db, run, fund, later } = setup();
+  await run('balance'); await run('balance', {}, B); fund(A, 50_000); fund(B, 200_000);
+  await run('found', { ticker: 'PREY', name: 'Prey Inc' });
+  await run('approve', { ticker: 'PREY' }, OWNER, true);
+  await run('invest', { amount: '20000' }); await run('upgrade'); await run('upgrade'); await run('ipo');
+  for (let i = 0; i < 10; i++) await run('buy', { ticker: 'PREY', amount: '20' }, B);
+  const bidder0 = balance(db, wallet(G, B));
+  await run('takeover', { action: 'bid PREY' }, B);
+  const premium = bidder0 - balance(db, wallet(G, B));
+  assert.ok(premium > 0);
+  const owner0 = balance(db, wallet(G, A));
+  const d = text(await run('takeover', { action: 'defend' }));
+  assert.match(d, /Takeover defeated[\s\S]*break fee[\s\S]*can't be bid on again until/);
+  const fee = Math.round(premium * 0.2);
+  assert.equal(bidder0 - balance(db, wallet(G, B)), fee, 'the bidder loses the break fee');
+  const pill = Math.round(worthOf(db, getCompany(db, 'PREY')!) * 0.1);
+  assert.ok(Math.abs(balance(db, wallet(G, A)) - owner0 - (fee - pill)) <= pill, 'the owner paid the pill and got the fee');
+  // spamming: the next bid bounces off the shield
+  assert.match(text(await run('takeover', { action: 'bid PREY' }, B)), /fought off a takeover recently/);
+  assert.match(text(await run('company', { ticker: 'PREY' })), /Shielded from takeovers until/);
+  assert.equal(bidOn(db, 'PREY'), null);
+  // a week later the shield is down
+  later(7 * DAY + 1000);
+  assert.match(text(await run('takeover', { action: 'bid PREY' }, B)), /Takeover bid: Prey Inc/);
   assert.ok(audit(db).ok);
 });

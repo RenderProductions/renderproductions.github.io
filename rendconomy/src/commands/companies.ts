@@ -7,7 +7,7 @@ import { format, parseAmount } from '../core/money';
 import { discordTime } from '../core/time';
 import { embed } from '../discord/style';
 import { TICKERS } from '../market/market';
-import { CO, LEVELS, TAKEOVER, alive, approve as approveCo, bidOn, change, cleanName, employees, found as foundCo, getCompany, invest as investCo, ipo as ipoCo, levelOf, listCompanies, merge as mergeCo, mergerFor, ownedBy, poisonPill, proposeMerger, reject as rejectCo, salary as salaryCo, sharesHeld, spark, startBid, treasury, upgrade as upgradeCo, worthOf, completeBid } from '../companies/companies';
+import { CO, LEVELS, TAKEOVER, shieldedUntil, alive, approve as approveCo, bidOn, change, cleanName, employees, found as foundCo, getCompany, invest as investCo, ipo as ipoCo, levelOf, listCompanies, merge as mergeCo, mergerFor, ownedBy, poisonPill, proposeMerger, reject as rejectCo, salary as salaryCo, sharesHeld, spark, startBid, treasury, upgrade as upgradeCo, worthOf, completeBid } from '../companies/companies';
 import { me } from './shared';
 import type { Command, Ctx } from './types';
 
@@ -30,6 +30,7 @@ const card = (ctx: Ctx, t: string) => {
     next ? `Next level: ${next.name}, ${format(next.cost)} from the treasury` : 'Top level reached.',
     c.status === 'private' && c.level >= CO.ipoLevel ? `Ready to go public: \`${ctx.config.prefix}ipo\` (${format(CO.listingFee)})` : null,
     bid ? `**Takeover bid** by <@${bid.bidder_id}>: completes ${discordTime(bid.ends_at)} unless defended.` : null,
+    !bid && shieldedUntil(ctx.db, c.ticker, ctx.now) ? `🛡️ Shielded from takeovers until ${discordTime(shieldedUntil(ctx.db, c.ticker, ctx.now)!)}.` : null,
     c.status === 'dead' ? `Closed ${c.died_at ? discordTime(c.died_at) : ''}: ${c.note ?? ''}` : null
   ]);
 };
@@ -155,12 +156,18 @@ export const takeover: Command = {
       if (!c) throw new GameError('co.unknown', 'No such company.');
       const b = startBid(ctx.db, guildId, ctx.user.id, c, ctx.now);
       return { content: `<@${c.owner_id}>`, embeds: [embed('market', `Takeover bid: ${c.name}`, [`<@${ctx.user.id}> holds a controlling stake and bids a premium of **${format(b.premium)}** (set aside).`,
-        `The owner may accept (\`${ctx.config.prefix}takeover accept\`) or defend with a poison pill costing ${format(Math.round(worthOf(ctx.db, c) * TAKEOVER.poisonPill))} (\`${ctx.config.prefix}takeover defend\`).`, `Otherwise it completes ${discordTime(b.ends_at)}.`])] };
+        `The owner may accept (\`${ctx.config.prefix}takeover accept\`) or defend with a poison pill costing ${format(Math.round(worthOf(ctx.db, c) * TAKEOVER.poisonPill))} (\`${ctx.config.prefix}takeover defend\`).`, `Otherwise it completes ${discordTime(b.ends_at)}.`,
+        `-# If it's defended, the bidder loses a ${Math.round(TAKEOVER.breakFee * 100)}% break fee (${format(Math.round(b.premium * TAKEOVER.breakFee))}) and ${c.ticker} is shielded from takeovers for a week.`])] };
     }
     const c = mine(ctx);
     const b = bidOn(ctx.db, c.ticker);
     if (!b) throw new GameError('to.none', 'There is no takeover bid on your company.');
-    if (v === 'defend') return { embeds: [embed('market', 'Takeover defeated', [`A poison pill cost you ${format(poisonPill(ctx.db, c, ctx.now))}. The bidder was refunded.`])] };
+    if (v === 'defend') {
+      const d = poisonPill(ctx.db, c, ctx.now);
+      return { embeds: [embed('market', 'Takeover defeated', [`A poison pill cost you ${format(d.cost)}.`,
+        `<@${b.bidder_id}> gets their premium back minus a **${format(d.fee)}** break fee, which goes to you.`,
+        `🛡️ ${c.name} can't be bid on again until ${discordTime(d.shield)}.`])] };
+    }
     if (v === 'accept') { completeBid(ctx.db, b, ctx.now); return { embeds: [embed('market', 'Takeover accepted', [`${c.name} now belongs to <@${b.bidder_id}>. You received ${format(b.premium)}.`])] }; }
     throw new GameError('to.action', 'Use bid <TICKER>, defend, or accept.');
   }

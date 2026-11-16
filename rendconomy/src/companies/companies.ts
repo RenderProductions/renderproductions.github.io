@@ -5,6 +5,7 @@
 //   dead    -> its share price hit 0, or (private) it missed upkeep 3 days running
 // The treasury is a ledger account ('company:<TICKER>'), so every Polygon in and out is on the books.
 // Also: hostile takeovers and mergers (Heists & Schemes).
+import { discordTime } from '../core/time';
 import { award } from '../achievements/achievements';
 import type { Db } from '../core/db';
 import { GameError } from '../core/errors';
@@ -20,7 +21,7 @@ export const LEVELS = [
   { name: 'Conglomerate', cost: polygons(75_000), upkeep: polygons(400), value: polygons(100_000), payMult: 1.5 }
 ];
 export const CO = { ipoLevel: 3, listingFee: polygons(2000), totalShares: 1000, float: 400, historyLength: 288, salaryMaxPct: 0.1, revenueShare: 0.5, privateStrikes: 3, impact: 0.5 };
-export const TAKEOVER = { stake: 0.5, premium: 0.25, poisonPill: 0.1, bidMs: DAY, mergeMs: DAY };
+export const TAKEOVER = { stake: 0.5, premium: 0.25, poisonPill: 0.1, bidMs: DAY, mergeMs: DAY, shieldMs: 7 * DAY, breakFee: 0.2 };
 
 export interface Company { ticker: string; name: string; owner_id: string; owner_name: string | null; owner_guild: string; status: string; level: number; price: number; offering_left: number; strikes: number; created_at: number; approved_at: number | null; ipo_at: number | null; died_at: number | null; last_upkeep: number | null; last_salary: number | null; history: number[]; note: string | null }
 type Row = Omit<Company, 'history'> & { history: string };
@@ -207,12 +208,19 @@ export function companiesTick(db: Db, now: number, random: () => number): { tick
 
 export interface Bid { ticker: string; bidder_id: string; bidder_guild: string; premium: Cents; ends_at: number }
 export const bidOn = (db: Db, t: string): Bid | null => db.get<Bid>('SELECT * FROM takeovers WHERE ticker = ?', t) ?? null;
+/** After fighting off a bid, a company can't be bid on for a week (otherwise a bidder could just keep bidding). */
+export function shieldedUntil(db: Db, t: string, now = Date.now()): number | null {
+  const until = Number(db.meta(`takeover.shield:${t}`) ?? 0);
+  return until > now ? until : null;
+}
 
 export function startBid(db: Db, g: string, u: string, c: Company, now = Date.now()): Bid {
   if (c.status !== 'public') throw new GameError('to.public', 'Only publicly traded companies can be taken over.');
   if (c.owner_id === u) throw new GameError('to.own', 'You already own it.');
   if (ownedBy(db, u)) throw new GameError('to.owner', 'You already run a company.');
   if (bidOn(db, c.ticker)) throw new GameError('to.bid', 'There is already a takeover bid on this company.');
+  const shield = shieldedUntil(db, c.ticker, now);
+  if (shield) throw new GameError('to.shield', `${c.name} fought off a takeover recently. It can't be bid on again until ${discordTime(shield)}.`);
   const need = Math.ceil(CO.float * TAKEOVER.stake);
   const have = holding(db, g, u, c.ticker);
   if (have < need) throw new GameError('to.stake', `A takeover needs ${need} of the ${CO.float} public shares. You hold ${have}.`);
@@ -237,17 +245,24 @@ export function completeBid(db: Db, b: Bid, now = Date.now()): void {
   });
 }
 
-/** The owner fights it off: a tenth of the company's worth from their pocket; the bidder is refunded. */
-export function poisonPill(db: Db, c: Company, now = Date.now()): Cents {
+/**
+ * The owner fights it off: a tenth of the company's worth from their pocket. The bidder gets their premium back
+ * minus a break fee (a fifth of it, paid to the owner), and the company is shielded from takeovers for a week.
+ */
+export function poisonPill(db: Db, c: Company, now = Date.now()): { cost: Cents; fee: Cents; shield: number } {
   const b = bidOn(db, c.ticker);
   if (!b) throw new GameError('to.none', 'There is no takeover bid on your company.');
   const cost = Math.round(worthOf(db, c) * TAKEOVER.poisonPill);
+  const fee = Math.round(b.premium * TAKEOVER.breakFee);
+  const shield = now + TAKEOVER.shieldMs;
   return db.tx(() => {
     transfer(db, { from: wallet(c.owner_guild, c.owner_id), to: RESERVE, cents: cost, reason: 'takeover.poisonpill', guildId: c.owner_guild, now });
-    transfer(db, { from: escrow(b.bidder_guild, b.bidder_id), to: wallet(b.bidder_guild, b.bidder_id), cents: b.premium, reason: 'takeover.refund', now });
+    if (fee > 0) transfer(db, { from: escrow(b.bidder_guild, b.bidder_id), to: wallet(c.owner_guild, c.owner_id), cents: fee, reason: 'takeover.breakfee', guildId: c.owner_guild, now, note: { ticker: c.ticker } });
+    transfer(db, { from: escrow(b.bidder_guild, b.bidder_id), to: wallet(b.bidder_guild, b.bidder_id), cents: b.premium - fee, reason: 'takeover.refund', now });
     db.run('DELETE FROM takeovers WHERE ticker = ?', c.ticker);
+    db.setMeta(`takeover.shield:${c.ticker}`, String(shield));
     award(db, c.owner_guild, c.owner_id, 'poison_pill', now);
-    return cost;
+    return { cost, fee, shield };
   });
 }
 
