@@ -122,6 +122,7 @@
   .msg code { background: rgba(255, 255, 255, 0.07); padding: 0 4px; border-radius: 3px; }
   .msg .ft { color: var(--faint); font-size: 10.5px; margin-top: 4px; }
   .msg img.emo, .farm img.emo { width: 18px; height: 18px; vertical-align: -4px; image-rendering: pixelated; }
+  img.emo.px { width: 1.2em; height: 1.2em; vertical-align: -.26em; image-rendering: pixelated; }
   .msg .jumbo img.emo, .farm .jumbo img.emo { width: 34px; height: 34px; vertical-align: 0; }
   .msg .jumbo, .farm .jumbo { line-height: 1.05; display: block; margin: 2px 0 4px; white-space: pre-line; }
   .farm .jumbo img.emo { margin: 1px; }
@@ -241,7 +242,7 @@
         <button class="sbtn" type="button" data-play="water">💧 Water</button><button class="sbtn" type="button" data-play="harvest">🧺 Harvest</button><button class="sbtn" type="button" data-play="farm sell">💰 Sell to Marquez</button><button class="sbtn" type="button" data-play="fertilize">🧪 Fertilize</button><button class="sbtn" type="button" data-play="compost">♻️ Compost</button><button class="sbtn" type="button" data-play="buyplot">🪧 Buy a plot</button>
       </div>
       <div class="stage-btns">
-        <button class="sbtn" type="button" data-play="plant carrot">🥕 Plant carrots</button><button class="sbtn" type="button" data-play="plant corn">🌽 Corn</button><button class="sbtn" type="button" data-play="plant tomato">🍅 Tomatoes</button><button class="sbtn" type="button" data-play="plant pumpkin">🎃 Pumpkins</button><button class="sbtn" type="button" data-play="plant polygon fruit">✨ Polygon Fruit</button>
+        <button class="sbtn" type="button" data-play="plant carrot">🥕 Plant carrots</button><button class="sbtn" type="button" data-play="plant corn">🌽 Corn</button><button class="sbtn" type="button" data-play="plant tomato">🍅 Tomatoes</button><button class="sbtn" type="button" data-play="plant pumpkin">🎃 Pumpkins</button><button class="sbtn" type="button" data-play="plant polygon fruit"><img class="emo px" src="/emojis/rc_polyfruit.png" alt=""> Polygon Fruit</button>
       </div>
     </div>
     <div class="screen" id="s-desk" hidden>
@@ -285,6 +286,47 @@
 </main>
 
 <script src="holiday.js" defer></script>
+<script>
+// The bot's own pixel emojis in place of standard ones, like on the site (same list as /rv.js).
+(function () {
+  var PIX = {
+    '🧑‍🌾': 'farmhand', '🐦‍⬛': 'crow', '🌾': 'farm', '💧': 'wateringcan', '🧺': 'harvest', '🧪': 'fertilizer', '♻': 'compost', '💦': 'sprinkler',
+    '🥕': 'carrot', '🌽': 'corn', '🍅': 'tomato', '🎃': 'pumpkin', '🌧': 'rain', '⛈': 'storm', '🪧': 'newplot',
+    '🏠': 'property', '🛖': 'prop_shack', '🏪': 'prop_shop', '🗼': 'prop_lighthouse', '🏛': 'prop_mansion', '🔨': 'repair', '🔑': 'key', '✉': 'bid', '🚪': 'evict', '🛌': 'squatter',
+    '💼': 'work', '🛠': 'gig', '🧰': 'gig', '💰': 'polygon', '🛍': 'shop', '🤝': 'social', '🎁': 'gift', '🐖': 'savings', '🐷': 'savings', '📜': 'loan', '🧾': 'receipt', '🏦': 'reserve', '🌅': 'daily',
+    '🏆': 'achievement', '🏅': 'leaderboard', '🔒': 'locked', '🌐': 'event', '🖥': 'todd', '🦹': 'heist', '🎟': 'lottery', '📈': 'stonks', '🎣': 'fishing', '🪝': 'lure',
+    '🎰': 'slots', '🪙': 'coinflip', '🎲': 'dice', '🎡': 'roulette', '🃏': 'blackjack', '💣': 'mines', '🚀': 'rocket', '🔼': 'hilo',
+    '🌱': 'start', '❓': 'secret', '🎄': 'holiday', '🎅': 'santa', '⛄': 'snowman', '☃': 'snowman', '❄': 'snowflake', '🎉': 'promoted', '📣': 'megaphone', '📢': 'megaphone',
+    '⚡': 'quickadd', '🔥': 'hotfix', '🆕': 'new', '🩹': 'fixed', '🗑': 'removed', '✅': 'yes', '⏳': 'time', '⌛': 'time'
+  };
+  var RE = new RegExp('(' + Object.keys(PIX).sort(function (a, b) { return b.length - a.length; }).join('|') + ')\uFE0F?', 'g');
+  var SKIP = 'script,style,textarea,input,select,option,code,pre,svg,[data-noemoji]';
+  function swap(root) {
+    if (root && root.nodeType === 3) root = root.parentNode;
+    if (!root || root.nodeType !== 1 || root.closest(SKIP)) return;
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), list = [], n;
+    while ((n = w.nextNode())) { RE.lastIndex = 0; if (RE.test(n.nodeValue) && !n.parentNode.closest(SKIP)) list.push(n); }
+    list.forEach(function (t) {
+      var text = t.nodeValue, frag = document.createDocumentFragment(), last = 0, m;
+      RE.lastIndex = 0;
+      while ((m = RE.exec(text))) {
+        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        var img = document.createElement('img'); img.className = 'emo px'; img.src = '/emojis/rc_' + PIX[m[1]] + '.png'; img.alt = m[0];
+        img.onerror = function () { this.replaceWith(document.createTextNode(this.alt)); };
+        frag.appendChild(img); last = m.index + m[0].length;
+      }
+      if (!last) return;
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      t.parentNode.replaceChild(frag, t);
+    });
+  }
+  function go() {
+    swap(document.body);
+    new MutationObserver(function (l) { l.forEach(function (r) { r.addedNodes.forEach(function (x) { if (!(x.classList && x.classList.contains('px'))) swap(x); }); }); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+})();
+</script>
 <script type="module">
 import { DiscordSDK } from './sdk.js';
 

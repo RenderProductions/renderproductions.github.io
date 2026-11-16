@@ -211,6 +211,8 @@
     '.rv-b{font:inherit;font-size:.9rem;padding:.4rem .75rem;color:var(--bright);background:var(--panel-2);border:1px solid var(--line-strong);cursor:pointer}' +
     '.rv-b.success{border-color:#3ddc84;color:#b9ffd5}.rv-b.danger{border-color:#ff5c61;color:#ffc2c4}.rv-b.primary{background:rgba(var(--accent-rgb),.14)}.rv-b:disabled{opacity:.45;cursor:default}' +
     '.rv-b .rv-emo{width:18px;height:18px;vertical-align:-4px}' +
+    '.rv-b:has(.rv-px),.tabs button:has(.rv-px){display:inline-flex;align-items:center;justify-content:center;gap:.35em}.rv-b .rv-px,.tabs button .rv-px{margin:0}' +
+    '.rv-px{width:1.25em;height:1.25em;vertical-align:-.28em;image-rendering:pixelated;display:inline-block;margin:0 .05em}' +
     '.rv-select{font:inherit;color:var(--bright);background:var(--bg);border:1px solid var(--line-strong);padding:.3rem .5rem;margin-left:.3rem}' +
     '.nav ul a.rv-bell{position:relative;display:inline-flex;padding:2px 4px;color:var(--grey);border:0}.nav ul a.rv-bell:hover,.nav ul a.rv-bell.on{color:var(--bright)}' +
     '.rv-bell svg{width:18px;height:18px;display:block;shape-rendering:crispEdges}.rv-bell.on svg{filter:drop-shadow(0 0 4px rgba(var(--accent-rgb),.7));animation:rv-ring 2.4s ease-in-out infinite;transform-origin:50% 0}' +
@@ -266,6 +268,54 @@
     } else a.innerHTML = person;
     li.appendChild(a); nav.appendChild(li);
   }
-  function start() { bell(); account(); }
+  // ------------------------------------------------------------- pixel emojis
+  // On the Rend-Conomy pages, standard emojis that the bot has its own pixel version of are swapped for it
+  // (the same art as in Discord). Runs on the page, and on anything added later (bot replies, profiles...).
+  // Leaves form controls, code and anything marked data-noemoji alone. RV.emo(name) gives one as HTML.
+  var PIX = {
+    '🧑‍🌾': 'farmhand', '🐦‍⬛': 'crow', '🌾': 'farm', '💧': 'wateringcan', '🧺': 'harvest', '🧪': 'fertilizer', '♻': 'compost', '💦': 'sprinkler',
+    '🥕': 'carrot', '🌽': 'corn', '🍅': 'tomato', '🎃': 'pumpkin', '🌧': 'rain', '⛈': 'storm', '🪧': 'newplot',
+    '🏠': 'property', '🛖': 'prop_shack', '🏪': 'prop_shop', '🗼': 'prop_lighthouse', '🏛': 'prop_mansion', '🔨': 'repair', '🔑': 'key', '✉': 'bid', '🚪': 'evict', '🛌': 'squatter',
+    '💼': 'work', '🛠': 'gig', '🧰': 'gig', '💰': 'polygon', '🛍': 'shop', '🤝': 'social', '🎁': 'gift', '🐖': 'savings', '🐷': 'savings', '📜': 'loan', '🧾': 'receipt', '🏦': 'reserve', '🌅': 'daily',
+    '🏆': 'achievement', '🏅': 'leaderboard', '🔒': 'locked', '🌐': 'event', '🖥': 'todd', '🦹': 'heist', '🎟': 'lottery', '📈': 'stonks', '🎣': 'fishing', '🪝': 'lure',
+    '🎰': 'slots', '🪙': 'coinflip', '🎲': 'dice', '🎡': 'roulette', '🃏': 'blackjack', '💣': 'mines', '🚀': 'rocket', '🔼': 'hilo',
+    '🌱': 'start', '❓': 'secret', '🎄': 'holiday', '🎅': 'santa', '⛄': 'snowman', '☃': 'snowman', '❄': 'snowflake', '🎉': 'promoted', '📣': 'megaphone', '📢': 'megaphone',
+    '⚡': 'quickadd', '🔥': 'hotfix', '🆕': 'new', '🩹': 'fixed', '🗑': 'removed', '✅': 'yes', '⏳': 'time', '⌛': 'time'
+  };
+  var PIX_RE = new RegExp('(' + Object.keys(PIX).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')️?', 'g');
+  var PIX_SKIP = 'script,style,textarea,input,select,option,code,pre,svg,[data-noemoji],.emoji-grid,.rv-me,.rv-bell';
+  RV.emo = function (name, alt) { return '<img class="rv-px" src="/bot/emojis/rc_' + name + '.png" alt="' + esc(alt || '') + '" draggable="false">'; };
+  function emojify(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { root = root.parentNode; if (!root) return; }
+    if (root.nodeType !== 1 || (root.closest && root.closest(PIX_SKIP))) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), nodes = [], n;
+    while ((n = walker.nextNode())) { PIX_RE.lastIndex = 0; if (PIX_RE.test(n.nodeValue) && !(n.parentNode.closest && n.parentNode.closest(PIX_SKIP))) nodes.push(n); }
+    nodes.forEach(function (t) {
+      var text = t.nodeValue, frag = document.createDocumentFragment(), last = 0, m;
+      PIX_RE.lastIndex = 0;
+      while ((m = PIX_RE.exec(text))) {
+        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        var img = document.createElement('img'); img.className = 'rv-px'; img.src = '/bot/emojis/rc_' + PIX[m[1]] + '.png'; img.alt = m[0]; img.draggable = false;
+        img.onerror = function () { this.replaceWith(document.createTextNode(this.alt)); };
+        frag.appendChild(img);
+        last = m.index + m[0].length;
+      }
+      if (!last) return;
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      t.parentNode.replaceChild(frag, t);
+    });
+  }
+  RV.emojify = emojify;
+  var PIX_PAGES = /^\/(rend-conomy|play|profile|bot|patch-notes)(\/|$)/;
+  function pixelEmoji() {
+    if (!PIX_PAGES.test(location.pathname) || document.documentElement.hasAttribute('data-noemoji')) return;
+    emojify(document.body);
+    new MutationObserver(function (list) {
+      list.forEach(function (r) { r.addedNodes.forEach(function (x) { if (x.nodeType === 1 && x.classList.contains('rv-px')) return; emojify(x); }); });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
+  function start() { bell(); account(); pixelEmoji(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
