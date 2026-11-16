@@ -123,6 +123,8 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['every_door', 'Every Door', 'Open all 25 doors of the advent calendar', 'holiday', 'epic'],
   ['regift', 'Regift', 'Give a holiday collectible as your Secret Santa gift', 'holiday', 'common'],
 
+  ['redemption_arc', 'Redemption Arc', 'Win back a lost slots bet with Redeem yourself', 'casino', 'rare'],
+
   ['weathered', 'Weathered', 'Lose 3 crops to a single storm', 'secret', 'rare', true],
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],
   ['tip_the_house', 'Tip the House', 'Try to give the house a gift', 'secret', 'rare', true],

@@ -31,7 +31,7 @@ export const NAMES: Record<Game, string> = {
 
 /** The house edge and payout rules, for /odds. Every number here matches the code. */
 export const ODDS: Record<Game, string> = {
-  slots: 'Three of a kind: 🍒 3x · 🍋 5x · 🔔 8x · 🔺 10x · 💎 25x. Any pair returns the bet. Expected return: 88.8%.',
+  slots: 'Three of a kind: 🍒 3x · 🍋 5x · 🔔 8x · 🔺 10x · 💎 25x. Any pair returns the bet. Lose, and **Redeem yourself** spins 15 reels: 7 of a kind (about 9%) wins the bet back. Expected return: 93.2%.',
   coinflip: 'A correct call pays 1.95x. Expected return: 97.5%.',
   dice: 'Pays 96% of the fair odds for the chosen range. Expected return: 96%.',
   roulette: 'Red/black, odd/even, low/high pay 2x; dozens pay 3x; a single number pays 36x. The green 0 is the edge. Expected return: 97.3%.',

@@ -244,8 +244,10 @@ export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promi
 export async function onButton(deps: Deps, i: ButtonInteraction): Promise<void> {
   if (i.customId === 'updates:role') return toggleUpdateRole(deps, i);
   const r = press(ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), i.customId);
-  if (r.update) await i.update(payload(r.update));
-  else if (r.notice && !r.followUp) { await i.reply({ content: r.notice, flags: MessageFlags.Ephemeral }); return; }
+  if (r.update) {
+    await i.update(payload(r.update));
+    if (r.update.live || r.update.later) afterSend(deps, r.update, i.message, (p) => i.editReply(payload(p)));   // e.g. reels that keep spinning
+  } else if (r.notice && !r.followUp) { await i.reply({ content: r.notice, flags: MessageFlags.Ephemeral }); return; }
   else await i.deferUpdate();
   if (r.notice) await i.followUp({ content: r.notice, flags: MessageFlags.Ephemeral });
   if (r.followUp) {

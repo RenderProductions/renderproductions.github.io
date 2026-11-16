@@ -55,8 +55,12 @@ export const slots: Command = {
       // The reels blur, then stop one at a time, left to right
       const blur = () => ctx.rng.pick(SYMBOLS);
       const frame = (a: string, b: string, c: string, text: string, ms: number) => ({ embeds: [card('slots', [`## [ ${show(a)} | ${show(b)} | ${show(c)} ]`, text])], ms });
+      // a loss can be redeemed: one free spin of 15 reels, 7 of a kind wins the bet back
+      const offer = win === 0 ? sessions.create(ctx.db, { kind: 'redeem.slots', guildId: ctx.guildId, channelId: ctx.channelId, userId: ctx.user.id, state: { bet } as RD, ttlMs: REDEEM.windowMs, now: ctx.now }) : null;
       return {
-        embeds: [card('slots', [`## [ ${show(x!)} | ${show(y!)} | ${show(z!)} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        embeds: [card('slots', [`## [ ${show(x!)} | ${show(y!)} | ${show(z!)} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines),
+          offer ? `-# ${emoji('slots')} **Redeem yourself:** one free spin of 15 reels. Land ${REDEEM.need} of a kind and your ${format(bet)} comes back.` : null], toneOf(bet, win))],
+        ...(offer ? { buttons: [[{ label: 'Redeem yourself', emoji: '🙏', id: sessions.buttonId(offer.id, 'go'), style: 'primary' as const }]], session: offer.id, later: { ms: REDEEM.windowMs - 3000, edit: { buttons: [] } } } : {}),
         teaser: {
           ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} ${emoji('slots')}`, 700),
           frames: [frame(x, blur(), blur(), 'The first reel stops...', 800), frame(x, y, blur(), x === y ? `Two ${show(x)}... 👀` : 'The second reel stops...', x === y ? 1200 : 800)]
@@ -65,6 +69,46 @@ export const slots: Command = {
     });
   }
 };
+
+// ----- Redeem yourself (after a losing spin) -----
+interface RD { bet: Cents }
+export const REDEEM = { reels: 15, need: 7, windowMs: 60_000 };
+/** Spins the 15 reels. Returns the board and its best run (the most common symbol). */
+export function redeemSpin(pick: () => string): { board: string[]; best: string; count: number } {
+  const board = Array.from({ length: REDEEM.reels }, pick);
+  const counts = new Map<string, number>();
+  for (const s of board) counts.set(s, (counts.get(s) ?? 0) + 1);
+  const [best, count] = [...counts].sort((a, b) => b[1] - a[1] || TRIPLE[b[0]]! - TRIPLE[a[0]]!)[0]!;
+  return { board, best, count };
+}
+function onRedeem(ctx: Ctx, s: sessions.Session<RD>, value: string): SessionReply {
+  const no = notYours(ctx, s); if (no) return no;
+  if (value !== 'go') return {};
+  return ctx.db.tx(() => {
+    if (!sessions.end(ctx.db, s.id)) return {};
+    const bet = s.state.bet, g = s.guild_id!;
+    const { board, best, count } = redeemSpin(() => ctx.rng.pick(SYMBOLS));
+    const won = count >= REDEEM.need;
+    const r = won ? settle(ctx, g, 'slots', bet, bet) : { paid: 0, lines: [] as string[] };
+    if (won) awardHere('redemption_arc');
+    // 5 columns x 3 rows, as plain emoji text so Discord shows it big; the columns stop left to right
+    const blur = () => ctx.rng.pick(SYMBOLS);
+    const grid = (cols: number) => [0, 1, 2].map((row) => [0, 1, 2, 3, 4].map((c) => show(c < cols ? board[row * 5 + c]! : blur())).join('')).join('\n');
+    const frame = (cols: number, text: string): ReplyObject => ({ content: grid(cols), embeds: [card('slots', [`**Redeem yourself** · ${format(bet)} on the line`, text])], buttons: [] });
+    const final: ReplyObject = {
+      content: grid(5),
+      embeds: [card('slots', [`**Redeem yourself** · ${format(bet)} on the line`,
+        won ? `**${count} × ${show(best)}!** Redemption! Your ${format(bet)} comes back.` : `Best run: ${count} × ${show(best)}. ${count === REDEEM.need - 1 ? 'One short! So close.' : 'Not this time.'}`,
+        ...(won ? [`-# Paid ${format(r.paid)}.`, ...r.lines.map((l) => `-# ${l}`)] : [`-# The house keeps the ${format(bet)}.`])], won ? 'win' : 'loss')],
+      buttons: []
+    };
+    // the caption counts the best run among the columns that have stopped
+    const sofar = (cols: number) => { const seen = board.filter((_, k) => k % 5 < cols); const m = new Map<string, number>(); for (const x of seen) m.set(x, (m.get(x) ?? 0) + 1); return [...m].sort((a, b) => b[1] - a[1])[0]!; };
+    const frames = [1, 2, 3, 4].map((c) => { const [sym, n] = sofar(c); return frame(c, n >= 4 ? `${n} × ${show(sym)} so far... ${'👀'.repeat(Math.min(3, n - 3))}` : 'The reels spin...'); });
+    let i = 0;
+    return { update: { ...frame(0, `${show(blur())} Fifteen reels, one chance...`), live: { everyMs: 900, next: () => (i < frames.length ? frames[i++]! : i++ === frames.length ? final : null) } } };
+  });
+}
 
 export const coinflip: Command = {
   name: 'coinflip', aliases: ['cf', 'flip'], description: 'Call heads or tails for 1.95x', system: 'casino', guildOnly: true,
@@ -457,5 +501,6 @@ export const casinoHandlers = {
   'casino.blackjack': onBlackjack,
   'casino.hilo': onHilo,
   'casino.mines': onMines,
-  'casino.rocket': onRocket
+  'casino.rocket': onRocket,
+  'redeem.slots': onRedeem
 };
