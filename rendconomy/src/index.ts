@@ -27,6 +27,7 @@ import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
 import { runInRequest } from './core/request';
 import { importOnStartup, oldDbFile } from './achievements/import';
+import { runFixes } from './fixes';
 
 async function main(): Promise<void> {
   loadEnv();
@@ -40,6 +41,12 @@ async function main(): Promise<void> {
     if (imported) console.log(`[${config.name}] carried over ${imported.achievements} achievements for ${imported.players} players from ${oldDbFile()}${imported.caughtUp ? `, and paid ${imported.caughtUp} players who had already started` : ''}`);
   } catch (e) {
     console.error(`[${config.name}] WARNING: could not carry over achievements:`, (e as Error).message);
+  }
+
+  try {
+    for (const f of runFixes(db)) console.log(`[${config.name}] fix ${f}`);
+  } catch (e) {
+    console.error(`[${config.name}] WARNING: a one-time fix failed:`, (e as Error).message);
   }
 
   const books = audit(db);

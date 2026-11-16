@@ -266,6 +266,20 @@ export function poisonPill(db: Db, c: Company, now = Date.now()): { cost: Cents;
   });
 }
 
+/** Calls a bid off: the bidder gets the whole premium back. Optionally shields the company afterwards. */
+export function cancelBid(db: Db, ticker: string, now = Date.now(), shieldMs = 0): { bid: Bid | null; shield: number | null } {
+  return db.tx(() => {
+    const b = bidOn(db, ticker);
+    if (b) {
+      transfer(db, { from: escrow(b.bidder_guild, b.bidder_id), to: wallet(b.bidder_guild, b.bidder_id), cents: Math.min(b.premium, balance(db, escrow(b.bidder_guild, b.bidder_id))), reason: 'takeover.refund', now });
+      db.run('DELETE FROM takeovers WHERE ticker = ?', ticker);
+    }
+    const shield = shieldMs > 0 ? now + shieldMs : null;
+    if (shield) db.setMeta(`takeover.shield:${ticker}`, String(Math.max(shield, Number(db.meta(`takeover.shield:${ticker}`) ?? 0))));
+    return { bid: b, shield };
+  });
+}
+
 function takeoversTick(db: Db, now: number): void {
   for (const b of db.all<Bid>('SELECT * FROM takeovers WHERE ends_at <= ?', now)) completeBid(db, b, now);
 }

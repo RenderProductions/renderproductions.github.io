@@ -128,3 +128,33 @@ test('takeover: a poison pill costs the bidder a break fee and shields the compa
   assert.match(text(await run('takeover', { action: 'bid PREY' }, B)), /Takeover bid: Prey Inc/);
   assert.ok(audit(db).ok);
 });
+
+test('the one-time REND fix: removes the bid, refunds the bidder in full, shields it, and runs once', async () => {
+  const { db, run, fund, now } = setup();
+  const { runFixes } = await import('../src/fixes.js');
+  const { shieldedUntil } = await import('../src/companies/companies.js');
+  await run('balance'); await run('balance', {}, B); fund(A, 50_000); fund(B, 200_000);
+  await run('found', { ticker: 'REND', name: 'Render Co' });
+  await run('approve', { ticker: 'REND' }, OWNER, true);
+  await run('invest', { amount: '20000' }); await run('upgrade'); await run('upgrade'); await run('ipo');
+  for (let i = 0; i < 10; i++) await run('buy', { ticker: 'REND', amount: '20' }, B);
+  const before = balance(db, wallet(G, B));
+  await run('takeover', { action: 'bid REND' }, B);
+  assert.ok(bidOn(db, 'REND'));
+  const out = runFixes(db, now());
+  assert.equal(out.length, 1);
+  assert.match(out[0]!, /REND|rend-takeover.*removed the bid/);
+  assert.equal(bidOn(db, 'REND'), null);
+  assert.equal(balance(db, wallet(G, B)), before, 'refunded in full');
+  assert.equal(shieldedUntil(db, 'REND', now()), now() + 7 * DAY);
+  assert.equal(getCompany(db, 'REND')!.owner_id, A);
+  assert.deepEqual(runFixes(db, now()), [], 'runs once');
+  assert.match(text(await run('takeover', { action: 'bid REND' }, B)), /fought off a takeover recently/);
+  assert.ok(audit(db).ok);
+});
+
+test('the one-time REND fix does nothing harmful when there is no REND', async () => {
+  const { db } = setup();
+  const { runFixes } = await import('../src/fixes.js');
+  assert.match(runFixes(db)[0]!, /no company REND/);
+});
