@@ -6,6 +6,7 @@ import {
   type ButtonInteraction, type ChatInputCommandInteraction, type Message, type RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js';
 import { commands, find } from '../commands';
+import { checkMillionaire } from '../achievements/listeners';
 import { handlers } from '../commands/sessions';
 import type { Args, Button, Command, Ctx, Reply, ReplyObject, SessionReply } from '../commands/types';
 import type { BotConfig } from '../config';
@@ -30,10 +31,18 @@ export async function execute(cmd: Command, ctx: Ctx, args: Args): Promise<Reply
     if (cmd.guildOnly && !ctx.guildId) return { content: 'This command is only available in a server.', ephemeral: true };
     ctx.db.setMeta('commands_run', Number(ctx.db.meta('commands_run') ?? 0) + 1);
     const reply = await runInRequest(requestOf(ctx), () => cmd.run(ctx, args));
+    afterAny(ctx);
     return withNotes(withBig(normalize(reply), ctx.big), ctx.notes);
   } catch (e) {
     return errorReply(e, `command ${cmd.name}`);
   }
+}
+
+/** Checks that depend on where a player stands overall, after anything they do: net worth can cross ⬡1,000,000
+ *  from a casino win, a gift, a trade or a company growing, not just from the few events that used to check it. */
+function afterAny(ctx: Ctx): void {
+  if (!ctx.guildId) return;
+  try { runInRequest(requestOf(ctx), () => checkMillionaire(ctx.guildId!, ctx.user.id)); } catch { /* never break a reply over this */ }
 }
 
 const requestOf = (ctx: Ctx) => ({ db: ctx.db, guildId: ctx.guildId, userId: ctx.user.id, now: ctx.now, notes: ctx.notes });
@@ -55,6 +64,7 @@ export function press(ctx: Ctx, customId: string): SessionReply {
   if (!h) return { update: { buttons: [] } };
   try {
     const r = runInRequest(requestOf(ctx), () => h.onButton(ctx, s, ref.value));
+    afterAny(ctx);
     if (ctx.big) { if (r.update?.embeds?.length) r.update = withBig(r.update, ctx.big); else if (r.followUp) r.followUp = withBig(r.followUp, ctx.big); }
     return notesOnSession(r, ctx.notes);
   } catch (e) {

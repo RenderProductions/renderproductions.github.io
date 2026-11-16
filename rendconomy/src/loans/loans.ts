@@ -123,8 +123,8 @@ export function installLoans(): void {
 
   // Debts count against net worth; money you've lent counts for it
   addWorthPart((db, _m, guildId, userId) => {
-    const now = Date.now();
-    const owe = activeLoans(db, guildId, { borrower: userId }), lent = activeLoans(db, guildId, { lender: userId });
+    const now = currentRequest()?.now ?? Date.now();   // the moment of the command, not the wall clock
+    const owe = activeLoans(db, guildId, { borrower: userId }, now), lent = activeLoans(db, guildId, { lender: userId }, now);
     const late = owe.filter((l) => overdue(l, now)).length;
     const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
     return [

@@ -12,13 +12,15 @@ import { load as loadMarket } from '../market/market';
 import { sharesOf } from '../market/trading';
 import { netWorth } from '../social/worth';
 import { COMPANIES } from '../work/jobs';
-import { awardHere, bump, payoutValue, sameDay } from './achievements';
+import { awardHere, bump, has, payoutValue, sameDay } from './achievements';
 
 let installed = false;
 
-function checkMillionaire(guildId: string, userId: string): void {
+export function checkMillionaire(guildId: string, userId: string): void {
   const req = currentRequest();
   if (!req) return;
+  if (has(req.db, userId, 'millionaire')) return;
+  if (!req.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', guildId, userId)) return;
   if (netWorth(req.db, loadMarket(req.db), guildId, userId) >= polygons(1_000_000)) awardHere('millionaire', userId);
 }
 

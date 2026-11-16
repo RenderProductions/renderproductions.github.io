@@ -131,3 +131,17 @@ test('players who started before the import are paid what they missed, once', as
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('Millionaire unlocks after any command once net worth reaches ⬡1,000,000 (not just daily, work or selling)', async () => {
+  const { execute } = await import('../src/discord/router.js');
+  const { seededRng } = await import('../src/core/rng.js');
+  const { transfer, RESERVE } = await import('../src/core/ledger.js');
+  const { has } = await import('../src/achievements/achievements.js');
+  const db = freshDb(), G = 'gm', U = '777777777777777777';
+  const ctx = () => ({ db, config: botConfig(), rng: seededRng(1), now: Date.now(), guildId: G, channelId: 'c', user: { id: U, name: 'Rich' }, isOwner: false, isMod: false, notes: [] as string[] });
+  await execute(find('balance')!, ctx(), {});
+  transfer(db, { from: RESERVE, to: wallet(G, U), cents: polygons(1_000_000), reason: 'mod.give' });   // e.g. a big gift or a casino run
+  assert.equal(has(db, U, 'millionaire'), false);
+  await execute(find('balance')!, ctx(), {});
+  assert.equal(has(db, U, 'millionaire'), true);
+});
