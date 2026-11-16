@@ -36,6 +36,7 @@
   .toggle[aria-checked="true"]::after { left: 29px; background: var(--bright); box-shadow: 0 0 8px rgba(var(--accent-rgb), .7); }
   .toggle:focus-visible { outline: 2px solid var(--bright); outline-offset: 2px; }
   .sw-all { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .sw-style { font: inherit; color: var(--bright); background: var(--bg); border: 1px solid var(--line-strong); padding: .35rem .5rem; }
   .sw-saved { color: var(--grey); font-size: 13px; margin-left: auto; align-self: center; }
   .login { max-width: 760px; margin: 1.5rem 0 2.5rem; padding: 1.75rem; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line-strong); }
   .login h1 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 56px; line-height: 1; letter-spacing: 2px; color: var(--bright); text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35); }
@@ -209,6 +210,9 @@
     <h1 id="set-h">SETTINGS</h1>
     <p>Render Vision likes attention. Here's how to get some peace. These are saved in this browser and work whether you're logged in or not.</p>
     <ul class="sw-list" id="sw-list"></ul>
+    <div class="sw-row"><div class="txt"><b>Pop-up and peeper style</b><small>Mixed gives each one a random look. Or pick your favorite.</small></div>
+      <select id="sw-style" class="sw-style"><option value="">Mixed</option><option value="pixel">Pixel</option><option value="win95">Windows 95</option><option value="crt">Terminal</option></select>
+      <button class="try" type="button" id="sw-style-try">Show me</button></div>
     <div class="sw-all"><button class="btn" type="button" id="sw-off">Turn everything off</button><button class="btn" type="button" id="sw-on">Turn everything back on</button><span class="sw-saved" id="sw-saved" aria-live="polite"></span></div>
     <p class="note" style="margin-top:1.2rem">Pop-ups always show on <a href="/face/">/face/</a> (that's what it's for), and the Konami code still works if you type it.</p>
   </section>
@@ -931,6 +935,7 @@
   }
   function drawPrefs() {
     var p = prefs(), list = $('sw-list');
+    $('sw-style').value = p.style || '';
     if (p.sound === undefined) { try { if (localStorage.getItem('rvPopupSound') === 'off') p.sound = false; } catch (e) {} }
     list.textContent = '';
     PREFS.forEach(function (d) {
@@ -944,8 +949,13 @@
       list.appendChild(li);
     });
   }
-  $('sw-off').onclick = function () { var q = {}; PREFS.forEach(function (d) { q[d[0]] = false; }); savePrefs(q); drawPrefs(); };
-  $('sw-on').onclick = function () { savePrefs({}); drawPrefs(); };
+  $('sw-style').onchange = function () { var q = prefs(); if (this.value) q.style = this.value; else delete q.style; savePrefs(q); };
+  $('sw-style-try').onclick = function () {
+    if (window.RenderPopup) RenderPopup.spawn({ force: true, title: 'Settings', message: 'HOW DO I LOOK?' });
+    if (window.RenderEggs) RenderEggs.peek(1);
+  };
+  $('sw-off').onclick = function () { var q = { style: prefs().style }; PREFS.forEach(function (d) { q[d[0]] = false; }); savePrefs(q); drawPrefs(); };
+  $('sw-on').onclick = function () { savePrefs({ style: prefs().style }); drawPrefs(); };
   // Settings hides the profile views with one class, so whatever they were doing is there when you come back
   function settingsTab(on) {
     $('tab-settings').setAttribute('aria-selected', String(on));

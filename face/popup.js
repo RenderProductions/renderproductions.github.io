@@ -205,55 +205,107 @@
   var topZ = 9990;
 
   // ---------- Styles (injected once) ----------
+  // Three retro skins: pixel (yellow on black, like the bot's emojis), win95 (grey bevels), crt (a
+  // terminal glowing in the page's own color). Each pop-up picks one at random unless Settings says which.
   var css = [
-    '.rv-pop{position:fixed;width:min(310px,calc(100vw - 16px));border:3px solid #0A246A;border-radius:8px 8px 0 0;',
-    'background:#ECE9D8;font:11px Tahoma,Verdana,sans-serif;color:#000;user-select:none;overflow:hidden;',
-    'box-shadow:4px 4px 0 rgba(0,0,0,.45),0 0 18px rgba(0,84,227,.45);animation:rvGlow 2s ease-in-out infinite}',
-    '.rv-pop.rv-shake{animation:rvShake .12s linear 5,rvGlow 2s ease-in-out infinite}',
-    '.rv-pop.rv-big{width:min(430px,calc(100vw - 16px))}',
-    '.rv-title{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:3px 4px 3px 8px;',
-    'background:linear-gradient(to bottom,#0054E3 0%,#0099FF 100%);color:#fff;font-weight:bold;cursor:grab;',
-    'border-radius:5px 5px 0 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.4);touch-action:none}',
+    '.rv-pop{position:fixed;width:min(320px,calc(100vw - 16px));user-select:none;overflow:hidden}',
+    '.rv-pop.rv-big{width:min(440px,calc(100vw - 16px))}',
+    '.rv-pop.rv-shake{animation:rvShake .12s linear 5}',
+    '.rv-title{display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:grab;touch-action:none}',
     '.rv-title:active{cursor:grabbing}',
     '.rv-title span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '.rv-btns{display:flex;gap:2px;flex:none}',
-    '.rv-btn{width:18px;height:16px;padding:0;background:linear-gradient(to bottom,#D4D0C8,#B0A090);',
-    'border:1px solid #fff;border-right-color:#404040;border-bottom-color:#404040;font:bold 9px Tahoma,sans-serif;',
-    'color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center}',
-    '.rv-btn:active{border-color:#404040 #fff #fff #404040}',
-    '.rv-btn.rv-x{background:linear-gradient(to bottom,#E8775B,#C1361B);color:#fff}',
+    '.rv-btns{display:flex;gap:3px;flex:none}',
+    '.rv-btn{padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center}',
     '.rv-body{position:relative;display:flex;gap:12px;align-items:center;padding:14px}',
-    '.rv-body::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;',
-    'background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,0,0,.05) 10px,rgba(255,0,0,.05) 20px)}',
-    '.rv-pop.rv-min .rv-body{display:none}',
-    '.rv-face{flex:none;width:64px;height:64px}',
+    '.rv-face{flex:none;width:64px;height:64px;image-rendering:pixelated;shape-rendering:crispEdges}',
     '.rv-pop.rv-big .rv-face{width:96px;height:96px}',
-    '.rv-msg{position:relative;font-weight:bold;color:#000080;font-size:12px;line-height:1.4}',
-    '.rv-pop.rv-big .rv-msg{font-size:14px}',
-    '.rv-pop.rv-red{border-color:#5a0a0a;box-shadow:4px 4px 0 rgba(0,0,0,.5),0 0 22px rgba(255,40,40,.5);animation:rvGlowRed 1.4s ease-in-out infinite}',
-    '.rv-pop.rv-red.rv-shake{animation:rvShake .12s linear 5,rvGlowRed 1.4s ease-in-out infinite}',
-    '.rv-red .rv-title{background:linear-gradient(to bottom,#B01010 0%,#E83A2A 100%)}',
-    '.rv-red .rv-msg{color:#7a0000}',
-    '.rv-red .rv-body::before{background-image:repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,0,0,.12) 10px,rgba(255,0,0,.12) 20px)}',
+    '.rv-msg{position:relative;margin:0;overflow-wrap:anywhere}',
+    '.rv-foot{display:flex;align-items:center;gap:10px;padding:0 14px 12px}',
+    '.rv-ok{cursor:pointer}',
+    '.rv-stop{margin-left:auto;opacity:.7;text-decoration:none}.rv-stop:hover{opacity:1;text-decoration:underline}',
+    '.rv-pop.rv-min .rv-body,.rv-pop.rv-min .rv-foot{display:none}',
     '.rv-pop.rv-glide{transition:left .55s cubic-bezier(.2,1.25,.4,1),top .55s cubic-bezier(.2,1.25,.4,1)}',
-    '@keyframes rvGlowRed{50%{box-shadow:4px 4px 0 rgba(0,0,0,.5),0 0 32px rgba(255,40,40,.8)}}',
     '@keyframes rvShake{0%,100%{translate:0 0}25%{translate:-4px 2px}50%{translate:3px -2px}75%{translate:-2px -3px}}',
-    '@keyframes rvGlow{50%{box-shadow:4px 4px 0 rgba(0,0,0,.45),0 0 28px rgba(0,153,255,.7)}}',
-    '@media (prefers-reduced-motion:reduce){.rv-pop,.rv-pop.rv-shake{animation:none}}'
+    // pixel
+    '.rv-s-pixel{--y:#ffe600;--y2:#e6cf00;background:#0d1322;font-family:VT323,"Courier New",monospace;',
+    'box-shadow:0 0 0 2px #05070d,0 0 0 4px var(--y),0 0 0 6px #05070d,8px 8px 0 4px rgba(0,0,0,.55)}',
+    '.rv-s-pixel.rv-red{--y:#ff4d4d;--y2:#e03e3e}',
+    '.rv-s-pixel .rv-title{padding:3px 5px 3px 8px;color:#05070d;font-size:19px;letter-spacing:1px;background:repeating-linear-gradient(90deg,var(--y) 0 4px,var(--y2) 4px 8px)}',
+    '.rv-s-pixel .rv-btn{width:17px;height:17px;border:0;background:#05070d;color:var(--y);font:17px/17px VT323,monospace}',
+    '.rv-s-pixel .rv-btn.rv-x{background:#ff4d4d;color:#05070d}',
+    '.rv-s-pixel.rv-red .rv-btn.rv-x{background:#05070d;color:#ff4d4d;box-shadow:inset 0 0 0 2px #ff4d4d}',
+    '.rv-s-pixel .rv-body{background-image:linear-gradient(rgba(255,230,0,.05) 50%,transparent 50%);background-size:100% 4px}',
+    '.rv-s-pixel .rv-msg{color:var(--y);font-size:22px;line-height:1.05;letter-spacing:.5px}',
+    '.rv-s-pixel.rv-big .rv-msg{font-size:28px}',
+    '.rv-s-pixel .rv-ok{font:19px VT323,monospace;padding:0 14px;border:0;background:var(--y);color:#05070d}',
+    '.rv-s-pixel .rv-ok:active{background:#05070d;color:var(--y);box-shadow:inset 0 0 0 2px var(--y)}',
+    '.rv-s-pixel .rv-stop{font:16px VT323,monospace;color:var(--y)}',
+    // win95
+    '.rv-s-win95{background:#c0c0c0;border:2px solid;border-color:#fff #404040 #404040 #fff;',
+    'box-shadow:1px 1px 0 #000,inset -1px -1px 0 #808080,inset 1px 1px 0 #dfdfdf,6px 6px 0 rgba(0,0,0,.35);font:11px "MS Sans Serif","Microsoft Sans Serif",Tahoma,sans-serif;color:#000}',
+    '.rv-s-win95 .rv-title{margin:2px;padding:3px 3px 3px 4px;color:#fff;font-weight:bold;background:linear-gradient(90deg,#000080,#1084d0)}',
+    '.rv-s-win95.rv-red .rv-title{background:linear-gradient(90deg,#800000,#d04a3a)}',
+    '.rv-s-win95 .rv-btn{width:16px;height:14px;background:#c0c0c0;border:1px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px 0 #808080;color:#000;font:bold 9px Tahoma,sans-serif}',
+    '.rv-s-win95 .rv-btn:active{border-color:#404040 #fff #fff #404040}',
+    '.rv-s-win95 .rv-msg{font-size:12px;font-weight:bold;color:#000}',
+    '.rv-s-win95.rv-red .rv-msg{color:#800000}',
+    '.rv-s-win95.rv-big .rv-msg{font-size:15px}',
+    '.rv-s-win95 .rv-foot{justify-content:center}',
+    '.rv-s-win95 .rv-ok{min-width:76px;padding:4px 0;background:#c0c0c0;border:1px solid;border-color:#fff #404040 #404040 #fff;box-shadow:1px 1px 0 #000;font:11px Tahoma,sans-serif;color:#000;outline:1px dotted #000;outline-offset:-5px}',
+    '.rv-s-win95 .rv-ok:active{border-color:#404040 #fff #fff #404040;box-shadow:none}',
+    '.rv-s-win95 .rv-stop{margin-left:0;font-size:11px;color:#000080;text-decoration:underline}',
+    // crt
+    '.rv-s-crt{--c:var(--bright,#3ddc84);background:#030803;border:1px solid var(--c);font:17px/1.25 VT323,"Courier New",monospace;color:var(--c);',
+    'text-shadow:0 0 6px var(--c);box-shadow:0 0 18px rgba(0,0,0,.6),0 0 14px -2px var(--c),inset 0 0 28px rgba(255,255,255,.04)}',
+    '.rv-s-crt.rv-red{--c:#ff4d4d}',
+    '.rv-s-crt::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.38) 2px 3px)}',
+    '.rv-s-crt .rv-title{padding:4px 8px;border-bottom:1px dashed var(--c);letter-spacing:1px}',
+    '.rv-s-crt .rv-btn{border:0;background:none;color:var(--c);font:17px VT323,monospace;text-shadow:inherit}',
+    '.rv-s-crt .rv-msg{font-size:21px}',
+    '.rv-s-crt.rv-big .rv-msg{font-size:27px}',
+    '.rv-s-crt .rv-cur{display:inline-block;width:.5em;height:.95em;margin-left:2px;background:var(--c);vertical-align:-.12em;animation:rvBlink 1s steps(1) infinite}',
+    '@keyframes rvBlink{50%{opacity:0}}',
+    '.rv-s-crt .rv-ok{border:0;background:none;color:var(--c);font:19px VT323,monospace;text-shadow:inherit;padding:0}',
+    '.rv-s-crt .rv-ok:hover{background:var(--c);color:#030803;text-shadow:none}',
+    '.rv-s-crt .rv-stop{font:16px VT323,monospace;color:var(--c)}',
+    '@media (prefers-reduced-motion:reduce){.rv-pop,.rv-pop.rv-shake,.rv-s-crt .rv-cur{animation:none}}'
   ].join('');
   var style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
 
   // ---------- Tiny face ----------
-  var FACE_SVG =
-    '<svg class="rv-face" viewBox="0 0 64 64" aria-hidden="true">' +
-    '<rect x="2" y="2" width="60" height="60" rx="9" fill="#05070d" stroke="#ffe600" stroke-width="3"/>' +
-    '<rect x="8" y="8" width="48" height="48" rx="5" fill="#080c16"/>' +
-    '<g class="rv-eyes"><rect class="rv-eye" x="18" y="18" width="7" height="17" rx="2" fill="#ffe600"/>' +
-    '<rect class="rv-eye" x="39" y="18" width="7" height="17" rx="2" fill="#ffe600"/></g>' +
-    '<path class="rv-mouth" d="M20 44 Q32 51 44 44" fill="none" stroke="#ffe600" stroke-width="3" stroke-linecap="round"/>' +
-    '</svg>';
+  // A 16x16 pixel Render Vision. The eyes (.rv-eye) and mouth (.rv-mouth / .rv-frown) are separate so
+  // they can look around and change mood.
+  var SKINS = ['pixel', 'win95', 'crt'];
+  function chooseSkin() {
+    var s = null;
+    try { s = (JSON.parse(localStorage.getItem('rp_prefs') || '{}')).style; } catch (e) {}
+    return SKINS.indexOf(s) >= 0 ? s : SKINS[Math.floor(Math.random() * SKINS.length)];
+  }
+  function accent() {
+    var c = '';
+    try { c = getComputedStyle(document.documentElement).getPropertyValue('--bright').trim(); } catch (e) {}
+    return c || '#3ddc84';
+  }
+  var FACE_COLORS = {
+    pixel: { rim: '#ffe600', ring: '#05070d', fill: '#0b1220', eye: '#ffe600' },
+    win95: { rim: '#000000', ring: '#808080', fill: '#000080', eye: '#ffff00' },
+    crt:   { rim: null, ring: '#030803', fill: '#06140a', eye: null }
+  };
+  function r(x, y, w, h, c, cls) { return '<rect' + (cls ? ' class="' + cls + '"' : '') + ' x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + c + '"/>'; }
+  function faceSvg(skin, red) {
+    var k = FACE_COLORS[skin], a = skin === 'crt' ? (red ? '#ff4d4d' : accent()) : null;
+    var rim = red && skin === 'pixel' ? '#ff4d4d' : (k.rim || a), eye = k.eye || a;
+    return '<svg class="rv-face" viewBox="0 0 16 16" aria-hidden="true" data-eye="' + eye + '">' +
+      r(1, 1, 14, 14, k.ring) + r(2, 2, 12, 12, k.fill) +
+      r(2, 0, 12, 1, rim) + r(2, 15, 12, 1, rim) + r(0, 2, 1, 12, rim) + r(15, 2, 1, 12, rim) +
+      r(1, 1, 1, 1, rim) + r(14, 1, 1, 1, rim) + r(1, 14, 1, 1, rim) + r(14, 14, 1, 1, rim) +
+      '<g class="rv-eyes">' + r(4, 4, 2, 4, eye, 'rv-eye') + r(10, 4, 2, 4, eye, 'rv-eye') + '</g>' +
+      '<g class="rv-mouth" fill="' + eye + '">' + r(4, 10, 1, 1, eye) + r(11, 10, 1, 1, eye) + r(5, 11, 6, 1, eye) + '</g>' +
+      '<g class="rv-frown" style="display:none">' + r(5, 10, 6, 1, '#ff4d4d') + r(4, 11, 1, 1, '#ff4d4d') + r(11, 11, 1, 1, '#ff4d4d') + '</g>' +
+      '</svg>';
+  }
 
   function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
   function fill(text) {
@@ -299,15 +351,29 @@
     win.classList.add('rv-shake');
   }
   function setMood(win, mood) {
-    var eyes = win.querySelectorAll('.rv-eye'), mouth = win.querySelector('.rv-mouth');
-    var color = mood === 'angry' ? '#ff4d4d' : '#ffe600';
+    var svg = win.querySelector('.rv-face'), angry = mood === 'angry';
+    var color = angry ? '#ff4d4d' : svg.getAttribute('data-eye');
+    var eyes = win.querySelectorAll('.rv-eye');
     for (var i = 0; i < eyes.length; i++) {
       eyes[i].setAttribute('fill', color);
-      eyes[i].setAttribute('height', mood === 'angry' ? 9 : 17);
-      eyes[i].setAttribute('y', mood === 'angry' ? 24 : 18);
+      eyes[i].setAttribute('height', angry ? 2 : 4);
+      eyes[i].setAttribute('y', angry ? 6 : 4);
     }
-    mouth.setAttribute('stroke', color);
-    mouth.setAttribute('d', mood === 'angry' ? 'M20 48 Q32 41 44 48' : 'M20 44 Q32 51 44 44');
+    win.querySelector('.rv-mouth').style.display = angry ? 'none' : '';
+    win.querySelector('.rv-frown').style.display = angry ? '' : 'none';
+  }
+  // The terminal skin types its message out.
+  function say(win, el, text) {
+    clearInterval(el._type);
+    if (!win.classList.contains('rv-s-crt') || reduce) { el.textContent = text; return; }
+    var cur = '<span class="rv-cur"></span>', n = 0;
+    el.innerHTML = cur;
+    el._type = setInterval(function () {
+      n += 1 + (Math.random() < 0.3 ? 1 : 0);
+      el.textContent = text.slice(0, n);
+      el.insertAdjacentHTML('beforeend', cur);
+      if (n >= text.length) clearInterval(el._type);
+    }, 32);
   }
 
   // Items (see /inventory.js), fetched when needed since this file runs on pages without it.
@@ -352,27 +418,32 @@
     if (open.length >= MAX_OPEN) return null;
 
     var win = document.createElement('div');
-    win.className = 'rv-pop';
+    var skin = opts.skin && SKINS.indexOf(opts.skin) >= 0 ? opts.skin : chooseSkin();
+    win.className = 'rv-pop rv-s-' + skin;
     win.setAttribute('role', 'dialog');
     win.style.zIndex = ++topZ;
+    var B = skin === 'crt' ? ['[_]', '[□]', '[x]'] : skin === 'pixel' ? ['-', '□', 'x'] : ['_', '□', '×'];
     win.innerHTML =
-      '<div class="rv-title"><span>⚠️ ' + '</span><div class="rv-btns">' +
-      '<button class="rv-btn" type="button" data-act="min" aria-label="Minimize">_</button>' +
-      '<button class="rv-btn" type="button" data-act="max" aria-label="Maximize">□</button>' +
-      '<button class="rv-btn rv-x" type="button" data-act="close" aria-label="Close">✕</button>' +
-      '</div></div><div class="rv-body">' + FACE_SVG + '<p class="rv-msg"></p></div>';
+      '<div class="rv-title"><span></span><div class="rv-btns">' +
+      '<button class="rv-btn" type="button" data-act="min" aria-label="Minimize">' + B[0] + '</button>' +
+      '<button class="rv-btn" type="button" data-act="max" aria-label="Maximize">' + B[1] + '</button>' +
+      '<button class="rv-btn rv-x" type="button" data-act="close" aria-label="Close">' + B[2] + '</button>' +
+      '</div></div><div class="rv-body"><p class="rv-msg"></p></div>' +
+      '<div class="rv-foot"><button class="rv-ok" type="button" data-act="close">' + (skin === 'crt' ? '[ OK ]' : 'OK') + '</button>' +
+      (toyPage ? '' : '<a class="rv-stop" href="/profile/#settings">' + (skin === 'crt' ? '> make it stop' : 'Make it stop') + '</a>') + '</div>';
     if (page === null) page = pageInfo() || {};
     // Backstage (red pages) almost always stays in character.
     var local = page.lines && page.lines.length && Math.random() < (page.theme === 'red' ? 0.9 : 0.7);
     var title = opts.title || pick(local && page.titles ? page.titles : TITLES);
     var red = (opts.theme || page.theme) === 'red';
     if (red) win.classList.add('rv-red');
+    win.querySelector('.rv-body').insertAdjacentHTML('afterbegin', faceSvg(skin, red));
     var baseMood = (opts.mood === 'angry' || red) ? 'angry' : 'calm';
-    win.querySelector('.rv-title span').textContent = '⚠️ ' + title;
+    win.querySelector('.rv-title span').textContent = skin === 'crt' ? '[ ' + title.toUpperCase() + ' ]' : skin === 'pixel' ? '! ' + title.toUpperCase() : title;
     win.setAttribute('aria-label', title);
     var msgEl = win.querySelector('.rv-msg');
-    msgEl.textContent = fill(opts.message || pick(local ? page.lines : MESSAGES));
     document.body.appendChild(win);
+    say(win, msgEl, fill(opts.message || pick(local ? page.lines : MESSAGES)));
     open.push(win);
     if (!opts.silent) playBum();
     if (typeof opts.x === 'number') place(win, opts.x, opts.y); else randomSpot(win);
@@ -386,8 +457,10 @@
     var dodged = 0;
     // Console test: RenderPopup.spawn({ dodge: 1 }) sets the starting chance (100%, then 50%, 25%...).
     var dodgeChance = typeof opts.dodge === 'number' ? opts.dodge : DODGE_CHANCE;
-    win.querySelector('.rv-btns').addEventListener('click', function (e) {
-      var act = e.target.getAttribute('data-act');
+    win.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('[data-act]');
+      if (!btn) return;
+      var act = btn.getAttribute('data-act');
       if (act === 'min') win.classList.toggle('rv-min');
       if (act === 'max') { win.classList.toggle('rv-big'); place(win, win.offsetLeft, win.offsetTop); }
       if (act === 'close') {
@@ -395,7 +468,7 @@
         // halves the odds of the next (45%, 22.5%, 11.25%...), so it always tires out.
         if (Math.random() < dodgeChance * Math.pow(0.5, dodged)) {
           dodged++;
-          msgEl.textContent = pick(DODGE_LINES);
+          say(win, msgEl, pick(DODGE_LINES));
           setMood(win, 'angry');
           glideAway(win);
           setTimeout(function () { shake(win); }, reduce ? 0 : 550);
@@ -428,9 +501,9 @@
   document.addEventListener('pointermove', function (e) {
     for (var i = 0; i < open.length; i++) {
       var box = open[i].querySelector('.rv-face').getBoundingClientRect();
-      var dx = clamp((e.clientX - (box.left + box.width / 2)) / 120, -1, 1) * 4;
-      var dy = clamp((e.clientY - (box.top + box.height / 2)) / 120, -1, 1) * 4;
-      open[i].querySelector('.rv-eyes').setAttribute('transform', 'translate(' + dx.toFixed(1) + ' ' + dy.toFixed(1) + ')');
+      var dx = Math.round(clamp((e.clientX - (box.left + box.width / 2)) / 90, -1, 1));
+      var dy = Math.round(clamp((e.clientY - (box.top + box.height / 2)) / 90, -1, 1));
+      open[i].querySelector('.rv-eyes').setAttribute('transform', 'translate(' + dx + ' ' + dy + ')');
     }
   });
   document.addEventListener('keydown', function (e) {
@@ -445,6 +518,7 @@
 
   window.RenderPopup = {
     spawn: spawn,
+    skins: SKINS,
     count: function () { return open.length; },
     sound: function (on) {
       soundOn = on !== false;

@@ -296,13 +296,13 @@
   var peekCss = [
     '.rv-peek{position:fixed;width:0;height:0;z-index:9970;pointer-events:none}',
     '.rv-peek-body{position:absolute;left:-40px;top:0;width:80px;height:92px;pointer-events:auto;cursor:pointer;',
-    'transform:translateY(8px);transition:transform .9s cubic-bezier(.2,.8,.3,1);filter:drop-shadow(0 0 10px rgba(255,230,0,.35))}',
+    'transform:translateY(8px);transition:transform .9s cubic-bezier(.2,.8,.3,1);filter:drop-shadow(0 0 8px rgba(0,0,0,.6))}',
     '.rv-peek.up .rv-peek-body{transform:translateY(-52px)}',
     '.rv-peek.found .rv-peek-body{animation:rvFound .75s cubic-bezier(.3,0,.5,1) forwards;transition:none}',
     '@keyframes rvFound{0%{transform:translateY(-52px)}22%{transform:translateY(-82px) scale(1.12) rotate(-6deg)}',
     '40%{transform:translateY(-74px) scale(1.08) rotate(5deg)}100%{transform:translateY(40px) scale(.9)}}',
-    '.rv-bubble{position:fixed;z-index:9971;pointer-events:none;background:#fff;color:#000;border:2px solid #000;border-radius:10px;',
-    'padding:6px 10px;font:bold 12px Tahoma,Verdana,sans-serif;white-space:nowrap;box-shadow:3px 3px 0 rgba(0,0,0,.4);',
+    '.rv-bubble{position:fixed;z-index:9971;pointer-events:none;background:#05070d;color:#ffe600;border:2px solid #ffe600;border-radius:0;',
+    'padding:3px 9px 4px;font:19px/1 VT323,"Courier New",monospace;letter-spacing:.5px;white-space:nowrap;box-shadow:4px 4px 0 rgba(0,0,0,.55);',
     'animation:rvPop .15s ease-out}',
     '@keyframes rvPop{from{transform:scale(.6);opacity:0}}',
     '.rv-peek.dead .rv-peek-body{visibility:hidden}',
@@ -312,17 +312,52 @@
     '.rv-peek.up .rv-peek-body{opacity:1}.rv-peek.found .rv-peek-body{animation:none;opacity:0}.rv-bubble{animation:none}}'
   ].join('');
 
-  var PEEK_SVG =
-    '<svg viewBox="0 0 80 92" width="80" height="92" aria-hidden="true">' +
-    '<line x1="40" y1="14" x2="40" y2="4" stroke="#5a6278" stroke-width="3" stroke-linecap="round"/>' +
-    '<circle class="pk-led" cx="40" cy="4" r="4" fill="#ffe600"/>' +
-    '<rect x="4" y="14" width="72" height="74" rx="12" fill="#05070d" stroke="#ffe600" stroke-width="3"/>' +
-    '<rect x="11" y="21" width="58" height="60" rx="7" fill="#080c16"/>' +
-    '<g class="pk-eyes"><rect class="pk-eye" x="23" y="30" width="9" height="22" rx="3" fill="#ffe600"/>' +
-    '<rect class="pk-eye" x="48" y="30" width="9" height="22" rx="3" fill="#ffe600"/></g>' +
-    '<rect class="pk-mouth" x="30" y="64" width="20" height="4" rx="2" fill="#ffe600"/>' +
-    '<circle class="pk-o" cx="40" cy="66" r="5" fill="none" stroke="#ffe600" stroke-width="3" opacity="0"/>' +
-    '</svg>';
+  // Three retro skins, like the pop-ups: pixel (a yellow robot), win95 (a window with a face) and crt (a
+  // little monitor glowing in the page's color). Each one picks at random unless Settings says which.
+  // All draw in the same 80x92 box on a 5-pixel grid. G: where the eyes sit open, blinking and wide.
+  function R(x, y, w, h, c, cls, extra) { return '<rect' + (cls ? ' class="' + cls + '"' : '') + ' x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + c + '"' + (extra || '') + '/>'; }
+  function accent() { var c = ''; try { c = getComputedStyle(document.documentElement).getPropertyValue('--bright').trim(); } catch (e) {} return c || '#3ddc84'; }
+  function ring(cx, cy, c) { return '<g class="pk-o" opacity="0">' + R(cx - 5, cy - 6, 10, 3, c) + R(cx - 5, cy + 3, 10, 3, c) + R(cx - 8, cy - 3, 3, 6, c) + R(cx + 5, cy - 3, 3, 6, c) + '</g>'; }
+  function smile(x, y, w, c) { return '<g class="pk-mouth">' + R(x, y, w, 5, c) + R(x - 5, y - 5, 5, 5, c) + R(x + w, y - 5, 5, 5, c) + '</g>'; }
+  var PEEK_SKINS = {
+    pixel: function () {
+      var y = '#ffe600';
+      return { G: { y: 33, h: 20, w: 10, by: 41, bh: 4, wy: 28, wh: 28, ww: 12 }, svg:
+        R(37, 6, 6, 10, '#5a6278') + R(35, 0, 10, 7, y, 'pk-led') +
+        R(10, 15, 60, 77, y) + R(5, 20, 70, 72, y) + R(10, 20, 60, 72, '#05070d') + R(15, 25, 50, 67, '#0b1220') +
+        '<g class="pk-eyes">' + R(22, 33, 10, 20, y, 'pk-eye') + R(48, 33, 10, 20, y, 'pk-eye') + '</g>' +
+        smile(30, 63, 20, y) + ring(40, 63, y) };
+    },
+    win95: function () {
+      var y = '#ffff00';
+      return { G: { y: 34, h: 20, w: 10, by: 42, bh: 4, wy: 29, wh: 28, ww: 12 }, svg:
+        R(0, 0, 80, 15, '#000080') + R(4, 5, 34, 4, '#ffffff') +
+        R(47, 3, 9, 9, '#c0c0c0') + R(57, 3, 9, 9, '#c0c0c0') + R(67, 3, 9, 9, '#c0c0c0', 'pk-led') + R(49, 9, 5, 1, '#000') + R(69, 5, 5, 5, '#000', null, ' opacity=".35"') +
+        R(0, 15, 80, 77, '#c0c0c0') + R(0, 15, 80, 2, '#ffffff') + R(0, 15, 2, 77, '#ffffff') + R(78, 15, 2, 77, '#404040') +
+        R(6, 21, 68, 71, '#808080') + R(8, 23, 64, 69, '#000080') +
+        '<g class="pk-eyes">' + R(22, 34, 10, 20, y, 'pk-eye') + R(48, 34, 10, 20, y, 'pk-eye') + '</g>' +
+        smile(30, 64, 20, y) + ring(40, 64, y) };
+    },
+    crt: function () {
+      var c = accent(), e = c;
+      return { G: { y: 16, h: 14, w: 8, by: 22, bh: 3, wy: 13, wh: 20, ww: 10 }, svg:
+        R(0, 0, 80, 66, '#1d2b22') + R(3, 3, 74, 60, '#2f3d33') + R(9, 7, 62, 44, '#030803') + R(11, 9, 58, 40, '#06140a') +
+        R(11, 12, 58, 1, c, null, ' opacity=".12"') + R(11, 20, 58, 1, c, null, ' opacity=".12"') + R(11, 28, 58, 1, c, null, ' opacity=".12"') + R(11, 36, 58, 1, c, null, ' opacity=".12"') + R(11, 44, 58, 1, c, null, ' opacity=".12"') +
+        '<g class="pk-eyes" style="filter:drop-shadow(0 0 2px ' + c + ')">' + R(24, 16, 8, 14, e, 'pk-eye') + R(48, 16, 8, 14, e, 'pk-eye') + '</g>' +
+        '<g style="filter:drop-shadow(0 0 2px ' + c + ')">' + smile(32, 40, 16, e) + ring(40, 40, e) + '</g>' +
+        R(64, 55, 6, 4, c, 'pk-led') + R(14, 55, 20, 3, '#1d2b22') +
+        R(32, 66, 16, 8, '#2f3d33') + R(20, 74, 40, 6, '#2f3d33') + R(20, 80, 40, 12, '#1d2b22') };
+    }
+  };
+  function peekSkin() {
+    var s = null;
+    try { s = (JSON.parse(localStorage.getItem('rp_prefs') || '{}')).style; } catch (e) {}
+    var names = Object.keys(PEEK_SKINS);
+    var k = names.indexOf(s) >= 0 ? s : pick(names);
+    var d = PEEK_SKINS[k]();
+    d.html = '<svg viewBox="0 0 80 92" width="80" height="92" shape-rendering="crispEdges" aria-hidden="true">' + d.svg + '</svg>';
+    return d;
+  }
 
   // ---------- Little guy sounds ----------
   // A cute robot chirp when one pops up and a crunchy explosion when one is deleted.
@@ -380,7 +415,8 @@
     wrap.style.transform = 'rotate(' + rot + 'deg)' + (small ? ' scale(0.75)' : '');
     var body = document.createElement('div');
     body.className = 'rv-peek-body';
-    body.innerHTML = PEEK_SVG;
+    var look = peekSkin(), G = look.G;
+    body.innerHTML = look.html;
     wrap.appendChild(body);
     document.body.appendChild(wrap);
     var me = { wrap: wrap, x: x, y: y };
@@ -394,16 +430,16 @@
       var lx = dx * Math.cos(rad) - dy * Math.sin(rad);
       var ly = dx * Math.sin(rad) + dy * Math.cos(rad);
       var len = Math.hypot(lx, ly) || 1;
-      eyes.setAttribute('transform', 'translate(' + (lx / len * 5).toFixed(1) + ' ' + (ly / len * 4).toFixed(1) + ')');
+      eyes.setAttribute('transform', 'translate(' + Math.round(lx / len * 1.4) * 4 + ' ' + Math.round(ly / len * 1.2) * 3 + ')');
     }
     document.addEventListener('pointermove', stare);
 
     // Blink once in a while so he looks alive.
     var blinker = setInterval(function () {
       var e2 = body.querySelectorAll('.pk-eye');
-      for (var i = 0; i < e2.length; i++) { e2[i].setAttribute('height', 3); e2[i].setAttribute('y', 40); }
+      for (var i = 0; i < e2.length; i++) { e2[i].setAttribute('height', G.bh); e2[i].setAttribute('y', G.by); }
       setTimeout(function () {
-        for (var i = 0; i < e2.length; i++) { e2[i].setAttribute('height', 22); e2[i].setAttribute('y', 30); }
+        for (var i = 0; i < e2.length; i++) { e2[i].setAttribute('height', G.h); e2[i].setAttribute('y', G.y); }
       }, 140);
     }, 2600);
 
@@ -425,8 +461,8 @@
       // Shock: wide eyes, little "o" mouth, red light, then he bolts.
       var e2 = body.querySelectorAll('.pk-eye');
       for (var i = 0; i < e2.length; i++) {
-        e2[i].setAttribute('height', 26); e2[i].setAttribute('y', 27);
-        e2[i].setAttribute('width', 11);
+        e2[i].setAttribute('height', G.wh); e2[i].setAttribute('y', G.wy);
+        e2[i].setAttribute('width', G.ww);
       }
       body.querySelector('.pk-mouth').setAttribute('opacity', '0');
       body.querySelector('.pk-o').setAttribute('opacity', '1');
