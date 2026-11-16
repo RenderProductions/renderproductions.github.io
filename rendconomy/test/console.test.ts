@@ -10,6 +10,7 @@ import { consoleFromDm, consoleRun, onRainButton, startConsole, type ConsoleDeps
 import { find } from '../src/commands';
 import { execute } from '../src/discord/router';
 import { siteLink } from '../src/discord/style';
+import { resolveItem } from '../src/commands/admin';
 
 const G = '900000000000000001', CH = '700000000000000001', A = '111111111111111111', B = '222222222222222222';
 
@@ -102,4 +103,31 @@ test('fun commands: 8ball, rate (same thing, same score) and fortune', async () 
   const r2 = text(await execute(find('rate')!, ctx(B), { thing: 'Pineapple Pizza ' }));
   assert.equal(/(\d+)\/10/.exec(r1)![1], /(\d+)\/10/.exec(r2)![1]);
   assert.match(text(await execute(find('fortune')!, ctx(A), {})), /Lucky numbers/);
+});
+
+test('items: names and ids resolve to the inventory, the fish bag or the basket', () => {
+  const r = (t: string) => { const x = resolveItem(t); return x && `${x.id}|${x.where}`; };
+  assert.equal(r('coffee'), 'coffee|inventory');
+  assert.equal(r('col_snowglobe'), 'col_snowglobe|inventory');
+  assert.equal(r('snow globe'), 'col_snowglobe|inventory');
+  assert.equal(r('white whale'), 'fish_whale|fish bag');
+  assert.equal(r('fish_minnow'), 'fish_minnow|fish bag');
+  assert.equal(r('carrot'), 'crop_carrot|basket');
+  assert.equal(r('carrots'), 'crop_carrot|basket');
+  assert.equal(r('golden pumpkin'), 'crop_golden_pumpkin|basket');
+  assert.equal(r('rainbow polygon fruit'), 'crop_rainbow_polyfruit|basket');
+  assert.equal(r('square pumpkin'), 'crop_squarepumpkin|basket');
+  assert.equal(r('carrot seeds'), 'seed_carrot|inventory');
+  assert.equal(r('definitely not an item'), null);
+});
+
+test('console: additem and removeitem by player name, with amounts', async () => {
+  const { db, run, ctx } = setup();
+  await execute(find('balance')!, ctx(B), {});
+  db.run('UPDATE players SET name = ? WHERE user_id = ?', 'NachoBell', B);
+  assert.match((await run(`additem ${G} nacho 3 golden pumpkin`))!, /Gave 3 × Golden Pumpkin .*basket/);
+  assert.match((await run(`additem ${G} <@${B}> white whale x2`))!, /Gave 2 × White Whale .*fish bag/);
+  assert.match((await run(`removeitem ${G} ${B} 10 golden pumpkin`))!, /Took 3 × Golden Pumpkin/);
+  assert.match((await run(`additem ${G} nobody coffee`))!, /No player called/);
+  assert.match((await run(`additem ${G} ${B} unobtainium`))!, /No item called/);
 });

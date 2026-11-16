@@ -9,6 +9,10 @@ import { eraseServer, erasePlayer } from '../core/players';
 import * as sessions from '../core/sessions';
 import { embed } from '../discord/style';
 import { guildOf } from './shared';
+import { anyItem, findItem } from '../shop/items';
+import { addItem, count, items, takeItem } from '../shop/inventory';
+import { CATCH, FISHING, isCatch } from '../fishing/fishing';
+import { CROPS, cropItem, parseCropItem, type Mutation } from '../farming/farming';
 import type { Command, Ctx, SessionReply } from './types';
 
 function needMod(ctx: Ctx): string {
@@ -147,3 +151,80 @@ export function onWipeButton(ctx: Ctx, s: sessions.Session<WipeState>, value: st
   emit('mod.action', { guildId: g, modId: ctx.user.id, action: `wipe ${s.state.scope}`, targetId: s.state.targetId ?? undefined });
   return { update: { embeds: [embed('admin', 'Erasure complete', [summary, `Backup: ${backup}`])], buttons: [] } };
 }
+
+// ---------------------------------------------------------------- items (bot owner)
+// One inventory holds everything: shop items and collectibles, the fish bag (fish_*) and the farm basket (crop_*).
+const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** Any item a player can hold, by id or by name. Plain crop names mean the crop ("carrot"); seeds are "carrot seeds". */
+export function resolveItem(text: string): { id: string; name: string; where: 'inventory' | 'fish bag' | 'basket' } | null {
+  const raw = String(text ?? '').trim().toLowerCase();
+  if (!raw) return null;
+  const inv = (id: string) => ({ id, name: anyItem(id)!.name, where: 'inventory' as const });
+  const fishOf = (id: string) => ({ id: `fish_${id}`, name: CATCH[id]!.name, where: 'fish bag' as const });
+  const cropOf = (id: string) => ({ id, name: parseCropItem(id)!.name, where: 'basket' as const });
+  if (anyItem(raw)) return inv(raw);
+  if (isCatch(raw)) return fishOf(raw.slice(5));
+  if (parseCropItem(raw)) return cropOf(raw);
+  const t = normName(raw);
+  if (CATCH[t]) return fishOf(t);
+  const fish = Object.keys(CATCH).find((k) => normName(CATCH[k]!.name) === t || normName(CATCH[k]!.name).split(' ').includes(t));
+  if (fish && !/seed/.test(t)) return fishOf(fish);
+  if (t === 'square pumpkin' || t === 'squarepumpkin') return cropOf('crop_squarepumpkin');
+  const m = /^(?:(golden|rainbow) )?(.+?)s?$/.exec(t.replace(/ crops?$/, ''));
+  if (m && !/seed/.test(t)) {
+    const id = Object.keys(CROPS).find((k) => k === m[2] || normName(CROPS[k]!.name) === m[2] || normName(CROPS[k]!.name) === m[2] + 's' || normName(CROPS[k]!.plural) === t.replace(/^(golden|rainbow) /, ''));
+    if (id) return cropOf(cropItem(id, (m[1] as Mutation | undefined) ?? null));
+  }
+  const found = findItem(raw);
+  return found ? inv(found) : null;
+}
+
+/** "3 golden pumpkin", "golden pumpkin x3" or "golden pumpkin 3": the item text and how many. */
+function qtyAndItem(text: string): { qty: number; item: string } {
+  const s = String(text ?? '').trim();
+  const a = /^(\d{1,4})\s*x?\s+(.+)$/i.exec(s), b = /^(.+?)\s+x?(\d{1,4})$/i.exec(s);
+  if (a) return { qty: Number(a[1]), item: a[2]! };
+  if (b) return { qty: Number(b[2]), item: b[1]! };
+  return { qty: 1, item: s };
+}
+
+function itemCommand(mode: 'give' | 'take'): Command {
+  return {
+    name: mode === 'give' ? 'giveitem' : 'takeitem',
+    aliases: mode === 'give' ? ['additem'] : ['removeitem'],
+    description: mode === 'give' ? 'Bot owner: put items in a player\'s inventory, fish bag or basket' : 'Bot owner: take items from a player\'s inventory, fish bag or basket',
+    system: 'admin', guildOnly: true,
+    options: [
+      { name: 'player', type: 'user', description: 'Which player', required: true },
+      { name: 'item', type: 'string', description: 'The item, with an optional amount: "3 coffee", "golden pumpkin x2", "white whale"', required: true }
+    ],
+    run(ctx, args) {
+      const g = needOwner(ctx);
+      const who = target(ctx, g, args.player);
+      const { qty, item } = qtyAndItem(String(args.item ?? ''));
+      if (qty < 1 || qty > 9999) throw new GameError('item.qty', 'Between 1 and 9,999 at a time.');
+      const it = resolveItem(item);
+      if (!it) throw new GameError('item.unknown', `No item called "${item}". Try an id like coffee, col_snowglobe, fish_whale, crop_golden_pumpkin or seed_carrot.`);
+      let done = qty;
+      if (mode === 'give') addItem(ctx.db, g, who, it.id, qty);
+      else {
+        const have = count(ctx.db, g, who, it.id);
+        if (!have) throw new GameError('item.none', `<@${who}> has no ${it.name}.`);
+        done = Math.min(qty, have);
+        takeItem(ctx.db, g, who, it.id, done);
+      }
+      const now = count(ctx.db, g, who, it.id);
+      emit('mod.action', { guildId: g, modId: ctx.user.id, action: `${mode}item ${it.id} ×${done}`, targetId: who });
+      const bagNote = it.where === 'fish bag' && mode === 'give' && fishInBag(ctx, g, who) > FISHING.bagMax ? `\nTheir fish bag is over the usual ${FISHING.bagMax}; they can still sell, but can't fish until it's under.` : '';
+      return { embeds: [embed('admin', mode === 'give' ? 'Items granted' : 'Items removed', [
+        `${mode === 'give' ? 'Gave' : 'Took'} **${done} × ${it.name}** ${mode === 'give' ? 'to' : 'from'} <@${who}>'s ${it.where} (\`${it.id}\`).`,
+        `They now have **${now}**.${bagNote}`
+      ])] };
+    }
+  };
+}
+const fishInBag = (ctx: Ctx, g: string, u: string) => items(ctx.db, g, u).filter((r) => isCatch(r.item)).reduce((s, r) => s + r.qty, 0);
+
+export const giveitem = itemCommand('give');
+export const takeitem = itemCommand('take');

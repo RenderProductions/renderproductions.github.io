@@ -37,6 +37,8 @@ const HELP = `Console commands (type them in the host console as "rc <command>",
   status <text> | status clear the bot's status line
   run <server> <command>       any bot command as the owner, e.g. run 1234 give @123 500 thanks
   leave <server>               make the bot leave a server (asks you to confirm)
+  additem <server> <player> <item>      put items in someone's inventory, fish bag or basket
+  removeitem <server> <player> <item>   e.g. additem 1234 @5678 3 golden pumpkin · additem 1234 nacho white whale
   backup                       save a copy of the database now
   post                         post the next waiting patch notes entry
 A <channel> is an id, a <#mention>, or #name (if only one server has it).`;
@@ -213,6 +215,20 @@ async function run(d: ConsoleDeps, text: string): Promise<string | null> {
       await g.leave();
       console.log(`[console] left ${g.name} (${g.id})`);
       return `Left ${g.name}.`;
+    }
+
+    case 'additem': case 'giveitem': case 'removeitem': case 'takeitem': {
+      const [server, more] = words(rest);
+      const [who, item] = words(more);
+      if (!item) return `Usage: ${cmd} <server> <player> <item>   (player: id, <@mention> or name)`;
+      const g = guildFrom(c, server);
+      let id = who.replace(/\D/g, '');
+      if (!/^\d{5,22}$/.test(id)) {
+        const p = d.db.all<{ user_id: string; name: string | null }>('SELECT user_id, name FROM players WHERE guild_id = ? AND LOWER(name) LIKE ?', g.id, `%${who.toLowerCase()}%`);
+        if (p.length !== 1) return p.length ? `"${who}" matches ${p.map((x) => `${x.name} (${x.user_id})`).join(', ')}. Use an id.` : `No player called "${who}" in ${g.name}.`;
+        id = p[0]!.user_id;
+      }
+      return run(d, `run ${g.id} ${/^(add|give)/.test(cmd.toLowerCase()) ? 'giveitem' : 'takeitem'} <@${id}> ${item}`);
     }
 
     case 'backup': {
