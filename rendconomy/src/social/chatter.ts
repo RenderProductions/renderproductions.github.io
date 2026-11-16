@@ -22,6 +22,9 @@ export const CHATTER = {
 /** World events can multiply chat pay (Gossip Hour: double pay, double cap). */
 let chatMult: (db: Db) => number = () => 1;
 export const setChatMultiplier = (fn: (db: Db) => number): void => { chatMult = fn; };
+/** Per-server boosts on top (a Mansion's Ballroom party doubles it). They multiply. */
+const boosts: ((db: Db, guildId: string, now: number) => number)[] = [];
+export const addChatBoost = (fn: (db: Db, guildId: string, now: number) => number): void => { boosts.push(fn); };
 
 const norm = (s: string) => String(s ?? '').toLowerCase().replace(/[^a-z0-9.]/g, '');
 
@@ -35,7 +38,7 @@ export function chatPay(ctx: Ctx, text: string): Cents {
   const today = dayKey(ctx.now);
   const row = ctx.db.get<{ day: string; paid: number; last_at: number; last_text: string | null }>('SELECT day, paid, last_at, last_text FROM chat_pay WHERE guild_id = ? AND user_id = ?', g, ctx.user.id);
   const paidToday = row && row.day === today ? row.paid : 0;
-  const x = chatMult(ctx.db);
+  const x = boosts.reduce((m, fn) => m * fn(ctx.db, g, ctx.now), chatMult(ctx.db));
   if (row && ctx.now - row.last_at < R.cooldownMs) return 0;
   if (row && row.last_text === clean.toLowerCase()) return 0;
   const room = R.perDay * x - paidToday;

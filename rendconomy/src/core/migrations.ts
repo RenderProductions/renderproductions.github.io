@@ -430,5 +430,27 @@ export const MIGRATIONS: readonly string[] = [
     expires     INTEGER NOT NULL
   );
   ALTER TABLE farms ADD COLUMN farmhand_until INTEGER;
+  `,
+
+  /* v18: Room to Grow: each server's 15 lots of real estate. */ `
+  CREATE TABLE estates (
+    guild_id      TEXT NOT NULL,
+    lot           INTEGER NOT NULL,
+    kind          TEXT NOT NULL,
+    owner_id      TEXT,
+    status        TEXT NOT NULL DEFAULT 'bank',
+    condition     REAL NOT NULL DEFAULT 100,
+    settled_at    INTEGER NOT NULL,
+    bought_at     INTEGER,
+    squatters     INTEGER NOT NULL DEFAULT 0,
+    shield_until  INTEGER NOT NULL DEFAULT 0,
+    storefront    TEXT,
+    auction_until INTEGER,
+    bidder_id     TEXT,
+    bid_cents     INTEGER NOT NULL DEFAULT 0,
+    bid_until     INTEGER,
+    PRIMARY KEY (guild_id, lot)
+  );
+  CREATE INDEX estates_owner ON estates (guild_id, owner_id);
   `
 ];

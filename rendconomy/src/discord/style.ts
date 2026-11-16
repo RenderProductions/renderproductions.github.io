@@ -14,6 +14,7 @@ export const COLORS: Record<System | 'error', number> = {
   social: 0xff9ecb,   // pink
   casino: 0xeb459e,   // magenta
   farm: 0x7cb342,     // field green
+  property: 0x1abc9c, // teal (Room to Grow)
   error: 0xc0392b     // red
 };
 
@@ -32,6 +33,8 @@ export function siteLink(title: string): string | undefined {
     [/^(Balance|Savings|Loans|TODD Loans|Transaction history|Dividends)\b/i, '/play/#desk'],
     [/^(Marquez's Shop|Inventory)\b/i, '/play/#shop'],
     [/(\'s farm|^Farmhand|^Compost|^Harvest sold|farmers' market)/i, '/play/#farm'],
+    [/^(Property|Your property|Lot \d+|Room to Grow)\b/i, '/play/#property'],
+    [/^(The map|Property map)\b/i, '/rend-conomy/map/'],
     [/^Odd job/i, '/play/#jobs'],
     [/^Trade (offers|offer #|#)/i, '/play/#trades'],
     [/^Inbox$/i, '/play/#inbox'],

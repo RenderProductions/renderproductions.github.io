@@ -57,7 +57,7 @@
       <li><a href="/discord/">Discord</a></li>
     </ul>
   </nav>
-    <nav class="subnav" aria-label="Rend-Conomy"><a href="/rend-conomy/">Market</a><a href="/rend-conomy/exchange/">Exchange</a><a href="/play/" aria-current="page">Play</a><a href="/bot/">Bot</a><a href="/profile/">Players</a></nav>
+    <nav class="subnav" aria-label="Rend-Conomy"><a href="/rend-conomy/">Market</a><a href="/rend-conomy/exchange/">Exchange</a><a href="/rend-conomy/map/">Map</a><a href="/play/" aria-current="page">Play</a><a href="/bot/">Bot</a><a href="/profile/">Players</a></nav>
 
   <header class="hub-head">
     <div>
@@ -79,6 +79,7 @@
       <button type="button" role="tab" data-tab="desk">💼 Desk</button>
       <button type="button" role="tab" data-tab="shop">🛍️ Shop</button>
       <button type="button" role="tab" data-tab="farm">🌾 Farm</button>
+      <button type="button" role="tab" data-tab="property">🏠 Property</button>
       <button type="button" role="tab" data-tab="jobs">🧰 Odd Jobs</button>
       <button type="button" role="tab" data-tab="trades">🤝 Trades</button>
       <button type="button" role="tab" data-tab="inbox">🔔 Inbox</button>
@@ -125,6 +126,27 @@
       </aside>
     </section>
 
+    <section class="pane" data-pane="property" hidden>
+      <div class="stage"><div class="last" id="property-last"></div><div id="property-main" class="wait">Walking the block…</div>
+        <p class="rv-dim" style="font-size:13px;margin-top:1rem">See every lot and who owns it on the <a href="/rend-conomy/map/">live map</a>.</p></div>
+      <aside class="side"><div class="box"><h2>Your places</h2><div class="acts">
+        <button class="rv-b" data-act="property">🏠 Mine</button><button class="rv-b" data-act="property map">🗺️ Map</button>
+        <button class="rv-b" data-act="property repair all">🔨 Repair all</button><button class="rv-b" data-act="property party">🎉 Party</button>
+      </div></div>
+      <div class="box"><h2>A lot</h2>
+        <div class="field"><label for="p-lot">Lot number (1–15)</label><input id="p-lot" inputmode="numeric" placeholder="7"></div>
+        <div class="acts"><button class="rv-b primary" data-form="property buy {p-lot}">🔑 Buy</button><button class="rv-b" data-form="property info {p-lot}">🔎 Info</button>
+          <button class="rv-b" data-form="property repair {p-lot}">🔨 Repair</button><button class="rv-b" data-form="property evict {p-lot}">🚪 Evict</button>
+          <button class="rv-b danger" data-form="property sell {p-lot}">🪧 Sell to the bank</button></div></div>
+      <div class="box"><h2>Bids</h2>
+        <div class="field"><label for="p-amt">Bid (on that lot)</label><input id="p-amt" inputmode="decimal" placeholder="12000"></div>
+        <button class="rv-b" data-form="property bid {p-lot} {p-amt}">✉️ Place a bid</button>
+        <p class="rv-dim" style="font-size:12px;margin:.5rem 0">On someone's place: at least 25% over its value; they have 24 hours. On a condemned lot: an auction bid.</p>
+        <div class="acts"><button class="rv-b success" data-form="property accept {p-lot}">Accept a bid</button><button class="rv-b danger" data-form="property refuse {p-lot}">Refuse (15%)</button></div></div>
+      <div class="box"><h2>Storefront</h2><div class="field"><label for="p-tick">A player company for your Corner Shop</label><input id="p-tick" placeholder="REND" autocapitalize="characters"></div><button class="rv-b" data-form="property storefront {p-lot} {p-tick}">Set it</button></div>
+      </aside>
+    </section>
+
     <section class="pane" data-pane="jobs" hidden>
       <div class="stage"><div class="last" id="jobs-last"></div><div id="jobs-main" class="wait">Checking the job board…</div>
         <form id="job-form" style="display:flex;gap:.5rem;margin-top:1rem"><input id="job-ans" style="flex:1;min-width:0;font:inherit;color:var(--bright);background:var(--bg);border:1px solid var(--line-strong);padding:.5rem .6rem" placeholder="Your answer" autocomplete="off"><button class="rv-b primary" type="submit">Answer</button></form>
@@ -160,9 +182,9 @@
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   // what each tab shows, and the command that refreshes it
-  var TABS = { desk: 'balance', shop: 'shop', farm: 'farm', jobs: 'oddjob', trades: 'trade', inbox: 'inbox' };
+  var TABS = { desk: 'balance', shop: 'shop', farm: 'farm', property: 'property', jobs: 'oddjob', trades: 'trade', inbox: 'inbox' };
   // farm actions answer with the farm itself; everything else goes in "last" and the tab refreshes
-  var SELF = { farm: /^(farm(?! sell)|water|harvest|plant|fertilize|buyplot|farmhand)/, shop: /^shop/, jobs: /^oddjob/, trades: /^trade$/, inbox: /^inbox/, desk: /^balance/ };
+  var SELF = { property: /^property( map| info \d+)?$/, farm: /^(farm(?! sell)|water|harvest|plant|fertilize|buyplot|farmhand)/, shop: /^shop/, jobs: /^oddjob/, trades: /^trade$/, inbox: /^inbox/, desk: /^balance/ };
   var tab = 'desk', players = [];
 
   function err(e) { return e.message === 'login' ? 'Your login ran out. <a href="#" onclick="RV.login();return false">Log in again</a>.' : RV.esc(e.message); }

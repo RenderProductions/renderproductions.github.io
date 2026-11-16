@@ -11,6 +11,7 @@ export interface UpdateEntry { id: string; title: string; date: string; hotfix?:
 
 export const PATCH_NOTES_FILE = path.join(__dirname, '..', '..', '..', '..', 'patch-notes', 'index.html');
 export const PATCH_NOTES_URL = 'https://renderproductions.github.io/patch-notes/';
+const SITE_ROOT = 'https://renderproductions.github.io';
 
 const ENTITIES: Record<string, string> = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'", '&apos;': "'", '&nbsp;': ' ', '&mdash;': '—', '&ndash;': '–', '&hellip;': '…', '&rarr;': '→' };
 const decode = (s: string) => s.replace(/&(?:#(\d+)|#x([0-9a-f]+)|[a-z]+);/gi, (m, d, h) => (d ? String.fromCodePoint(Number(d)) : h ? String.fromCodePoint(parseInt(h, 16)) : ENTITIES[m.toLowerCase()] ?? m));
@@ -29,7 +30,7 @@ export function toMarkdown(html: string): string {
     .replace(/<\/?(strong|b)>/gi, '**')
     .replace(/<\/?(em|i)>/gi, '*')
     .replace(/<\/?code>/gi, '`')
-    .replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)')
+    .replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, (_, href: string, label: string) => `[${label}](${href.startsWith('/') ? SITE_ROOT + href : href})`)
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/[ \t]+/g, ' ')

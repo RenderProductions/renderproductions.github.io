@@ -26,6 +26,8 @@ import { activeEvent, EVENTS } from '../events/world';
 import { addInbox } from '../social/inbox';
 import { holidayTick, isHoliday, season } from '../holidays/holidays';
 import { anyItem } from '../shop/items';
+import { settleServer } from '../commands/property';
+import { KINDS, lotsOf, type Kind } from '../estate/estate';
 import { cryptoRng } from '../core/rng';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
@@ -59,6 +61,19 @@ export function startHolidays(db: Db, client: Client, prefix: string): void {
   setTimeout(tick, 30_000).unref();
 }
 
+/** Room to Grow: settles every server with property every 15 minutes, so buyouts, auctions and condemnations
+ *  finish on time even when nobody looks. Everything that happens goes to the players' inboxes. */
+export function startEstates(db: Db, prefix: string): void {
+  const tick = () => {
+    const now = Date.now();
+    for (const g of db.all<{ guild_id: string }>("SELECT DISTINCT guild_id FROM estates WHERE status != 'bank' OR bidder_id IS NOT NULL")) {
+      try { settleServer(db, g.guild_id, now, prefix); } catch (e) { console.error('[estates]', e); }
+    }
+  };
+  setInterval(tick, 15 * MINUTE).unref();
+  setTimeout(tick, 60_000).unref();
+}
+
 /** DMs farmers (with /farm remind on) once a crop is ready. Looks ahead without saving, so nothing else changes. */
 export function startFarmReminders(db: Db, client: Client, prefix: string): void {
   setInterval(() => {
@@ -80,7 +95,7 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['property', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 // ---------------------------------------------------------------- the Trading Floor's buttons and live updates
 // The Activity can't receive message edits, so it asks: "__press <button id>" presses a button (at the moment
@@ -135,8 +150,21 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     event: e ? { id: e.id, ticker: e.ticker ?? null, until: e.until, name: EVENTS[e.id!]?.name, emoji: EVENTS[e.id!]?.emoji, text: EVENTS[e.id!]?.desc(e.ticker) } : null,
     reserve: balance(db, RESERVE) / 100,
     // player companies: prices for public ones, treasuries for all (for /rend-conomy/exchange/co/)
+    estates: estatesSnapshot(db),
     players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
+}
+/** Each server's map for the site (/rend-conomy/map/): who owns what, and in what shape. Only servers with a map. */
+function estatesSnapshot(db: Db): Record<string, { lot: number; kind: Kind; name: string; owner: string | null; owner_id: string | null; status: string; condition: number; squatters: boolean; bid: number; until: number | null }[]> {
+  const out: Record<string, ReturnType<typeof estatesSnapshot>[string]> = {};
+  for (const g of db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM estates')) {
+    out[g.guild_id] = lotsOf(db, g.guild_id).map((l) => ({
+      lot: l.lot, kind: l.kind, name: KINDS[l.kind].name, status: l.status, condition: Math.round(l.condition), squatters: !!l.squatters,
+      owner_id: l.owner_id, owner: l.owner_id ? db.get<{ name: string }>('SELECT name FROM players WHERE guild_id = ? AND user_id = ?', l.guild_id, l.owner_id)?.name ?? 'someone' : null,
+      bid: l.bid_cents / 100, until: l.status === 'auction' ? l.auction_until : l.bid_until
+    }));
+  }
+  return out;
 }
 export function startLiveFeed(db: Db): void {
   const url = process.env.ACTIVITY_URL ?? '', secret = process.env.ACTIVITY_SECRET ?? '';

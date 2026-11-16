@@ -28,6 +28,8 @@ export const FALLBACK = {
   farm: '🌾', wateringcan: '💧', harvest: '🧺', newplot: '🪧', sprinkler: '💦', fertilizer: '🧪', greenhouse: '🏡', farmhand: '🧑‍🌾', compost: '♻️', scarecrow: '🧑‍🌾', crow: '🐦‍⬛', rain: '🌧️', storm: '⛈️',
   // people
   gift: '🎁', loan: '📜', heist: '🦹', lottery: '🎟️',
+  // real estate
+  property: '🏠', repair: '🔨', tax: '🧾', bid: '✉️', auction: '🔨', sold: '🪧', key: '🔑', evict: '🚪', squatter: '🛌', fullset: '👑',
   // progress
   achievement: '🏆', leaderboard: '🏅', event: '🌐'
 } as const;

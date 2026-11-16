@@ -13,6 +13,8 @@ import { marquez } from '../shop/items';
 import { LINES, line, teaser } from '../discord/flavor';
 import { me } from './shared';
 import { isEvent } from '../events/world';
+import { hasPerk } from '../estate/estate';
+import { emojiOr } from '../discord/emoji';
 import type { Command, Ctx } from './types';
 
 const bag = (ctx: Ctx, guildId: string) => items(ctx.db, guildId, ctx.user.id).filter((r) => isCatch(r.item)).map((r) => ({ ...r, id: r.item.slice(5), ...CATCH[r.item.slice(5)]! }));
@@ -39,18 +41,22 @@ export const fish: Command = {
       using = b.id;
     } else if (charges(ctx.db, guildId, ctx.user.id, 'lure') > 0) using = 'lure';
     const frenzy = isEvent(ctx.db, 'fish_frenzy', undefined, ctx.now);
-    if (using === 'bait' && balance(ctx.db, wallet) < FISHING.bait) throw new GameError('funds.short', `Bait costs ${format(FISHING.bait)}.`);
+    // Room to Grow: a Shack's Bait Shed means free bait; a Lighthouse's Beacon makes plain bait fish like a lure
+    const shed = using === 'bait' && hasPerk(ctx.db, guildId, ctx.user.id, 'shack');
+    const beacon = using === 'bait' && hasPerk(ctx.db, guildId, ctx.user.id, 'lighthouse');
+    if (using === 'bait' && !shed && balance(ctx.db, wallet) < FISHING.bait) throw new GameError('funds.short', `Bait costs ${format(FISHING.bait)}.`);
     if (!takeCooldown(ctx.db, 'fish', `${guildId}:${ctx.user.id}`, frenzy ? 90_000 : FISHING.cooldownMs, ctx.now)) {
       throw new GameError('fish.cooldown', `The fish need a moment. Cast again ${discordTime(cooldown(ctx.db, 'fish', `${guildId}:${ctx.user.id}`, ctx.now).until)}.`);
     }
     return ctx.db.tx(() => {
       const P = ctx.config.prefix;
       let spent: string;
-      if (using === 'bait') { transfer(ctx.db, { from: wallet, to: RESERVE, cents: FISHING.bait, reason: 'fish.bait', guildId, actorId: ctx.user.id, now: ctx.now }); spent = `🪱 Bait: −${format(FISHING.bait)}`; }
+      if (using === 'bait' && shed) spent = `${emojiOr('prop_shack', '🛖')} Bait from your Bait Shed: free`;
+      else if (using === 'bait') { transfer(ctx.db, { from: wallet, to: RESERVE, cents: FISHING.bait, reason: 'fish.bait', guildId, actorId: ctx.user.id, now: ctx.now }); spent = `🪱 Bait: −${format(FISHING.bait)}`; }
       else if (using === 'lure') { useEffect(ctx.db, guildId, ctx.user.id, 'lure'); const left = charges(ctx.db, guildId, ctx.user.id, 'lure'); spent = `🪝 Lure: ${left} ${left === 1 ? 'cast' : 'casts'} left`; }
       else if (using === 'carrot') { takeItem(ctx.db, guildId, ctx.user.id, 'crop_carrot'); spent = '🥕 You used a Carrot as bait. The fish seem curious.'; }
       else { takeItem(ctx.db, guildId, ctx.user.id, itemId(using)); spent = `${itemE(itemId(using), CATCH[using]!.emoji)} You used a ${CATCH[using]!.name} as bait.`; }
-      const r = cast(frenzy && using === 'bait' ? 'lure' : using, ctx.rng);
+      const r = cast((frenzy || beacon) && using === 'bait' ? 'lure' : using, ctx.rng);
       sameDay(ctx.db, ctx.user.id, 'fish', ctx.now);
       let text: string, color = 0x3ba7f2;
       if (r.kind === 'nothing') text = `🌊 ${line(ctx.rng, 'fishNothing')}`;
@@ -76,7 +82,7 @@ export const fish: Command = {
       }
       const inBag = bag(ctx, guildId).reduce((s, x) => s + x.qty, 0);
       return {
-        embeds: [{ title: '🎣 Fishing', color, description: [text, '', spent, `-# Bag: ${inBag} / ${FISHING.bagMax} · \`${P}fish bag\` · \`${P}fish sell\``, frenzy ? '-# 🐟 Fish Frenzy: the fish are biting like a lure is on.' : null].filter((x) => x !== null).join('\n') }],
+        embeds: [{ title: '🎣 Fishing', color, description: [text, '', spent, `-# Bag: ${inBag} / ${FISHING.bagMax} · \`${P}fish bag\` · \`${P}fish sell\``, frenzy ? '-# 🐟 Fish Frenzy: the fish are biting like a lure is on.' : beacon ? `-# ${emojiOr('prop_lighthouse', '🗼')} Your Lighthouse's Beacon draws the bigger fish in.` : null].filter((x) => x !== null).join('\n') }],
         teaser: teaser('🎣 Fishing', using === 'carrot' ? 'You tie a Carrot to the hook and cast it out... 🌊' : CATCH[using] ? `You hook the ${CATCH[using]!.name} and cast it out... 🌊` : 'You cast your line... 🌊', 0x99aab5, 2200)
       };
     });

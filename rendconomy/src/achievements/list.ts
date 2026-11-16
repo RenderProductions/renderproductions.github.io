@@ -21,6 +21,7 @@ export const CATEGORIES = {
   heists: { label: 'Heists & Schemes', emoji: '🦹' },
   fishing: { label: 'Fishing', emoji: '🎣' },
   farming: { label: 'Farming', emoji: '🌾' },
+  property: { label: 'Real estate', emoji: '🏠' },
   holiday: { label: 'Polygon Holidays', emoji: '🎄' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
@@ -130,6 +131,14 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['gentleman_farmer', 'Gentleman Farmer', 'Hire a Farmhand', 'farming', 'common'],
   ['redemption_arc', 'Redemption Arc', 'Win back a lost slots bet with Redeem yourself', 'casino', 'rare'],
 
+  ['first_home', 'First Home', 'Buy your first property', 'property', 'common'],
+  ['landlord', 'Landlord', 'Own 3 properties at once', 'property', 'rare'],
+  ['lord_of_the_manor', 'Lord of the Manor', 'Own the Mansion', 'property', 'epic'],
+  ['fixer_upper', 'Fixer-Upper', 'Repair a property from under 25% to 100% in one go', 'property', 'rare'],
+  ['full_house', 'Full House', 'Own every lot of one kind', 'property', 'epic'],
+  ['monopoly', 'Monopoly, Baby!', 'Own every lot on the map', 'property', 'legendary'],
+
+  ['condemned', 'Condemned', 'Let a property fall apart', 'secret', 'rare', true],
   ['weathered', 'Weathered', 'Lose 3 crops to a single storm', 'secret', 'rare', true],
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],
   ['tip_the_house', 'Tip the House', 'Try to give the house a gift', 'secret', 'rare', true],
