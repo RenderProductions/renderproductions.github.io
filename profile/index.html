@@ -516,7 +516,7 @@
         g.save(); g.shadowColor = rc; g.shadowBlur = 16; if (icRar[i]) g.drawImage(icRar[i], x + 16, by + 22, 48, 48); g.restore();
         g.letterSpacing = '0px';
         g.fillStyle = '#f2f2f2'; g.font = '600 17px ' + MONO; g.fillText(fit(s.d.secret ? s.x[2] : s.d.name, '600 17px ' + MONO, mw - 92), x + 78, by + 42);
-        g.fillStyle = rc; g.font = '14px ' + MONO; g.fillText(fit(RARITY[s.d.rarity] + ' · ' + (s.d.pct < 1 ? '<1' : s.d.pct) + '% own it', '14px ' + MONO, mw - 92), x + 78, by + 66);
+        g.fillStyle = rc; g.font = '14px ' + MONO; g.fillText(RARITY[s.d.rarity], x + 78, by + 66); g.fillStyle = C.grey; g.textAlign = 'right'; g.fillText((s.d.pct < 1 ? '<1' : s.d.pct) + '%', x + mw - 14, by + 66); g.textAlign = 'left';
       });
 
       // collectibles
