@@ -80,3 +80,15 @@ test('declining and forgiving', async () => {
   assert.match(text(await run('forgive', { borrower: A }, B)), /no longer owes you ⬡50\.00/);
   assert.match(text(await run('loans')), /You owe\*\*\nNothing/);
 });
+
+test('asking the bot itself for a loan is an instant no', async () => {
+  const db = freshDb();
+  const BOT = '999999999999999999';
+  const ctx: Ctx = { db, config: botConfig(), rng: seededRng(1), now: Date.now(), guildId: G, channelId: 'c', user: { id: A, name: 'Nacho' }, isOwner: false, isMod: false, notes: [], botId: BOT };
+  await execute(find('balance')!, ctx, {});
+  const r = await execute(find('loan')!, ctx, { lender: BOT, amount: '10000', rate: '0' });
+  const text = [r.content ?? '', ...(r.embeds ?? []).map((e) => e.description ?? '')].join('\n');
+  assert.match(text, /The house doesn't lend[\s\S]*bailout/);
+  assert.equal(r.buttons, undefined, 'no Accept button that nobody can press');
+  assert.equal(db.get('SELECT COUNT(*) AS n FROM sessions')!.n, 0);
+});

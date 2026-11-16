@@ -65,6 +65,8 @@ export const loan: Command = {
     const { guildId } = me(ctx);
     const lender = userArg(args.lender, 'a lender');
     if (lender === ctx.user.id) throw new GameError('loan.self', 'You cannot borrow from yourself.');
+    // the bot can't press Accept, and nobody's money would back the loan: an instant no
+    if (ctx.botId && lender === ctx.botId) throw new GameError('loan.house', `The house doesn't lend. If you're broke, TODD runs bailouts: \`${ctx.config.prefix}bailout\`. Otherwise, ask a player.`);
     const cents = parseAmount(args.amount);
     const rate = args.rate === undefined || args.rate === '' ? 5 : Number(String(args.rate).replace('%', ''));
     if (!Number.isFinite(rate) || rate < 0 || rate > LOANS.maxRate) throw new GameError('loan.rate', `The rate must be between 0 and ${LOANS.maxRate}% a day.`);
