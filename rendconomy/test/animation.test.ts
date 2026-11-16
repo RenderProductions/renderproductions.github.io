@@ -123,9 +123,9 @@ test('big numbers: gold digits for wins, dice rolls and the Rocket, once uploade
   await run('balance', {});
   transfer(db, { from: RESERVE, to: wallet(G, A), cents: polygons(5000), reason: 'mod.give' });
   const d = await run('dice', { amount: '10', call: 'over 50' });
-  assert.match(d.content ?? '', /^(<:rc_n\d:\d+>)+$/, 'the roll in big digits');
+  assert.match(desc(d), /## (<:rc_n\d:\d+>)+/, 'the roll in big digits, in the card');
   // a big enough win shows its amount above the result
   let big = false;
-  for (let i = 0; i < 40 && !big; i++) { const r = await run('coinflip', { amount: '200' }); big = /^<:rc_nplus:\d+>/.test(r.content ?? ''); }
+  for (let i = 0; i < 40 && !big; i++) { const r = await run('coinflip', { amount: '200' }); big = /^## <:rc_nplus:\d+>/.test(desc(r)); }
   assert.ok(big, 'a ⬡190 coinflip win shows +190 in big digits');
 });

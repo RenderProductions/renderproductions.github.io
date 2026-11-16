@@ -148,8 +148,7 @@ export const dice: Command = {
       const r = settle(ctx, guildId, 'dice', bet, win);
       const call = `You bet **${over ? 'over' : 'under'} ${n}** (${Math.round(chance * 100)}% chance, pays **${pays}x**).`;
       return {
-        content: bigNumber(String(roll)) ?? undefined,
-        embeds: [card('dice', [call, `You rolled... **${roll}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
+        embeds: [card('dice', [call, bigNumber(String(roll)) ? `You rolled...\n## ${bigNumber(String(roll))}` : `You rolled... **${roll}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
         teaser: teaser(NAMES.dice, `${call}\n${line(ctx.rng, 'diceRoll')} ${emoji('dice')}`, COLORS.casino)
       };
     });
@@ -437,11 +436,10 @@ export const crashPoint = (u: number, fuel = false): number => Math.min(ROCKET.c
 function rkView(s: sessions.Session<RK>, now: number, end?: { line: string; tone: 'win' | 'loss'; at?: number }): ReplyObject {
   const m = end ? null : Math.min(rocketAt(s.state, now), s.state.crashAt);
   const shown = m ?? 0;
-  // the multiplier climbing in big gold digits (jumbo: the message text is only emojis); at the end, where it stopped
-  const big = bigNumber(mult(m ?? end?.at ?? s.state.crashAt));
+  // the multiplier in big gold digits at the top of the card; at the end, where it stopped
+  const top = `## ${bigNumber(mult(m ?? end?.at ?? s.state.crashAt)) ?? mult(m ?? end?.at ?? s.state.crashAt)}`;
   return {
-    ...(big ? { content: big } : {}),
-    embeds: [card('rocket', end ? [end.line] : [`## ${mult(shown)}`, `Bet: ${format(s.state.bet)} · Worth now: ${format(Math.floor(s.state.bet * shown))}`, 'Cash out before it crashes.'], end?.tone ?? 'play')],
+    embeds: [card('rocket', end ? [top, end.line] : [top, `Bet: ${format(s.state.bet)} · Worth now: ${format(Math.floor(s.state.bet * shown))}`, 'Cash out before it crashes.'], end?.tone ?? 'play')],
     buttons: end ? [] : [[btn(s, 'cash', 'Cash out', 'success')]]
   };
 }
@@ -488,6 +486,7 @@ function onRocket(ctx: Ctx, s: sessions.Session<RK>, value: string): SessionRepl
     const m = Math.floor(at * 100) / 100;
     const win = Math.floor(s.state.bet * m);
     const r = settle(ctx, s.guild_id!, 'rocket', s.state.bet, win);
+    ctx.big = undefined;   // the Rocket keeps its multiplier up top, not the winnings
     if (m >= 10) awardHere('moon_shot');
     return { update: rkView(s, ctx.now, { line: [`Cashed out at ${mult(m)}: ${format(r.paid)}. It would have crashed at ${mult(s.state.crashAt)}.`, ...r.lines].join('\n'), tone: win > s.state.bet ? 'win' : 'loss', at: m }) };
   });

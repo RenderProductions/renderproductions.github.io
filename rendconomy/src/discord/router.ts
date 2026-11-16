@@ -55,8 +55,7 @@ export function press(ctx: Ctx, customId: string): SessionReply {
   if (!h) return { update: { buttons: [] } };
   try {
     const r = runInRequest(requestOf(ctx), () => h.onButton(ctx, s, ref.value));
-    // a big win replaces whatever big digits were showing (the Rocket's multiplier)
-    if (ctx.big) { if (r.update) r.update = { ...r.update, content: ctx.big }; else if (r.followUp && !r.followUp.content) r.followUp = { ...r.followUp, content: ctx.big }; }
+    if (ctx.big) { if (r.update?.embeds?.length) r.update = withBig(r.update, ctx.big); else if (r.followUp) r.followUp = withBig(r.followUp, ctx.big); }
     return notesOnSession(r, ctx.notes);
   } catch (e) {
     const r = errorReply(e, `button ${s.kind}`);
@@ -80,8 +79,12 @@ export function typedAnswer(ctx: Ctx, text: string): { reply: ReplyObject; sessi
   return null;
 }
 
-/** Puts a big-digit line in the reply's text, unless it already has text of its own. */
-const withBig = (r: ReplyObject, big?: string): ReplyObject => (big && !r.content && r.embeds?.length ? { ...r, content: big } : r);
+/** Puts a big-digit heading at the top of the reply's card (a casino win). */
+const withBig = (r: ReplyObject, big?: string): ReplyObject => {
+  const e = r.embeds?.[0];
+  if (!big || !e) return r;
+  return { ...r, embeds: [{ ...e, description: `## ${big}\n${e.description ?? ''}`.trim() }, ...r.embeds!.slice(1)] };
+};
 
 const normalize = (r: Reply): ReplyObject => (typeof r === 'string' ? { content: r } : r);
 
