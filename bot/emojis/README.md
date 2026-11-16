@@ -116,3 +116,17 @@ See `preview.png` and `preview-set.png` for the whole set.
 
 Application emojis work in every server the bot is in. Until one is uploaded, the bot keeps using the standard emoji.
 Discord shows custom emojis in message text and embed text, but not in embed titles, footers or button labels, so those keep standard emojis.
+
+## Big numbers
+
+Frameless gold digits for numbers Discord shows at jumbo size (a message that is only emojis): the Rocket's multiplier, big casino wins, dice rolls and the lottery pot.
+
+| File | Stands for |
+|---|---|
+| `rc_n0.png` to `rc_n9.png` | 0–9 |
+| `rc_ndot.png` | . |
+| `rc_nx.png` | x (multiplier) |
+| `rc_npct.png` | % |
+| `rc_nplus.png` | + (green) |
+| `rc_nminus.png` | - (red) |
+| `rc_nk.png`, `rc_nm.png` | K and M (thousands, millions) |

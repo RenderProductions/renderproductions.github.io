@@ -1,5 +1,6 @@
 // The Rend-Sino's games. Instant games settle in one step; interactive ones keep their state in a stored
 // session (kind "casino.<game>"), so their buttons survive restarts and each press is handled once.
+import { bigNumber } from '../discord/icons';
 import type { APIEmbed } from 'discord.js';
 import { awardHere } from '../achievements/achievements';
 import { CASINO, NAMES, ODDS, cardBack, cardText, deck, mult, settle, takeBet, type Card, type Game } from '../casino/core';
@@ -147,6 +148,7 @@ export const dice: Command = {
       const r = settle(ctx, guildId, 'dice', bet, win);
       const call = `You bet **${over ? 'over' : 'under'} ${n}** (${Math.round(chance * 100)}% chance, pays **${pays}x**).`;
       return {
+        content: bigNumber(String(roll)) ?? undefined,
         embeds: [card('dice', [call, `You rolled... **${roll}!**`, ...outcome(ctx, guildId, bet, r.paid, r.lines)], toneOf(bet, win))],
         teaser: teaser(NAMES.dice, `${call}\n${line(ctx.rng, 'diceRoll')} ${emoji('dice')}`, COLORS.casino)
       };
@@ -432,10 +434,13 @@ const ROCKET = { edge: 0.96, cap: 50, growth: 0.06, frameMs: 1500 };
 const rocketAt = (st: RK, now: number) => Math.exp((ROCKET.growth * Math.max(0, now - st.t0)) / 1000);
 export const crashPoint = (u: number, fuel = false): number => Math.min(ROCKET.cap, Math.max(1, (ROCKET.edge / Math.max(1e-9, u)) * (fuel ? 1.2 : 1)));
 
-function rkView(s: sessions.Session<RK>, now: number, end?: { line: string; tone: 'win' | 'loss' }): ReplyObject {
+function rkView(s: sessions.Session<RK>, now: number, end?: { line: string; tone: 'win' | 'loss'; at?: number }): ReplyObject {
   const m = end ? null : Math.min(rocketAt(s.state, now), s.state.crashAt);
   const shown = m ?? 0;
+  // the multiplier climbing in big gold digits (jumbo: the message text is only emojis); at the end, where it stopped
+  const big = bigNumber(mult(m ?? end?.at ?? s.state.crashAt));
   return {
+    ...(big ? { content: big } : {}),
     embeds: [card('rocket', end ? [end.line] : [`## ${mult(shown)}`, `Bet: ${format(s.state.bet)} · Worth now: ${format(Math.floor(s.state.bet * shown))}`, 'Cash out before it crashes.'], end?.tone ?? 'play')],
     buttons: end ? [] : [[btn(s, 'cash', 'Cash out', 'success')]]
   };
@@ -484,7 +489,7 @@ function onRocket(ctx: Ctx, s: sessions.Session<RK>, value: string): SessionRepl
     const win = Math.floor(s.state.bet * m);
     const r = settle(ctx, s.guild_id!, 'rocket', s.state.bet, win);
     if (m >= 10) awardHere('moon_shot');
-    return { update: rkView(s, ctx.now, { line: [`Cashed out at ${mult(m)}: ${format(r.paid)}. It would have crashed at ${mult(s.state.crashAt)}.`, ...r.lines].join('\n'), tone: win > s.state.bet ? 'win' : 'loss' }) };
+    return { update: rkView(s, ctx.now, { line: [`Cashed out at ${mult(m)}: ${format(r.paid)}. It would have crashed at ${mult(s.state.crashAt)}.`, ...r.lines].join('\n'), tone: win > s.state.bet ? 'win' : 'loss', at: m }) };
   });
 }
 

@@ -29,6 +29,8 @@ export interface Ctx {
   isMod: boolean;
   /** Extra lines the router adds to the reply (e.g. "Account opened"). */
   notes: string[];
+  /** A big-digit line (emojis only, so Discord shows it jumbo) for the reply's text, e.g. a casino win. */
+  big?: string;
   /** The bot's own user id, when known. */
   botId?: string;
   /** Websocket ping, when known. */

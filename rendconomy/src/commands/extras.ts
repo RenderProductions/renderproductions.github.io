@@ -1,5 +1,6 @@
 // The rest of the Rend-Sino (Ride the Bus, the lottery, the Polygon Derby, stats), drop-in controls,
 // DM receipts, and a secret.
+import { bigNumber, compactPolygons } from '../discord/icons';
 import { emoji } from '../discord/emoji';
 import { award, awardHere } from '../achievements/achievements';
 import { CASINO, NAMES, cardText, deck, mult, settle, takeBet, type Card } from '../casino/core';
@@ -115,8 +116,9 @@ export function nextDraw(now: number): { key: string; at: number } {
   throw new Error('No Sunday found');
 }
 
-let announce: (guildId: string, text: string) => void = () => {};
-export const setLotteryAnnouncer = (fn: (guildId: string, text: string) => void): void => { announce = fn; };
+/** Posts these messages, in order, in the server's lottery channel. */
+let announce: (guildId: string, ...texts: string[]) => void = () => {};
+export const setLotteryAnnouncer = (fn: (guildId: string, ...texts: string[]) => void): void => { announce = fn; };
 
 /** Draws every lottery whose time has come. */
 export function drawLotteries(db: Db, now: number, pick: (weights: [string, number][]) => string): void {
@@ -131,7 +133,8 @@ export function drawLotteries(db: Db, now: number, pick: (weights: [string, numb
       if (pot > 0) transfer(db, { from: potAccount(g), to: wallet(g, winner), cents: pot, reason: 'lottery.win', guildId: g, actorId: winner, now });
       db.run('DELETE FROM lottery WHERE guild_id = ? AND draw = ?', g, draw);
       award(db, g, winner, 'jackpot', now);
-      announce(g, `**Lottery draw.** ${tickets.reduce((s, t) => s + t.tickets, 0)} tickets were sold. The winner is <@${winner}>, who takes the pot of **${format(pot)}**.`);
+      const big = pot > 0 ? bigNumber('+' + compactPolygons(pot)) : null;
+      announce(g, ...(big ? [big] : []), `**Lottery draw.** ${tickets.reduce((s, t) => s + t.tickets, 0)} tickets were sold. The winner is <@${winner}>, who takes the pot of **${format(pot)}**.`);
     });
   }
 }

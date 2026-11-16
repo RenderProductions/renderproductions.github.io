@@ -10,6 +10,7 @@ import { seededRng } from '../src/core/rng';
 import { execute, revealThen } from '../src/discord/router';
 import { tick } from '../src/market/market';
 import { emojiOr, setCustomEmojis, syncAppEmojis } from '../src/discord/emoji';
+import { bigNumber, compactPolygons } from '../src/discord/icons';
 import { cardBack, cardText } from '../src/casino/core';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -106,4 +107,25 @@ test('the bot uploads the emojis it is missing, then uses them', async () => {
   assert.deepEqual(uploaded, ['rc_two'], 'only the missing one, and never the previews');
   assert.equal(emojiOr('two', '?'), '<:rc_two:2>');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('big numbers: gold digits for wins, dice rolls and the Rocket, once uploaded', async () => {
+  const names = ['n0', 'n1', 'n2', 'n3', 'n4', 'n5', 'n6', 'n7', 'n8', 'n9', 'ndot', 'nx', 'npct', 'nplus', 'nminus', 'nk', 'nm'];
+  assert.equal(bigNumber('+1.2K'), null, 'not uploaded yet: nothing');
+  setCustomEmojis(names.map((n, k) => ({ name: `rc_${n}`, id: String(900 + k) })));
+  assert.equal(compactPolygons(polygons(450)), '450');
+  assert.equal(compactPolygons(polygons(1250)), '1.25K');
+  assert.equal(compactPolygons(polygons(12_000)), '12K');
+  assert.equal(compactPolygons(polygons(3_500_000)), '3.5M');
+  assert.equal(bigNumber('+1.2K'), '<:rc_nplus:913><:rc_n1:901><:rc_ndot:910><:rc_n2:902><:rc_nk:915>');
+  assert.equal(bigNumber('hello'), null);
+  const { db, run } = setup();
+  await run('balance', {});
+  transfer(db, { from: RESERVE, to: wallet(G, A), cents: polygons(5000), reason: 'mod.give' });
+  const d = await run('dice', { amount: '10', call: 'over 50' });
+  assert.match(d.content ?? '', /^(<:rc_n\d:\d+>)+$/, 'the roll in big digits');
+  // a big enough win shows its amount above the result
+  let big = false;
+  for (let i = 0; i < 40 && !big; i++) { const r = await run('coinflip', { amount: '200' }); big = /^<:rc_nplus:\d+>/.test(r.content ?? ''); }
+  assert.ok(big, 'a ⬡190 coinflip win shows +190 in big digits');
 });

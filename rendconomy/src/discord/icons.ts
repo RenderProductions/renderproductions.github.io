@@ -18,3 +18,28 @@ const SECTION_KEY: Record<System, string> = {
   wallet: 'polygon', farm: 'farm', social: 'social', work: 'work', market: 'stonks', casino: 'slots', reserve: 'reserve', general: 'general', admin: 'admin'
 };
 export const sectionE = (s: System, fallback: string): string => emojiOr(SECTION_KEY[s], fallback);
+
+// ---------------------------------------------------------------- big numbers ("Business, Numbers, Working!")
+// Frameless gold digits (rc_n0…rc_n9) plus . x % + - K M. Only worth it where Discord shows emojis jumbo:
+// a message whose text is nothing but emojis. Returns null if any of them isn't uploaded yet.
+const NUM_KEY: Record<string, string> = { '.': 'ndot', x: 'nx', '%': 'npct', '+': 'nplus', '-': 'nminus', K: 'nk', M: 'nm' };
+export function bigNumber(text: string): string | null {
+  const parts: string[] = [];
+  for (const ch of text) {
+    const key = /\d/.test(ch) ? `n${ch}` : NUM_KEY[ch];
+    if (!key) return null;
+    const e = emojiOr(key, '');
+    if (!e) return null;
+    parts.push(e);
+  }
+  return parts.length ? parts.join('') : null;
+}
+/** Polygons as a short number for the big digits: 450, 4.5K, 1.25M (cents dropped). */
+export function compactPolygons(cents: number): string {
+  const p = Math.floor(Math.abs(cents) / 100);
+  const trim = (s: string) => s.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+  if (p >= 1_000_000) return trim((p / 1_000_000).toFixed(2)) + 'M';
+  if (p >= 10_000) return trim((p / 1_000).toFixed(1)) + 'K';
+  if (p >= 1_000) return trim((p / 1_000).toFixed(2)) + 'K';
+  return String(p);
+}

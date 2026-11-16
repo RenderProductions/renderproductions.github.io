@@ -30,7 +30,7 @@ export async function execute(cmd: Command, ctx: Ctx, args: Args): Promise<Reply
     if (cmd.guildOnly && !ctx.guildId) return { content: 'This command is only available in a server.', ephemeral: true };
     ctx.db.setMeta('commands_run', Number(ctx.db.meta('commands_run') ?? 0) + 1);
     const reply = await runInRequest(requestOf(ctx), () => cmd.run(ctx, args));
-    return withNotes(normalize(reply), ctx.notes);
+    return withNotes(withBig(normalize(reply), ctx.big), ctx.notes);
   } catch (e) {
     return errorReply(e, `command ${cmd.name}`);
   }
@@ -54,7 +54,10 @@ export function press(ctx: Ctx, customId: string): SessionReply {
   const h = handlers[s.kind];
   if (!h) return { update: { buttons: [] } };
   try {
-    return notesOnSession(runInRequest(requestOf(ctx), () => h.onButton(ctx, s, ref.value)), ctx.notes);
+    const r = runInRequest(requestOf(ctx), () => h.onButton(ctx, s, ref.value));
+    // a big win replaces whatever big digits were showing (the Rocket's multiplier)
+    if (ctx.big) { if (r.update) r.update = { ...r.update, content: ctx.big }; else if (r.followUp && !r.followUp.content) r.followUp = { ...r.followUp, content: ctx.big }; }
+    return notesOnSession(r, ctx.notes);
   } catch (e) {
     const r = errorReply(e, `button ${s.kind}`);
     return { notice: r.embeds?.[0]?.description ?? r.content };
@@ -76,6 +79,9 @@ export function typedAnswer(ctx: Ctx, text: string): { reply: ReplyObject; sessi
   }
   return null;
 }
+
+/** Puts a big-digit line in the reply's text, unless it already has text of its own. */
+const withBig = (r: ReplyObject, big?: string): ReplyObject => (big && !r.content && r.embeds?.length ? { ...r, content: big } : r);
 
 const normalize = (r: Reply): ReplyObject => (typeof r === 'string' ? { content: r } : r);
 

@@ -141,10 +141,10 @@ async function main(): Promise<void> {
       const content = `${text}\n-# ${server ? `${server} · ` : ''}Turn these off with ${config.prefix}receipts off`;
       c.users.fetch(userId).then((u) => u.send({ content, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     });
-    setLotteryAnnouncer((guildId, text) => {
+    setLotteryAnnouncer((guildId, ...texts) => {
       const chId = db.meta(`lottery.channel:${guildId}`);
       if (!chId) return;
-      c.channels.fetch(chId).then(async (ch) => { if (ch && ch.isSendable()) await ch.send({ content: text, allowedMentions: { users: [] } }); }).catch(() => {});
+      c.channels.fetch(chId).then(async (ch) => { if (ch && ch.isSendable()) for (const text of texts) await ch.send({ content: text, allowedMentions: { users: [] } }); }).catch(() => {});
     });
     // Update logs: post the newest patch notes entry once, if it's new (main bot only: UPDATES_CHANNEL_ID)
     setUpdatePoster(async (u) => {
