@@ -24,7 +24,7 @@ export interface ConsoleDeps {
   postNext(): Promise<string | null>;
 }
 
-const HELP = `Console commands (type them here, no prefix):
+const HELP = `Console commands (type them in the host console as "rc <command>", or DM the bot "> <command>" from an owner account):
   help                         this list
   servers                      every server the bot is in, with ids
   channels <server>            text channels in a server (id or part of its name)
@@ -66,11 +66,20 @@ export function startConsole(d: ConsoleDeps): void {
   if (process.env.CONSOLE === '0') return;
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
   rl.on('line', (line) => {
-    const text = line.trim();
+    // some host panels keep words like "help" for themselves, so "rc help" (or "/help") works too
+    const text = line.trim().replace(/^(rc\s+|\/)/i, '');
     if (!text) return;
+    console.log(`[console] > ${text}`);
     run(d, text).then((out) => { if (out) console.log(out); }).catch((e: unknown) => console.log(`[console] ${e instanceof Error ? e.message : String(e)}`));
   });
-  console.log(`[console] ready: type "help" for console commands`);
+  console.log(`[console] ready: type "rc help" here, or DM the bot "> help" from an owner account`);
+}
+
+/** The same console from Discord: an owner DMs the bot a line starting with ">". Returns the output to send back. */
+export async function consoleFromDm(text: string): Promise<string> {
+  if (!deps) return 'The console is not ready yet.';
+  try { return (await run(deps, text.replace(/^>\s*/, '').trim())) ?? 'Done.'; }
+  catch (e) { return e instanceof Error ? e.message : String(e); }
 }
 
 function guildFrom(c: Client, q: string): Guild {

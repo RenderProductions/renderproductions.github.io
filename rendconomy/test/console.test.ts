@@ -6,7 +6,7 @@ import { botConfig } from '../src/config';
 import { seededRng } from '../src/core/rng';
 import { balance, wallet } from '../src/core/ledger';
 import { polygons } from '../src/core/money';
-import { consoleRun, onRainButton, startConsole, type ConsoleDeps } from '../src/discord/console';
+import { consoleFromDm, consoleRun, onRainButton, startConsole, type ConsoleDeps } from '../src/discord/console';
 import { find } from '../src/commands';
 import { execute } from '../src/discord/router';
 import { siteLink } from '../src/discord/style';
@@ -46,6 +46,8 @@ test('console: help, servers, say, todd, status and unknown commands', async () 
   await run('status clear'); assert.equal(db.meta('status.custom'), '');
   assert.match((await run('dance'))!, /Unknown console command/);
   await assert.rejects(run('say #nowhere hi'), /No channel called/);
+  assert.match(await consoleFromDm('> servers'), /The Render Room/);
+  assert.match(await consoleFromDm('>say #nowhere hi'), /No channel called/);
 });
 
 test('console: run any command as the owner', async () => {

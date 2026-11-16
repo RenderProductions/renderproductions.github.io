@@ -2,7 +2,7 @@
 import { loadAppEmojis, syncAppEmojis } from './discord/emoji';
 import { COLORS } from './discord/style';
 import { setReceiptSender } from './social/receipts';
-import { Client, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { botConfig, economy, loadEnv } from './config';
 import { dailyBackup } from './core/backups';
 import { open } from './core/db';
@@ -22,7 +22,7 @@ import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType, type SendableChannels } from 'discord.js';
-import { onRainButton, startConsole } from './discord/console';
+import { consoleFromDm, onRainButton, startConsole } from './discord/console';
 import { startActivity, startLiveFeed, startApi, startFarmReminders, startHolidays, startReminders, startStatus } from './discord/background';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
@@ -90,7 +90,7 @@ async function main(): Promise<void> {
   });
   console.log(`[${config.name}] market running (${market.TICKERS.join(', ')})`);
 
-  const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+  const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages], partials: [Partials.Channel] });
   // TODD drops into a channel with a quick question (from chat, or from the console)
   const toddDrop = async (ch: SendableChannels, guildId: string, now = Date.now()) => {
     const drop = startDrop(market.load(db), guildId, ch.id, now, rng);
@@ -215,7 +215,14 @@ async function main(): Promise<void> {
       .catch((err: unknown) => console.error('[mod log]', err));
   });
 
-  client.on(Events.MessageCreate, (m) => { onMessage(deps, m).catch((e) => console.error('[message]', e)); });
+  client.on(Events.MessageCreate, (m) => {
+    // the console, from Discord: an owner DMs the bot "> command"
+    if (!m.guild && !m.author.bot && m.content.startsWith('>') && config.ownerIds.includes(m.author.id)) {
+      consoleFromDm(m.content).then((out) => m.reply({ content: '```\n' + out.slice(0, 1900) + '\n```', allowedMentions: { parse: [] } })).catch((e) => console.error('[console dm]', e));
+      return;
+    }
+    onMessage(deps, m).catch((e) => console.error('[message]', e));
+  });
   client.on(Events.InteractionCreate, (i) => {
     if (i.isChatInputCommand()) onSlash(deps, i).catch((e) => console.error('[slash]', e));
     else if (i.isButton()) onRainButton(i).then((done) => { if (!done) return onButton(deps, i); }).catch((e) => console.error('[button]', e));
