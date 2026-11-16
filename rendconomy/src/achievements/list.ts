@@ -87,6 +87,8 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['merger', 'Better Together', 'Merge two companies', 'heists', 'rare'],
 
   ['generous', 'Generous', 'Gift ⬡1,000 in total', 'social', 'rare'],
+  ['patron', 'Patron', 'Donate ⬡1,000 to the Polygon Reserve in total', 'social', 'common'],
+  ['pillar_of_the_economy', 'Pillar of the Economy', 'Donate ⬡25,000 to the Polygon Reserve in total', 'social', 'epic'],
   ['loan_shark', 'Loan Shark', 'Lend Polygons at 25% a day', 'social', 'rare'],
   ['debt_free', 'Debt Free', 'Pay TODD back in full', 'social', 'common'],
   ['merciful', 'Merciful', 'Forgive a loan', 'social', 'rare'],

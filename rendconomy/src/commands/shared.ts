@@ -98,6 +98,7 @@ export const REASONS: Record<string, string> = {
   'casino.bet': 'Rend-Sino bet',
   'casino.win': 'Rend-Sino winnings',
   'reserve.fund': 'Reserve funded',
+  'reserve.donate': 'Donated to the Reserve',
   'mod.give': 'Moderator grant',
   'mod.take': 'Moderator removal'
 };

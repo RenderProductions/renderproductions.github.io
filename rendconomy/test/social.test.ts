@@ -76,3 +76,20 @@ test('savings: deposit, close early without interest, mature with interest', asy
   assert.equal(balance(db, wallet(G, A)), polygons(502));
   assert.ok(audit(db).ok);
 });
+
+test('reserve donations: leave the wallet, fill the Reserve, rank patrons and unlock Patron', async () => {
+  const { db, run } = setup();
+  await run('balance', {}, A); await run('balance', {}, B);
+  transfer(db, { from: RESERVE, to: wallet(G, A), cents: polygons(2000), reason: 'mod.give' });
+  const r0 = balance(db, RESERVE);
+  assert.match(text(await run('reserve', { action: 'donate 1200' })), /You gave \*\*⬡1,200\.00\*\*/);
+  assert.ok(balance(db, RESERVE) >= r0 + polygons(1200) - polygons(250), 'the Reserve gains the donation (less any achievement reward)');
+  assert.ok(balance(db, wallet(G, A)) <= polygons(500 + 2000 - 1200) + polygons(250));
+  assert.ok(db.get("SELECT 1 FROM achievements WHERE user_id = ? AND id = 'patron'", A), 'Patron unlocked');
+  assert.match(text(await run('reserve', { action: 'donate 50' }, B)), /You gave/);
+  const view = text(await run('reserve'));
+  assert.match(view, /Patrons of the Reserve[\s\S]*🥇 <@111111111111111111> · ⬡1,200\.00[\s\S]*🥈 <@222222222222222222> · ⬡50\.00/);
+  assert.match(text(await run('reserve', { action: 'donate 5' }, B)), /at least|minimum|⬡10/i);
+  assert.match(text(await run('reserve', { action: 'donate 999999' }, B)), /You have/);
+  assert.ok(audit(db).ok);
+});
