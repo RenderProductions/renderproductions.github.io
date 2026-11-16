@@ -17,7 +17,8 @@ function setup() {
   const db = freshDb();
   const sent: { content?: string; components?: unknown[]; embeds?: unknown[] }[] = [];
   const channel = { id: CH, name: 'general', guildId: G, isSendable: () => true, isTextBased: () => true, send: async (m: never) => { sent.push(m); return { delete: async () => {} }; }, sendTyping: async () => {} };
-  const guild = { id: G, name: 'The Render Room', memberCount: 3, channels: { cache: new Map([[CH, channel]]) } };
+  let left = false;
+  const guild = { id: G, name: 'The Render Room', memberCount: 3, channels: { cache: new Map([[CH, channel]]) }, leave: async () => { left = true; } };
   let presence: unknown = null;
   const client = {
     guilds: { cache: new Map([[G, guild]]) },
@@ -31,7 +32,7 @@ function setup() {
   startConsole(deps);
   const run = (line: string) => consoleRun(deps, line);
   const ctx = (u: string) => ({ db, config, rng: seededRng(1), now: Date.now(), guildId: G, channelId: CH, user: { id: u, name: u }, isOwner: false, isMod: false, notes: [] });
-  return { db, run, sent, presence: () => presence, todd: () => todd, ctx };
+  return { db, run, sent, presence: () => presence, todd: () => todd, ctx, left: () => left };
 }
 
 test('console: help, servers, say, todd, status and unknown commands', async () => {
@@ -48,6 +49,16 @@ test('console: help, servers, say, todd, status and unknown commands', async () 
   await assert.rejects(run('say #nowhere hi'), /No channel called/);
   assert.match(await consoleFromDm('> servers'), /The Render Room/);
   assert.match(await consoleFromDm('>say #nowhere hi'), /No channel called/);
+});
+
+test('console: leave asks first, then needs the exact id', async () => {
+  const { run, left } = setup();
+  assert.match((await run('leave render room'))!, new RegExp(`leave ${G} confirm`));
+  assert.equal(left(), false);
+  assert.match((await run('leave render room confirm'))!, /confirm with the id/);
+  assert.equal(left(), false);
+  assert.match((await run(`leave ${G} confirm`))!, /Left The Render Room/);
+  assert.equal(left(), true);
 });
 
 test('console: run any command as the owner', async () => {

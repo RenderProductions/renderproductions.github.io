@@ -55,7 +55,7 @@
   var term = document.querySelector('.term'), ps1 = document.getElementById('ps1');
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var history = [], hi = 0, owner = false, queue = Promise.resolve();
-  var NAMES = ['help', 'servers', 'channels', 'say', 'reply', 'marquez', 'todd', 'rain', 'haunt', 'status', 'run', 'backup', 'post', 'clear', 'whoami', 'exit'];
+  var NAMES = ['help', 'servers', 'channels', 'say', 'reply', 'marquez', 'todd', 'rain', 'haunt', 'status', 'run', 'leave', 'backup', 'post', 'clear', 'whoami', 'exit'];
 
   // ------------------------------------------------------------ digital rain (⬡ and katakana)
   var cv = document.getElementById('rain'), g = cv.getContext('2d'), cols = [], F = 16;

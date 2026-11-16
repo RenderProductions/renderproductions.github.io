@@ -36,6 +36,7 @@ const HELP = `Console commands (type them in the host console as "rc <command>",
   haunt <channel>              something small and unsettling happens
   status <text> | status clear the bot's status line
   run <server> <command>       any bot command as the owner, e.g. run 1234 give @123 500 thanks
+  leave <server>               make the bot leave a server (asks you to confirm)
   backup                       save a copy of the database now
   post                         post the next waiting patch notes entry
 A <channel> is an id, a <#mention>, or #name (if only one server has it).`;
@@ -201,6 +202,17 @@ async function run(d: ConsoleDeps, text: string): Promise<string | null> {
       const owner = d.config.ownerIds[0] ?? c.user!.id;
       const ctx: Ctx = { db: d.db, config: d.config, rng: d.rng, now: Date.now(), guildId: g.id, channelId: `console:${g.id}`, user: { id: owner, name: 'Console' }, isOwner: true, isMod: true, notes: [] };
       return plain(await execute(parsed.cmd, ctx, parsed.args)) || 'Done.';
+    }
+
+    case 'leave': {
+      const confirmed = /\s+confirm$/i.test(rest), server = rest.replace(/\s+confirm$/i, '').trim();
+      if (!server) return 'Usage: leave <server>   (see "servers")';
+      const g = guildFrom(c, server);
+      if (!confirmed) return `This makes the bot leave ${g.name} (${g.memberCount} members). Its game data there is kept.\nTo go ahead: leave ${g.id} confirm`;
+      if (server !== g.id) return `To be sure it's the right one, confirm with the id: leave ${g.id} confirm`;
+      await g.leave();
+      console.log(`[console] left ${g.name} (${g.id})`);
+      return `Left ${g.name}.`;
     }
 
     case 'backup': {
