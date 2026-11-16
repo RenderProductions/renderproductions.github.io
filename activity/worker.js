@@ -28,12 +28,19 @@ const DATA = 'https://raw.githubusercontent.com/RenderProductions/renderproducti
 const DISCORD = 'https://discord.com/api/v10';
 
 let ready = false;
+let lastSweep = 0;
 async function setup(env) {
   if (ready) return;
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS actions (
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, username TEXT, guild_id TEXT NOT NULL,
     line TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new', result TEXT, created INTEGER NOT NULL)`).run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS live (k TEXT PRIMARY KEY, v TEXT NOT NULL, at INTEGER NOT NULL)').run();
+  // Indexes, so lookups read only the rows they need instead of the whole table (D1 bills every row read)
+  await env.DB.batch([
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS actions_status ON actions (status, id)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS actions_created ON actions (created)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS actions_user ON actions (user_id, created)'),
+  ]);
   ready = true;
 }
 // What the site may ask the bot to do (the first word of the line). The bot checks again.
@@ -130,7 +137,10 @@ async function api(req, env, path, cors) {
     await setup(env);
     if (path === '/bot/actions') {
       // Hand over new commands, and tidy up anything older than an hour
-      await env.DB.prepare('DELETE FROM actions WHERE created < ?').bind(Date.now() - 3600_000).run();
+      if (Date.now() - lastSweep > 10 * 60_000) {
+        lastSweep = Date.now();
+        await env.DB.prepare('DELETE FROM actions WHERE created < ?').bind(Date.now() - 3600_000).run();
+      }
       const { results } = await env.DB.prepare("SELECT id, user_id, username, guild_id, line, created FROM actions WHERE status = 'new' ORDER BY id LIMIT 25").all();
       if (results.length) await env.DB.prepare(`UPDATE actions SET status = 'taken' WHERE id IN (${results.map(() => '?').join(',')})`).bind(...results.map((r) => r.id)).run();
       return out({ actions: results });
