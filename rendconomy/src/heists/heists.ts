@@ -7,6 +7,7 @@
 //   💪 Muscle  a bit better odds, and a bigger haul
 // Success: the haul is split evenly. Failure: stakes are lost, and if TODD catches the crew, a fine too.
 // Hauls come out of the Polygon Reserve, so robbing it really does hurt everyone.
+import { addMoment, compact } from '../core/moments';
 import { award } from '../achievements/achievements';
 import { economy } from '../config';
 import type { Db } from '../core/db';
@@ -84,6 +85,7 @@ export function runHeist(db: Db, g: string, target: Target, members: Member[], r
       }
     }
     for (const m of crew) db.setMeta(`heist.cd:${g}:${m.id}`, now + (outcome === 'caught' ? HEIST.caughtMs : HEIST.playerGapMs));
+    addMoment(outcome === 'clean' ? `🦹 A heist on ${T.label} just got away with ${compact(haul)}` : outcome === 'caught' ? '🚔 A heist crew just got caught red-handed' : '🚗 A heist crew just made a clean getaway (with nothing)', now);
     db.run('INSERT INTO heist_log (guild_id, target, crew, outcome, haul, at) VALUES (?, ?, ?, ?, ?, ?)', g, target, JSON.stringify(crew.map((m) => [m.id, m.role, m.name])), outcome, haul, now);
     return { outcome, haul, each, crew, dropped, odds };
   });

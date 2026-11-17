@@ -5,6 +5,7 @@
 //   dead    -> its share price hit 0, or (private) it missed upkeep 3 days running
 // The treasury is a ledger account ('company:<TICKER>'), so every Polygon in and out is on the books.
 // Also: hostile takeovers and mergers (Heists & Schemes).
+import { addMoment, compact } from '../core/moments';
 import { discordTime } from '../core/time';
 import { award } from '../achievements/achievements';
 import type { Db } from '../core/db';
@@ -105,6 +106,7 @@ export function ipo(db: Db, c: Company, now = Date.now()): number {
     const price = Math.max(0.01, Math.round(fairValue(db, c) * 100) / 100);
     update(db, c.ticker, { status: 'public', price, offering_left: CO.float, ipo_at: now, history: [price] });
     award(db, c.owner_guild, c.owner_id, 'going_public', now);
+    addMoment(`🔔 ${c.ticker} just went public at ⬡${price.toFixed(2)}`, now);
     return price;
   });
 }

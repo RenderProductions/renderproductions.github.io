@@ -1,5 +1,6 @@
 // The rest of the Rend-Sino (Ride the Bus, the lottery, the Polygon Derby, stats), drop-in controls,
 // DM receipts, and a secret.
+import { addMoment, compact } from '../core/moments';
 import { bigNumber, compactPolygons } from '../discord/icons';
 import { emoji } from '../discord/emoji';
 import { award, awardHere } from '../achievements/achievements';
@@ -133,6 +134,7 @@ export function drawLotteries(db: Db, now: number, pick: (weights: [string, numb
       if (pot > 0) transfer(db, { from: potAccount(g), to: wallet(g, winner), cents: pot, reason: 'lottery.win', guildId: g, actorId: winner, now });
       db.run('DELETE FROM lottery WHERE guild_id = ? AND draw = ?', g, draw);
       award(db, g, winner, 'jackpot', now);
+      if (pot > 0) addMoment(`🎟️ Someone just won a ${compact(pot)} lottery pot`, now);
       const big = pot > 0 ? bigNumber('+' + compactPolygons(pot)) : null;
       announce(g, ...(big ? [big] : []), `**Lottery draw.** ${tickets.reduce((s, t) => s + t.tickets, 0)} tickets were sold. The winner is <@${winner}>, who takes the pot of **${format(pot)}**.`);
     });

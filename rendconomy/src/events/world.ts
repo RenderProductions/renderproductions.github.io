@@ -1,5 +1,6 @@
 // World events: every few hours something happens across the whole economy for an hour, announced in the
 // market news. Some follow the market: a booming company gets a hiring spree, a sliding one a fire sale.
+import { addMoment, compact } from '../core/moments';
 import { emojiOr } from '../discord/emoji';
 import type { Db } from '../core/db';
 import type { Rng } from '../core/rng';
@@ -61,6 +62,8 @@ export function startEvent(db: Db, id: string, ticker: string | undefined, now: 
   const e: WorldEvent = { id, ticker, until: now + WORLD.lengthMs, next: Math.max(s.next ?? 0, now + WORLD.lengthMs + WORLD.gapMinMs) };
   write(db, e);
   if (id === 'rain' || id === 'storm') addWeather(db, id, now, e.until!);
+  const ev = EVENTS[id];
+  if (ev) addMoment(`${ev.emoji} ${ev.name}${ticker ? ` (${ticker})` : ''} just started`, now);
   return e;
 }
 export const endEvent = (db: Db): void => { const s = read(db); write(db, { next: s.next }); };

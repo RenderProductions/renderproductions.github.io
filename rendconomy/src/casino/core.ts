@@ -1,5 +1,6 @@
 // The Rend-Sino: rules every game shares. Bets go into the Reserve and winnings come out of it, paid
 // in full. Every game has a stated house edge (see /odds), so over time the casino refills the Reserve.
+import { addMoment, compact } from '../core/moments';
 import { emojiOr } from '../discord/emoji';
 import { bigNumber, compactPolygons } from '../discord/icons';
 import { awardHere, bump, setProgress } from '../achievements/achievements';
@@ -16,7 +17,7 @@ export type Game = 'slots' | 'coinflip' | 'dice' | 'roulette' | 'blackjack' | 'h
 export const CASINO = {
   minBet: polygons(10),
   /** A win at least this far above the bet shows in big digits. */
-  bigWin: polygons(100),
+  bigWin: polygons(100), statusWin: polygons(5_000),
   maxBet: { slots: polygons(1000), coinflip: polygons(2500), dice: polygons(2500), roulette: polygons(2500), blackjack: polygons(2500), hilo: polygons(2500), mines: polygons(2500), rocket: polygons(2500) } as Record<Game, Cents>,
   cooldownMs: 3000,
   /** An unfinished game is forfeited after this. */
@@ -92,6 +93,7 @@ export function settle(ctx: Ctx, guildId: string, game: Game, bet: Cents, payout
   const result = payout > bet ? 'win' : payout === bet ? 'push' : 'loss';
   // a real win gets its amount in big gold digits above the result
   if (paid - bet >= CASINO.bigWin) ctx.big = bigNumber('+' + compactPolygons(paid - bet)) ?? undefined;
+  if (paid - bet >= CASINO.statusWin) addMoment(`🎰 Someone just won ${compact(paid - bet)} on ${NAMES[game]}`, ctx.now);
   if (paid > 0) { awardHere('beginners_luck'); setProgress(ctx.db, ctx.user.id, 'loss_streak', 0); }
   else if (bump(ctx.db, ctx.user.id, 'loss_streak') >= 10) awardHere('down_bad');
 

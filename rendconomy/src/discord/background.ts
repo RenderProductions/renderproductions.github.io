@@ -27,6 +27,7 @@ import { addInbox } from '../social/inbox';
 import { holidayTick, isHoliday, season } from '../holidays/holidays';
 import { anyItem } from '../shop/items';
 import { settleServer } from '../commands/property';
+import { roleStats } from '../site/roles';
 import { KINDS, lotsOf, type Kind } from '../estate/estate';
 import { cryptoRng } from '../core/rng';
 
@@ -189,8 +190,17 @@ export function startProfilesFeed(db: Db, dir: Directory): void {
     fetch(`${url}/bot/profiles`, { method: 'POST', headers: { 'X-Bot-Secret': secret, 'Content-Type': 'application/json' }, body })
       .then((r) => { if (r.ok) last = key; }).catch(() => { /* next time */ });
   };
-  setInterval(push, 60_000).unref();
-  setTimeout(push, 10_000).unref();
+  // Linked Roles: everyone's five stats, to a private spot on the Worker (it updates linked players' roles)
+  let lastRoles = '';
+  const pushRoles = () => {
+    let body: string;
+    try { body = JSON.stringify(roleStats(db, dir.botId?.() ?? null)); } catch (e) { console.error('[roles feed]', e); return; }
+    if (body === lastRoles) return;
+    fetch(`${url}/bot/roles`, { method: 'POST', headers: { 'X-Bot-Secret': secret, 'Content-Type': 'application/json' }, body })
+      .then((r) => { if (r.ok) lastRoles = body; }).catch(() => { /* next time */ });
+  };
+  setInterval(() => { push(); pushRoles(); }, 60_000).unref();
+  setTimeout(() => { push(); pushRoles(); }, 10_000).unref();
 }
 
 /** Polls the Cloudflare Worker for commands sent from the Activity, runs them as that player, sends replies back. */
@@ -329,18 +339,4 @@ export function startApi(db: Db, client: Client): void {
   }).listen(port, () => console.log(`[api] listening on ${port}`));
 }
 
-// ---------------------------------------------------------------- status
-
-/** A status that follows the market: crashes, booms, or the Reserve. */
-export function startStatus(db: Db, client: Client): void {
-  const set = () => {
-    const custom = db.meta('status.custom');   // set from the console: "status <text>"
-    if (custom) { client.user?.setPresence({ activities: [{ name: 'Custom', state: custom, type: ActivityType.Custom }], status: 'online' }); return; }
-    const m = loadMarket(db);
-    const crash = m?.crash as { phase?: string } | null | undefined;
-    const text = crash?.phase === 'crash' ? 'the market crash' : m?.boost ? 'a market boom' : m?.market?.status === 'open' ? 'the market' : 'the market (closed)';
-    client.user?.setPresence({ activities: [{ name: text, type: ActivityType.Watching }], status: 'online' });
-  };
-  set();
-  setInterval(set, 5 * MINUTE).unref();
-}
+// The status lives in ./status.ts.

@@ -1,4 +1,5 @@
 // Room to Grow: r!property (your places), map, buy, sell, repair, evict, bid, accept, refuse, storefront, party, info.
+import { addMoment, compact } from '../core/moments';
 import { awardHere, award } from '../achievements/achievements';
 import { alive, getCompany } from '../companies/companies';
 import { economy } from '../config';
@@ -56,6 +57,7 @@ export function tellAll(db: Ctx['db'], guildId: string, events: EstateNews[], P:
     } else if (e.kind === 'condemned') {
       say(e.userId, 'Condemned', `${emojiOr('lot_condemned', '🏚️')} **Lot ${e.lot} was condemned.** It fell apart, so the bank took it (and paid you ${format(e.payout)}). It's up for auction for ${ESTATE.auctionHours} hours.`);
       award(db, guildId, e.userId, 'condemned');
+      addMoment(`🏚️ A ${KINDS[lotsOf(db, guildId)[e.lot - 1]!.kind].name} was just condemned`);
     } else if (e.kind === 'auction_won') {
       say(e.userId, 'Auction won', `${emojiOr('sold', '🪧')} **You won the auction for lot ${e.lot}** for ${format(e.cents)}. It needs work: it's at ${ESTATE.auctionCondition}%.`);
       checkOwnership(db, guildId, e.userId);
@@ -85,6 +87,8 @@ function checkOwnership(db: Ctx['db'], guildId: string, userId: string): string[
   if (mine.some((l) => l.kind === 'mansion')) give('lord_of_the_manor');
   if (setsOf(lots, userId).length) give('full_house');
   if (mine.length === LOTS) give('monopoly');
+  if (notes.some((n) => n.includes('Monopoly, Baby!'))) addMoment('🏙️ Someone owns a whole map. Monopoly, baby!');
+  else if (notes.some((n) => n.includes('Full House'))) addMoment(`👑 Someone just bought up a full set of ${KINDS[setsOf(lots, userId)[0]!].plural}`);
   return notes;
 }
 
@@ -338,6 +342,7 @@ export const property: Command = {
         if (last === dayKey(ctx.now)) throw new GameError('estate.partied', 'The Ballroom needs a day to recover. Throw another party tomorrow.');
         ctx.db.setMeta(`estate.partyday:${guildId}`, dayKey(ctx.now));
         const end = startParty(ctx.db, guildId, ctx.now);
+        addMoment('🎉 There\'s a party at a Mansion. Chat pay is doubled there', ctx.now);
         return done(`${kindE('mansion')} Party at the Mansion!`, [`**${ctx.user.name}** threw open the Ballroom. **Chat pay is doubled for everyone here** until ${discordTime(end)}. 🎉`]);
       }
 

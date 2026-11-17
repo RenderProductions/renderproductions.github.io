@@ -189,7 +189,7 @@ async function run(d: ConsoleDeps, text: string): Promise<string | null> {
     }
 
     case 'status': {
-      if (!rest || rest.toLowerCase() === 'clear') { d.db.setMeta('status.custom', ''); return 'Status is back to normal (it updates within 5 minutes).'; }
+      if (!rest || rest.toLowerCase() === 'clear') { d.db.setMeta('status.custom', ''); return 'Status is back to normal (it changes within 90 seconds).'; }
       d.db.setMeta('status.custom', rest.slice(0, 128));
       c.user?.setPresence({ activities: [{ name: 'Custom', state: rest.slice(0, 128), type: 4 }], status: 'online' });
       return `Status set: ${rest.slice(0, 128)}`;

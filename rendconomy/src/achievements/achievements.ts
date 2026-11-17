@@ -1,5 +1,6 @@
 // Achievements: earned once, kept forever (through the reset too), and they follow a player across
 // servers. Each pays out once by rarity, from the Reserve, in the server it was unlocked in.
+import { addMoment, compact } from '../core/moments';
 import { rarityE } from '../discord/icons';
 import { economy } from '../config';
 import type { Db } from '../core/db';
@@ -31,6 +32,8 @@ export function award(db: Db, guildId: string | null, userId: string, id: string
   const r = db.run('INSERT OR IGNORE INTO achievements (user_id, id, guild_id, unlocked_at) VALUES (?, ?, ?, ?)', userId, id, guildId, now);
   if (r.changes === 0) return '';
   const rarity = RARITY[a.rarity];
+  if (id === 'millionaire') addMoment('💰 We just got a new millionaire', now);
+  else if (a.rarity === 'legendary' || a.rarity === 'mythic') addMoment(`🏆 Someone just unlocked ${a.name}`, now);
   let line = `**Achievement unlocked:** ${rarityE(a.rarity)} **${a.name}**: ${a.desc}.`;
   if (guildId && TUNING.pay) {
     player(db, guildId, userId, economy.startingCash, now);
