@@ -8,6 +8,7 @@
 // Success: the haul is split evenly. Failure: stakes are lost, and if TODD catches the crew, a fine too.
 // Hauls come out of the Polygon Reserve, so robbing it really does hurt everyone.
 import { addMoment, compact } from '../core/moments';
+import { LOOT, UG, dropLoot, useCharge } from '../underground/underground';
 import { award } from '../achievements/achievements';
 import { economy } from '../config';
 import type { Db } from '../core/db';
@@ -47,7 +48,7 @@ export function heistOdds(target: Target, crew: Member[], bonus = 0): number {
   return Math.max(0.05, Math.min(0.9, p));
 }
 
-export interface HeistResult { outcome: 'clean' | 'escaped' | 'caught' | 'short'; haul: Cents; each: Cents; crew: Member[]; dropped: Member[]; odds: number }
+export interface HeistResult { outcome: 'clean' | 'escaped' | 'caught' | 'short'; haul: Cents; each: Cents; crew: Member[]; dropped: Member[]; odds: number; picked?: boolean; loot?: { name: string; who: string; emoji: string; value: Cents }[] }
 
 /** Plays a heist out: stakes, the roll, the haul or the fines. Members who can't pay the stake are left behind. */
 export function runHeist(db: Db, g: string, target: Target, members: Member[], rng: Rng, now = Date.now()): HeistResult {
@@ -55,8 +56,13 @@ export function runHeist(db: Db, g: string, target: Target, members: Member[], r
   const crew: Member[] = [], dropped: Member[] = [];
   for (const m of members) (balance(db, wallet(g, m.id)) >= T.stake ? crew : dropped).push(m);
   if (crew.length < HEIST.minCrew) return { outcome: 'short', haul: 0, each: 0, crew, dropped, odds: 0 };
-  const odds = heistOdds(target, crew, heistBonus(db, now));
+  let odds = heistOdds(target, crew, heistBonus(db, now));
   return db.tx(() => {
+    // No Questions Asked: a Lockpick Set in the crew (everyone who has one uses it up)
+    let picked = false;
+    for (const m of crew) if (useCharge(db, g, m.id, 'lockpick')) picked = true;
+    if (picked) odds = Math.min(0.9, odds + UG.lockpickOdds);
+    const loot: NonNullable<HeistResult['loot']> = [];
     for (const m of crew) transfer(db, { from: wallet(g, m.id), to: RESERVE, cents: T.stake, reason: 'heist.stake', guildId: g, actorId: m.id, now });
     db.setMeta(`heist.at:${g}`, now);
     let outcome: HeistResult['outcome'], haul = 0, each = 0;
@@ -71,6 +77,8 @@ export function runHeist(db: Db, g: string, target: Target, members: Member[], r
         if (target === 'reserve') { if (each > 0) transfer(db, { from: RESERVE, to: wallet(g, m.id), cents: each, reason: 'heist.haul', guildId: g, actorId: m.id, now }); }
         else payFromReserve(db, economy.reserveStart, { to: wallet(g, m.id), cents: each, reason: 'heist.haul', guildId: g, actorId: m.id, now });
         award(db, g, m.id, 'crew_up', now);
+        const hot = dropLoot(db, g, m.id, now, () => rng.next());
+        if (hot) loot.push({ name: LOOT[hot.kind].name, who: m.name, emoji: LOOT[hot.kind].emoji, value: hot.value });
         if (target === 'reserve') award(db, g, m.id, 'inside_job', now);
         if (crew.length === HEIST.maxCrew && (Object.keys(ROLES) as Role[]).every((r) => crew.some((x) => x.role === r))) award(db, g, m.id, 'dream_team', now);
       }
@@ -87,7 +95,7 @@ export function runHeist(db: Db, g: string, target: Target, members: Member[], r
     for (const m of crew) db.setMeta(`heist.cd:${g}:${m.id}`, now + (outcome === 'caught' ? HEIST.caughtMs : HEIST.playerGapMs));
     addMoment(outcome === 'clean' ? `🦹 A heist on ${T.label} just got away with ${compact(haul)}` : outcome === 'caught' ? '🚔 A heist crew just got caught red-handed' : '🚗 A heist crew just made a clean getaway (with nothing)', now);
     db.run('INSERT INTO heist_log (guild_id, target, crew, outcome, haul, at) VALUES (?, ?, ?, ?, ?, ?)', g, target, JSON.stringify(crew.map((m) => [m.id, m.role, m.name])), outcome, haul, now);
-    return { outcome, haul, each, crew, dropped, odds };
+    return { outcome, haul, each, crew, dropped, odds, picked, loot };
   });
 }
 

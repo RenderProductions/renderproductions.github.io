@@ -15,6 +15,7 @@ export const COLORS: Record<System | 'error', number> = {
   casino: 0xeb459e,   // magenta
   farm: 0x7cb342,     // field green
   property: 0x1abc9c, // teal (Room to Grow)
+  underground: 0x8e44ad, // violet (No Questions Asked)
   error: 0xc0392b     // red
 };
 

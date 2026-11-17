@@ -29,6 +29,7 @@ import { anyItem } from '../shop/items';
 import { settleServer } from '../commands/property';
 import { roleStats } from '../site/roles';
 import { KINDS, lotsOf, type Kind } from '../estate/estate';
+import { nextOpen, nightCloses, tonight } from '../underground/underground';
 import { cryptoRng } from '../core/rng';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
@@ -96,7 +97,7 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['property', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['underground', 'property', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 // ---------------------------------------------------------------- the Trading Floor's buttons and live updates
 // The Activity can't receive message edits, so it asks: "__press <button id>" presses a button (at the moment
@@ -152,8 +153,19 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     reserve: balance(db, RESERVE) / 100,
     // player companies: prices for public ones, treasuries for all (for /rend-conomy/exchange/co/)
     estates: estatesSnapshot(db),
+    underground: undergroundSnapshot(db),
     players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
+}
+/** No Questions Asked: where the Connector is tonight in each server with a map (for /backstage/underground/). Never the password. */
+function undergroundSnapshot(db: Db): Record<string, { open: boolean; lot?: number; kind?: string; where?: string; passwordNight?: boolean; until?: number; opens?: number }> {
+  const now = Date.now(), out: ReturnType<typeof undergroundSnapshot> = {};
+  for (const g of db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM estates')) {
+    const n = tonight(db, g.guild_id, now);
+    if (!n) { out[g.guild_id] = { open: false, opens: nextOpen(now) }; continue; }
+    out[g.guild_id] = { open: true, lot: n.lot, kind: KINDS[lotsOf(db, g.guild_id)[n.lot - 1]!.kind].name, where: n.where, passwordNight: !!n.password, until: nightCloses(n.night) };
+  }
+  return out;
 }
 /** Each server's map for the site (/rend-conomy/map/): who owns what, and in what shape. Only servers with a map. */
 function estatesSnapshot(db: Db): Record<string, { lot: number; kind: Kind; name: string; owner: string | null; owner_id: string | null; status: string; condition: number; squatters: boolean; bid: number; until: number | null }[]> {

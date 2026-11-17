@@ -452,5 +452,42 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (guild_id, lot)
   );
   CREATE INDEX estates_owner ON estates (guild_id, owner_id);
+  `,
+
+  /* v19: No Questions Asked: the Underground (Heat, contraband charges, smuggling) and hot loot. */ `
+  CREATE TABLE underground (
+    guild_id       TEXT NOT NULL,
+    user_id        TEXT NOT NULL,
+    heat           REAL NOT NULL DEFAULT 0,
+    heat_at        INTEGER NOT NULL DEFAULT 0,
+    locked_until   INTEGER NOT NULL DEFAULT 0,
+    entered        TEXT,
+    dice           INTEGER NOT NULL DEFAULT 0,
+    fake_id        INTEGER NOT NULL DEFAULT 0,
+    lockpick       INTEGER NOT NULL DEFAULT 0,
+    smoke          INTEGER NOT NULL DEFAULT 0,
+    raids          INTEGER NOT NULL DEFAULT 0,
+    fenced         INTEGER NOT NULL DEFAULT 0,
+    runs_ok        INTEGER NOT NULL DEFAULT 0,
+    spent          INTEGER NOT NULL DEFAULT 0,
+    crew_day       TEXT,
+    snitch_day     TEXT,
+    smuggle_stake  INTEGER NOT NULL DEFAULT 0,
+    smuggle_until  INTEGER,
+    smuggle_mult   REAL,
+    smuggle_night  TEXT,
+    PRIMARY KEY (guild_id, user_id)
+  );
+  CREATE TABLE hot_loot (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id      TEXT NOT NULL,
+    user_id       TEXT NOT NULL,
+    kind          TEXT NOT NULL,
+    value         INTEGER NOT NULL,
+    got_at        INTEGER NOT NULL,
+    launder_until INTEGER,
+    launder_lot   INTEGER
+  );
+  CREATE INDEX hot_loot_owner ON hot_loot (guild_id, user_id);
   `
 ];

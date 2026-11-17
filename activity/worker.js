@@ -122,7 +122,7 @@ async function setup(env) {
   ready = true;
 }
 // What the site may ask the bot to do (the first word of the line). The bot checks again.
-const SITE_COMMANDS = /^(__console|__chess|__press|__poll|property|estate|profile|balance|bal|daily|dividends|savings|buy|sell|short|cover|shop|purchase|inventory|inv|use|gift|trade|showcase|inbox|oddjob|farm|plant|water|harvest|sellcrops|fertilize|compost|buyplot|farmhand|achievements|market|history|loans|advent|santa)\b/i;
+const SITE_COMMANDS = /^(__console|__chess|__press|__poll|underground|ug|property|estate|profile|balance|bal|daily|dividends|savings|buy|sell|short|cover|shop|purchase|inventory|inv|use|gift|trade|showcase|inbox|oddjob|farm|plant|water|harvest|sellcrops|fertilize|compost|buyplot|farmhand|achievements|market|history|loans|advent|santa)\b/i;
 
 const SITE = 'https://renderproductions.github.io';
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra } });

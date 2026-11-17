@@ -10,12 +10,12 @@ export const itemE = (id: string, fallback: string): string => emojiOr(id, fallb
 
 const CATEGORY_KEY: Record<string, string> = {
   start: 'start', market: 'stonks', jobs: 'work', casino: 'slots', social: 'social', companies: 'company', heists: 'heist',
-  fishing: 'fishing', farming: 'farm', property: 'property', holiday: 'holiday', mastery: 'mastery', secret: 'secret'
+  fishing: 'fishing', farming: 'farm', property: 'property', underground: 'connector', holiday: 'holiday', mastery: 'mastery', secret: 'secret'
 };
 export const categoryE = (c: Category): string => emojiOr(CATEGORY_KEY[c] ?? c, CATEGORIES[c].emoji);
 
 const SECTION_KEY: Record<System, string> = {
-  wallet: 'polygon', farm: 'farm', property: 'property', social: 'social', work: 'work', market: 'stonks', casino: 'slots', reserve: 'reserve', general: 'general', admin: 'admin'
+  wallet: 'polygon', farm: 'farm', property: 'property', underground: 'connector', social: 'social', work: 'work', market: 'stonks', casino: 'slots', reserve: 'reserve', general: 'general', admin: 'admin'
 };
 export const sectionE = (s: System, fallback: string): string => emojiOr(SECTION_KEY[s], fallback);
 

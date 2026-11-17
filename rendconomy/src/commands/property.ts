@@ -15,6 +15,7 @@ import {
   sellPrice, setsOf, settle, startParty, taxRate, value, type EstateNews, type Kind, type Lot
 } from '../estate/estate';
 import { addInbox } from '../social/inbox';
+import { useCharge } from '../underground/underground';
 import { me } from './shared';
 import type { Command, Ctx, ReplyObject } from './types';
 
@@ -310,15 +311,16 @@ export const property: Command = {
       if (action === 'refuse' || action === 'decline' || action === 'reject') {
         const l = get(args.lot); mineOnly(ctx, l);
         if (!l.bidder_id) throw new GameError('estate.nobid', `There's no bid on lot ${l.lot}.`);
-        const fee = Math.ceil(l.bid_cents * ESTATE.refuseFee);
+        const smoke = useCharge(ctx.db, guildId, ctx.user.id, 'smoke');   // No Questions Asked: a Smoke Bomb skips the fee
+        const fee = smoke ? 0 : Math.ceil(l.bid_cents * ESTATE.refuseFee);
         if (balance(ctx.db, wallet) < fee) throw new GameError('funds.short', `Refusing costs ${format(fee)} (${ESTATE.refuseFee * 100}% of the bid). You have ${format(balance(ctx.db, wallet))}.`);
         const bidder = l.bidder_id;
-        transfer(ctx.db, { from: wallet, to: walletOf(guildId, bidder), cents: fee, reason: 'estate.refuse', guildId, actorId: ctx.user.id, now: ctx.now, note: { lot: l.lot } });
+        if (fee > 0) transfer(ctx.db, { from: wallet, to: walletOf(guildId, bidder), cents: fee, reason: 'estate.refuse', guildId, actorId: ctx.user.id, now: ctx.now, note: { lot: l.lot } });
         refundBid(ctx.db, l, ctx.now);
         l.shield_until = ctx.now + ESTATE.shieldDays * DAY;
         saveLot(ctx.db, l);
-        addInbox(ctx.db, bidder, guildId, 'Bid refused', `${emojiOr('bid', '✉️')} Your bid for lot ${l.lot} was refused. You got it back, plus **${format(fee)}** for your trouble.`, ctx.now);
-        return done(`🛡️ Bid refused`, [`You paid **${format(fee)}** to keep lot ${l.lot}. It's shielded from bids until ${discordTime(l.shield_until)}.`]);
+        addInbox(ctx.db, bidder, guildId, 'Bid refused', smoke ? `${emojiOr('smoke_bomb', '💨')} Your bid for lot ${l.lot} was refused. There was a lot of smoke. You got your bid back.` : `${emojiOr('bid', '✉️')} Your bid for lot ${l.lot} was refused. You got it back, plus **${format(fee)}** for your trouble.`, ctx.now);
+        return done(`🛡️ Bid refused`, [smoke ? `${emojiOr('smoke_bomb', '💨')} **Smoke Bomb!** By the time it clears, the bid's gone and you didn't pay a thing. Lot ${l.lot} is shielded from bids until ${discordTime(l.shield_until)}.` : `You paid **${format(fee)}** to keep lot ${l.lot}. It's shielded from bids until ${discordTime(l.shield_until)}.`]);
       }
 
       if (action === 'storefront') {

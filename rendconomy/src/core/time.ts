@@ -15,6 +15,20 @@ export function dayKey(at: number = Date.now()): string {
   return fmt.format(new Date(at));
 }
 
+const hourFmt = new Intl.DateTimeFormat('en-US', { timeZone: ZONE, hour: 'numeric', hourCycle: 'h23' });
+/** The Eastern hour (0–23) of an instant. */
+export const easternHour = (at: number = Date.now()): number => Number(hourFmt.format(new Date(at))) % 24;
+
+/** The instant a YYYY-MM-DD Eastern date reaches a given hour (handles daylight saving). */
+export function easternAt(key: string, hour: number): number {
+  const [y, m, d] = key.split('-').map(Number) as [number, number, number];
+  for (const off of [4, 5]) {
+    const t = Date.UTC(y, m - 1, d, hour + off);
+    if (dayKey(t) === key && easternHour(t) === hour) return t;
+  }
+  return Date.UTC(y, m - 1, d, hour + 5);
+}
+
 /** The date before a YYYY-MM-DD date. */
 export function previousDay(key: string): string {
   const [y, m, d] = key.split('-').map(Number) as [number, number, number];

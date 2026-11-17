@@ -90,7 +90,7 @@ export interface SessionReply {
 export type Reply = string | ReplyObject;
 
 /** Which part of the bot a command belongs to: decides its embed color and where /help lists it. */
-export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve' | 'admin' | 'social' | 'casino' | 'farm' | 'property';
+export type System = 'general' | 'wallet' | 'market' | 'work' | 'reserve' | 'admin' | 'social' | 'casino' | 'farm' | 'property' | 'underground';
 
 export interface Command {
   name: string;

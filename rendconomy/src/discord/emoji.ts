@@ -29,6 +29,7 @@ export const FALLBACK = {
   // people
   gift: '🎁', loan: '📜', heist: '🦹', lottery: '🎟️',
   // real estate
+  connector: '🎩', heat: '★', heat_off: '☆', raid: '🚨',
   property: '🏠', repair: '🔨', tax: '🧾', bid: '✉️', auction: '🔨', sold: '🪧', key: '🔑', evict: '🚪', squatter: '🛌', fullset: '👑',
   // progress
   achievement: '🏆', leaderboard: '🏅', event: '🌐'

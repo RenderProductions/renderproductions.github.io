@@ -22,6 +22,7 @@ export const CATEGORIES = {
   fishing: { label: 'Fishing', emoji: '🎣' },
   farming: { label: 'Farming', emoji: '🌾' },
   property: { label: 'Real estate', emoji: '🏠' },
+  underground: { label: 'No Questions Asked', emoji: '🎩' },
   holiday: { label: 'Polygon Holidays', emoji: '🎄' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
@@ -138,6 +139,14 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['full_house', 'Full House', 'Own every lot of one kind', 'property', 'epic'],
   ['monopoly', 'Monopoly, Baby!', 'Own every lot on the map', 'property', 'legendary'],
 
+  ['password_please', 'Password, Please', 'Get into the Underground on a password night', 'underground', 'common'],
+  ['busted', 'Busted!', 'Get raided by TODD', 'underground', 'rare'],
+  ['fence_sitter', 'Fence Sitter', 'Fence 5 pieces of hot loot', 'underground', 'rare'],
+  ['most_wanted', 'Most Wanted', 'Reach five stars of Heat', 'underground', 'epic'],
+  ['smugglers_run', "Smuggler's Run", 'Land 10 smuggling runs', 'underground', 'epic'],
+  ['clean_hands', 'Clean Hands', 'Spend ⬡50,000 in the Underground without ever being raided', 'underground', 'legendary'],
+
+  ['snitches_get_stitches', 'Snitches Get Stitches', 'Tip TODD off about someone who had it coming', 'secret', 'rare', true],
   ['condemned', 'Condemned', 'Let a property fall apart', 'secret', 'rare', true],
   ['weathered', 'Weathered', 'Lose 3 crops to a single storm', 'secret', 'rare', true],
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],

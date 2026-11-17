@@ -25,6 +25,7 @@ import { ButtonStyle, ComponentType, type SendableChannels } from 'discord.js';
 import { consoleFromDm, onRainButton, startConsole } from './discord/console';
 import { startActivity, startLiveFeed, startProfilesFeed, startApi, startFarmReminders, startHolidays, startEstates, startReminders } from './discord/background';
 import { startStatus } from './discord/status';
+import { connectorHijack } from './commands/underground';
 import { registerRoleMetadata } from './site/roles';
 import { setLotteryAnnouncer } from './commands/extras';
 import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
@@ -114,6 +115,11 @@ async function main(): Promise<void> {
       const ch = msg.channel;
       const everyone = msg.guild?.roles.everyone;
       const open = !!everyone && 'permissionsFor' in ch && !!ch.permissionsFor(everyone)?.has(['ViewChannel', 'SendMessages']);
+      // No Questions Asked: on a password night, the Connector hijacks TODD's next drop-in to leave it
+      if (open && ctx.guildId && ch.isSendable()) {
+        const hijack = db.tx(() => connectorHijack(db, ctx.guildId!, ctx.now));
+        if (hijack) { await ch.send({ ...hijack, allowedMentions: { parse: [] } }); return; }
+      }
       if (!open || !ctx.guildId || !shouldDrop(db, ctx.guildId, msg.channelId, ctx.now, rng)) return;
       if (!ch.isSendable()) return;
       await toddDrop(ch, ctx.guildId, ctx.now);

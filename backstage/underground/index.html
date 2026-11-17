@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>...</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --red: #e0323c; --blue: #4aa8ff; --violet: #8e44ad; --ink: #c9c3d6; --dim: #7d748c; --bg: #07050b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font: 15px/1.6 "IBM Plex Mono", monospace; }
+  body { overflow-x: hidden; }
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+    background: repeating-linear-gradient(transparent 0 2px, rgba(0,0,0,.28) 2px 3px), radial-gradient(ellipse at 50% 30%, transparent 40%, rgba(0,0,0,.75)); }
+  /* the alley: a brick wall, a puddle of light */
+  .alley { position: relative; min-height: 100vh; padding: 40px 20px 80px; display: flex; flex-direction: column; align-items: center;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 8%, rgba(142,68,173,.22), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0 22px, rgba(0,0,0,.35) 22px 24px),
+      repeating-linear-gradient(90deg, transparent 0 46px, rgba(0,0,0,.3) 46px 48px),
+      linear-gradient(#1a1018, #0b0710 60%, #07050b); }
+  h1 { font: 64px/1 VT323, monospace; letter-spacing: 6px; margin: 10px 0 0; color: #f3e9ff; text-align: center;
+    text-shadow: -2px 0 var(--red), 2px 0 var(--blue), 0 0 22px rgba(142,68,173,.6); animation: jit 4s steps(1) infinite; }
+  @keyframes jit { 0%, 92%, 100% { transform: none; } 93% { transform: translate(2px, -1px) skewX(-4deg); } 95% { transform: translate(-3px, 1px); } }
+  .sub { color: var(--dim); text-align: center; margin: 6px 0 26px; letter-spacing: 1px; }
+
+  /* the door, with the slot and his eyes */
+  .door { position: relative; width: 230px; height: 330px; background: linear-gradient(#3a3f4a, #262a33); border: 4px solid #12141a;
+    box-shadow: 0 0 0 2px #2c2f38, 0 30px 60px rgba(0,0,0,.7), inset 0 0 40px rgba(0,0,0,.5); image-rendering: pixelated; }
+  .door::before, .door::after { content: ""; position: absolute; width: 8px; height: 8px; background: #8b93a3; border-radius: 0;
+    box-shadow: 190px 0 #8b93a3, 0 290px #8b93a3, 190px 290px #8b93a3; left: 12px; top: 12px; }
+  .door::after { width: 22px; height: 22px; left: auto; right: 26px; top: 170px; background: #d4a017; box-shadow: none; }
+  .slot { position: absolute; left: 50%; top: 70px; width: 140px; height: 40px; margin-left: -70px; background: #000; border: 3px solid #12141a; overflow: hidden; }
+  .slot .lid { position: absolute; inset: 0; background: linear-gradient(#4a505c, #2e323b); transition: transform .5s cubic-bezier(.7,0,.3,1); }
+  .door.open .slot .lid { transform: translateX(100%); }
+  .eye { position: absolute; top: 15px; width: 12px; height: 8px; border-radius: 0; transition: height .08s; }
+  .eye.r { left: 36px; background: var(--red); box-shadow: 0 0 12px var(--red), 0 0 3px #fff inset; }
+  .eye.b { right: 36px; background: var(--blue); box-shadow: 0 0 12px var(--blue), 0 0 3px #fff inset; }
+  .door.blink .eye { height: 1px; top: 19px; }
+  .whisper { min-height: 2.6em; max-width: 520px; text-align: center; margin: 22px 0 6px; font: 26px/1.1 VT323, monospace; color: #efe6ff; text-shadow: 0 0 10px rgba(142,68,173,.8); }
+
+  .him { width: 128px; height: 128px; image-rendering: pixelated; margin-top: 30px; filter: drop-shadow(0 0 18px rgba(224,50,60,.35)); }
+
+  .board { width: min(720px, 100%); margin-top: 26px; border: 1px solid #3a2a48; background: rgba(10,6,16,.85); padding: 18px 20px; position: relative; z-index: 6; }
+  .board h2 { font: 28px/1 VT323, monospace; letter-spacing: 3px; margin: 0 0 10px; color: var(--red); }
+  .row { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-top: 1px dashed #2b2036; }
+  .row:first-of-type { border-top: 0; }
+  .row b { color: #fff; } .row .tag { font-size: 12px; padding: 0 6px; border: 1px solid; } .tag.on { color: #4cff9a; } .tag.off { color: var(--dim); } .tag.pw { color: var(--red); }
+  .row .where { color: var(--ink); flex: 1; }
+  .dim { color: var(--dim); font-size: 13px; }
+  .term { margin-top: 12px; }
+  .term form { display: flex; gap: 8px; }
+  .term input { flex: 1; font: 18px VT323, monospace; color: #fff; background: #000; border: 1px solid #3a2a48; padding: 6px 10px; }
+  .term button { font: 18px VT323, monospace; color: #000; background: var(--red); border: 0; padding: 4px 14px; cursor: pointer; }
+  .term .out { margin-top: 12px; }
+  .rules { width: min(720px, 100%); margin-top: 18px; font-size: 13px; color: var(--dim); position: relative; z-index: 6; }
+  .rules b { color: var(--ink); }
+  a { color: var(--blue); }
+  .back { position: fixed; left: 14px; top: 12px; z-index: 7; font: 18px VT323, monospace; color: var(--dim); text-decoration: none; }
+  .back:hover { color: #fff; }
+  @media (prefers-reduced-motion: reduce) { h1 { animation: none; } }
+</style>
+</head>
+<body>
+<a class="back" href="/backstage/frequency/">&lt; back to the static</a>
+<main class="alley">
+  <h1>NO QUESTIONS ASKED</h1>
+  <p class="sub">10 PM to 4 AM, Eastern. Somewhere condemned.</p>
+
+  <div class="door" id="door" aria-label="A steel door with a slot">
+    <div class="slot"><span class="eye r"></span><span class="eye b"></span><div class="lid"></div></div>
+  </div>
+  <p class="whisper" id="whisper" aria-live="polite"></p>
+  <img class="him" src="/bot/emojis/rc_connector.png" alt="A man in a red suit and a wide red hat. One red eye, one blue." id="him" hidden>
+
+  <section class="board" aria-labelledby="tn">
+    <h2 id="tn">TONIGHT</h2>
+    <div id="where"><p class="dim">Listening at the door…</p></div>
+    <div class="term" id="term" hidden>
+      <form id="form"><input id="line" autocomplete="off" spellcheck="false" placeholder="ug · ug buy dice · ug fence all · ug smuggle 1000 · ug <password>"><button>TALK</button></form>
+      <div class="out" id="out"></div>
+    </div>
+    <p class="dim" id="login" hidden><a href="/profile/">Log in</a> and you can talk to him from here.</p>
+  </section>
+
+  <section class="rules">
+    <p><b>The rules, such as they are.</b> He squats in a condemned lot on your server's map, or the worst-kept place if nothing's condemned. Some nights there's a password; he leaves it in one of TODD's drop-ins. Everything you do here adds <b>Heat</b>: five stars and TODD comes knocking. Fence what you stole in a heist, buy what Marquez won't sell, put a crate on a boat, or make a call to TODD about somebody. <b>No questions asked.</b> Play it in Discord with <code>r!underground</code>.</p>
+  </section>
+</main>
+<script src="/rv.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var LINES = ['Keep your voice down.', 'You weren\'t followed? Good.', 'Don\'t say my name.', 'I wasn\'t here. Neither were you.', 'What do you want.', 'Make it quick.', 'Marquez doesn\'t know you\'re here. Keep it that way.', 'TODD\'s been sniffing around.', 'Nice hat? Thanks. It\'s red.'];
+  var door = $('door'), w = $('whisper');
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function say(t) {
+    if (reduce) { w.textContent = '"' + t + '"'; return; }
+    var i = 0; w.textContent = '"';
+    clearInterval(say.t);
+    say.t = setInterval(function () { i++; w.textContent = '"' + t.slice(0, i) + (i >= t.length ? '"' : ''); if (i >= t.length) clearInterval(say.t); }, 38);
+  }
+  setTimeout(function () { door.classList.add('open'); say('...Who sent you?'); }, 900);
+  setInterval(function () { door.classList.add('blink'); setTimeout(function () { door.classList.remove('blink'); }, 140); }, 3800);
+  setInterval(function () { if (!document.hidden) say(LINES[Math.floor(Math.random() * LINES.length)]); }, 9000);
+  // the eyes follow you a little
+  var eyes = document.querySelectorAll('.eye');
+  document.addEventListener('pointermove', function (e) {
+    var b = door.getBoundingClientRect(), dx = Math.max(-1, Math.min(1, (e.clientX - (b.left + b.width / 2)) / 300)) * 8;
+    eyes.forEach(function (el) { el.style.transform = 'translateX(' + dx.toFixed(1) + 'px)'; });
+  });
+
+  // Where he is tonight, per server (from the live feed; never the password)
+  var names = {};
+  function when(ms) { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+  function draw(feed) {
+    var u = (feed && feed.underground) || {};
+    var ids = Object.keys(u);
+    if (!ids.length) { $('where').innerHTML = '<p class="dim">Nobody\'s talking. Try <code>r!underground</code> in Discord.</p>'; return; }
+    var anyOpen = false;
+    $('where').innerHTML = ids.map(function (id) {
+      var x = u[id], name = RV.esc(names[id] || 'A server');
+      if (x.open) anyOpen = true;
+      return '<div class="row"><b>' + name + '</b><span class="where">' + (x.open
+        ? 'Squatting in <b>lot ' + x.lot + '</b> (' + RV.esc(x.where === 'condemned' ? 'the condemned ' + x.kind : x.where === 'rundown' ? 'a run-down ' + x.kind : 'an empty lot') + ') until ' + when(x.until)
+        : 'Gone. Back at ' + when(x.opens)) + '</span>'
+        + (x.open ? '<span class="tag on">OPEN</span>' : '<span class="tag off">CLOSED</span>')
+        + (x.open && x.passwordNight ? '<span class="tag pw">PASSWORD</span>' : '') + '</div>';
+    }).join('');
+    $('him').hidden = !anyOpen;
+  }
+  RV.profiles().then(function (d) {
+    Object.keys((d && d.users) || {}).forEach(function (k) { (d.users[k].servers || []).forEach(function (s) { if (s.id) names[s.id] = s.server; }); });
+  }).finally(function () { RV.live(draw); });
+
+  // Talk to him (logged in)
+  if (RV.me()) {
+    $('term').hidden = false;
+    $('form').onsubmit = function (e) {
+      e.preventDefault();
+      var line = $('line').value.trim();
+      if (!line) return;
+      if (!/^(ug|underground)\b/i.test(line)) line = 'ug ' + line;
+      $('out').innerHTML = '<p class="dim">…</p>';
+      RV.run(line).then(function (res) { RV.show($('out'), line, res); }).catch(function (err) { $('out').innerHTML = '<p class="dim">' + RV.esc(err.message === 'login' ? 'Log in again on your profile.' : err.message) + '</p>'; });
+      $('line').value = '';
+    };
+  } else $('login').hidden = false;
+})();
+</script>
+</body>
+</html>

@@ -2,157 +2,482 @@
   "codes": {
     "HELLO": {
       "actions": [
-        { "type": "text", "text": "HELLO?!? is this THing ON?? can you see me.?" }
+        {
+          "type": "text",
+          "text": "HELLO?!? is this THing ON?? can you see me.?"
+        }
       ]
     },
     "DECOY": {
       "actions": [
-        { "type": "text", "theme": "decoy", "text": "SUCH A FUNNY WORD. word." }
+        {
+          "type": "text",
+          "theme": "decoy",
+          "text": "SUCH A FUNNY WORD. word."
+        }
       ]
     },
     "RARE": {
       "actions": [
-        { "type": "glitch", "ms": 600 },
-        { "type": "text", "theme": "rare", "text": "TRULY A rare one?!" }
+        {
+          "type": "glitch",
+          "ms": 600
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "TRULY A rare one?!"
+        }
       ]
     },
     "LEAVE": {
       "actions": [
-        { "type": "text", "text": "GO AWAY?! AWAY!!!" },
-        { "type": "wait", "ms": 1500 },
-        { "type": "redirect", "to": "/" }
+        {
+          "type": "text",
+          "text": "GO AWAY?! AWAY!!!"
+        },
+        {
+          "type": "wait",
+          "ms": 1500
+        },
+        {
+          "type": "redirect",
+          "to": "/"
+        }
       ]
     },
     "WHAT HAPPENED?": {
       "actions": [
-        {"type": "text", "text": "Finally, questions worth asking. NOT YET, Not YET??!"},
-        {"type": "glitch", "ms": 50 },
-        {"type": "text", "text": "GoodBYE!!!!"},
-        {"type": "redirect", "to": "/"}
+        {
+          "type": "text",
+          "text": "Finally, questions worth asking. NOT YET, Not YET??!"
+        },
+        {
+          "type": "glitch",
+          "ms": 50
+        },
+        {
+          "type": "text",
+          "text": "GoodBYE!!!!"
+        },
+        {
+          "type": "redirect",
+          "to": "/"
+        }
       ]
     },
     "RETOLD": {
       "actions": [
-        {"type": "glitch", "ms": 60 },
-        {"type": "text", "text": "There onCE was, an ORANge FELLOW. He loved to COOK"},
-        {"type": "glitch", "ms": 60 },
-        {"type": "text", "text": "I MISS him."}
+        {
+          "type": "glitch",
+          "ms": 60
+        },
+        {
+          "type": "text",
+          "text": "There onCE was, an ORANge FELLOW. He loved to COOK"
+        },
+        {
+          "type": "glitch",
+          "ms": 60
+        },
+        {
+          "type": "text",
+          "text": "I MISS him."
+        }
       ]
     },
     "HELP": {
       "actions": [
-        {"type": "glitch", "ms": 45 },
-        {"type": "text", "text": "You werent there to HELP me?? WHY SHouLD I Help YOU?!!? :("}
+        {
+          "type": "glitch",
+          "ms": 45
+        },
+        {
+          "type": "text",
+          "text": "You werent there to HELP me?? WHY SHouLD I Help YOU?!!? :("
+        }
       ]
     },
     "JOKER": {
       "actions": [
-        {"type": "text", "text": "..."},
-        {"type": "wait", "ms": 1500},
-        {"type": "text", "text": "What do you get when you cross a mentally ill loner with a society that abandons him and treats him like trash? I'll tell you what you get! You get what you fucking deserve!"}
+        {
+          "type": "text",
+          "text": "..."
+        },
+        {
+          "type": "wait",
+          "ms": 1500
+        },
+        {
+          "type": "text",
+          "text": "What do you get when you cross a mentally ill loner with a society that abandons him and treats him like trash? I'll tell you what you get! You get what you fucking deserve!"
+        }
       ]
     },
     "105.7": {
       "actions": [
-      {"type": "glitch", "ms": 30 },
-      {"type": "text", "text": "Oldies 105.7!"}
+        {
+          "type": "glitch",
+          "ms": 30
+        },
+        {
+          "type": "text",
+          "text": "Oldies 105.7!"
+        }
       ]
     },
     "FREE": {
       "actions": [
-        {"type": "text", "text": "And the truth, shall set you free!"}
+        {
+          "type": "text",
+          "text": "And the truth, shall set you free!"
+        }
       ]
     },
     "404": {
       "actions": [
-        { "type": "status", "text": "CH 01 // LOST TRANSMISSION" },
-        { "type": "glitch", "ms": 400 },
-        { "type": "text", "theme": "rare", "text": "you FOUND the page that ISN'T there.\nTell the bot what you found." },
-        { "type": "wait", "ms": 1200 },
-        { "type": "text", "theme": "rare", "instant": true, "text": "r!404" }
+        {
+          "type": "status",
+          "text": "CH 01 // LOST TRANSMISSION"
+        },
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "you FOUND the page that ISN'T there.\nTell the bot what you found."
+        },
+        {
+          "type": "wait",
+          "ms": 1200
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "instant": true,
+          "text": "r!404"
+        }
       ]
     },
     "89.3": {
       "actions": [
-        {"type": "status", "text": "SCott // You ThERE??!" },
-        {"type": "text", "text": "I DON't LIKE THIS game, SCott! Let me OUT! PLeaSE??" },
-        {"type": "redirect", "to": "https://en.wikipedia.org/wiki/Evil"}
+        {
+          "type": "status",
+          "text": "SCott // You ThERE??!"
+        },
+        {
+          "type": "text",
+          "text": "I DON't LIKE THIS game, SCott! Let me OUT! PLeaSE??"
+        },
+        {
+          "type": "redirect",
+          "to": "https://en.wikipedia.org/wiki/Evil"
+        }
       ]
     },
     "44.4": {
       "actions": [
-        { "type": "glitch", "ms": 400 },
-        { "type": "image", "src": "/backstage/frequency/media/remember.jpg", "position": "center", "width": "60%", "duration": 5000 },
-        { "type": "text", "text": "Stupid man." }
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "image",
+          "src": "/backstage/frequency/media/remember.jpg",
+          "position": "center",
+          "width": "60%",
+          "duration": 5000
+        },
+        {
+          "type": "text",
+          "text": "Stupid man."
+        }
       ]
     },
     "WONDER": {
       "actions": [
-        {"type": "glitch", "ms": 450 },
-        {"type": "image", "src": "/backstage/frequency/media/WonderLaugh.webp", "position": "center", "width": "50%", "duration": 5000 },
-        {"type": "text", "text": "WONDERFUL?!?! TRULY WONDERFUL!!! FREE FROM VARANDIA!!"}
+        {
+          "type": "glitch",
+          "ms": 450
+        },
+        {
+          "type": "image",
+          "src": "/backstage/frequency/media/WonderLaugh.webp",
+          "position": "center",
+          "width": "50%",
+          "duration": 5000
+        },
+        {
+          "type": "text",
+          "text": "WONDERFUL?!?! TRULY WONDERFUL!!! FREE FROM VARANDIA!!"
+        }
       ]
     },
     "CHEF": {
       "actions": [
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "Orangie? IS ThAT You?"},
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "CoME BACK??? To SAVE ME???"},
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "I KNEW YOU WOULD!!!"},
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "NO! Don't GO!!"},
-        {"type": "redirect", "to": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"}
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "Orangie? IS ThAT You?"
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "CoME BACK??? To SAVE ME???"
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "I KNEW YOU WOULD!!!"
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "NO! Don't GO!!"
+        },
+        {
+          "type": "redirect",
+          "to": "https://varandia.fandom.com/wiki/The_Varandia_Wiki"
+        }
       ]
     },
     "WONDERFUL": {
       "actions": [
-        {"type": "text", "text": "I HATE!!! The WOlF."}
+        {
+          "type": "text",
+          "text": "I HATE!!! The WOlF."
+        }
       ]
     },
     "CEDAR": {
       "actions": [
-        {"type": "sound", "src": "/backstage/audio/2xzb.mp3", "await": "true" },
-        {"type": "redirect", "to": "/"}
+        {
+          "type": "sound",
+          "src": "/backstage/audio/2xzb.mp3",
+          "await": "true"
+        },
+        {
+          "type": "redirect",
+          "to": "/"
+        }
       ]
     },
     "75.40": {
       "actions": [
-        {"type": "text", "text": "Big PApa." },
-        {"type": "wait", "ms": 300 },
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "I CouLD NEver Be LIKe HiM.." },
-        {"type": "wait", "ms": 300 },
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "HE BUIlt THis worlD FROM NOTHING!" },
-        {"type": "wait", "ms": 300 },
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "ALL I SAY IS forsooth and THOUH ART." },
-        {"type": "wait", "ms": 300 },
-        {"type": "glitch", "ms": 100 },
-        {"type": "text", "text": "I DON'T EVEN KNOW WHAT A FORSOoTH IS!!" },
-        {"type": "wait", "ms": 300 },
-        {"type": "glitch", "ms": 100 }
+        {
+          "type": "text",
+          "text": "Big PApa."
+        },
+        {
+          "type": "wait",
+          "ms": 300
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "I CouLD NEver Be LIKe HiM.."
+        },
+        {
+          "type": "wait",
+          "ms": 300
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "HE BUIlt THis worlD FROM NOTHING!"
+        },
+        {
+          "type": "wait",
+          "ms": 300
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "ALL I SAY IS forsooth and THOUH ART."
+        },
+        {
+          "type": "wait",
+          "ms": 300
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        },
+        {
+          "type": "text",
+          "text": "I DON'T EVEN KNOW WHAT A FORSOoTH IS!!"
+        },
+        {
+          "type": "wait",
+          "ms": 300
+        },
+        {
+          "type": "glitch",
+          "ms": 100
+        }
       ]
     },
     "TODD.OS": {
       "actions": [
-        {"type": "status", "text": "CH 01 // HOST SIGNAL"},
-        {"type": "glitch", "ms": 300},
-        {"type": "text", "text": "WHO'S THERE?!? oh. OH. it's YOU.?"},
-        {"type": "item", "id": "todd_floppy"},
-        {"type": "text", "text": "here. TAKE this. KEEP it SAFE!!? don't let ANYONE put it in ANYTHING!!"}
+        {
+          "type": "status",
+          "text": "CH 01 // HOST SIGNAL"
+        },
+        {
+          "type": "glitch",
+          "ms": 300
+        },
+        {
+          "type": "text",
+          "text": "WHO'S THERE?!? oh. OH. it's YOU.?"
+        },
+        {
+          "type": "item",
+          "id": "todd_floppy"
+        },
+        {
+          "type": "text",
+          "text": "here. TAKE this. KEEP it SAFE!!? don't let ANYONE put it in ANYTHING!!"
+        }
       ]
     },
     "13.13": {
       "actions": [
-        {"type": "status", "text": "CH 01 // 13.13 // RECORDING"},
-        {"type": "glitch", "ms": 700},
-        {"type": "text", "text": "...", "instant": true},
-        {"type": "item", "id": "static_cassette"},
-        {"type": "wait", "ms": 1500},
-        {"type": "text", "text": "[ tape ejected ]", "instant": true}
+        {
+          "type": "status",
+          "text": "CH 01 // 13.13 // RECORDING"
+        },
+        {
+          "type": "glitch",
+          "ms": 700
+        },
+        {
+          "type": "text",
+          "text": "...",
+          "instant": true
+        },
+        {
+          "type": "item",
+          "id": "static_cassette"
+        },
+        {
+          "type": "wait",
+          "ms": 1500
+        },
+        {
+          "type": "text",
+          "text": "[ tape ejected ]",
+          "instant": true
+        }
+      ]
+    },
+    "RED SUIT": {
+      "actions": [
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "WHO TOLD YOU THAT NAME?!"
+        },
+        {
+          "type": "wait",
+          "ms": 1400
+        },
+        {
+          "type": "glitch",
+          "ms": 80
+        },
+        {
+          "type": "text",
+          "text": "...fine. FINE. Down the alley. Third door. DON'T knock."
+        },
+        {
+          "type": "flag",
+          "name": "connector"
+        },
+        {
+          "type": "wait",
+          "ms": 1800
+        },
+        {
+          "type": "redirect",
+          "to": "/backstage/underground/"
+        }
+      ]
+    },
+    "NO QUESTIONS ASKED": {
+      "actions": [
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "WHO TOLD YOU THAT NAME?!"
+        },
+        {
+          "type": "wait",
+          "ms": 1400
+        },
+        {
+          "type": "glitch",
+          "ms": 80
+        },
+        {
+          "type": "text",
+          "text": "...fine. FINE. Down the alley. Third door. DON'T knock."
+        },
+        {
+          "type": "flag",
+          "name": "connector"
+        },
+        {
+          "type": "wait",
+          "ms": 1800
+        },
+        {
+          "type": "redirect",
+          "to": "/backstage/underground/"
+        }
+      ]
+    },
+    "THE CONNECTOR": {
+      "actions": [
+        {
+          "type": "glitch",
+          "ms": 200
+        },
+        {
+          "type": "text",
+          "text": "I don't KNOW anybody by that name. nobody does. what does he WEAR, even??"
+        }
       ]
     }
   }

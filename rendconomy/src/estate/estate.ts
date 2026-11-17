@@ -119,6 +119,9 @@ export function settle(db: Db, guildId: string, now: number): EstateNews[] {
   db.tx(() => {
     const lots = lotsOf(db, guildId, now);
     const weather = weatherLog(db).filter((w) => w.kind === 'storm');
+    // No Questions Asked: nights the Connector squatted in an owned place (its rent is halved that day)
+    let hosts: { lot: number; from: number; until: number }[] = [];
+    try { hosts = JSON.parse(db.meta(`ug.hosts:${guildId}`) ?? '[]'); } catch { /* none */ }
     const owners = new Map<string, { n: number; sets: Set<Kind>; beacon: boolean }>();
     for (const l of lots) if (l.status === 'owned' && l.owner_id && !owners.has(l.owner_id)) {
       const mine = ownedBy(lots, l.owner_id);
@@ -127,10 +130,10 @@ export function settle(db: Db, guildId: string, now: number): EstateNews[] {
     for (const l of lots) {
       // a buyout nobody answered goes through
       if (l.status === 'owned' && l.bidder_id && l.bid_until !== null && l.bid_until <= now) {
-        settleLot(db, l, owners, weather, l.bid_until, news);
+        settleLot(db, l, owners, weather, l.bid_until, news, hosts);
         if (l.status === 'owned') buyout(db, l, l.bid_until, news);
       }
-      if (l.status === 'owned') settleLot(db, l, owners, weather, now, news);
+      if (l.status === 'owned') settleLot(db, l, owners, weather, now, news, hosts);
       if (l.status === 'auction' && l.auction_until !== null && l.auction_until <= now) endAuction(db, l, news);
       saveLot(db, l);
     }
@@ -138,7 +141,7 @@ export function settle(db: Db, guildId: string, now: number): EstateNews[] {
   return news;
 }
 
-function settleLot(db: Db, l: Lot, owners: Map<string, { n: number; sets: Set<Kind>; beacon: boolean }>, storms: { from: number; until: number }[], now: number, news: EstateNews[]): void {
+function settleLot(db: Db, l: Lot, owners: Map<string, { n: number; sets: Set<Kind>; beacon: boolean }>, storms: { from: number; until: number }[], now: number, news: EstateNews[], hosts: { lot: number; from: number; until: number }[] = []): void {
   const owner = l.owner_id!;
   const o = owners.get(owner) ?? { n: 1, sets: new Set<Kind>(), beacon: false };
   const w = wallet(l.guild_id, owner);
@@ -146,7 +149,8 @@ function settleLot(db: Db, l: Lot, owners: Map<string, { n: number; sets: Set<Ki
   for (let guard = 0; l.settled_at + DAY <= now && guard < 400; guard++) {
     const from = l.settled_at, to = from + DAY;
     // the day's rent, at the condition it started with
-    const r = dayRent(l, o.sets.has(l.kind));
+    let r = dayRent(l, o.sets.has(l.kind));
+    if (hosts.some((h) => h.lot === l.lot && h.from < to && h.until > from)) r = Math.floor(r / 2);   // the Connector squatted here
     if (r > 0) {
       const paid = payFromReserve(db, economy.reserveStart, { to: w, cents: r, reason: 'estate.rent', guildId: l.guild_id, actorId: owner, now: to, note: { lot: l.lot } });
       rent += paid;

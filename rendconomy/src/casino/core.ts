@@ -11,6 +11,7 @@ import { format, parseAmount, polygons, type Cents } from '../core/money';
 import * as sessions from '../core/sessions';
 import { HOUR, MINUTE, discordTime, takeCooldown } from '../core/time';
 import { useEffect } from '../shop/inventory';
+import { UG, useCharge } from '../underground/underground';
 
 export type Game = 'slots' | 'coinflip' | 'dice' | 'roulette' | 'blackjack' | 'hilo' | 'mines' | 'rocket';
 
@@ -64,7 +65,13 @@ export function activeGame(ctx: Ctx): sessions.Session | null {
 
 /** Checks and takes a bet (into the Reserve). Returns the bet in cents. */
 export function takeBet(ctx: Ctx, guildId: string, game: Game, raw: string | number | undefined): Cents {
-  const ban = bannedUntil(ctx, guildId);
+  let ban = bannedUntil(ctx, guildId);
+  // No Questions Asked: a Fake ID gets you past TODD
+  if (ban && useCharge(ctx.db, guildId, ctx.user.id, 'fake_id')) {
+    ctx.db.run('UPDATE casino SET ban_until = 0 WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id);
+    ctx.notes.push(`${emojiOr('fake_id', '🪪')} You show TODD a Fake ID. He squints at it for a long time, then lets you in.`);
+    ban = 0;
+  }
   if (ban) throw new GameError('casino.banned', `TODD has barred you from the Rend-Sino for winning too much. You may return ${discordTime(ban)}.`);
   for (const g of gates) { const no = g(ctx, guildId); if (no) throw new GameError('casino.gate', no); }
   if (activeGame(ctx)) throw new GameError('casino.busy', 'Finish your current game first.');
@@ -85,6 +92,19 @@ export function takeBet(ctx: Ctx, guildId: string, game: Game, raw: string | num
  */
 export function settle(ctx: Ctx, guildId: string, game: Game, bet: Cents, payout: Cents): { paid: Cents; lines: string[] } {
   const lines: string[] = [];
+  // No Questions Asked: Loaded Dice (five games of better odds, if TODD doesn't spot them)
+  if (useCharge(ctx.db, guildId, ctx.user.id, 'dice')) {
+    if (ctx.rng.next() < UG.diceCatch) {
+      ctx.db.run('UPDATE underground SET dice = 0 WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id);
+      const until = ctx.now + CASINO.banMs;
+      ctx.db.run('INSERT OR IGNORE INTO casino (guild_id, user_id) VALUES (?, ?)', guildId, ctx.user.id);
+      ctx.db.run('UPDATE casino SET ban_until = ? WHERE guild_id = ? AND user_id = ?', until, guildId, ctx.user.id);
+      lines.push(`${emojiOr('loaded_dice', '🎲')} **TODD spots the Loaded Dice.** He takes them and shows you the door until ${discordTime(until, 't')}.`);
+    } else if (payout < bet && ctx.rng.next() < UG.diceSave) {
+      payout = bet;
+      lines.push(`${emojiOr('loaded_dice', '🎲')} The Loaded Dice roll your way: your bet comes back.`);
+    }
+  }
   let paid = Math.max(0, Math.round(payout));
   if (paid > 0 && useEffect(ctx.db, guildId, ctx.user.id, 'chip')) { paid = Math.round(paid * 1.04); lines.push('Platinum Chip: +4%.'); }
   if (paid > 0) transfer(ctx.db, { from: RESERVE, to: wallet(guildId, ctx.user.id), cents: paid, reason: 'casino.win', guildId, actorId: ctx.user.id, now: ctx.now, note: { game } });

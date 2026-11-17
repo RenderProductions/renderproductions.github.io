@@ -1,3 +1,5 @@
+import { emojiOr } from '../discord/emoji';
+import { UG } from '../underground/underground';
 import { economy } from '../config';
 import { player } from '../core/economy';
 import { GameError } from '../core/errors';
@@ -84,7 +86,11 @@ export function onHeistButton(ctx: Ctx, s: sessions.Session<Lobby>, value: strin
       : r.outcome === 'clean' ? `**Clean getaway.** The haul: ${format(r.haul)}, ${format(r.each)} each.`
       : r.outcome === 'escaped' ? '**It went wrong**, but the driver got everyone out. Stakes are lost; no fines.'
       : `**TODD caught the crew.** Stakes are lost, and each member was fined up to ${format(TARGETS[st.target].stake * HEIST.fine)}.`;
-    return { update: lobbyView(ctx, s, `${line}${r.odds ? `\n-# The odds were ${Math.round(r.odds * 100)}%.` : ''}`, true) };
+    const extra = [
+      ...(r.loot ?? []).map((l) => `${emojiOr(l.emoji, '🔥')} **${l.who}** also grabbed ${l.name} (hot, worth about ${format(l.value)}). Marquez won't touch it. Somebody else might. \`${ctx.config.prefix}underground\``),
+      r.picked ? `-# ${emojiOr('lockpick', '🔓')} A Lockpick Set helped: +${Math.round(UG.lockpickOdds * 100)}% odds.` : null
+    ].filter(Boolean).join('\n');
+    return { update: lobbyView(ctx, s, `${line}${extra ? `\n${extra}` : ''}${r.odds ? `\n-# The odds were ${Math.round(r.odds * 100)}%.` : ''}`, true) };
   }
   return {};
 }
