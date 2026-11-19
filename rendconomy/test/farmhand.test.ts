@@ -10,7 +10,7 @@ import { seededRng } from '../src/core/rng';
 import { DAY, HOUR, MINUTE } from '../src/core/time';
 import { execute } from '../src/discord/router';
 import { CROPS, plotsOf } from '../src/farming/farming';
-import { HAND, runShift, saleDmDue, shedOf } from '../src/farming/farmhand';
+import { runShift, shedOf } from '../src/farming/farmhand';
 import { addItem, count, items } from '../src/shop/inventory';
 import { FIXES } from '../src/fixes';
 import { anyItem } from '../src/shop/items';
@@ -61,28 +61,26 @@ test('the farmhand keeps a seed shed, replants while you are away, and says when
   assert.ok(audit(db).ok);
 });
 
-test('tomatoes regrow for him, and with auto-sell on he sells each harvest to Marquez', async () => {
+test('tomatoes regrow for him: three harvests into the basket, then the plot is free', async () => {
   const { db, run, fund, later } = setup();
   await run('balance'); fund(2000);
   await run('farmhand', { action: 'hire' });
-  assert.match(text(await run('farmhand', { action: 'sell on' })), /sell what he harvests to Marquez[\s\S]*DM you/);
   addItem(db, G, A, 'seed_tomato', 1);
   await run('farmhand', { action: 'give tomato' });
-  const before = balance(db, wallet(G, A));
   later(CROPS.tomato!.growMs * 2 + 1000);   // first harvest at 4h, then 6h, then 8h
   const v = text(await run('farm'));
-  assert.match(v, /sold 3 crops to Marquez for \*\*⬡/);
-  assert.equal(crops(db), 0, 'nothing left in the basket');
-  assert.ok(balance(db, wallet(G, A)) > before);
+  assert.match(v, /harvested 3 crops into your basket/);
+  assert.doesNotMatch(v, /sold/, 'he never sells for you');
+  assert.equal(crops(db), 3);
+  assert.equal(db.get<{ n: number }>("SELECT COUNT(*) AS n FROM ledger WHERE reason = 'farm.sell'")?.n ?? 0, 0, 'nothing sold');
   assert.equal(plotsOf(db, G, A).length, 0, 'the tomato plant is done after three');
   assert.ok(audit(db).ok);
 });
 
-test('the background shift: one out-of-seeds DM, sale DMs at most every 3 hours, and he quits if unpaid', async () => {
+test('the background shift: one out-of-seeds DM, and he quits if unpaid', async () => {
   const { db, run, fund, later, now } = setup();
   await run('balance'); fund(400);
   await run('farmhand', { action: 'hire' });
-  await run('farmhand', { action: 'sell on' });
   addItem(db, G, A, 'seed_carrot', 3);
   await run('farmhand', { action: 'give carrot' });
   later(31 * MINUTE);
@@ -90,13 +88,6 @@ test('the background shift: one out-of-seeds DM, sale DMs at most every 3 hours,
   const first = runShift(db, G, A, now(), rng);
   assert.equal(first.newlyOut, true);
   assert.equal(runShift(db, G, A, now() + MINUTE, rng).newlyOut, false, 'just the one DM');
-  const sale = saleDmDue(db, G, A, now());
-  assert.ok(sale && sale.n >= 1);
-  assert.equal(saleDmDue(db, G, A, now() + HOUR), null);
-  // giving seeds resets it
-  addItem(db, G, A, 'seed_carrot', 1);
-  await run('farmhand', { action: 'give carrot' });
-  assert.ok(HAND.saleDmGapMs === 3 * HOUR);
   // the wage runs out: he quits and the shed comes back
   addItem(db, G, A, 'seed_corn', 6);
   await run('farmhand', { action: 'give corn' });

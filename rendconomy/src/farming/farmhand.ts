@@ -1,22 +1,15 @@
 // The Farmhand (Farm Handiness Update): keeps a seed shed you stock, waters everything, harvests what's ready
 // into your basket and replants from the shed, the whole time you're away. Worked out from timestamps like the
 // rest of the farm: when you look, and by a background pass that also sends his DMs.
-import { economy } from '../config';
 import type { Db } from '../core/db';
-import { payFromReserve } from '../core/economy';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import type { Rng } from '../core/rng';
 import { DAY } from '../core/time';
 import { addItem, count, takeItem } from '../shop/inventory';
 import {
-  CROPS, CROP_ORDER, FARMING, clearPlot, cropItem, farmhandUntil, newPlot, parseCropItem, plotCount, plotsOf, rollMutation,
-  saleValue, savePlot, seedItem, setFarmhand, simulate, weatherLog, type Env, type Plot
+  CROPS, CROP_ORDER, FARMING, clearPlot, cropItem, farmhandUntil, newPlot, plotCount, plotsOf, rollMutation,
+  savePlot, seedItem, setFarmhand, simulate, weatherLog, type Env, type Plot
 } from './farming';
-
-export const HAND = {
-  /** At most one sale DM in this long (they're added up in between). */
-  saleDmGapMs: 3 * 60 * 60 * 1000
-};
 
 /** What the farmhand did since you last looked. */
 export interface ShiftLog {
@@ -27,11 +20,9 @@ export interface ShiftLog {
   storms: number;
   outOf: string[];                      // crops he ran out of ('any': an empty plot, nothing to plant)
   idle: number;                         // plots left empty: nothing in the shed
-  sold: number; soldN: number;          // auto-sold since you looked
-  dmSold: number; dmSoldN: number;      // auto-sold since the last sale DM
   left: boolean;                        // quit: you couldn't pay
 }
-const emptyLog = (from: number): ShiftLog => ({ from, harvested: {}, replanted: 0, crows: 0, storms: 0, outOf: [], idle: 0, sold: 0, soldN: 0, dmSold: 0, dmSoldN: 0, left: false });
+const emptyLog = (from: number): ShiftLog => ({ from, harvested: {}, replanted: 0, crows: 0, storms: 0, outOf: [], idle: 0, left: false });
 
 interface HandRow { hand_shed: string | null; hand_last: string | null; hand_log: string | null; hand_at: number | null; hand_sell: number; hand_dm: number; hand_out: number; hand_dm_at: number }
 const handRow = (db: Db, g: string, u: string): HandRow | undefined =>
@@ -84,8 +75,7 @@ export function emptyShed(db: Db, g: string, u: string): number {
 }
 
 // ---------------------------------------------------------------- settings
-export const handSettings = (db: Db, g: string, u: string) => { const r = handRow(db, g, u); return { sell: r?.hand_sell === 1, dm: (r?.hand_dm ?? 1) === 1 }; };
-export const setHandSell = (db: Db, g: string, u: string, on: boolean) => setCols(db, g, u, { hand_sell: on ? 1 : 0 });
+export const handSettings = (db: Db, g: string, u: string) => ({ dm: (handRow(db, g, u)?.hand_dm ?? 1) === 1 });
 export const setHandDm = (db: Db, g: string, u: string, on: boolean) => setCols(db, g, u, { hand_dm: on ? 1 : 0 });
 
 /** Hires him: paid through a day from now, starting work now. */
@@ -127,7 +117,7 @@ function pick(shed: Record<string, number>, last: string | undefined): string | 
 
 /**
  * Brings his work up to `now`: wages, then every plot harvested and replanted as it would have happened, then
- * (if switched on) the new crops sold to Marquez. Adds to the log you see next time you look.
+ * adds to the log you see next time you look.
  * Returns the log and what's new for DMs.
  */
 export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): { log: ShiftLog | null; newlyOut: boolean; left: boolean } {
@@ -142,7 +132,6 @@ export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): {
   const env = farmEnv(db, g, u, true);
   const owned = plotCount(db, g, u);
   const plots = new Map(plotsOf(db, g, u).map((p) => [p.slot, p] as const));
-  const fresh: Record<string, number> = {};
   const outOf = new Set<string>();
   let idle = 0;
 
@@ -178,28 +167,12 @@ export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): {
       const item = cropItem(p.crop, rollMutation(p.crop, rng));
       addItem(db, g, u, item);
       log.harvested[item] = (log.harvested[item] ?? 0) + 1;
-      fresh[item] = (fresh[item] ?? 0) + 1;
       if (p.harvests_left > 1) { p = { ...p, harvests_left: p.harvests_left - 1, progress: c.growMs / 2, ready_at: null, watered: 1, stage_since: at, updated_at: at, crow_at: null, fert: 0, reminded: 0 }; continue; }
       last[String(slot)] = p.crop;
       t = at;
       p = undefined;
     }
     if (p) savePlot(db, p); else clearPlot(db, g, u, slot);
-  }
-
-  // auto-sell what he just picked
-  if (row?.hand_sell === 1 && Object.keys(fresh).length) {
-    let cents = 0, n = 0;
-    for (const [item, q] of Object.entries(fresh)) {
-      const c = parseCropItem(item)!;
-      const k = Math.min(q, count(db, g, u, item));
-      if (k > 0 && takeItem(db, g, u, item, k)) { cents += saleValue(c, now) * k; n += k; }
-    }
-    if (cents > 0) {
-      const paid = payFromReserve(db, economy.reserveStart, { to: wallet(g, u), cents, reason: 'farm.sell', guildId: g, actorId: u, now, note: { by: 'farmhand' } });
-      db.run('INSERT INTO progress (user_id, key, value) VALUES (?, ?, ?) ON CONFLICT (user_id, key) DO UPDATE SET value = value + excluded.value', u, 'farm_earned', paid);
-      log.sold += paid; log.soldN += n; log.dmSold += paid; log.dmSoldN += n;
-    }
   }
 
   log.outOf = [...outOf];
@@ -216,13 +189,4 @@ export function takeLog(db: Db, g: string, u: string): ShiftLog | null {
   if (log) setCols(db, g, u, { hand_log: log.left ? null : JSON.stringify(emptyLog(Date.now())) });
   return log;
 }
-/** For the background DMs: a sale summary is due (and marks it sent). */
-export function saleDmDue(db: Db, g: string, u: string, now: number): { cents: number; n: number } | null {
-  const row = handRow(db, g, u);
-  const log = parse<ShiftLog | null>(row?.hand_log, null);
-  if (!log || !log.dmSold || now - (row?.hand_dm_at ?? 0) < HAND.saleDmGapMs) return null;
-  const out = { cents: log.dmSold, n: log.dmSoldN };
-  setCols(db, g, u, { hand_log: JSON.stringify({ ...log, dmSold: 0, dmSoldN: 0 }), hand_dm_at: now });
-  return out;
-}
-export const quietLog = (log: ShiftLog | null): boolean => !log || (!Object.keys(log.harvested).length && !log.replanted && !log.crows && !log.storms && !log.outOf.length && !log.sold && !log.left);
+export const quietLog = (log: ShiftLog | null): boolean => !log || (!Object.keys(log.harvested).length && !log.replanted && !log.crows && !log.storms && !log.outOf.length && !log.left);

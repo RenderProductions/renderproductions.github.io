@@ -32,7 +32,7 @@ import { roleStats } from '../site/roles';
 import { KINDS, lotsOf, type Kind } from '../estate/estate';
 import { nextOpen, nightCloses, tonight } from '../underground/underground';
 import { cryptoRng } from '../core/rng';
-import { handSettings, runShift, saleDmDue } from '../farming/farmhand';
+import { handSettings, runShift } from '../farming/farmhand';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
 export function startReminders(db: Db, client: Client, prefix: string): void {
@@ -98,14 +98,13 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
 }
 
 /** The Farm Handiness Update: every farmhand works his shift every 10 minutes, even when nobody looks, and
- *  DMs (if they're on) when he runs out of seeds, after auto-selling (at most every 3 hours), or when he quits. */
+ *  DMs (if they're on) when he runs out of seeds or quits. */
 export function startFarmhands(db: Db, client: Client, prefix: string, rng: Rng): void {
   const tick = () => {
     const now = Date.now();
     for (const f of db.all<{ guild_id: string; user_id: string }>('SELECT guild_id, user_id FROM farms WHERE farmhand_until IS NOT NULL')) {
       try {
         const r = db.tx(() => runShift(db, f.guild_id, f.user_id, now, rng));
-        const sale = db.tx(() => saleDmDue(db, f.guild_id, f.user_id, now));
         const lines: string[] = [];
         const server = client.guilds.cache.get(f.guild_id)?.name;
         const where = server ? ` in **${server}**` : '';
@@ -116,7 +115,6 @@ export function startFarmhands(db: Db, client: Client, prefix: string, rng: Rng)
           lines.push(`${H} Your farmhand${where} is out of seeds${named.length ? ` (${named.join(', ')})` : ''}. Some plots are sitting empty. Hand him more with \`${prefix}farmhand give carrot 10\`.`);
           addInbox(db, f.user_id, f.guild_id, 'Farmhand out of seeds', 'Some plots are sitting empty.', now);
         }
-        if (sale) lines.push(`${emoji('harvest')} Your farmhand${where} sold ${sale.n} ${sale.n === 1 ? 'crop' : 'crops'} to Marquez for **${format(sale.cents)}**.`);
         if (!lines.length || !handSettings(db, f.guild_id, f.user_id).dm) continue;
         lines.push(`-# \`${prefix}farmhand dms off\` turns these off.`);
         client.users.fetch(f.user_id).then((u) => u.send({ content: lines.join('\n'), allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
