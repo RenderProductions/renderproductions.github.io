@@ -119,9 +119,14 @@
         <button class="rv-b" data-act="plant tomato">🍅 Tomatoes</button><button class="rv-b" data-act="plant pumpkin">🎃 Pumpkins</button>
         <button class="rv-b" data-act="plant polygon fruit"><img class="rv-px" src="/bot/emojis/rc_polyfruit.png" alt=""> Polygon Fruit</button>
       </div></div>
-      <div class="box"><h2>Farmhand</h2><p class="rv-dim" style="margin:.2rem 0 .6rem;font-size:13px">⬡150 a day: waters everything and harvests what's ready into your basket.</p><div class="acts">
-        <button class="rv-b" data-act="farmhand hire">🧑‍🌾 Hire</button><button class="rv-b" data-act="farmhand fire">👋 Let go</button>
-      </div></div>
+      <div class="box"><h2>Farmhand</h2><p class="rv-dim" style="margin:.2rem 0 .6rem;font-size:13px">⬡150 a day: waters everything, harvests what's ready and replants from his seed shed, even while you're away.</p><div class="acts">
+        <button class="rv-b" data-act="farmhand">🧑‍🌾 His shed</button><button class="rv-b" data-act="farmhand hire">Hire</button><button class="rv-b" data-act="farmhand fire">👋 Let go</button>
+      </div>
+        <div class="field"><label for="hseed">Give him seeds</label><select id="hseed"><option value="carrot">🥕 Carrot</option><option value="corn">🌽 Corn</option><option value="tomato">🍅 Tomato</option><option value="pumpkin">🎃 Pumpkin</option><option value="polygon fruit">Polygon Fruit</option></select></div>
+        <div class="field"><label for="hqty">How many (a number, or all)</label><input id="hqty" value="all"></div>
+        <button class="rv-b" data-form="farmhand give {hseed} {hqty}">Hand them over</button>
+        <div class="acts" style="margin-top:.5rem"><button class="rv-b" data-act="farmhand sell on">Auto-sell on</button><button class="rv-b" data-act="farmhand sell off">Auto-sell off</button><button class="rv-b" data-act="farmhand dms on">DMs on</button><button class="rv-b" data-act="farmhand dms off">DMs off</button></div>
+      </div>
       <div class="box"><h2>Farmers' market</h2><div class="field"><label for="mkt">A player company's ticker</label><input id="mkt" placeholder="REND" autocapitalize="characters"></div><button class="rv-b" data-form="farm sell {mkt}">Sell the basket there (+10%)</button></div>
       </aside>
     </section>

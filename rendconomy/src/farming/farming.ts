@@ -17,7 +17,7 @@ export const FARMING = {
   plotPrices: [1000, 1500, 2500, 3500, 5000, 7500].map(polygons),
   wiltMs: 12 * HOUR, dryRate: 0.5, fertRate: 1.5, stormChance: 0.25,
   earlyBirdMs: MINUTE,
-  /** The Farmhand waters everything and harvests what's ready, for a daily wage. */
+  /** The Farmhand waters everything, harvests what's ready and replants from his seed shed, for a daily wage. */
   farmhandWage: polygons(150)
 };
 
@@ -84,7 +84,7 @@ export interface Plot {
   harvests_left: number; wilted: number; crow_at: number | null; fert: number; dry_ms: number;
   ready_at: number | null; storm_seen: number; reminded: number; seed: number;
 }
-export interface Env { sprinkler: boolean; greenhouse: boolean; scarecrow: boolean; weather: Weather[] }
+export interface Env { /** a Farmhand keeps everything watered */ hand: boolean; greenhouse: boolean; scarecrow: boolean; weather: Weather[] }
 export type FarmEvent = { kind: 'ready' | 'wilted' | 'crow_ate' | 'crow_scared' | 'storm'; slot: number; crop: string; at: number };
 
 export type Stage = 'sprout' | 'growing' | 'ready' | 'wilted';
@@ -110,7 +110,7 @@ export function simulate(plot: Plot, env: Env, now: number): { plot: Plot; gone:
   const events: FarmEvent[] = [];
   const ev = (kind: FarmEvent['kind'], at: number) => events.push({ kind, slot: q.slot, crop: q.crop, at });
   const T = CROPS[q.crop]!.growMs, half = T / 2;
-  const wetAt = (x: number) => env.sprinkler || env.weather.some((w) => w.kind === 'rain' && w.from <= x && x < w.until);
+  const wetAt = (x: number) => env.hand || env.weather.some((w) => w.kind === 'rain' && w.from <= x && x < w.until);
   let t = q.updated_at;
   if (q.wilted || q.ready_at !== null || t >= now) { q.updated_at = Math.max(t, now); return { plot: q, gone: false, events }; }
   for (let guard = 0; t < now && guard < 2000; guard++) {

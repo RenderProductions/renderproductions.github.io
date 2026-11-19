@@ -18,7 +18,7 @@ import { approve, found } from '../src/companies/companies';
 const G = 'g1', A = '111111111111111111';
 const text = (r: ReplyObject | undefined | null) => [r?.content ?? '', ...(r?.embeds ?? []).map((e) => `${e.title}\n${e.description}`)].join('\n');
 const noon = eastern('2026-11-15T12:00', -5);
-const dry: Env = { sprinkler: false, greenhouse: false, scarecrow: false, weather: [] };
+const dry: Env = { hand: false, greenhouse: false, scarecrow: false, weather: [] };
 const plotOf = (crop: string, wet = false, crowAt: number | null = null): Plot => ({ ...newPlot(G, A, 0, crop, noon, seededRng(1), wet), crow_at: crowAt });
 
 function setup() {
@@ -46,8 +46,8 @@ test('growth: watered crops grow on time, dry ones at half speed, and 12 thirsty
   const w = simulate(plotOf('pumpkin'), dry, noon + FARMING.wiltMs + 1);
   assert.equal(w.plot.wilted, 1);
   assert.deepEqual(w.events.map((e) => e.kind), ['wilted']);
-  // a sprinkler means it never goes thirsty
-  const s = simulate(plotOf('pumpkin'), { ...dry, sprinkler: true }, noon + CROPS.pumpkin!.growMs);
+  // a farmhand means it never goes thirsty
+  const s = simulate(plotOf('pumpkin'), { ...dry, hand: true }, noon + CROPS.pumpkin!.growMs);
   assert.equal(s.plot.ready_at, noon + CROPS.pumpkin!.growMs);
   assert.equal(s.plot.dry_ms, 0);
 });
@@ -67,7 +67,7 @@ test('crows, rain and storms', () => {
   assert.ok(r.plot.progress > c.growMs / 2, 'rain made it grow at full speed');
   // a storm is rolled once per plot (the same answer every time), and a Greenhouse ignores it
   const storm = (seed: number) => ({ ...plotOf('pumpkin', true), seed });
-  const sky = { ...dry, sprinkler: true, weather: [{ kind: 'storm' as const, from: noon + HOUR, until: noon + 2 * HOUR }] };
+  const sky = { ...dry, hand: true, weather: [{ kind: 'storm' as const, from: noon + HOUR, until: noon + 2 * HOUR }] };
   const results = Array.from({ length: 400 }, (_, i) => simulate(storm(i + 1), sky, noon + 3 * HOUR).gone);
   const lost = results.filter(Boolean).length;
   assert.ok(lost > 60 && lost < 140, `about a quarter flattened (${lost} of 400)`);
@@ -129,10 +129,12 @@ test('farming: tomatoes give three harvests, plots expand to nine, compost and f
   const { db, run, rich, later } = setup();
   await run('balance');
   rich();
-  addItem(db, G, A, 'seed_tomato'); addItem(db, G, A, 'sprinkler');
-  assert.match(text(await run('plant', { crop: 'tomato', plot: '2' })), /plot 2\. The Sprinkler waters it/);
+  addItem(db, G, A, 'seed_tomato');
+  assert.match(text(await run('plant', { crop: 'tomato', plot: '2' })), /plot 2\. Don't forget to/);
   for (let i = 0; i < 3; i++) {
-    later(CROPS.tomato!.growMs);
+    await run('water');
+    later(CROPS.tomato!.growMs / 2);
+    if (i === 0) { await run('water'); later(CROPS.tomato!.growMs / 2); }
     assert.match(text(await run('harvest')), /Tomato|Golden|Rainbow/);
   }
   assert.ok(has(db, A, 'ketchup'));
@@ -149,7 +151,10 @@ test('farming: tomatoes give three harvests, plots expand to nine, compost and f
   addItem(db, G, A, 'seed_pumpkin');
   await run('plant', { crop: 'pumpkin' });
   assert.match(text(await run('fertilize')), /Fertilizer into plot 1/);
-  later(CROPS.pumpkin!.growMs / FARMING.fertRate);
+  await run('water');
+  later(CROPS.pumpkin!.growMs / 2 / FARMING.fertRate);
+  await run('water');
+  later(CROPS.pumpkin!.growMs / 2 / FARMING.fertRate);
   assert.match(text(await run('farm')), /Pumpkin: .*ready to harvest/);
   assert.ok(audit(db).ok);
 });

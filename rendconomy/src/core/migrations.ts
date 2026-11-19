@@ -489,5 +489,16 @@ export const MIGRATIONS: readonly string[] = [
     launder_lot   INTEGER
   );
   CREATE INDEX hot_loot_owner ON hot_loot (guild_id, user_id);
+  `,
+
+  /* v20: the Farm Handiness Update: the Farmhand's seed shed, replanting, auto-selling and DMs. */ `
+  ALTER TABLE farms ADD COLUMN hand_shed TEXT;
+  ALTER TABLE farms ADD COLUMN hand_last TEXT;
+  ALTER TABLE farms ADD COLUMN hand_log TEXT;
+  ALTER TABLE farms ADD COLUMN hand_at INTEGER;
+  ALTER TABLE farms ADD COLUMN hand_sell INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE farms ADD COLUMN hand_dm INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE farms ADD COLUMN hand_out INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE farms ADD COLUMN hand_dm_at INTEGER NOT NULL DEFAULT 0;
   `
 ];

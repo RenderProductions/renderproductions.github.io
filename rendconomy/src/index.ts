@@ -23,7 +23,7 @@ import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType, type SendableChannels } from 'discord.js';
 import { consoleFromDm, onRainButton, startConsole } from './discord/console';
-import { startActivity, startLiveFeed, startProfilesFeed, startApi, startFarmReminders, startHolidays, startEstates, startReminders } from './discord/background';
+import { startActivity, startLiveFeed, startProfilesFeed, startApi, startFarmReminders, startFarmhands, startHolidays, startEstates, startReminders } from './discord/background';
 import { startStatus } from './discord/status';
 import { connectorHijack } from './commands/underground';
 import { registerRoleMetadata } from './site/roles';
@@ -186,6 +186,7 @@ async function main(): Promise<void> {
     });
     startReminders(db, c, config.prefix);
     startFarmReminders(db, c, config.prefix);
+    startFarmhands(db, c, config.prefix, cryptoRng());
     startHolidays(db, c, config.prefix);
     startEstates(db, config.prefix);
     startActivity(db, config, rng, c);

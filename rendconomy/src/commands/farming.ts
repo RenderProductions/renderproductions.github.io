@@ -16,16 +16,12 @@ import {
 } from '../farming/farming';
 import { addItem, count, items, takeItem } from '../shop/inventory';
 import { marquez } from '../shop/items';
+import { dismiss, farmEnv, giveSeeds, handSettings, hasHand as handOn, hire, quietLog, runShift, setHandDm, setHandSell, shedOf, shedTotal, takeLog, takeSeeds } from '../farming/farmhand';
 import { me } from './shared';
 import type { Command, Ctx, ReplyObject } from './types';
 
-const hasHand = (ctx: Ctx, guildId: string): boolean => (farmhandUntil(ctx.db, guildId, ctx.user.id) ?? 0) > ctx.now;
-const env = (ctx: Ctx, guildId: string): Env => ({
-  sprinkler: count(ctx.db, guildId, ctx.user.id, 'sprinkler') > 0 || hasHand(ctx, guildId),
-  greenhouse: count(ctx.db, guildId, ctx.user.id, 'greenhouse') > 0,
-  scarecrow: count(ctx.db, guildId, ctx.user.id, 'scarecrow') > 0,
-  weather: weatherLog(ctx.db)
-});
+const hasHand = (ctx: Ctx, guildId: string): boolean => handOn(ctx.db, guildId, ctx.user.id, ctx.now);
+const env = (ctx: Ctx, guildId: string): Env => farmEnv(ctx.db, guildId, ctx.user.id, hasHand(ctx, guildId));
 
 const cropE = (id: string): string => emojiOr(id, CROPS[id]!.emoji);
 const tile = (p: Plot | undefined, locked: boolean): string => {
@@ -46,34 +42,53 @@ export function findCrop(text: string): string | null {
   return CROP_ORDER.find((id) => [CROPS[id]!.name, CROPS[id]!.plural].some((n) => n.toLowerCase() === t)) ?? CROP_ORDER.find((id) => t.length >= 3 && id.startsWith(t)) ?? null;
 }
 
-/** Brings the farm up to now, awards what happened since, and says it. */
+/** Brings the farm up to now (the farmhand's shift first), awards what happened since, and says it. */
 function catchUp(ctx: Ctx, guildId: string): { plots: Plot[]; news: string[]; env: Env } {
-  const pay = payFarmhand(ctx, guildId);
+  runShift(ctx.db, guildId, ctx.user.id, ctx.now, ctx.rng);
   const e = env(ctx, guildId);
   const { plots, events } = resolveFarm(ctx.db, guildId, ctx.user.id, e, ctx.now);
-  const n = [...pay, ...news(ctx, events)];
-  if (!hasHand(ctx, guildId)) return { plots, news: n, env: e };
-  // the farmhand harvests whatever is ready (and clears wilted plots) into your basket
-  const ready = plots.filter((p) => stageOf(p) === 'ready' || stageOf(p) === 'wilted');
-  if (!ready.length) return { plots, news: n, env: e };
-  const got = harvestPlots(ctx, guildId, ready, true);
-  if (got.count) n.push(`${emojiOr('farmhand', '🧑‍🌾')} Your farmhand harvested ${got.count} ${got.count === 1 ? 'crop' : 'crops'} into your basket${got.lines.some((l) => /\*\*/.test(l)) ? `: ${got.lines.filter((l) => /\*\*/.test(l)).join(' ')}` : '.'}`);
-  return { plots: plotsOf(ctx.db, guildId, ctx.user.id), news: n, env: e };
+  return { plots, news: [...handNews(ctx, guildId), ...news(ctx, events)], env: e };
 }
 
-/** Pays the farmhand for each day that has started since they were last paid. Can't pay? They leave. */
-function payFarmhand(ctx: Ctx, guildId: string): string[] {
-  let until = farmhandUntil(ctx.db, guildId, ctx.user.id);
-  if (until === null || until > ctx.now) return [];
-  const w = walletOf(guildId, ctx.user.id);
-  let days = 0;
-  while (until <= ctx.now) {
-    if (balance(ctx.db, w) < FARMING.farmhandWage) { setFarmhand(ctx.db, guildId, ctx.user.id, null); return [`${emojiOr('farmhand', '🧑‍🌾')} Your farmhand left: you couldn't pay their ${format(FARMING.farmhandWage)} wage${days ? ` after ${days} more ${days === 1 ? 'day' : 'days'}` : ''}.`]; }
-    transfer(ctx.db, { from: w, to: RESERVE, cents: FARMING.farmhandWage, reason: 'farm.hand', guildId, actorId: ctx.user.id, now: ctx.now });
-    until += DAY; days++;
-  }
-  setFarmhand(ctx.db, guildId, ctx.user.id, until);
-  return [];
+/** Achievements and counters for crops that went into the basket. */
+function creditHarvest(ctx: Ctx, item: string, qty: number): void {
+  const c = parseCropItem(item);
+  if (!c || qty <= 0) return;
+  awardHere('green_thumb');
+  if (bump(ctx.db, ctx.user.id, 'harvests', qty) >= 500) awardHere('bumper_crop');
+  if (c.crop.id === 'carrot' && bump(ctx.db, ctx.user.id, 'carrots', qty) >= 100) awardHere('whats_up_doc');
+  if (c.crop.id === 'pumpkin' && bump(ctx.db, ctx.user.id, 'pumpkins', qty) >= 25) awardHere('great_pumpkin');
+  if (c.crop.id === 'polyfruit') awardHere('forbidden_fruit');
+  if (c.mut === 'golden') awardHere('midas_touch');
+  if (c.mut === 'square') awardHere('look_at_spookly');
+  if (c.mut === 'rainbow') { setProgress(ctx.db, ctx.user.id, `rainbow_${c.crop.id}`, 1); if (CROP_ORDER.every((x) => getProgress(ctx.db, ctx.user.id, `rainbow_${x}`) > 0)) awardHere('taste_the_rainbow'); }
+}
+
+/** "While you were gone": what the farmhand did since you last looked. */
+function handNews(ctx: Ctx, guildId: string): string[] {
+  const log = takeLog(ctx.db, guildId, ctx.user.id);
+  if (!log || quietLog(log)) return [];
+  const P = ctx.config.prefix, H = emojiOr('farmhand', '🧑‍🌾');
+  const out: string[] = [];
+  const picked = Object.entries(log.harvested);
+  const n = picked.reduce((s, [, q]) => s + q, 0);
+  for (const [item, q] of picked) creditHarvest(ctx, item, q);
+  if (n) sameDay(ctx.db, ctx.user.id, 'harvest', ctx.now);
+  if (getProgress(ctx.db, ctx.user.id, 'farm_earned') >= polygons(100_000)) awardHere('cash_crop');
+  const special = picked.map(([item, q]) => [parseCropItem(item)!, q] as const).filter(([c]) => c.mut).map(([c, q]) => `${emojiOr(c.emojiKey, c.emoji)} **${q > 1 ? `${q} × ` : ''}${c.name}**`);
+  const did = [
+    n ? `harvested ${n} ${n === 1 ? 'crop' : 'crops'} into your basket${special.length ? ` (${special.join(', ')})` : ''}` : null,
+    log.replanted ? `replanted ${log.replanted} ${log.replanted === 1 ? 'time' : 'times'}` : null,
+    log.soldN ? `sold ${log.soldN} ${log.soldN === 1 ? 'crop' : 'crops'} to Marquez for **${format(log.sold)}**` : null
+  ].filter(Boolean) as string[];
+  if (did.length) out.push(`${H} **While you were gone**, your farmhand ${did.length > 1 ? `${did.slice(0, -1).join(', ')} and ${did[did.length - 1]}` : did[0]}.`);
+  const lost = [log.crows ? `crows got ${log.crows}` : null, log.storms ? `storms flattened ${log.storms}` : null].filter(Boolean);
+  if (lost.length) out.push(`-# He did his best, but ${lost.join(' and ')}.`);
+  const named = log.outOf.filter((c) => CROPS[c]).map((c) => CROPS[c]!.name);
+  if (log.idle) out.push(`${H} He's out of seeds${named.length ? ` (${named.join(', ')})` : ''}: ${log.idle} ${log.idle === 1 ? 'plot sits' : 'plots sit'} empty. Hand him more: \`${P}farmhand give carrot 10\`.`);
+  else if (named.length) out.push(`-# He ran out of ${named.join(' and ')} seeds and planted what he had instead.`);
+  if (log.left) out.push(`${H} Your farmhand left: you couldn't pay their ${format(FARMING.farmhandWage)} wage. Whatever was in his seed shed is back in your inventory.`);
+  return out;
 }
 
 /** Harvests these plots (ready or wilted) into the basket. auto: the farmhand did it (no Early Bird). */
@@ -102,7 +117,7 @@ function harvestPlots(ctx: Ctx, guildId: string, plots: Plot[], auto: boolean): 
       if (mut === 'rainbow') { setProgress(ctx.db, ctx.user.id, `rainbow_${p.crop}`, 1); if (CROP_ORDER.every((x) => getProgress(ctx.db, ctx.user.id, `rainbow_${x}`) > 0)) awardHere('taste_the_rainbow'); }
     }
     // tomatoes grow back from the growing stage; everything else leaves the plot empty
-    if (p.harvests_left > 1) savePlot(ctx.db, { ...p, harvests_left: p.harvests_left - 1, progress: c.growMs / 2, ready_at: null, watered: env(ctx, guildId).sprinkler ? 1 : 0, stage_since: ctx.now, updated_at: ctx.now, crow_at: null, fert: 0, reminded: 0 });
+    if (p.harvests_left > 1) savePlot(ctx.db, { ...p, harvests_left: p.harvests_left - 1, progress: c.growMs / 2, ready_at: null, watered: env(ctx, guildId).hand ? 1 : 0, stage_since: ctx.now, updated_at: ctx.now, crow_at: null, fert: 0, reminded: 0 });
     else clearPlot(ctx.db, guildId, ctx.user.id, p.slot);
   }
   if (muts >= 2) awardHere('lucky_harvest');
@@ -164,7 +179,8 @@ function farmView(ctx: Ctx, guildId: string, top: string[] = []): ReplyObject {
       storming ? `${emoji('storm')} A storm is passing through.${count(ctx.db, guildId, ctx.user.id, 'greenhouse') ? ' Your Greenhouse keeps the crops safe.' : ''}` : null,
       seeds.length ? `Seeds: ${seeds.map(([id, q]) => `${emojiOr(`seed_${id}`, CROPS[id]!.emoji)} ${q}`).join(' · ')}` : `-# Seeds are on Marquez's Garden shelf: \`${P}shop garden\`.`,
       inBasket ? `${emoji('harvest')} Basket: ${inBasket} ${inBasket === 1 ? 'crop' : 'crops'}, worth **${format(worth)}** · \`${P}farm sell\`` : null,
-      price !== null ? `-# ${emoji('newplot')} Plot ${owned + 1} costs ${format(price)}: \`${P}buyplot\`` : null
+      price !== null ? `-# ${emoji('newplot')} Plot ${owned + 1} costs ${format(price)}: \`${P}buyplot\`` : null,
+      hasHand(ctx, guildId) ? `-# ${emojiOr('farmhand', '🧑‍🌾')} Your farmhand has ${shedTotal(shedOf(ctx.db, guildId, ctx.user.id))} seeds in his shed: \`${P}farmhand\`` : null
     ], { footer: { text: `${P}plant <crop> · ${P}water · ${P}harvest · ${P}farm remind ${remindOn(ctx.db, guildId, ctx.user.id) ? 'off' : 'on'}` } })]
   };
 }
@@ -216,14 +232,14 @@ export const plant: Command = {
       if (!seeds) throw new GameError('farm.seeds', `You have no ${c.name} Seeds. Marquez has them on the Garden shelf: \`${P}shop garden\`.`);
       const go = targets.slice(0, seeds);
       takeItem(ctx.db, guildId, ctx.user.id, seedItem(id), go.length);
-      const wet = e.sprinkler || isEvent(ctx.db, 'rain', undefined, ctx.now);
+      const wet = e.hand || isEvent(ctx.db, 'rain', undefined, ctx.now);
       for (const slot of go) savePlot(ctx.db, newPlot(guildId, ctx.user.id, slot, id, ctx.now, ctx.rng, wet));
       const growing = new Set([...plots.filter((p) => !p.wilted).map((p) => p.crop), id]);
       if (CROP_ORDER.every((x) => growing.has(x))) awardHere('something_for_everyone');
       const left = seeds - go.length;
       return farmView(ctx, guildId, [...n,
         `${cropE(id)} You plant ${go.length === 1 ? `a ${c.name}` : `${go.length} ${c.plural}`} in plot${go.length === 1 ? '' : 's'} ${go.map((s) => s + 1).join(', ')}.` +
-        (wet ? ` ${e.sprinkler ? 'The Sprinkler waters' : 'The rain waters'} ${go.length === 1 ? 'it' : 'them'} right away.` : ` Don't forget to \`${P}water\`.`),
+        (wet ? ` ${e.hand ? 'Your farmhand waters' : 'The rain waters'} ${go.length === 1 ? 'it' : 'them'} right away.` : ` Don't forget to \`${P}water\`.`),
         targets.length > seeds ? `-# That was your last ${c.name} seed.` : left ? `-# ${left} ${c.name} ${left === 1 ? 'seed' : 'seeds'} left.` : null
       ].filter((x): x is string => x !== null));
     });
@@ -357,34 +373,81 @@ export const buyplot: Command = {
   }
 };
 
+const SHED_HELP = (P: string) => `\`${P}farmhand give <crop> [amount|all]\` · \`${P}farmhand take <crop> [amount|all]\` · \`${P}farmhand sell on|off\` · \`${P}farmhand dms on|off\` · \`${P}farmhand fire\``;
+/** "carrot 10", "polygon fruit all", "corn": the crop and how many (default all). */
+function cropAndAmount(words: string[]): { crop: string | null; n: number | 'all' } {
+  const lastWord = words[words.length - 1] ?? '';
+  const n: number | 'all' = /^\d+$/.test(lastWord) ? Number(lastWord) : 'all';
+  const cropWords = /^(\d+|all)$/.test(lastWord) ? words.slice(0, -1) : words;
+  return { crop: findCrop(cropWords.join(' ')), n };
+}
+
 export const farmhand: Command = {
-  name: 'farmhand', aliases: ['hand', 'farmhelp'], description: `Hire a Farmhand (${format(FARMING.farmhandWage)} a day): they water everything and harvest what's ready`, system: 'farm', guildOnly: true,
-  options: [{ name: 'action', type: 'string', description: '"hire", "fire", or blank to see' }],
+  name: 'farmhand', aliases: ['hand', 'farmhelp'], description: `Hire a Farmhand (${format(FARMING.farmhandWage)} a day): he waters, harvests and replants from a seed shed you stock`, system: 'farm', guildOnly: true,
+  options: [{ name: 'action', type: 'string', description: 'Blank to see, or: hire, fire, give <crop> [amount], take <crop> [amount], sell on|off, dms on|off' }],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
-    const P = ctx.config.prefix;
-    const v = String(args.action ?? '').trim().toLowerCase();
+    const P = ctx.config.prefix, H = emojiOr('farmhand', '🧑‍🌾');
+    const [v = '', ...rest] = String(args.action ?? '').trim().toLowerCase().split(/\s+/);
+    const onOff = (w: string | undefined, cur: boolean) => (w ? ['on', 'yes', 'true'].includes(w) : !cur);
     return ctx.db.tx(() => {
-      const top = payFarmhand(ctx, guildId);
+      const top = catchUp(ctx, guildId).news;
       const until = farmhandUntil(ctx.db, guildId, ctx.user.id);
+      const employed = !!until && until > ctx.now;
+      const need = () => { if (!employed) throw new GameError('hand.none', `You have no farmhand. Hire one: \`${P}farmhand hire\`.`); };
       if (v === 'hire') {
-        if (until && until > ctx.now) throw new GameError('hand.have', 'You already have a farmhand.');
+        if (employed) throw new GameError('hand.have', 'You already have a farmhand.');
         if (balance(ctx.db, wallet) < FARMING.farmhandWage) throw new GameError('funds.short', `A farmhand costs ${format(FARMING.farmhandWage)} a day, paid up front. The balance is ${format(balance(ctx.db, wallet))}.`);
         transfer(ctx.db, { from: wallet, to: RESERVE, cents: FARMING.farmhandWage, reason: 'farm.hand', guildId, actorId: ctx.user.id, now: ctx.now });
-        setFarmhand(ctx.db, guildId, ctx.user.id, ctx.now + DAY);
+        hire(ctx.db, guildId, ctx.user.id, ctx.now);
         awardHere('gentleman_farmer');
         // first job: water everything that's thirsty
         for (const p of resolveFarm(ctx.db, guildId, ctx.user.id, env(ctx, guildId), ctx.now).plots) if ((stageOf(p) === 'sprout' || stageOf(p) === 'growing') && !p.watered) savePlot(ctx.db, { ...p, watered: 1 });
-        return farmView(ctx, guildId, [...top, `${emojiOr('farmhand', '🧑‍🌾')} You hire a farmhand for **${format(FARMING.farmhandWage)} a day**. They'll keep everything watered and harvest what's ready into your basket.`, `-# Their wage comes out each day. Let them go with \`${P}farmhand fire\`.`]);
+        return farmView(ctx, guildId, [...top, `${H} You hire a farmhand for **${format(FARMING.farmhandWage)} a day**. He keeps everything watered, harvests what's ready into your basket and replants from his seed shed.`,
+          `Stock his shed so he can replant: \`${P}farmhand give carrot 10\`. He'll DM you when he runs out.`, `-# His wage comes out each day. Let him go with \`${P}farmhand fire\`.`]);
       }
       if (v === 'fire' || v === 'dismiss') {
-        if (!until || until <= ctx.now) throw new GameError('hand.none', 'You have no farmhand.');
-        setFarmhand(ctx.db, guildId, ctx.user.id, null);
-        return farmView(ctx, guildId, [...top, `${emojiOr('farmhand', '🧑‍🌾')} You let your farmhand go. They tip their hat on the way out.`]);
+        need();
+        const back = dismiss(ctx.db, guildId, ctx.user.id);
+        return farmView(ctx, guildId, [...top, `${H} You let your farmhand go. He tips his hat on the way out${back ? ` and hands back ${back} ${back === 1 ? 'seed' : 'seeds'} from his shed` : ''}.`]);
       }
-      return { embeds: [embed('farm', '🧑‍🌾 Farmhand', [...top,
-        until && until > ctx.now ? `You have a farmhand. Next wage (${format(FARMING.farmhandWage)}) is due ${discordTime(until)}.` : `No farmhand. Hire one for **${format(FARMING.farmhandWage)} a day**: they water everything and harvest what's ready into your basket.`,
-        `-# \`${P}farmhand ${until && until > ctx.now ? 'fire' : 'hire'}\``])] };
+      if (v === 'give' || v === 'stock') {
+        need();
+        const { crop, n } = cropAndAmount(rest);
+        if (!crop) throw new GameError('farm.crop', `Give him which seeds? ${CROP_ORDER.map((c) => `\`${c}\``).join(', ')}. Like \`${P}farmhand give carrot 10\`.`);
+        const moved = giveSeeds(ctx.db, guildId, ctx.user.id, crop, n);
+        if (!moved) throw new GameError('farm.seeds', `You have no ${CROPS[crop]!.name} Seeds. Marquez has them on the Garden shelf: \`${P}shop garden\`.`);
+        const after = catchUp(ctx, guildId).news;   // he gets straight to work on empty plots
+        return farmView(ctx, guildId, [...top, ...after, `${H} You hand your farmhand ${moved} ${CROPS[crop]!.name} ${moved === 1 ? 'seed' : 'seeds'}. He has ${shedOf(ctx.db, guildId, ctx.user.id)[crop] ?? 0} now.`]);
+      }
+      if (v === 'take') {
+        need();
+        const { crop, n } = cropAndAmount(rest);
+        if (!crop) throw new GameError('farm.crop', `Take back which seeds? Like \`${P}farmhand take carrot 5\`.`);
+        const got = takeSeeds(ctx.db, guildId, ctx.user.id, crop, n);
+        if (!got) throw new GameError('farm.seeds', `He has no ${CROPS[crop]!.name} Seeds.`);
+        return { embeds: [embed('farm', '🧑‍🌾 Farmhand', [...top, `You take back ${got} ${CROPS[crop]!.name} ${got === 1 ? 'seed' : 'seeds'}.`])] };
+      }
+      if (v === 'sell' || v === 'autosell') {
+        const on = onOff(rest[0], handSettings(ctx.db, guildId, ctx.user.id).sell);
+        setHandSell(ctx.db, guildId, ctx.user.id, on);
+        return { embeds: [embed('farm', '🧑‍🌾 Farmhand', [...top, on ? `${emoji('yes')} Your farmhand will sell what he harvests to Marquez, every shift.${handSettings(ctx.db, guildId, ctx.user.id).dm ? ' He\'ll DM you what it came to.' : ''}` : `${emoji('no')} Your farmhand will leave what he harvests in your basket.`])] };
+      }
+      if (v === 'dms' || v === 'dm') {
+        const on = onOff(rest[0], handSettings(ctx.db, guildId, ctx.user.id).dm);
+        setHandDm(ctx.db, guildId, ctx.user.id, on);
+        return { embeds: [embed('farm', '🧑‍🌾 Farmhand', [...top, on ? `${emoji('yes')} Your farmhand will DM you when he runs out of seeds, sells your crops, or quits.` : `${emoji('no')} No more DMs from your farmhand. He'll still tell you everything when you look at your farm.`])] };
+      }
+      const shed = shedOf(ctx.db, guildId, ctx.user.id);
+      const st = handSettings(ctx.db, guildId, ctx.user.id);
+      const stocked = CROP_ORDER.filter((c) => shed[c]).map((c) => `${emojiOr(`seed_${c}`, CROPS[c]!.emoji)} ${CROPS[c]!.name} × ${shed[c]}`);
+      return { embeds: [embed('farm', '🧑‍🌾 Farmhand', employed ? [...top,
+        `Your farmhand is on the job. Next wage (${format(FARMING.farmhandWage)}) is due ${discordTime(until!)}.`, '',
+        `**Seed shed**: ${stocked.length ? stocked.join(' · ') : 'empty. He can\'t replant anything.'}`,
+        `He replants each plot with the same crop, or whatever he has most of. Out of seeds, the plot waits for you.`, '',
+        `Auto-sell to Marquez: **${st.sell ? 'on' : 'off'}** · DMs: **${st.dm ? 'on' : 'off'}**`,
+        `-# ${SHED_HELP(P)}`
+      ] : [...top, `No farmhand. Hire one for **${format(FARMING.farmhandWage)} a day**: he waters everything, harvests what's ready and replants from a seed shed you stock, even while you're away.`, `-# \`${P}farmhand hire\``])] };
     });
   }
 };

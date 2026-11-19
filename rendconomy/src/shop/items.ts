@@ -49,7 +49,6 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
     `Plant with /plant ${c.id}. Ready in ${c.growMs >= 3_600_000 ? `${c.growMs / 3_600_000} ${c.growMs === 3_600_000 ? 'hour' : 'hours'}` : `${c.growMs / 60_000} minutes`}${c.harvests > 1 ? `, and it gives ${c.harvests} harvests` : ''}.`)),
   item('fertilizer', '🧪', 'Fertilizer', 60, 10, 'garden', 'One crop grows 50% faster. /fertilize, or compost your fishing junk into it.'),
   item('scarecrow', '🧑‍🌾', 'Scarecrow', 400, 3, 'garden', 'Chases crows off your whole farm. Works on its own.', { passive: true }),
-  item('sprinkler', '💦', 'Sprinkler', 2500, 2, 'garden', 'Waters every crop on your farm for you. Works on its own.', { passive: true }),
   item('greenhouse', '🏡', 'Greenhouse', 4000, 1, 'garden', 'Storms can\'t touch your crops. Works on its own.', { passive: true }),
   item('kit', '🎨', 'Profile Customizer Kit', 1500, 3, 'style', 'Unlocks customizing your profile, for good.'),
   item('paint_holo', '🌈', 'Holographic Paint', 5000, 2, 'style', 'Shifts through every color. A profile theme, yours forever.'),

@@ -273,7 +273,7 @@
   // (the same art as in Discord). Runs on the page, and on anything added later (bot replies, profiles...).
   // Leaves form controls, code and anything marked data-noemoji alone. RV.emo(name) gives one as HTML.
   var PIX = {
-    '🧑‍🌾': 'farmhand', '🐦‍⬛': 'crow', '🌾': 'farm', '💧': 'wateringcan', '🧺': 'harvest', '🧪': 'fertilizer', '♻': 'compost', '💦': 'sprinkler',
+    '🧑‍🌾': 'farmhand', '🐦‍⬛': 'crow', '🌾': 'farm', '💧': 'wateringcan', '🧺': 'harvest', '🧪': 'fertilizer', '♻': 'compost',
     '🥕': 'carrot', '🌽': 'corn', '🍅': 'tomato', '🎃': 'pumpkin', '🌧': 'rain', '⛈': 'storm', '🪧': 'newplot',
     '🏠': 'property', '🛖': 'prop_shack', '🏪': 'prop_shop', '🗼': 'prop_lighthouse', '🏛': 'prop_mansion', '🔨': 'repair', '🔑': 'key', '✉': 'bid', '🚪': 'evict', '🛌': 'squatter',
     '💼': 'work', '🛠': 'gig', '🧰': 'gig', '💰': 'polygon', '🛍': 'shop', '🤝': 'social', '🎁': 'gift', '🐖': 'savings', '🐷': 'savings', '📜': 'loan', '🧾': 'receipt', '🏦': 'reserve', '🌅': 'daily',

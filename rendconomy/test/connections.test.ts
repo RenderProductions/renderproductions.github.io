@@ -104,7 +104,7 @@ test('the Farmhand waters and harvests for a daily wage, and leaves if unpaid', 
   assert.ok(plotsOf(db, G, A).every((p) => p.watered === 1), 'watered right away');
   later(CROPS.carrot!.growMs + 1000);
   const v = text(await run('farm'));
-  assert.match(v, /Your farmhand harvested 3 crops into your basket/);
+  assert.match(v, /While you were gone\*\*, your farmhand harvested 3 crops into your basket/);
   assert.equal(plotsOf(db, G, A).length, 0);
   assert.equal(count(db, G, A, 'crop_carrot') + count(db, G, A, 'crop_golden_carrot') + count(db, G, A, 'crop_rainbow_carrot'), 3);
   // wages: two more days get paid; then the money runs out and they leave

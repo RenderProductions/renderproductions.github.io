@@ -58,6 +58,7 @@ export const REASONS: Record<string, string> = {
   'farm.sell': 'Harvest sold',
   'farm.plot': 'Farm plot',
   'farm.hand': 'Farmhand wage',
+  'farm.refund': 'Sprinkler refund',
   'ug.buy': 'Contraband',
   'ug.fine': 'TODD raid fine',
   'ug.fence': 'Fenced hot loot',

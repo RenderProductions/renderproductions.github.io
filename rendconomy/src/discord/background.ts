@@ -14,12 +14,13 @@ import type { BotConfig } from '../config';
 import type { Db } from '../core/db';
 import type { Rng } from '../core/rng';
 import { MINUTE } from '../core/time';
+import { format } from '../core/money';
 import { load as loadMarket } from '../market/market';
 import { netWorth } from '../social/worth';
 import { execute, parsePrefix, press } from './router';
 import * as sessions from '../core/sessions';
 import type { ReplyObject } from '../commands/types';
-import { CROPS, plotsOf, simulate, weatherLog } from '../farming/farming';
+import { CROPS, FARMING, plotsOf, simulate, weatherLog } from '../farming/farming';
 import { count } from '../shop/inventory';
 import { RESERVE, balance } from '../core/ledger';
 import { activeEvent, EVENTS } from '../events/world';
@@ -31,6 +32,7 @@ import { roleStats } from '../site/roles';
 import { KINDS, lotsOf, type Kind } from '../estate/estate';
 import { nextOpen, nightCloses, tonight } from '../underground/underground';
 import { cryptoRng } from '../core/rng';
+import { handSettings, runShift, saleDmDue } from '../farming/farmhand';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
 export function startReminders(db: Db, client: Client, prefix: string): void {
@@ -80,9 +82,9 @@ export function startEstates(db: Db, prefix: string): void {
 export function startFarmReminders(db: Db, client: Client, prefix: string): void {
   setInterval(() => {
     const now = Date.now(), weather = weatherLog(db);
-    for (const f of db.all<{ guild_id: string; user_id: string }>('SELECT guild_id, user_id FROM farms WHERE remind = 1')) {
+    for (const f of db.all<{ guild_id: string; user_id: string }>('SELECT guild_id, user_id FROM farms WHERE remind = 1 AND (farmhand_until IS NULL OR farmhand_until <= ?)', now)) {
       const has = (item: string) => count(db, f.guild_id, f.user_id, item) > 0;
-      const env = { sprinkler: has('sprinkler'), greenhouse: has('greenhouse'), scarecrow: has('scarecrow'), weather };
+      const env = { hand: false, greenhouse: has('greenhouse'), scarecrow: has('scarecrow'), weather };
       const ready = plotsOf(db, f.guild_id, f.user_id).filter((p) => !p.reminded && !p.wilted).filter((p) => { const r = simulate(p, env, now); return !r.gone && r.plot.ready_at !== null; });
       if (!ready.length) continue;
       for (const p of ready) db.run('UPDATE farm_plots SET reminded = 1 WHERE guild_id = ? AND user_id = ? AND slot = ?', f.guild_id, f.user_id, p.slot);
@@ -93,6 +95,36 @@ export function startFarmReminders(db: Db, client: Client, prefix: string): void
       client.users.fetch(f.user_id).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     }
   }, MINUTE).unref();
+}
+
+/** The Farm Handiness Update: every farmhand works his shift every 10 minutes, even when nobody looks, and
+ *  DMs (if they're on) when he runs out of seeds, after auto-selling (at most every 3 hours), or when he quits. */
+export function startFarmhands(db: Db, client: Client, prefix: string, rng: Rng): void {
+  const tick = () => {
+    const now = Date.now();
+    for (const f of db.all<{ guild_id: string; user_id: string }>('SELECT guild_id, user_id FROM farms WHERE farmhand_until IS NOT NULL')) {
+      try {
+        const r = db.tx(() => runShift(db, f.guild_id, f.user_id, now, rng));
+        const sale = db.tx(() => saleDmDue(db, f.guild_id, f.user_id, now));
+        const lines: string[] = [];
+        const server = client.guilds.cache.get(f.guild_id)?.name;
+        const where = server ? ` in **${server}**` : '';
+        const H = emojiOr('farmhand', '🧑‍🌾');
+        if (r.left) { lines.push(`${H} Your farmhand${where} quit: you couldn't pay his ${format(FARMING.farmhandWage)} wage. The seeds in his shed are back in your inventory.`); addInbox(db, f.user_id, f.guild_id, 'Farmhand quit', 'You couldn\'t pay his wage.', now); }
+        if (r.newlyOut && !r.left) {
+          const named = (r.log?.outOf ?? []).filter((c) => CROPS[c]).map((c) => CROPS[c]!.name);
+          lines.push(`${H} Your farmhand${where} is out of seeds${named.length ? ` (${named.join(', ')})` : ''}. Some plots are sitting empty. Hand him more with \`${prefix}farmhand give carrot 10\`.`);
+          addInbox(db, f.user_id, f.guild_id, 'Farmhand out of seeds', 'Some plots are sitting empty.', now);
+        }
+        if (sale) lines.push(`${emoji('harvest')} Your farmhand${where} sold ${sale.n} ${sale.n === 1 ? 'crop' : 'crops'} to Marquez for **${format(sale.cents)}**.`);
+        if (!lines.length || !handSettings(db, f.guild_id, f.user_id).dm) continue;
+        lines.push(`-# \`${prefix}farmhand dms off\` turns these off.`);
+        client.users.fetch(f.user_id).then((u) => u.send({ content: lines.join('\n'), allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+      } catch (e) { console.error('[farmhand]', e); }
+    }
+  };
+  setInterval(tick, 10 * MINUTE).unref();
+  setTimeout(tick, 45_000).unref();
 }
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
