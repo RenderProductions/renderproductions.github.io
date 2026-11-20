@@ -531,7 +531,7 @@ export const vip: Command = {
       const bar = v.next ? Math.min(1, (v.wagered - (v.tier?.at ?? 0)) / (v.next.at - (v.tier?.at ?? 0))) : 1;
       const n = Math.round(bar * 12);
       return { embeds: [card('slots', [
-        `## 💎 ${format(jackpotOf(ctx.db, guildId))}`,
+        `## ${emojiOr('jackpot', '💎')} ${format(jackpotOf(ctx.db, guildId))}`,
         'The **progressive jackpot**: every bet in this server adds to it. Three 💎 on Slots win it (all of it at the max bet).',
         happyHour(ctx.db, ctx.now) ? '🥂 **Happy Hour!** The jackpot grows 3x as fast and VIPs get a second free spin.' : null,
         '',
@@ -541,7 +541,7 @@ export const vip: Command = {
         v.tier ? (left ? `🎰 ${left === 1 ? 'A free spin is' : `${left} free spins are`} waiting: \`${P}vip spin\`` : '-# Today\'s free spin is used.') : null,
         '',
         ...VIP.map((t, i) => `${t.emoji} ${i <= v.level ? `**${t.name}**` : t.name} · ${format(t.at)} bet · free spin ${format(t.spin)}`)
-      ])].map((e) => ({ ...e, title: '🥂 The VIP Lounge' })) };
+      ])].map((e) => ({ ...e, title: `${emojiOr('vip', '🥂')} The VIP Lounge` })) };
     });
   }
 };
@@ -580,7 +580,7 @@ function tableView(s: sessions.Session<TB>, line = ''): ReplyObject {
     st.phase === 'play' && cur ? `\n-# ${cur.name}'s turn. TODD stands for them ${discordTime(st.deadline)}.` : null,
     ...(st.notes ?? []).map((n) => `-# ${n}`),
     line && `\n${line}`
-  ], done ? 'push' : 'play')].map((e) => ({ ...e, title: '🃏 The Blackjack Table' })), buttons };
+  ], done ? 'push' : 'play')].map((e) => ({ ...e, title: `${emojiOr('table', '🃏')} The Blackjack Table` })), buttons };
 }
 
 /** Moves to the next seat that still has a hand to play; when nobody does, TODD plays and everyone is paid. */

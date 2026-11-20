@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The map | Room to Grow | Render Productions</title>
-<meta name="description" content="Room to Grow: every lot on a server's map, who owns it and what shape it's in, live.">
+<title>The city | Rend-Conomy | Render Productions</title>
+<meta name="description" content="Every server's city: an 8×8 map players build on, its landmarks and who owns what, live.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Render Productions">
-<meta property="og:title" content="The map | Room to Grow">
-<meta property="og:description" content="Room to Grow: every lot on a server's map, who owns it and what shape it's in, live.">
+<meta property="og:title" content="The city | Rend-Conomy">
+<meta property="og:description" content="Every server's city: an 8×8 map players build on, its landmarks and who owns what, live.">
 <meta property="og:image" content="https://renderproductions.github.io/og/rend-conomy.png">
 <meta name="theme-color" content="#1abc9c">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -19,35 +19,36 @@
   .map-tools select { font: inherit; color: var(--bright); background: var(--bg); border: 1px solid var(--line-strong); padding: .35rem .5rem; margin-left: .3rem; }
   .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #1abc9c; box-shadow: 0 0 8px #1abc9c; margin-right: .4rem; animation: pulse 2s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .35; } }
-  .lots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-  .lot { position: relative; background: var(--panel); border: 1px solid var(--line); padding: .7rem .7rem .8rem; min-height: 190px; display: flex; flex-direction: column; gap: .35rem; transition: border-color .3s, transform .3s; }
-  .lot.flash { animation: flash 1.2s ease-out; }
+  .city { display: grid; grid-template-columns: 22px repeat(8, minmax(0, 1fr)); gap: 4px; max-width: 760px; }
+  .city .lab { display: flex; align-items: center; justify-content: center; color: var(--grey); font: 12px var(--mono); }
+  .tile { position: relative; aspect-ratio: 1; background: #12301f; border: 1px solid rgba(26,188,156,.18); display: flex; align-items: center; justify-content: center; cursor: default; transition: border-color .3s; }
+  .tile.empty { background: repeating-linear-gradient(45deg, #11281b 0 6px, #133020 6px 12px); }
+  .tile img { width: 82%; height: 82%; image-rendering: pixelated; }
+  .tile .fb { font-size: clamp(14px, 4vw, 30px); }
+  .tile.mine { border-color: #1abc9c; box-shadow: inset 0 0 0 1px #1abc9c; }
+  .tile.building img { opacity: .55; filter: grayscale(.4); }
+  .tile.auction { outline: 1px dashed #ffd166; }
+  .tile .lv { position: absolute; right: 3px; bottom: 1px; font: 10px var(--mono); color: #ffd166; text-shadow: 0 1px 0 #000; }
+  .tile .hp { position: absolute; left: 3px; right: 3px; top: 3px; height: 3px; background: rgba(0,0,0,.45); }
+  .tile .hp i { display: block; height: 100%; background: #1abc9c; } .tile .hp.mid i { background: #ffd166; } .tile .hp.low i { background: #ff6b6b; }
+  .tile.flash { animation: flash 1.2s ease-out; }
   @keyframes flash { 0% { border-color: #1abc9c; box-shadow: 0 0 18px rgba(26,188,156,.5); } 100% { box-shadow: none; } }
-  .lot.mine { border-color: rgba(26,188,156,.7); background: linear-gradient(180deg, rgba(26,188,156,.08), var(--panel)); }
-  .lot .no { position: absolute; top: .45rem; left: .55rem; font-size: 11px; color: var(--grey); font-family: var(--mono); }
-  .lot img.art { width: 72px; height: 72px; image-rendering: pixelated; align-self: center; margin-top: .4rem; }
-  .lot.bank img.art { opacity: .55; filter: saturate(.6); }
-  .lot .kind { font-weight: 700; color: var(--bright); text-align: center; font-size: 14px; }
-  .lot .who { text-align: center; font-size: 13px; color: var(--grey); min-height: 1.2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .lot .who b { color: var(--bright); }
-  .lot .who .sale { color: #ffd166; }
-  .cond { height: 6px; background: var(--bg); border: 1px solid var(--line); margin-top: auto; }
-  .cond i { display: block; height: 100%; background: #1abc9c; transition: width .6s; }
-  .cond.mid i { background: #ffd166; } .cond.low i { background: #ff6b6b; }
-  .lot .tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; min-height: 18px; }
-  .lot .tags span { font-size: 11px; padding: 1px 6px; border: 1px solid var(--line-strong); color: var(--grey); }
-  .lot .tags .warn { color: #ff6b6b; border-color: rgba(255,107,107,.5); } .lot .tags .gold { color: #ffd166; border-color: rgba(255,209,102,.5); }
-  .lot .tags img { width: 14px; height: 14px; vertical-align: -3px; image-rendering: pixelated; }
+  .tip { margin-top: .9rem; min-height: 3.2em; font-size: 14px; color: var(--grey); max-width: 760px; }
+  .tip b { color: var(--bright); }
+  .skyline { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 1rem; }
+  .skyline div { background: var(--panel); border: 1px solid var(--line); padding: .55rem .75rem; display: flex; gap: .6rem; align-items: center; font-size: 14px; }
+  .skyline img { width: 40px; height: 40px; image-rendering: pixelated; }
+  .skyline .off { opacity: .45; filter: grayscale(1); }
+  .fund { height: 8px; background: var(--bg); border: 1px solid var(--line); width: 160px; margin-top: .3rem; } .fund i { display: block; height: 100%; background: #ffd166; }
   .owners { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px; margin-top: .6rem; }
   .owners div { background: var(--panel); border: 1px solid var(--line); padding: .55rem .7rem; font-size: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
   .owners div span { white-space: nowrap; color: var(--grey); }
   .owners div b { color: var(--bright); }
   .kinds { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: .6rem; }
-  .kinds td, .kinds th { padding: .45rem .5rem; border-bottom: 1px solid var(--line); text-align: left; }
+  .kinds td, .kinds th { padding: .45rem .5rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
   .kinds th { color: var(--grey); font-weight: 400; font-size: 12px; } .kinds img { width: 28px; height: 28px; image-rendering: pixelated; vertical-align: middle; }
-  .empty { padding: 2rem; text-align: center; color: var(--grey); border: 1px dashed var(--line-strong); }
-  @media (max-width: 760px) { .lots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (max-width: 460px) { .lots { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kinds .perk, .kinds th:last-child { display: none; } }
+  .kinds .perk { color: var(--grey); }
+  @media (max-width: 560px) { .city { gap: 2px; grid-template-columns: 14px repeat(8, minmax(0, 1fr)); } .tile .lv, .tile .hp { display: none; } .kinds .perk, .kinds th:last-child, .kinds .hrs { display: none; } }
 </style>
 </head>
 <body>
@@ -67,32 +68,34 @@
 
   
   <header class="hero">
-    <h1>THE<br>MAP</h1>
-    <p class="tagline">Room to Grow. Every server has 15 lots, and anyone can own all of them, if they can keep them: property tax climbs with every lot, rivals can bid to buy you out, and neglected places get squatters before they fall apart.</p>
+    <h1>THE<br>CITY</h1>
+    <p class="tagline">Every server's map starts as 64 tiles of open land. Players claim a tile and build on it: homes, shops, Stations and Factories, Barns, Banks, Parks and Police. Neighbors matter, and the whole server builds its landmarks together.</p>
     <div class="btns">
-      <a class="btn primary" href="/play/#property">Buy a place</a>
-      <a class="btn" href="#kinds-sec">The five kinds</a>
+      <a class="btn primary" href="/play/#property">Build something</a>
+      <a class="btn" href="#kinds-sec">What you can build</a>
     </div>
   </header>
 
-  <div class="section-head" style="margin-top:2rem"><h2>Lots</h2><span id="pick"></span></div>
-  <div class="map-tools"><span><span class="live-dot"></span><span id="live">Connecting…</span></span></div>
-  <div id="lots" class="lots"></div>
+  <div class="section-head" style="margin-top:2rem"><h2>The map</h2><span id="pick"></span></div>
+  <div class="map-tools"><span><span class="live-dot"></span><span id="live">Connecting…</span></span><span id="trains"></span></div>
+  <div id="skyline" class="skyline"></div>
+  <div id="city" class="city" aria-label="The city map"></div>
+  <div id="tip" class="tip">Point at a tile to see what's there.</div>
 
   <section style="margin-top: 2.5rem;">
-    <div class="section-head"><h2>Who owns the block</h2><span>Most lots first</span></div>
+    <div class="section-head"><h2>Who owns the city</h2><span>Most buildings first</span></div>
     <div id="owners" class="owners"></div>
   </section>
 
   <section id="kinds-sec" style="margin-top: 2.5rem;">
-    <div class="section-head"><h2>The five kinds</h2><span>Prices, rent and perks</span></div>
-    <table class="kinds"><thead><tr><th></th><th>Kind</th><th>Lots</th><th>Price</th><th>Rent / day</th><th>Upkeep / day</th><th>Perk</th></tr></thead><tbody id="kinds"></tbody></table>
-    <p class="rv-dim" style="font-size:13px">Rent scales with condition, and owning every lot of one kind pays +50%. Property tax: none for 1–2 lots, then 0.5%, 1% and 1.5% of everything's value a day at 3, 6 and 10 lots. Play it in Discord with <code>r!property</code>, or from <a href="/play/#property">the Play hub</a>.</p>
+    <div class="section-head"><h2>What you can build</h2><span>Prices, money and perks</span></div>
+    <table class="kinds"><thead><tr><th></th><th>Building</th><th>Price</th><th>Makes / day</th><th>Upkeep</th><th class="hrs">Build</th><th>Perk</th></tr></thead><tbody id="kinds"></tbody></table>
+    <p class="rv-dim" style="font-size:13px">Every building costs its price plus ⬡1,000 for the land. Most can be upgraded twice (rent ×1.6, then ×2.4). Neighbors: a Park next door adds 15% rent (up to two), a Factory next door takes 15% and wears things down faster (not Stations, Factories or Warehouses), a Station within two tiles adds 10%, and a Corner Shop earns 5% more for each home beside it. The Connector won't set up within a tile of a Police Station. Property tax: none for 1–3 buildings, then 0.5%, 1% and 1.5% of everything's value a day at 4, 9 and 17. Play it in Discord with <code>r!property</code>, or from <a href="/play/#property">the Play hub</a>.</p>
   </section>
 
   <footer class="footer">
     <span>Render Productions</span>
-    <span>Room to Grow is part of the Rend-Conomy. Nothing here is real estate advice.</span>
+    <span>The city is part of the Rend-Conomy. Nothing here is real estate advice.</span>
   </footer>
 </div>
 <script src="/rv.js"></script>
@@ -101,19 +104,28 @@
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   var KINDS = {
-    shack: ['Shack', 6, 2500, 60, 15, 'Bait Shed: free bait'],
-    apartment: ['Apartment', 4, 8000, 200, 50, 'Extra Unit: +25% rent above 75%'],
-    shop: ['Corner Shop', 3, 20000, 450, 120, 'Storefront: a company earns 10%'],
-    lighthouse: ['Lighthouse', 1, 45000, 800, 250, 'Beacon: rarer fish, half storm damage'],
-    mansion: ['Mansion', 1, 120000, 1800, 700, 'Ballroom: double chat pay for an hour']
+    shack: ['Shack', '🛖', 2500, '⬡60 rent', 15, 1, 'Bait Shed: free bait when you fish'],
+    apartment: ['Apartment', '🏢', 8000, '⬡200 rent', 50, 3, 'Extra Unit: +25% rent above 75%'],
+    shop: ['Corner Shop', '🏪', 20000, '⬡450 rent', 120, 6, 'Storefront for a company; +5% per home next door; launders hot loot'],
+    mansion: ['Mansion', '🏛️', 120000, '⬡1,800 rent', 700, 12, 'Ballroom: double chat pay for an hour, once a day'],
+    lighthouse: ['Lighthouse', '🗼', 45000, '⬡800 rent', 250, 8, 'Beacon: rarer fish, half storm damage, safer smuggling. Edge of the map only'],
+    station: ['Station', '🚉', 15000, '⬡150 rent', 60, 4, 'Freight Line: +10% rent within 2 tiles; ship crops and Goods by train'],
+    factory: ['Factory', '🏭', 35000, '24 Goods', 200, 6, 'Production: 24 Goods a day per level. Pollutes its neighbors'],
+    warehouse: ['Warehouse', '📦', 18000, '⬡100 rent', 60, 4, 'Cold Storage: sell crops at the best price of the last 3–7 days'],
+    barn: ['Barn', '🐄', 12000, '—', 40, 4, 'More Land: 6 more farm plots (15, in 3 rows of 5)'],
+    bank: ['Bank Branch', '🏦', 60000, '⬡600 rent', 200, 8, 'Branch Manager: +25% savings interest per level'],
+    park: ['Park', '🌳', 5000, '—', 10, 1, 'Green Space: +15% rent for every building next to it'],
+    police: ['Police Station', '🚓', 25000, '⬡100 rent', 100, 6, 'Neighborhood Watch: no Connector or squatters within 1 tile']
   };
+  var LANDMARKS = [['statue', 'The TODD Statue', '🗿', '+5% rent everywhere'], ['stadium', 'The Stadium', '🏟️', 'chat pay ×1.25'], ['rocket', 'The Rocket', '🚀', 'the Rocket game flies to 100x']];
   var art = function (name) { return '/bot/emojis/rc_' + name + '.png'; };
+  var img = function (name, fb) { return '<img src="' + art(name) + '" alt="" onerror="this.outerHTML=\'<span class=fb>' + fb + '</span>\'">'; };
   var money = function (n) { return '⬡' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); };
   var me = RV.me(), guild = null, servers = {}, last = {}, feed = null;
 
   $('kinds').innerHTML = Object.keys(KINDS).map(function (k) {
     var x = KINDS[k];
-    return '<tr><td><img src="' + art('prop_' + k) + '" alt=""></td><td><b>' + x[0] + '</b></td><td>' + x[1] + '</td><td>' + money(x[2]) + '</td><td>' + money(x[3]) + '</td><td>' + money(x[4]) + '</td><td class="perk">' + RV.esc(x[5]) + '</td></tr>';
+    return '<tr><td>' + img('prop_' + k, x[1]) + '</td><td><b>' + x[0] + '</b></td><td>' + money(x[2]) + '</td><td>' + x[3] + '</td><td>' + money(x[4]) + '</td><td class="hrs">' + x[5] + 'h</td><td class="perk">' + RV.esc(x[6]) + '</td></tr>';
   }).join('');
 
   function when(ms) {
@@ -121,33 +133,60 @@
     var m = Math.max(0, Math.round((ms - Date.now()) / 60000));
     return m >= 60 ? Math.round(m / 60) + 'h' : m + 'm';
   }
+  var name = function (t) { return String.fromCharCode(65 + (t - 1) % 8) + (Math.floor((t - 1) / 8) + 1); };
+  function describe(l, t) {
+    if (!l) return '<b>' + name(t) + '</b> · open land. Build here with <code>r!property build ' + name(t) + ' &lt;building&gt;</code>.';
+    var who = me && l.owner_id === me.id ? 'you' : (l.owner || 'someone');
+    var bits = ['<b>' + name(t) + ' · ' + RV.esc(l.name) + (l.level > 1 ? ' ★' + l.level : '') + '</b>'];
+    if (l.status === 'auction') bits.push('condemned, at auction' + (l.bid ? ': top bid ' + money(l.bid) : '') + ' · ends in ' + when(l.until));
+    else {
+      bits.push('owned by <b>' + RV.esc(who) + '</b>');
+      bits.push(l.building ? 'under construction, done in ' + when(l.ready) : 'condition ' + l.condition + '%');
+      if (l.squatters) bits.push('squatters!');
+      if (l.bid) bits.push('a buyout bid of ' + money(l.bid) + ' is open');
+    }
+    return bits.join(' · ');
+  }
   function draw() {
-    var lots = feed && feed.estates && feed.estates[guild];
-    if (!lots) { $('lots').innerHTML = '<div class="empty" style="grid-column:1/-1">Nobody has looked at this server\'s map yet. Try <code>r!property map</code> in Discord.</div>'; $('owners').innerHTML = ''; return; }
-    var own = {};
-    $('lots').innerHTML = lots.map(function (l) {
-      var cls = 'lot ' + l.status + (me && l.owner_id === me.id ? ' mine' : '');
-      var key = [l.status, l.owner_id, l.condition, l.squatters, l.bid].join('|');
-      if (last[l.lot] && last[l.lot] !== key) cls += ' flash';
-      last[l.lot] = key;
-      var img = l.status === 'auction' ? art('lot_condemned') : art('prop_' + l.kind);
-      var who, tags = [];
-      if (l.status === 'bank') who = '<span class="sale">For sale · ' + money(KINDS[l.kind][2]) + '</span>';
-      else if (l.status === 'auction') { who = '<span class="sale">Condemned</span>'; tags.push('<span class="gold"><img src="' + art('auction') + '" alt=""> ' + (l.bid ? 'top bid ' + money(l.bid) : 'auction') + ' · ' + when(l.until) + '</span>'); }
-      else {
-        who = 'Owned by <b>' + RV.esc(me && l.owner_id === me.id ? 'you' : l.owner || 'someone') + '</b>';
-        own[l.owner_id] = own[l.owner_id] || { name: l.owner, n: 0, worth: 0 };
-        own[l.owner_id].n++; own[l.owner_id].worth += KINDS[l.kind][2];
-      }
-      if (l.squatters) tags.push('<span class="warn"><img src="' + art('squatter') + '" alt=""> squatters</span>');
-      if (l.status === 'owned' && l.bid) tags.push('<span class="gold"><img src="' + art('bid') + '" alt=""> bid ' + money(l.bid) + ' · ' + when(l.until) + '</span>');
-      var c = Math.max(0, l.condition);
-      var bar = l.status === 'owned' || l.status === 'auction' ? '<div class="cond ' + (c < 40 ? 'low' : c < 75 ? 'mid' : '') + '" title="Condition ' + c + '%"><i style="width:' + c + '%"></i></div>' : '<div class="cond" style="visibility:hidden"><i></i></div>';
-      return '<div class="' + cls + '"><span class="no">#' + l.lot + '</span><img class="art" src="' + img + '" alt=""><div class="kind">' + RV.esc(l.name) + '</div><div class="who">' + who + '</div><div class="tags">' + tags.join('') + '</div>' + bar + '</div>';
+    var city = feed && feed.estates && feed.estates[guild];
+    if (!city || !city.tiles) { $('city').innerHTML = ''; $('tip').textContent = 'The map shows up once the bot sends it.'; $('owners').innerHTML = ''; $('skyline').innerHTML = ''; return; }
+    var at = {}; city.tiles.forEach(function (l) { at[l.lot] = l; });
+    var built = (city.landmarks && city.landmarks.built) || [], cur = city.landmarks && city.landmarks.current;
+    $('skyline').innerHTML = LANDMARKS.map(function (L) {
+      var done = built.indexOf(L[0]) >= 0, now = cur && cur.id === L[0];
+      var sub = done ? 'Built · ' + L[3] : now ? money(cur.funded) + ' of ' + money(cur.cost) + '<div class="fund"><i style="width:' + Math.min(100, cur.funded / cur.cost * 100) + '%"></i></div>' : 'Locked';
+      return '<div class="' + (done ? '' : 'off') + '">' + img('landmark_' + L[0], L[2]) + '<span><b>' + L[1] + '</b><br><span class="rv-dim" style="font-size:12px">' + sub + '</span></span></div>';
     }).join('');
-    var list = Object.keys(own).map(function (id) { return own[id]; }).sort(function (a, b) { return b.n - a.n || b.worth - a.worth; });
-    $('owners').innerHTML = list.length ? list.map(function (o) { return '<div><b>' + RV.esc(o.name || 'someone') + '</b><span>' + o.n + ' ' + (o.n === 1 ? 'lot' : 'lots') + ' · ' + money(o.worth) + '</span></div>'; }).join('')
-      : '<div><span class="rv-dim">The bank owns everything. Be the first: <code>r!property buy &lt;lot&gt;</code></span></div>';
+    $('trains').textContent = city.trains ? '🚂 ' + city.trains + ' freight ' + (city.trains === 1 ? 'train' : 'trains') + ' on the rails' : '';
+    var html = '<span></span>';
+    for (var x = 0; x < 8; x++) html += '<span class="lab">' + String.fromCharCode(65 + x) + '</span>';
+    var own = {};
+    for (var y = 0; y < 8; y++) {
+      html += '<span class="lab">' + (y + 1) + '</span>';
+      for (var c = 0; c < 8; c++) {
+        var t = y * 8 + c + 1, l = at[t];
+        var key = l ? [l.kind, l.level, l.status, l.owner_id, l.condition, l.squatters, l.building, l.bid].join('|') : '';
+        var cls = 'tile' + (!l ? ' empty' : '') + (l && me && l.owner_id === me.id ? ' mine' : '') + (l && l.building ? ' building' : '') + (l && l.status === 'auction' ? ' auction' : '') + (last[t] !== undefined && last[t] !== key ? ' flash' : '');
+        last[t] = key;
+        var inner = '';
+        if (l) {
+          var k = KINDS[l.kind] || ['?', '🏠'];
+          inner = l.status === 'auction' ? img('lot_condemned', '🏚️') : l.building ? img('construction', '🚧') : l.squatters ? img('squatter', '🛌') : img('prop_' + l.kind, k[1]);
+          if (l.level > 1) inner += '<span class="lv">★' + l.level + '</span>';
+          if (!l.building && l.status === 'owned') inner += '<span class="hp ' + (l.condition < 40 ? 'low' : l.condition < 75 ? 'mid' : '') + '"><i style="width:' + Math.max(0, l.condition) + '%"></i></span>';
+          if (l.status === 'owned') { own[l.owner_id] = own[l.owner_id] || { name: l.owner, n: 0 }; own[l.owner_id].n++; }
+        }
+        html += '<div class="' + cls + '" data-t="' + t + '" tabindex="0" title="' + name(t) + '">' + inner + '</div>';
+      }
+    }
+    $('city').innerHTML = html;
+    Array.prototype.forEach.call($('city').querySelectorAll('.tile'), function (el) {
+      var show = function () { var t = Number(el.getAttribute('data-t')); $('tip').innerHTML = describe(at[t], t); };
+      el.addEventListener('mouseenter', show); el.addEventListener('focus', show); el.addEventListener('click', show);
+    });
+    var list = Object.keys(own).map(function (id) { return own[id]; }).sort(function (a, b) { return b.n - a.n; });
+    $('owners').innerHTML = list.length ? list.map(function (o) { return '<div><b>' + RV.esc(o.name || 'someone') + '</b><span>' + o.n + ' ' + (o.n === 1 ? 'building' : 'buildings') + '</span></div>'; }).join('')
+      : '<div><span class="rv-dim">Open land, all of it. Be the first: <code>r!property build C4 shack</code></span></div>';
   }
 
   function picker() {
@@ -155,7 +194,7 @@
     var known = ids.filter(function (id) { return servers[id]; });
     var list = (known.length ? known : ids);
     var saved = RV.guild();
-    if (!guild) guild = list.indexOf(saved) >= 0 ? saved : list[0] || null;
+    if (!guild || list.indexOf(guild) < 0) guild = list.indexOf(saved) >= 0 ? saved : list[0] || null;
     var el = $('pick'); el.textContent = '';
     if (list.length > 1) {
       var lab = document.createElement('label'); lab.textContent = 'Server';
@@ -168,12 +207,12 @@
 
   RV.profiles().then(function (d) {
     Object.keys((d && d.users) || {}).forEach(function (u) { (d.users[u].servers || []).forEach(function (s) { if (s.id) servers[s.id] = s.server; }); });
-    if (feed) picker();
+    if (feed) { picker(); draw(); }
   });
   RV.live(function (f) {
     feed = f;
     $('live').textContent = 'Live · updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
-    if (!guild || !Object.keys(f.estates || {}).length) picker();
+    picker();
     draw();
   });
   setTimeout(function () { if (!feed) { $('live').textContent = 'The live feed is quiet. The map shows up once the bot sends it.'; draw(); } }, 8000);

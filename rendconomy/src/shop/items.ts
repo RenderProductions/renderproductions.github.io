@@ -47,7 +47,9 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('lure', '🪝', 'Lure', 300, 4, 'tackle', 'No bait needed for 25 casts, and bigger fish bite more often.'),
   ...Object.values(CROPS).map((c) => item(`seed_${c.id}`, c.emoji, `${c.name} Seeds`, c.seedPrice, c.seedStock, 'garden',
     `Plant with /plant ${c.id}. Ready in ${c.growMs >= 3_600_000 ? `${c.growMs / 3_600_000} ${c.growMs === 3_600_000 ? 'hour' : 'hours'}` : `${c.growMs / 60_000} minutes`}${c.harvests > 1 ? `, and it gives ${c.harvests} harvests` : ''}.`)),
-  item('fertilizer', '🧪', 'Fertilizer', 60, 10, 'garden', 'One crop grows 50% faster. /fertilize, or compost your fishing junk into it.'),
+  item('fertilizer', '🧪', 'Fertilizer', 60, 10, 'garden', 'Crops grow 50% faster and come out Prime more often. /fertilize does every growing crop; your farmhand can use it too.'),
+  // Oh My God, 2 in 1!: what Factories make (never on a shelf: ship it by freight or sell it with /property goods)
+  item('goods', '📦', 'Goods', 20, 0, 'work', 'A crate from a Factory. Freight pays ⬡30 a crate, Marquez ⬡20.', { ready: false }),
   item('scarecrow', '🧑‍🌾', 'Scarecrow', 400, 3, 'garden', 'Chases crows off your whole farm. Works on its own.', { passive: true }),
   item('greenhouse', '🏡', 'Greenhouse', 4000, 1, 'garden', 'Storms can\'t touch your crops. Works on its own.', { passive: true }),
   item('kit', '🎨', 'Profile Customizer Kit', 1500, 3, 'style', 'Unlocks customizing your profile, for good.'),

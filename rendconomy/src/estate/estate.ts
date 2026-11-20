@@ -181,7 +181,7 @@ export function dayRent(l: Lot, fx: Effects, landmark = 0): Cents {
   let r = rentAt(l.kind, l.level) * Math.max(0, l.condition) / 100;
   r *= fx.mult + landmark;
   if (l.kind === 'apartment' && l.condition >= ESTATE.extraUnitAbove) r *= 1 + ESTATE.extraUnit;
-  return Math.floor(r);
+  return Math.floor(r + 1e-6);   // (1 + 0.15 − 0.15 isn't exactly 1 in floating point)
 }
 export const goodsPerDay = (l: Lot): number => (l.kind === 'factory' && !l.squatters ? Math.floor(ESTATE.goodsPerDay * l.level * Math.max(0, l.condition) / 100) : 0);
 

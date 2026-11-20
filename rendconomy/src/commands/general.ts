@@ -16,7 +16,7 @@ export const ping: Command = {
 const SECTIONS: Record<System, { label: string; emoji: string }> = {
   wallet: { label: 'Wallet', emoji: '👛' }, social: { label: 'Players', emoji: '👥' }, work: { label: 'Work', emoji: '💼' },
   market: { label: 'Stock market', emoji: '📈' }, casino: { label: 'Rend-Sino', emoji: '🎰' }, reserve: { label: 'The Reserve', emoji: '🏦' },
-  farm: { label: 'Farming', emoji: '🌾' }, property: { label: 'Real estate', emoji: '🏠' }, underground: { label: 'The Underground', emoji: '🎩' }, general: { label: 'General', emoji: 'ℹ️' }, admin: { label: 'Moderators', emoji: '🛡️' }
+  farm: { label: 'Farming', emoji: '🌾' }, property: { label: 'The city', emoji: '🏙️' }, underground: { label: 'The Underground', emoji: '🎩' }, general: { label: 'General', emoji: 'ℹ️' }, admin: { label: 'Moderators', emoji: '🛡️' }
 };
 const ORDER: System[] = ['wallet', 'farm', 'property', 'underground', 'social', 'work', 'market', 'casino', 'reserve', 'general', 'admin'];
 

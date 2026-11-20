@@ -79,7 +79,7 @@
       <button type="button" role="tab" data-tab="desk">💼 Desk</button>
       <button type="button" role="tab" data-tab="shop">🛍️ Shop</button>
       <button type="button" role="tab" data-tab="farm">🌾 Farm</button>
-      <button type="button" role="tab" data-tab="property">🏠 Property</button>
+      <button type="button" role="tab" data-tab="property">🏙️ City</button>
       <button type="button" role="tab" data-tab="jobs">🧰 Odd Jobs</button>
       <button type="button" role="tab" data-tab="trades">🤝 Trades</button>
       <button type="button" role="tab" data-tab="inbox">🔔 Inbox</button>
@@ -119,10 +119,10 @@
         <button class="rv-b" data-act="plant tomato">🍅 Tomatoes</button><button class="rv-b" data-act="plant pumpkin">🎃 Pumpkins</button>
         <button class="rv-b" data-act="plant polygon fruit"><img class="rv-px" src="/bot/emojis/rc_polyfruit.png" alt=""> Polygon Fruit</button>
       </div></div>
-      <div class="box"><h2>Farmhand</h2><p class="rv-dim" style="margin:.2rem 0 .6rem;font-size:13px">⬡150 a day: waters everything, harvests what's ready and replants from his seed shed, even while you're away.</p><div class="acts">
-        <button class="rv-b" data-act="farmhand">🧑‍🌾 His shed</button><button class="rv-b" data-act="farmhand hire">Hire</button><button class="rv-b" data-act="farmhand fire">👋 Let go</button>
+      <div class="box"><h2>Farmhand</h2><p class="rv-dim" style="margin:.2rem 0 .6rem;font-size:13px">⬡150 a day: waters everything, harvests what's ready, replants from his seed shed and works in Fertilizer you give him, even while you're away.</p><div class="acts">
+        <button class="rv-b" data-act="farmhand">🧑‍🌾 His shed</button><button class="rv-b" data-act="fertilize">🧪 Fertilize all</button><button class="rv-b" data-act="farm prices">📈 Prices</button><button class="rv-b" data-act="farmhand hire">Hire</button><button class="rv-b" data-act="farmhand fire">👋 Let go</button>
       </div>
-        <div class="field"><label for="hseed">Give him seeds</label><select id="hseed"><option value="carrot">🥕 Carrot</option><option value="corn">🌽 Corn</option><option value="tomato">🍅 Tomato</option><option value="pumpkin">🎃 Pumpkin</option><option value="polygon fruit">Polygon Fruit</option></select></div>
+        <div class="field"><label for="hseed">Give him seeds or Fertilizer</label><select id="hseed"><option value="carrot">🥕 Carrot</option><option value="corn">🌽 Corn</option><option value="tomato">🍅 Tomato</option><option value="pumpkin">🎃 Pumpkin</option><option value="polygon fruit">Polygon Fruit</option><option value="fertilizer">🧪 Fertilizer</option></select></div>
         <div class="field"><label for="hqty">How many (a number, or all)</label><input id="hqty" value="all"></div>
         <button class="rv-b" data-form="farmhand give {hseed} {hqty}">Hand them over</button>
         <div class="acts" style="margin-top:.5rem"><button class="rv-b" data-act="farmhand dms on">DMs on</button><button class="rv-b" data-act="farmhand dms off">DMs off</button></div>
@@ -133,21 +133,30 @@
 
     <section class="pane" data-pane="property" hidden>
       <div class="stage"><div class="last" id="property-last"></div><div id="property-main" class="wait">Walking the block…</div>
-        <p class="rv-dim" style="font-size:13px;margin-top:1rem">See every lot and who owns it on the <a href="/rend-conomy/map/">live map</a>.</p></div>
-      <aside class="side"><div class="box"><h2>Your places</h2><div class="acts">
+        <p class="rv-dim" style="font-size:13px;margin-top:1rem">See the whole city, live, on <a href="/rend-conomy/map/">the map</a>.</p></div>
+      <aside class="side"><div class="box"><h2>Your city</h2><div class="acts">
         <button class="rv-b" data-act="property">🏠 Mine</button><button class="rv-b" data-act="property map">🗺️ Map</button>
-        <button class="rv-b" data-act="property repair all">🔨 Repair all</button><button class="rv-b" data-act="property party">🎉 Party</button>
+        <button class="rv-b" data-act="property buildings">🏗️ Buildings</button><button class="rv-b" data-act="property repair all">🔨 Repair all</button>
+        <button class="rv-b" data-act="property party">🎉 Party</button><button class="rv-b" data-act="property freight">🚂 Ship freight</button>
+        <button class="rv-b" data-act="property goods">📦 Goods</button><button class="rv-b" data-act="property landmark">🏟️ Landmarks</button>
       </div></div>
-      <div class="box"><h2>A lot</h2>
-        <div class="field"><label for="p-lot">Lot number (1–15)</label><input id="p-lot" inputmode="numeric" placeholder="7"></div>
-        <div class="acts"><button class="rv-b primary" data-form="property buy {p-lot}">🔑 Buy</button><button class="rv-b" data-form="property info {p-lot}">🔎 Info</button>
-          <button class="rv-b" data-form="property repair {p-lot}">🔨 Repair</button><button class="rv-b" data-form="property evict {p-lot}">🚪 Evict</button>
-          <button class="rv-b danger" data-form="property sell {p-lot}">🪧 Sell to the bank</button></div></div>
+      <div class="box"><h2>A tile</h2>
+        <div class="field"><label for="p-lot">Tile (A–H and 1–8, like C4)</label><input id="p-lot" placeholder="C4" autocapitalize="characters"></div>
+        <div class="field"><label for="p-kind">Building</label><select id="p-kind">
+          <option value="shack">🛖 Shack · ⬡2,500</option><option value="apartment">🏢 Apartment · ⬡8,000</option><option value="shop">🏪 Corner Shop · ⬡20,000</option>
+          <option value="mansion">🏛️ Mansion · ⬡120,000</option><option value="lighthouse">🗼 Lighthouse · ⬡45,000 (edge)</option><option value="station">🚉 Station · ⬡15,000</option>
+          <option value="factory">🏭 Factory · ⬡35,000</option><option value="warehouse">📦 Warehouse · ⬡18,000</option><option value="barn">🐄 Barn · ⬡12,000</option>
+          <option value="bank">🏦 Bank Branch · ⬡60,000</option><option value="park">🌳 Park · ⬡5,000</option><option value="police">🚓 Police Station · ⬡25,000</option>
+        </select></div>
+        <div class="acts"><button class="rv-b primary" data-form="property build {p-lot} {p-kind}">🏗️ Build (+⬡1,000 land)</button><button class="rv-b" data-form="property info {p-lot}">🔎 Info</button>
+          <button class="rv-b" data-form="property upgrade {p-lot}">⬆️ Upgrade</button><button class="rv-b" data-form="property repair {p-lot}">🔨 Repair</button>
+          <button class="rv-b" data-form="property evict {p-lot}">🚪 Evict</button><button class="rv-b danger" data-form="property sell {p-lot}">🪧 Sell and tear down</button></div></div>
       <div class="box"><h2>Bids</h2>
-        <div class="field"><label for="p-amt">Bid (on that lot)</label><input id="p-amt" inputmode="decimal" placeholder="12000"></div>
+        <div class="field"><label for="p-amt">Bid (on that tile)</label><input id="p-amt" inputmode="decimal" placeholder="12000"></div>
         <button class="rv-b" data-form="property bid {p-lot} {p-amt}">✉️ Place a bid</button>
-        <p class="rv-dim" style="font-size:12px;margin:.5rem 0">On someone's place: at least 25% over its value; they have 24 hours. On a condemned lot: an auction bid.</p>
+        <p class="rv-dim" style="font-size:12px;margin:.5rem 0">On someone's building: at least 25% over its value; they have 24 hours. On a condemned one: an auction bid.</p>
         <div class="acts"><button class="rv-b success" data-form="property accept {p-lot}">Accept a bid</button><button class="rv-b danger" data-form="property refuse {p-lot}">Refuse (15%)</button></div></div>
+      <div class="box"><h2>Landmarks</h2><div class="field"><label for="p-give">Put Polygons toward the next landmark</label><input id="p-give" inputmode="decimal" placeholder="5000"></div><button class="rv-b" data-form="property landmark donate {p-give}">🧱 Donate</button></div>
       <div class="box"><h2>Storefront</h2><div class="field"><label for="p-tick">A player company for your Corner Shop</label><input id="p-tick" placeholder="REND" autocapitalize="characters"></div><button class="rv-b" data-form="property storefront {p-lot} {p-tick}">Set it</button></div>
       </aside>
     </section>
@@ -189,7 +198,7 @@
   // what each tab shows, and the command that refreshes it
   var TABS = { desk: 'balance', shop: 'shop', farm: 'farm', property: 'property', jobs: 'oddjob', trades: 'trade', inbox: 'inbox' };
   // farm actions answer with the farm itself; everything else goes in "last" and the tab refreshes
-  var SELF = { property: /^property( map| info \d+)?$/, farm: /^(farm(?! sell)|water|harvest|plant|fertilize|buyplot|farmhand)/, shop: /^shop/, jobs: /^oddjob/, trades: /^trade$/, inbox: /^inbox/, desk: /^balance/ };
+  var SELF = { property: /^property( map| buildings| landmark| goods| info \S+)?$/, farm: /^(farm(?! sell)|water|harvest|plant|fertilize|buyplot|farmhand)/, shop: /^shop/, jobs: /^oddjob/, trades: /^trade$/, inbox: /^inbox/, desk: /^balance/ };
   var tab = 'desk', players = [];
 
   function err(e) { return e.message === 'login' ? 'Your login ran out. <a href="#" onclick="RV.login();return false">Log in again</a>.' : RV.esc(e.message); }

@@ -12,7 +12,7 @@ import { DAY, HOUR, dayKey, discordTime } from '../core/time';
 import { emojiOr } from '../discord/emoji';
 import { embed } from '../discord/style';
 import {
-  ESTATE, KINDS, KIND_ORDER, SIZE, TILES, around, buildMs, buyout, clearLot, dayRent, distance, effects, goodsPerDay, isEdge, lastShipment, lotAt, lotsOf,
+  ESTATE, KINDS, KIND_ORDER, SIZE, TILES, around, buyout, clearLot, dayRent, distance, effects, goodsPerDay, isEdge, lastShipment, lotAt, lotsOf,
   minBid, newLot, ownedBy, parseTile, partyUntil, perkLevel, placeBid, refundBid, rentAt, repairCost, saveLot, sellPrice, settle, ship, startParty, taxRate,
   tileName, trainsOf, upgradeCost, upgradeMs, upkeepAt, value, type EstateNews, type Kind, type Lot
 } from '../estate/estate';

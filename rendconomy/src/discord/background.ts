@@ -128,7 +128,7 @@ export function startFarmhands(db: Db, client: Client, prefix: string, rng: Rng)
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['underground', 'property', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['underground', 'property', 'landmark', 'vip', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 // ---------------------------------------------------------------- the Trading Floor's buttons and live updates
 // The Activity can't receive message edits, so it asks: "__press <button id>" presses a button (at the moment

@@ -15,7 +15,7 @@ import { netWorth } from '../social/worth';
 export const ROLE_METADATA = [
   { key: 'networth', name: 'Net worth (Polygons)', description: 'Net worth in their richest server, at least', type: 2 },
   { key: 'achievements', name: 'Achievements', description: 'Achievements unlocked, at least', type: 2 },
-  { key: 'properties', name: 'Properties', description: 'Lots owned in one server (Room to Grow), at least', type: 2 },
+  { key: 'properties', name: 'Properties', description: 'Buildings owned in one server (the city), at least', type: 2 },
   { key: 'company', name: 'Company founder', description: 'Runs a player company', type: 7 },
   { key: 'since', name: 'Days playing', description: 'Days since they started playing, at least', type: 5 }
 ] as const;
