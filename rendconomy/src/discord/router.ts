@@ -246,14 +246,19 @@ export function revealThen(deps: Deps, r: ReplyObject, msg: { id: string; channe
 }
 
 export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promise<void> {
-  const cmd = find(i.commandName);
-  if (!cmd || cmd.hidden) { await i.reply({ content: 'This command is no longer available.', flags: MessageFlags.Ephemeral }); return; }
-  const args: Args = {};
-  for (const o of cmd.options ?? []) {
+  let cmd = find(i.commandName);
+  let args: Args = {};
+  if (i.commandName === MOD_SLASH) {
+    // /mod <line>: a moderator command, parsed like a prefix message
+    const parsed = parsePrefix(`!${i.options.getString('command') ?? ''}`, '!');
+    if (!parsed || 'unknown' in parsed || parsed.cmd.system !== 'admin') { await i.reply({ content: 'That isn\'t a moderator command. Try `/mod give @player 500`.', flags: MessageFlags.Ephemeral }); return; }
+    cmd = parsed.cmd; args = parsed.args;
+  } else if (cmd && !cmd.hidden) for (const o of cmd.options ?? []) {
     if (o.type === 'user') args[o.name] = i.options.getUser(o.name)?.id;
     else if (o.type === 'integer') args[o.name] = i.options.getInteger(o.name) ?? undefined;
     else args[o.name] = i.options.getString(o.name) ?? undefined;
   }
+  if (!cmd || cmd.hidden) { await i.reply({ content: 'This command is no longer available.', flags: MessageFlags.Ephemeral }); return; }
   const reply = await execute(cmd, ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), args);
   const res = await i.reply({ ...payload(firstOf(reply)), ...(reply.ephemeral ? { flags: MessageFlags.Ephemeral as const } : {}), withResponse: true });
   const sent = res.resource?.message;
@@ -278,13 +283,23 @@ export async function onButton(deps: Deps, i: ButtonInteraction): Promise<void> 
 const TYPES = { string: ApplicationCommandOptionType.String, integer: ApplicationCommandOptionType.Integer, user: ApplicationCommandOptionType.User } as const;
 
 /** The slash command definitions Discord needs. */
+/**
+ * Discord allows 100 slash commands. The moderator commands share one instead: /mod <command line>, run exactly
+ * like the r! version (r!give @Ana 500 → /mod give @Ana 500). They still work with the prefix as before.
+ */
+export const MOD_SLASH = 'mod';
 export function slashBody(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-  return commands.filter((c) => !c.hidden).map((c) => ({
+  const mod = {
+    name: MOD_SLASH, description: 'Moderator commands, typed like the r! version: give @player 500, freeze @player, wipe...', dm_permission: false,
+    default_member_permissions: String(PermissionFlagsBits.ManageGuild),
+    options: [{ name: 'command', description: 'The command and what follows it, e.g. "give @Ana 500"', type: TYPES.string, required: true }]
+  };
+  return [...commands.filter((c) => !c.hidden && c.system !== 'admin').map((c) => ({
     name: c.name,
     description: c.description.slice(0, 100),
     dm_permission: !c.guildOnly,
     options: (c.options ?? []).map((o) => ({ name: o.name, description: o.description.slice(0, 100), type: TYPES[o.type], required: !!o.required }))
-  })) as RESTPostAPIChatInputApplicationCommandsJSONBody[];
+  })), mod] as RESTPostAPIChatInputApplicationCommandsJSONBody[];
 }
 
 /** The "Get update pings" button on update posts: gives or takes the updates role. */

@@ -100,7 +100,7 @@ test('prefix parsing', () => {
 
 test('slash definitions are valid for Discord', () => {
   const body = slashBody();
-  assert.equal(body.length, commands.filter((c) => !c.hidden).length);
+  assert.equal(body.length, commands.filter((c) => !c.hidden && c.system !== 'admin').length + 1, 'every command, with the moderator ones folded into /mod');
   for (const c of body) {
     assert.match(c.name, /^[a-z0-9_-]{1,32}$/);
     assert.ok(c.description.length > 0 && c.description.length <= 100);
@@ -127,4 +127,12 @@ test('market commands: view, buy, sell, portfolio', async () => {
   assert.match(text(await run('r!div', u, noon)), /Dividends/);
   assert.match(text(await run('r!chart bstg', u, noon)), /Bastardly Glory \(BSTG\)/);
   assert.ok(audit(db).ok);
+});
+
+test('slash commands fit under Discord\'s limit of 100; moderator commands share /mod', async () => {
+  const { slashBody } = await import('../src/discord/router.js');
+  const body = slashBody();
+  assert.ok(body.length <= 100, `${body.length} slash commands`);
+  assert.ok(body.some((c) => c.name === 'mod'));
+  assert.ok(!body.some((c) => c.name === 'give' || c.name === 'wipe'));
 });
