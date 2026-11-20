@@ -9,6 +9,7 @@ import * as sessions from '../core/sessions';
 import { discordTime } from '../core/time';
 import { embed } from '../discord/style';
 import { EVENTS, activeEvent, describeEvent, endEvent, startEvent } from '../events/world';
+import { trainsOf } from '../estate/estate';
 import { HEIST, ROLES, TARGETS, heistOdds, playerCooldown, recentHeists, runHeist, serverReady, type Member, type Role, type Target } from '../heists/heists';
 import { heistBonus } from '../events/world';
 import { me } from './shared';
@@ -32,7 +33,7 @@ function lobbyView(ctx: Ctx, s: sessions.Session<Lobby>, line = '', done = false
 
 export const heist: Command = {
   name: 'heist', aliases: ['heists', 'rob'], description: 'Plan a heist: vault, stash, or the Reserve (crew of 3 to 5)', system: 'casino', guildOnly: true,
-  options: [{ name: 'target', type: 'string', description: 'vault, stash, or reserve (leave out for recent heists)' }, { name: 'role', type: 'string', description: 'Your role: hacker, driver, lookout, muscle (default hacker)' }],
+  options: [{ name: 'target', type: 'string', description: 'vault, stash, reserve, or train (leave out for recent heists)' }, { name: 'role', type: 'string', description: 'Your role: hacker, driver, lookout, muscle (default hacker)' }],
   run(ctx, args) {
     const { guildId } = me(ctx);
     const t = String(args.target ?? '').trim().toLowerCase() as Target;
@@ -41,7 +42,8 @@ export const heist: Command = {
       return { embeds: [embed('casino', 'Recent heists', r.length ? r.map((h) => `${TARGETS[h.target as Target]?.emoji ?? ''} ${TARGETS[h.target as Target]?.label ?? h.target} · ${h.outcome}${h.haul ? ` · ${format(h.haul)}` : ''} · ${discordTime(h.at)}`) : ['None yet.'],
         { footer: { text: `${ctx.config.prefix}heist vault|stash|reserve [role]` } })] };
     }
-    if (!TARGETS[t]) throw new GameError('heist.target', 'Choose a target: vault, stash, or reserve.');
+    if (!TARGETS[t]) throw new GameError('heist.target', 'Choose a target: vault, stash, reserve, or train.');
+    if (t === 'train' && !trainsOf(ctx.db, guildId, ctx.now).some((f) => f.user_id !== ctx.user.id)) throw new GameError('heist.notrain', 'No freight train is on the rails right now (none of yours count). Stations ship them; watch for one leaving.');
     let role = (String(args.role ?? 'hacker').trim().toLowerCase() || 'hacker') as Role;
     if (!ROLES[role] && /^[a-z]{2,5}$/.test(role) && !['hack', 'look', 'drive'].includes(role)) role = 'hacker'; // the old "r!heist vault <ticker>"
     if (!ROLES[role]) throw new GameError('heist.role', 'Roles: hacker, driver, lookout, muscle.');

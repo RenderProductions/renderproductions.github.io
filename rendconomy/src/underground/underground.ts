@@ -14,7 +14,7 @@ import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { addMoment } from '../core/moments';
 import { polygons, type Cents } from '../core/money';
 import { DAY, HOUR, dayKey, easternAt, easternHour, nextDay, previousDay } from '../core/time';
-import { lotsOf, type Lot } from '../estate/estate';
+import { TILES, around, lotsOf } from '../estate/estate';
 import { roll } from '../farming/farming';
 
 export const UG = {
@@ -29,7 +29,8 @@ export const UG = {
   snitchCost: polygons(250), snitchReward: polygons(500), snitchShare: 0.1, snitchMiss: 30, snitchStars: 3,
   diceGames: 5, diceCatch: 0.1, diceSave: 0.3, lockpickOdds: 0.15, rumor: 0.03,
   crewBelow: 75, crewCooldown: 3 * DAY,
-  cleanHands: polygons(50_000)
+  cleanHands: polygons(50_000),
+  policeRadius: 1, alleyHeat: 1.5
 };
 
 export type ContrabandId = 'loaded_dice' | 'fake_id' | 'lockpick' | 'insider_tip' | 'rumor_mill' | 'smoke_bomb' | 'squatter_crew';
@@ -89,8 +90,12 @@ export function stockFor(guildId: string, night: string): ContrabandId[] {
   return scored.sort((a, b) => a.r - b.r).slice(0, 4).map((x) => x.id).sort((a, b) => ids.indexOf(a) - ids.indexOf(b));
 }
 
-export interface Night { night: string; lot: number; where: 'condemned' | 'rundown' | 'empty'; password: string | null; posted: boolean }
-/** Tonight's details for a server, picked the first time anyone looks (the lot stays put all night). */
+export interface Night { night: string; lot: number; where: 'condemned' | 'rundown' | 'empty' | 'alley'; password: string | null; posted: boolean }
+/**
+ * Tonight's details for a server, picked the first time anyone looks (the spot stays put all night). He won't set
+ * up within 1 tile of a Police Station. If every spot is covered, he takes an alley off the map instead: there's
+ * always a password that night, and every deal there brings extra Heat.
+ */
 export function tonight(db: Db, guildId: string, now: number): Night | null {
   const night = nightKey(now);
   if (!night) return null;
@@ -98,22 +103,38 @@ export function tonight(db: Db, guildId: string, now: number): Night | null {
   if (saved) { try { const n = JSON.parse(saved) as Night; if (n.night === night) return n; } catch { /* pick again */ } }
   const lots = lotsOf(db, guildId, now);
   const pick = <T>(list: T[], salt: string): T => list[Math.floor(roll(seedOf(`${salt}:${guildId}`), nightOpens(night)) * list.length)]!;
-  const condemned = lots.filter((l) => l.status === 'auction');
-  const owned = lots.filter((l) => l.status === 'owned');
-  let lot: Lot, where: Night['where'];
-  if (condemned.length) { lot = pick(condemned, 'lot'); where = 'condemned'; }
+  const stations = lots.filter((l) => l.kind === 'police' && l.status === 'owned' && l.build_until <= now);
+  const watched = new Set(stations.flatMap((l) => [l.lot, ...around(l.lot, UG.policeRadius)]));
+  const free = (t: number) => !watched.has(t);
+  const condemned = lots.filter((l) => l.status === 'auction' && free(l.lot));
+  const owned = lots.filter((l) => l.status === 'owned' && l.build_until <= now && free(l.lot));
+  const taken = new Set(lots.map((l) => l.lot));
+  const empty = Array.from({ length: TILES }, (_, i) => i + 1).filter((t) => !taken.has(t) && free(t));
+  let lot = 0, where: Night['where'];
+  if (condemned.length) { lot = pick(condemned, 'lot').lot; where = 'condemned'; }
   else if (owned.length) {
     const worst = Math.min(...owned.map((l) => l.condition));
-    lot = pick(owned.filter((l) => l.condition === worst), 'lot'); where = 'rundown';
+    lot = pick(owned.filter((l) => l.condition === worst), 'lot').lot; where = 'rundown';
     // the owner loses half that day's rent (estate.ts checks ug.hosts)
     const hosts = hostsOf(db, guildId).filter((h) => h.until > now - 7 * DAY);
-    hosts.push({ lot: lot.lot, from: nightOpens(night), until: nightCloses(night) });
+    hosts.push({ lot, from: nightOpens(night), until: nightCloses(night) });
     db.setMeta(`ug.hosts:${guildId}`, JSON.stringify(hosts));
-  } else { lot = pick(lots.filter((l) => l.status === 'bank'), 'lot'); where = 'empty'; }
-  const n: Night = { night, lot: lot.lot, where, password: isPasswordNight(guildId, night) ? passwordFor(guildId, night) : null, posted: false };
+  } else if (empty.length) { lot = pick(empty, 'lot'); where = 'empty'; }
+  else where = 'alley';
+  // Not on My Watch: every Police Station on the map kept him off its block tonight
+  for (const owner of new Set(stations.map((l) => l.owner_id!))) {
+    const key = `ug.watch:${guildId}:${owner}`;
+    const n = Number(db.meta(key) ?? 0) + 1;
+    db.setMeta(key, String(n));
+    if (n >= 7) award(db, guildId, owner, 'not_on_my_watch', now);
+  }
+  const password = where === 'alley' || isPasswordNight(guildId, night) ? passwordFor(guildId, night) : null;
+  const n: Night = { night, lot, where, password, posted: false };
   db.setMeta(`ug.night:${guildId}`, JSON.stringify(n));
   return n;
 }
+/** Deals in the alley bring more Heat. */
+export const heatFor = (n: Night | null, heat: number): number => Math.round(heat * (n?.where === 'alley' ? UG.alleyHeat : 1));
 export function hostsOf(db: Db, guildId: string): { lot: number; from: number; until: number }[] {
   try { return JSON.parse(db.meta(`ug.hosts:${guildId}`) ?? '[]'); } catch { return []; }
 }

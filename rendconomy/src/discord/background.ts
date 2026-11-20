@@ -29,7 +29,8 @@ import { holidayTick, isHoliday, season } from '../holidays/holidays';
 import { anyItem } from '../shop/items';
 import { settleServer } from '../commands/property';
 import { roleStats } from '../site/roles';
-import { KINDS, lotsOf, type Kind } from '../estate/estate';
+import { KINDS, SIZE, lotAt, lotsOf, tileName, trainsOf } from '../estate/estate';
+import { current as currentLandmark, finished as finishedLandmarks } from '../estate/landmarks';
 import { nextOpen, nightCloses, tonight } from '../underground/underground';
 import { cryptoRng } from '../core/rng';
 import { handSettings, runShift } from '../farming/farmhand';
@@ -70,7 +71,7 @@ export function startHolidays(db: Db, client: Client, prefix: string): void {
 export function startEstates(db: Db, prefix: string): void {
   const tick = () => {
     const now = Date.now();
-    for (const g of db.all<{ guild_id: string }>("SELECT DISTINCT guild_id FROM estates WHERE status != 'bank' OR bidder_id IS NOT NULL")) {
+    for (const g of db.all<{ guild_id: string }>("SELECT DISTINCT guild_id FROM estates UNION SELECT DISTINCT guild_id FROM freight WHERE done = 0")) {
       try { settleServer(db, g.guild_id, now, prefix); } catch (e) { console.error('[estates]', e); }
     }
   };
@@ -187,25 +188,37 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
 }
-/** No Questions Asked: where the Connector is tonight in each server with a map (for /backstage/underground/). Never the password. */
-function undergroundSnapshot(db: Db): Record<string, { open: boolean; lot?: number; kind?: string; where?: string; passwordNight?: boolean; until?: number; opens?: number }> {
+/** The servers the site shows: every server with players (an empty map is still a map). */
+const mapGuilds = (db: Db): string[] => db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM players WHERE guild_id IS NOT NULL').map((r) => r.guild_id);
+/** No Questions Asked: where the Connector is tonight in each server (for /backstage/underground/). Never the password. */
+function undergroundSnapshot(db: Db): Record<string, { open: boolean; lot?: number; tile?: string; kind?: string; where?: string; passwordNight?: boolean; until?: number; opens?: number }> {
   const now = Date.now(), out: ReturnType<typeof undergroundSnapshot> = {};
-  for (const g of db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM estates')) {
-    const n = tonight(db, g.guild_id, now);
-    if (!n) { out[g.guild_id] = { open: false, opens: nextOpen(now) }; continue; }
-    out[g.guild_id] = { open: true, lot: n.lot, kind: KINDS[lotsOf(db, g.guild_id)[n.lot - 1]!.kind].name, where: n.where, passwordNight: !!n.password, until: nightCloses(n.night) };
+  for (const g of mapGuilds(db)) {
+    const n = tonight(db, g, now);
+    if (!n) { out[g] = { open: false, opens: nextOpen(now) }; continue; }
+    const l = n.lot ? lotAt(lotsOf(db, g), n.lot) : undefined;
+    out[g] = { open: true, lot: n.lot, tile: n.lot ? tileName(n.lot) : 'the alley', kind: l ? KINDS[l.kind].name : n.where === 'alley' ? 'Alley' : 'Empty lot', where: n.where, passwordNight: !!n.password, until: nightCloses(n.night) };
   }
   return out;
 }
-/** Each server's map for the site (/rend-conomy/map/): who owns what, and in what shape. Only servers with a map. */
-function estatesSnapshot(db: Db): Record<string, { lot: number; kind: Kind; name: string; owner: string | null; owner_id: string | null; status: string; condition: number; squatters: boolean; bid: number; until: number | null }[]> {
-  const out: Record<string, ReturnType<typeof estatesSnapshot>[string]> = {};
-  for (const g of db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM estates')) {
-    out[g.guild_id] = lotsOf(db, g.guild_id).map((l) => ({
-      lot: l.lot, kind: l.kind, name: KINDS[l.kind].name, status: l.status, condition: Math.round(l.condition), squatters: !!l.squatters,
-      owner_id: l.owner_id, owner: l.owner_id ? db.get<{ name: string }>('SELECT name FROM players WHERE guild_id = ? AND user_id = ?', l.guild_id, l.owner_id)?.name ?? 'someone' : null,
-      bid: l.bid_cents / 100, until: l.status === 'auction' ? l.auction_until : l.bid_until
-    }));
+/** Each server's city for the site (/rend-conomy/map/): the 8×8 grid, who built what, landmarks and trains. */
+function estatesSnapshot(db: Db): Record<string, { size: number; tiles: Record<string, unknown>[]; landmarks: { built: string[]; current: { id: string; name: string; funded: number; cost: number } | null }; trains: number }> {
+  const out: ReturnType<typeof estatesSnapshot> = {};
+  const now = Date.now();
+  for (const g of mapGuilds(db)) {
+    const lots = lotsOf(db, g);
+    const c = currentLandmark(db, g);
+    out[g] = {
+      size: SIZE,
+      tiles: lots.map((l) => ({
+        lot: l.lot, tile: tileName(l.lot), kind: l.kind, name: KINDS[l.kind].name, level: l.level, status: l.status, condition: Math.round(l.condition), squatters: !!l.squatters,
+        building: l.build_until > now, ready: l.build_until,
+        owner_id: l.owner_id, owner: l.owner_id ? db.get<{ name: string }>('SELECT name FROM players WHERE guild_id = ? AND user_id = ?', l.guild_id, l.owner_id)?.name ?? 'someone' : null,
+        bid: l.bid_cents / 100, until: l.status === 'auction' ? l.auction_until : l.bid_until
+      })),
+      landmarks: { built: finishedLandmarks(db, g).map((l) => l.id), current: c ? { id: c.l.id, name: c.l.name, funded: c.funded / 100, cost: c.l.cost / 100 } : null },
+      trains: trainsOf(db, g, now).length
+    };
   }
   return out;
 }

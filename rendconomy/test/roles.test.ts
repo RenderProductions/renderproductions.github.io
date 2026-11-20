@@ -6,7 +6,7 @@ import { player } from '../src/core/economy';
 import { transfer, wallet, RESERVE } from '../src/core/ledger';
 import { polygons } from '../src/core/money';
 import { award } from '../src/achievements/achievements';
-import { lotsOf, saveLot } from '../src/estate/estate';
+import { newLot, saveLot } from '../src/estate/estate';
 
 const A = '111111111111111111', t0 = Date.UTC(2026, 10, 9), t1 = Date.UTC(2026, 10, 14);
 
@@ -18,8 +18,8 @@ test('Linked Roles: five stats, each the player\'s best across servers', () => {
   player(db, 'g2', A, polygons(1000), t0);
   transfer(db, { from: RESERVE, to: wallet('g2', A), cents: polygons(50_000), reason: 'mod.give' });
   award(db, 'g1', A, 'first_home', t1);
-  for (const n of [1, 2, 3]) { const l = lotsOf(db, 'g1', t1)[n - 1]!; Object.assign(l, { owner_id: A, status: 'owned' }); saveLot(db, l); }
-  const l = lotsOf(db, 'g2', t1)[0]!; Object.assign(l, { owner_id: A, status: 'owned' }); saveLot(db, l);
+  for (const n of [1, 2, 3]) saveLot(db, newLot('g1', n, 'shack', A, t1, 0));
+  saveLot(db, newLot('g2', 1, 'shack', A, t1, 0));
   const s = roleStats(db)[A]!;
   assert.ok(s.networth >= 51_000, 'the richer server');
   assert.ok(s.achievements >= 1);

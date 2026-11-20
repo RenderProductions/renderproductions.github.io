@@ -8,11 +8,11 @@ import { format, parseAmount, type Cents } from '../core/money';
 import { dayKey, discordTime } from '../core/time';
 import { emojiOr } from '../discord/emoji';
 import { embed } from '../discord/style';
-import { KINDS, hasPerk, lotsOf, saveLot } from '../estate/estate';
+import { KINDS, hasPerk, lotAt, lotsOf, parseTile, saveLot, tileName } from '../estate/estate';
 import { KEY as MARKET_KEY, TICKERS, nudge } from '../market/market';
 import { addInbox } from '../social/inbox';
 import {
-  ALIASES, CONTRABAND, LOOT, UG, addHeat, charges, fencePrice, heatNow, lootOf, markPosted, maybeRaid, nextOpen, nightCloses, nightKey, passwordToPost,
+  ALIASES, CONTRABAND, LOOT, UG, addHeat, charges, fencePrice, heatFor, heatNow, lootOf, markPosted, maybeRaid, nextOpen, nightCloses, nightKey, passwordToPost,
   raid, row, settlePlayer, stars, stockFor, tonight, type ContrabandId, type Night, type Raid, type Settled
 } from '../underground/underground';
 import { me } from './shared';
@@ -41,7 +41,7 @@ export function connectorHijack(db: Ctx['db'], guildId: string, now: number): Re
       '**THE CONNECTOR HAS TAKEN CONTROL OF THIS INFERNAL MACHINE TO LEAVE YOU THIS!**',
       '',
       `${emojiOr('password', '🔐')} Tonight's password: ||**${n.password}**||`,
-      `-# Lot ${n.lot}. Ten o'clock. You didn't hear it from me.`
+      n.where === 'alley' ? '-# The alley. Ten o\'clock. You didn\'t hear it from me.' : `-# ${tileName(n.lot)}. Ten o'clock. You didn't hear it from me.`
     ].join('\n')
   }] };
 }
@@ -78,10 +78,12 @@ function pockets(ctx: Ctx, g: string): string[] {
 }
 
 function where(ctx: Ctx, g: string, n: Night): string {
-  const l = lotsOf(ctx.db, g, ctx.now)[n.lot - 1]!;
-  return n.where === 'condemned' ? `He's squatting in **lot ${n.lot}**, the condemned ${KINDS[l.kind].name}.`
-    : n.where === 'rundown' ? `Nothing's condemned, so he's squatting in **lot ${n.lot}**, the most run-down place on the map. The owner won't be thrilled.`
-    : `He's set up in the empty **lot ${n.lot}**.`;
+  if (n.where === 'alley') return `Police on every corner, so he's set up in **an alley off the map**. Every deal here brings ${Math.round((UG.alleyHeat - 1) * 100)}% more Heat.`;
+  const l = lotAt(lotsOf(ctx.db, g, ctx.now), n.lot);
+  const name = l ? KINDS[l.kind].name : 'place';
+  return n.where === 'condemned' ? `He's squatting in **${tileName(n.lot)}**, the condemned ${name}.`
+    : n.where === 'rundown' ? `Nothing's condemned, so he's squatting in **${tileName(n.lot)}**, the most run-down ${name} on the map. The owner won't be thrilled.`
+    : `He's set up on the empty lot at **${tileName(n.lot)}**.`;
 }
 
 function shopView(ctx: Ctx, g: string, n: Night, extra: string[]): ReplyObject {
@@ -97,7 +99,7 @@ function shopView(ctx: Ctx, g: string, n: Night, extra: string[]): ReplyObject {
     '',
     ...pockets(ctx, g),
     '',
-    `-# \`${P}ug buy <item>\` · \`${P}ug fence <#|all>\` · \`${P}ug launder <#> <your shop's lot>\` · \`${P}ug smuggle <amount>\` · \`${P}ug snitch @player\``
+    `-# \`${P}ug buy <item>\` · \`${P}ug fence <#|all>\` · \`${P}ug launder <#> <your shop's tile>\` · \`${P}ug smuggle <amount>\` · \`${P}ug snitch @player\``
   ])] };
 }
 
@@ -116,7 +118,8 @@ function open(ctx: Ctx, g: string): Night {
 }
 
 /** After a shady action: Heat, then maybe a raid. Returns the reply. */
-function shady(ctx: Ctx, g: string, heat: number, lines: string[], title: string): ReplyObject {
+function shady(ctx: Ctx, g: string, baseHeat: number, lines: string[], title: string): ReplyObject {
+  const heat = heatFor(tonight(ctx.db, g, ctx.now), baseHeat);
   const more = addHeat(ctx.db, g, ctx.user.id, heat, ctx.now);
   const r = maybeRaid(ctx.db, g, ctx.user.id, ctx.now, () => ctx.rng.next());
   const body = [...lines, `-# +${heat} Heat: ${heatBar(heatNow(ctx.db, g, ctx.user.id, ctx.now))}`, ...more];
@@ -162,11 +165,11 @@ function buy(ctx: Ctx, g: string, w: string, n: Night, raw: string, extra: strin
     nudge(ctx.db, t, dir === 'up' ? UG.rumor : -UG.rumor);
     lines.push(`${emojiOr('rumor_mill', '📰')} *"Consider it whispered."* A rumor about **${t}** is going around. It'll move ${dir} on the next tick.`);
   } else if (id === 'squatter_crew') {
-    const lot = Number(String(args[0] ?? '').replace(/^#/, ''));
+    const lot = parseTile(args[0]) ?? 0;
     const lots = lotsOf(ctx.db, g, ctx.now);
-    const l = lots[lot - 1];
-    if (!l) throw new GameError('ug.crew.lot', `\`${P}ug buy crew <lot>\`: someone else's place, under ${UG.crewBelow}%.`);
-    if (l.status !== 'owned' || l.owner_id === ctx.user.id) throw new GameError('ug.crew.owner', `*"Whose place is that? Not someone else's."* Pick a lot another player owns.`);
+    const l = lotAt(lots, lot);
+    if (!l) throw new GameError('ug.crew.lot', `\`${P}ug buy crew <tile>\`: someone else's place, under ${UG.crewBelow}%.`);
+    if (l.status !== 'owned' || l.owner_id === ctx.user.id) throw new GameError('ug.crew.owner', `*"Whose place is that? Not someone else's."* Pick a place another player owns.`);
     if (l.condition >= UG.crewBelow) throw new GameError('ug.crew.nice', `*"Too nice. They'd get noticed."* It has to be under ${UG.crewBelow}%.`);
     if (l.squatters) throw new GameError('ug.crew.full', `*"Somebody's already in there."*`);
     if (Number(ctx.db.meta(`ug.crew:${g}:${lot}`) ?? 0) > ctx.now) throw new GameError('ug.crew.hot', '*"That place is crawling. Give it a few days."*');
@@ -175,8 +178,8 @@ function buy(ctx: Ctx, g: string, w: string, n: Night, raw: string, extra: strin
     l.squatters = 1; saveLot(ctx.db, l);
     ctx.db.setMeta(`ug.crew:${g}:${lot}`, String(ctx.now + UG.crewCooldown));
     ctx.db.run('UPDATE underground SET crew_day = ? WHERE guild_id = ? AND user_id = ?', dayKey(ctx.now), g, ctx.user.id);
-    addInbox(ctx.db, l.owner_id!, g, 'Squatters!', `${emojiOr('squatter_crew', '🛌')} **A crew of squatters moved into lot ${lot}.** Somebody sent them. No rent until they're gone: \`${P}property evict ${lot}\`, or repair it to 75%.`, ctx.now);
-    lines.push(`${emojiOr('squatter_crew', '🛌')} *"They'll be there by morning."* A crew is moving into **lot ${lot}**.`);
+    addInbox(ctx.db, l.owner_id!, g, 'Squatters!', `${emojiOr('squatter_crew', '🛌')} **A crew of squatters moved into ${tileName(lot)}.** Somebody sent them. No rent until they're gone: \`${P}property evict ${tileName(lot)}\`, or repair it to 75%.`, ctx.now);
+    lines.push(`${emojiOr('squatter_crew', '🛌')} *"They'll be there by morning."* A crew is moving into **${tileName(lot)}**.`);
   } else {
     pay(ctx, g, w, c.price, 'ug.buy');
     if (id === 'loaded_dice') { ctx.db.run('UPDATE underground SET dice = dice + ? WHERE guild_id = ? AND user_id = ?', UG.diceGames, g, ctx.user.id); lines.push(`${emojiOr('loaded_dice', '🎲')} Loaded Dice: your next ${UG.diceGames} casino games roll a little your way. Don't let TODD see them.`); }
@@ -278,12 +281,13 @@ export const underground: Command = {
 
       if (verb === 'launder') {
         const l = lootOf(ctx.db, g, ctx.user.id).find((x) => String(x.id) === target.replace(/^#/, '') && !x.launder_until);
-        if (!l) throw new GameError('ug.launder.which', `\`${P}ug launder <loot #> <your shop's lot>\`.`);
-        const lot = lotsOf(ctx.db, g, ctx.now)[Number(extra.replace(/^#/, '')) - 1];
-        if (!lot || lot.kind !== 'shop' || lot.status !== 'owned' || lot.owner_id !== ctx.user.id) throw new GameError('ug.launder.shop', 'It goes out the back of a **Corner Shop you own**. Which lot?');
+        if (!l) throw new GameError('ug.launder.which', `\`${P}ug launder <loot #> <your shop's tile>\`.`);
+        const mine = lotsOf(ctx.db, g, ctx.now).filter((x) => x.kind === 'shop' && x.status === 'owned' && x.owner_id === ctx.user.id && x.build_until <= ctx.now);
+        const lot = extra ? lotAt(mine, parseTile(extra) ?? 0) : mine.length === 1 ? mine[0] : undefined;
+        if (!lot) throw new GameError('ug.launder.shop', 'It goes out the back of a **finished Corner Shop you own**. Which tile?');
         if (lot.squatters) throw new GameError('ug.launder.squat', 'There are squatters in that shop. Not tonight.');
         ctx.db.run('UPDATE hot_loot SET launder_until = ?, launder_lot = ? WHERE id = ?', ctx.now + UG.launderMs, lot.lot, l.id);
-        return shady(ctx, g, UG.launderHeat, [`${emojiOr('launder', '🧺')} ${LOOT[l.kind].name.replace(/^./, (c) => c.toUpperCase())} goes out the back of your shop on lot ${lot.lot}. It'll come back clean, for the full ${format(l.value)}, ${discordTime(ctx.now + UG.launderMs)}.`], `${emojiOr('launder', '🧺')} Laundering`);
+        return shady(ctx, g, UG.launderHeat, [`${emojiOr('launder', '🧺')} ${LOOT[l.kind].name.replace(/^./, (c) => c.toUpperCase())} goes out the back of your shop on ${tileName(lot.lot)}. It'll come back clean, for the full ${format(l.value)}, ${discordTime(ctx.now + UG.launderMs)}.`], `${emojiOr('launder', '🧺')} Laundering`);
       }
 
       if (verb === 'smuggle' || verb === 'run') {

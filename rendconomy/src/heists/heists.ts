@@ -14,10 +14,12 @@ import { economy } from '../config';
 import type { Db } from '../core/db';
 import { payFromReserve } from '../core/economy';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
-import { polygons, type Cents } from '../core/money';
+import { format, polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { HOUR, MINUTE } from '../core/time';
 import { heistBonus } from '../events/world';
+import { robTrain, trainsOf } from '../estate/estate';
+import { addInbox } from '../social/inbox';
 
 export const ROLES = {
   hacker: { emoji: '💻', label: 'Hacker', odds: 0.10, haul: 0 },
@@ -29,7 +31,9 @@ export type Role = keyof typeof ROLES;
 export const TARGETS = {
   vault: { label: 'a company vault', emoji: '🏦', odds: 0.45, stake: polygons(250), haul: [polygons(3000), polygons(6000)], needs: null, minLevel: 0 },
   stash: { label: "TODD's stash", emoji: '🖥️', odds: 0.40, stake: polygons(400), haul: [polygons(4000), polygons(9000)], needs: null, minLevel: 0 },
-  reserve: { label: 'the Polygon Reserve', emoji: '🔶', odds: 0.25, stake: polygons(750), haul: [polygons(15_000), polygons(30_000)], needs: 'hacker', minLevel: 0.3 }
+  reserve: { label: 'the Polygon Reserve', emoji: '🔶', odds: 0.25, stake: polygons(750), haul: [polygons(15_000), polygons(30_000)], needs: 'hacker', minLevel: 0.3 },
+  // Oh My God, 2 in 1!: a freight train on the rails (takes up to half of what it carries)
+  train: { label: 'a freight train', emoji: '🚂', odds: 0.5, stake: polygons(300), haul: [polygons(2000), polygons(8000)], needs: null, minLevel: 0 }
 } as const;
 export type Target = keyof typeof TARGETS;
 export const HEIST = { minCrew: 3, maxCrew: 5, lobbyMs: 5 * MINUTE, serverGapMs: HOUR, playerGapMs: 6 * HOUR, caughtMs: 12 * HOUR, fine: 2, getaway: 0.5, noHacker: 0.2 };
@@ -70,8 +74,14 @@ export function runHeist(db: Db, g: string, target: Target, members: Member[], r
       outcome = 'clean';
       const muscle = crew.some((m) => m.role === 'muscle') ? 1 + ROLES.muscle.haul : 1;
       const want = Math.round((T.haul[0] + rng.next() * (T.haul[1] - T.haul[0])) * muscle);
-      // Robbing the Reserve takes straight from it (no shrinking); anything else is a normal payout
-      haul = target === 'reserve' ? Math.min(want, balance(db, RESERVE)) : Math.floor(want * Math.min(1, balance(db, RESERVE) / want));
+      // Robbing the Reserve takes straight from it (no shrinking); a train gives up what's on it; anything else is a normal payout
+      if (target === 'train') {
+        const ids = new Set(crew.map((m) => m.id));
+        const trains = trainsOf(db, g, now).sort((a, b) => (b.cents - b.robbed) - (a.cents - a.robbed));
+        const f = trains.find((x) => !ids.has(x.user_id)) ?? trains[0];
+        haul = f ? robTrain(db, f, want) : 0;
+        if (f && haul > 0) addInbox(db, f.user_id, g, 'Train robbery!', `🤠 **Your freight train was robbed!** A crew got away with ${format(haul)} of what it carried. The rest still arrives on time.`, now);
+      } else haul = target === 'reserve' ? Math.min(want, balance(db, RESERVE)) : Math.floor(want * Math.min(1, balance(db, RESERVE) / want));
       each = Math.floor(haul / crew.length);
       for (const m of crew) {
         if (target === 'reserve') { if (each > 0) transfer(db, { from: RESERVE, to: wallet(g, m.id), cents: each, reason: 'heist.haul', guildId: g, actorId: m.id, now }); }
@@ -80,6 +90,7 @@ export function runHeist(db: Db, g: string, target: Target, members: Member[], r
         const hot = dropLoot(db, g, m.id, now, () => rng.next());
         if (hot) loot.push({ name: LOOT[hot.kind].name, who: m.name, emoji: LOOT[hot.kind].emoji, value: hot.value });
         if (target === 'reserve') award(db, g, m.id, 'inside_job', now);
+        if (target === 'train') award(db, g, m.id, 'great_train_robbery', now);
         if (crew.length === HEIST.maxCrew && (Object.keys(ROLES) as Role[]).every((r) => crew.some((x) => x.role === r))) award(db, g, m.id, 'dream_team', now);
       }
     } else if (crew.some((m) => m.role === 'driver') && rng.chance(HEIST.getaway)) {

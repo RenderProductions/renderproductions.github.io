@@ -13,8 +13,10 @@ import { HOUR, MINUTE, dayKey } from '../core/time';
 
 export const FARMING = {
   startPlots: 3, maxPlots: 9,
-  /** What plots 4 to 9 cost. */
-  plotPrices: [1000, 1500, 2500, 3500, 5000, 7500].map(polygons),
+  /** A Barn unlocks 6 more (15 in all, shown as 3 rows of 5: the farm never has more than 3 rows). */
+  barnPlots: 6, rows: 3,
+  /** What plots 4 to 15 cost (10 to 15 need a Barn). */
+  plotPrices: [1000, 1500, 2500, 3500, 5000, 7500, 10_000, 12_500, 15_000, 20_000, 25_000, 30_000].map(polygons),
   wiltMs: 12 * HOUR, dryRate: 0.5, fertRate: 1.5, stormChance: 0.25,
   earlyBirdMs: MINUTE,
   /** The Farmhand waters everything, harvests what's ready and replants from his seed shed, for a daily wage. */
@@ -40,26 +42,69 @@ export const MUTATIONS: Record<Mutation, { label: string; emoji: string; mult: n
   square: { label: 'Square', emoji: '🟧', mult: 5, chance: 0.02 }       // pumpkins only
 };
 
+// ---------------------------------------------------------------- quality (Make Gambling Fun Again)
+// Every harvest is graded. The grade sets the range its price is rolled from when it's sold: Poor 70–85% of
+// the base value, Fine 85–115%, Prime 115–130%. Fertilized crops come out Prime more often.
+export type Grade = 'poor' | 'fine' | 'prime';
+export const GRADES: Record<Grade, { label: string; emoji: string; band: [number, number]; chance: number; fertChance: number }> = {
+  poor: { label: 'Poor', emoji: '🥀', band: [0.7, 0.85], chance: 0.25, fertChance: 0.15 },
+  fine: { label: 'Fine', emoji: '', band: [0.85, 1.15], chance: 0.55, fertChance: 0.5 },
+  prime: { label: 'Prime', emoji: '🥇', band: [1.15, 1.3], chance: 0.2, fertChance: 0.35 }
+};
+export const gradeMid = (g: Grade): number => (GRADES[g].band[0] + GRADES[g].band[1]) / 2;
+export function rollGrade(rng: Rng, fert = false): Grade {
+  const r = rng.next();
+  const poor = fert ? GRADES.poor.fertChance : GRADES.poor.chance, prime = fert ? GRADES.prime.fertChance : GRADES.prime.chance;
+  return r < poor ? 'poor' : r < poor + prime ? 'prime' : 'fine';
+}
+
 // ---------------------------------------------------------------- harvested crops (inventory items)
-// crop_<crop> or crop_<mutation>_<crop>. Seeds are shop items: seed_<crop>.
-export const cropItem = (id: string, mut: Mutation | null = null): string => (mut === 'square' ? 'crop_squarepumpkin' : mut ? `crop_${mut}_${id}` : `crop_${id}`);
+// crop_<crop>, crop_<mutation>_<crop> or crop_squarepumpkin, with poor_ or prime_ in front for those grades
+// (no prefix = Fine, so every crop harvested before grades existed is Fine). Seeds are shop items: seed_<crop>.
+export const cropItem = (id: string, mut: Mutation | null = null, grade: Grade = 'fine'): string =>
+  `crop_${grade === 'fine' ? '' : `${grade}_`}${mut === 'square' ? 'squarepumpkin' : mut ? `${mut}_${id}` : id}`;
 export const seedItem = (id: string): string => `seed_${id}`;
-export function parseCropItem(item: string): { crop: Crop; mut: Mutation | null; value: Cents; name: string; emojiKey: string; emoji: string } | null {
+export interface CropItem { crop: Crop; mut: Mutation | null; grade: Grade; base: Cents; value: Cents; name: string; emojiKey: string; emoji: string }
+export function parseCropItem(item: string): CropItem | null {
   if (!item.startsWith('crop_')) return null;
-  const rest = item.slice(5);
-  if (rest === 'squarepumpkin') { const c = CROPS.pumpkin!; return { crop: c, mut: 'square', value: c.value * MUTATIONS.square.mult, name: 'Square Pumpkin', emojiKey: 'squarepumpkin', emoji: '🟧' }; }
-  const [a, b] = rest.split('_') as [string, string | undefined];
+  let rest = item.slice(5), grade: Grade = 'fine';
+  const g = /^(poor|prime)_/.exec(rest);
+  if (g) { grade = g[1] as Grade; rest = rest.slice(g[0].length); }
+  const graded = (name: string) => (grade === 'fine' ? name : `${GRADES[grade].label} ${name}`);
+  if (rest === 'squarepumpkin') { const c = CROPS.pumpkin!; const base = c.value * MUTATIONS.square.mult; return { crop: c, mut: 'square', grade, base, value: Math.round(base * gradeMid(grade)), name: graded('Square Pumpkin'), emojiKey: 'squarepumpkin', emoji: '🟧' }; }
+  const [a, b, x] = rest.split('_') as [string, string | undefined, string | undefined];
+  if (x !== undefined) return null;
   const mut = b && (a === 'golden' || a === 'rainbow') ? a : null;
   const c = CROPS[b && mut ? b : a];
   if (!c || (b && !mut)) return null;
-  return { crop: c, mut, value: c.value * (mut ? MUTATIONS[mut].mult : 1), name: mut ? `${MUTATIONS[mut].label} ${c.name}` : c.name, emojiKey: mut ? `${mut}_${c.id}` : c.id, emoji: c.emoji };
+  const base = c.value * (mut ? MUTATIONS[mut].mult : 1);
+  return { crop: c, mut, grade, base, value: Math.round(base * gradeMid(grade)), name: graded(mut ? `${MUTATIONS[mut].label} ${c.name}` : c.name), emojiKey: mut ? `${mut}_${c.id}` : c.id, emoji: c.emoji };
 }
 export const isCropItem = (item: string): boolean => parseCropItem(item) !== null;
 
 /** Pumpkin season: every pumpkin (golden, rainbow and square too) sells for 25% more in October, Eastern time. */
 export const MARKET = { octoberPumpkins: 1.25, farmersMarket: 1.1, companyCut: 0.25 };
 export const isOctober = (now: number): boolean => dayKey(now).slice(5, 7) === '10';
-export const saleValue = (c: { crop: Crop; value: Cents }, now: number): Cents => Math.round(c.value * (c.crop.id === 'pumpkin' && isOctober(now) ? MARKET.octoberPumpkins : 1));
+/** Each crop's price moves every day (Eastern), 80% to 120% of normal, the same for everyone. */
+export const PRICE_SWING: [number, number] = [0.8, 1.2];
+const daySeed = (s: string): number => { let h = 2166136261; for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return h >>> 0; };
+export const cropPrice = (cropId: string, now: number): number => PRICE_SWING[0] + (PRICE_SWING[1] - PRICE_SWING[0]) * roll(daySeed(`price:${cropId}:${dayKey(now)}`), 0);
+/** The best of today's price and the last few days' (a Warehouse's Cold Storage: `days` > 1). */
+export function bestPrice(cropId: string, now: number, days = 1): number {
+  let best = 0;
+  for (let i = 0; i < Math.max(1, days); i++) best = Math.max(best, cropPrice(cropId, now - i * 24 * HOUR));
+  return best;
+}
+const october = (c: { crop: Crop }, now: number) => (c.crop.id === 'pumpkin' && isOctober(now) ? MARKET.octoberPumpkins : 1);
+/** What a crop is expected to sell for right now (its grade's middle, today's price, pumpkin season). */
+export const saleValue = (c: { crop: Crop; value: Cents }, now: number, days = 1): Cents => Math.round(c.value * bestPrice(c.crop.id, now, days) * october(c, now));
+/** Sells `qty` of one crop: each one's price is rolled within its grade's range. Returns the total. */
+export function rollSale(c: CropItem, qty: number, now: number, rng: Rng, days = 1): { total: Cents; best: number } {
+  const [lo, hi] = GRADES[c.grade].band, p = bestPrice(c.crop.id, now, days) * october(c, now);
+  let total = 0, best = 0;
+  for (let i = 0; i < qty; i++) { const m = (lo + (hi - lo) * rng.next()) * p; best = Math.max(best, m); total += Math.round(c.base * m); }
+  return { total, best };
+}
 
 /** Rolls what a harvest comes out as. */
 export function rollMutation(cropId: string, rng: Rng): Mutation | null {
@@ -190,7 +235,10 @@ export function setFarmhand(db: Db, guildId: string, userId: string, until: numb
 }
 export const remindOn = (db: Db, guildId: string, userId: string): boolean => (db.get<{ remind: number }>('SELECT remind FROM farms WHERE guild_id = ? AND user_id = ?', guildId, userId)?.remind ?? 0) === 1;
 /** What the next plot costs, or null at the most. */
-export const nextPlotPrice = (owned: number): Cents | null => (owned >= FARMING.maxPlots ? null : FARMING.plotPrices[owned - FARMING.startPlots] ?? null);
+export const maxPlots = (barn: boolean): number => FARMING.maxPlots + (barn ? FARMING.barnPlots : 0);
+export const nextPlotPrice = (owned: number, barn = false): Cents | null => (owned >= maxPlots(barn) ? null : FARMING.plotPrices[owned - FARMING.startPlots] ?? null);
+/** The farm's layout: always 3 rows, 3 columns (5 once there's room for more than 9 plots). */
+export const farmColumns = (room: number): number => Math.max(3, Math.ceil(room / FARMING.rows));
 
 /**
  * Brings every plot of a farm up to now and saves it. Lost crops are cleared. Returns the plots left and

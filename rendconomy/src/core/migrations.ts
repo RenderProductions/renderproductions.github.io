@@ -500,5 +500,62 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE farms ADD COLUMN hand_dm INTEGER NOT NULL DEFAULT 1;
   ALTER TABLE farms ADD COLUMN hand_out INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE farms ADD COLUMN hand_dm_at INTEGER NOT NULL DEFAULT 0;
+  `,
+
+  /* v21: Oh My God, 2 in 1!: the empty 8×8 city map (the old 15 lots are kept as estates_old until the plow
+     fix refunds them), freight trains, landmarks, the farmhand's fertilizer, VIP free spins. */ `
+  ALTER TABLE estates RENAME TO estates_old;
+  CREATE TABLE estates (
+    guild_id      TEXT NOT NULL,
+    lot           INTEGER NOT NULL,
+    kind          TEXT NOT NULL,
+    owner_id      TEXT,
+    status        TEXT NOT NULL DEFAULT 'owned',
+    level         INTEGER NOT NULL DEFAULT 1,
+    condition     REAL NOT NULL DEFAULT 100,
+    settled_at    INTEGER NOT NULL,
+    built_at      INTEGER,
+    build_until   INTEGER NOT NULL DEFAULT 0,
+    spent         INTEGER NOT NULL DEFAULT 0,
+    squatters     INTEGER NOT NULL DEFAULT 0,
+    shield_until  INTEGER NOT NULL DEFAULT 0,
+    storefront    TEXT,
+    auction_until INTEGER,
+    bidder_id     TEXT,
+    bid_cents     INTEGER NOT NULL DEFAULT 0,
+    bid_until     INTEGER,
+    PRIMARY KEY (guild_id, lot)
+  );
+  CREATE INDEX estates_owner_v21 ON estates (guild_id, owner_id);
+  CREATE TABLE freight (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id   TEXT NOT NULL,
+    user_id    TEXT NOT NULL,
+    cents      INTEGER NOT NULL,
+    robbed     INTEGER NOT NULL DEFAULT 0,
+    crops      INTEGER NOT NULL DEFAULT 0,
+    goods      INTEGER NOT NULL DEFAULT 0,
+    left_at    INTEGER NOT NULL,
+    arrives_at INTEGER NOT NULL,
+    done       INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX freight_guild ON freight (guild_id, done, arrives_at);
+  CREATE TABLE landmarks (
+    guild_id  TEXT NOT NULL,
+    idx       INTEGER NOT NULL,
+    funded    INTEGER NOT NULL DEFAULT 0,
+    done_at   INTEGER,
+    PRIMARY KEY (guild_id, idx)
+  );
+  CREATE TABLE landmark_donors (
+    guild_id  TEXT NOT NULL,
+    idx       INTEGER NOT NULL,
+    user_id   TEXT NOT NULL,
+    cents     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, idx, user_id)
+  );
+  ALTER TABLE farms ADD COLUMN hand_fert INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE casino ADD COLUMN free_day TEXT;
+  ALTER TABLE casino ADD COLUMN free_used INTEGER NOT NULL DEFAULT 0;
   `
 ];

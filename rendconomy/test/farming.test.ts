@@ -11,7 +11,7 @@ import { HOUR, MINUTE } from '../src/core/time';
 import { execute } from '../src/discord/router';
 import { startEvent } from '../src/events/world';
 import { has } from '../src/achievements/achievements';
-import { CROPS, FARMING, newPlot, parseCropItem, plotsOf, simulate, type Env, type Plot } from '../src/farming/farming';
+import { CROPS, FARMING, cropPrice, newPlot, parseCropItem, plotsOf, simulate, type Env, type Plot } from '../src/farming/farming';
 import { addItem, count } from '../src/shop/inventory';
 import { approve, found } from '../src/companies/companies';
 
@@ -85,6 +85,12 @@ test('crop items: names, values and mutations', () => {
   assert.equal(parseCropItem('crop_squarepumpkin')!.value, CROPS.pumpkin!.value * 5);
   assert.equal(parseCropItem('crop_nope'), null);
   assert.equal(parseCropItem('fish_boot'), null);
+  // quality grades (Oh My God, 2 in 1!): no prefix is Fine
+  assert.equal(parseCropItem('crop_prime_carrot')!.grade, 'prime');
+  assert.equal(parseCropItem('crop_prime_golden_corn')!.name, 'Prime Golden Corn');
+  assert.equal(parseCropItem('crop_poor_squarepumpkin')!.mut, 'square');
+  assert.equal(parseCropItem('crop_carrot')!.grade, 'fine');
+  assert.equal(parseCropItem('crop_prime_nope'), null);
 });
 
 test('farming: seeds from Marquez, plant, water, harvest, sell', async () => {
@@ -184,20 +190,24 @@ test('the farmers\' market pays 10% more and the company earns from it; pumpkins
   transfer(db, { from: RESERVE, to: wallet(G, B), cents: polygons(10_000), reason: 'mod.give' });
   found(db, G, B, 'Bee', 'FARM', 'Farm to Fork', ['RRM', 'NACH', 'BLU', 'BNW', 'BSTG'], now); approve(db, 'FARM', now);
   addItem(db, G, A, 'crop_pumpkin', 2);
-  assert.match(text(await run('farm')), new RegExp(`worth \\*\\*⬡${(220 * 1.25 * 2).toLocaleString('en-US')}\\.00`), 'October prices in the basket');
+  const price = cropPrice('pumpkin', now);
+  const worth = Math.round(polygons(220) * price * 1.25) * 2;
+  assert.match(text(await run('farm')), new RegExp(`worth \\*\\*⬡${(worth / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`), 'October prices in the basket');
   assert.match(text(await run('farm', { action: 'sell NOPE' })), /no player company called NOPE/);
   assert.match(text(await run('farm', { action: 'sell FARM' }, B)), /basket is empty|own company/);
   const cash = balance(db, wallet(G, A)), tr = balance(db, 'company:FARM');
   const r = text(await run('farm', { action: 'sell farm' }));
   assert.match(r, /farmers' market[\s\S]*Farm to Fork[\s\S]*Pumpkin season[\s\S]*10% more than Marquez/);
   const paid = balance(db, wallet(G, A)) - cash;
-  assert.equal(paid, Math.round(polygons(220) * 1.25 * 2 * 1.1));
+  const base = polygons(220) * 1.25 * 2 * 1.1 * price;
+  assert.ok(paid >= Math.floor(base * 0.85) - 2 && paid <= Math.ceil(base * 1.15) + 2, 'a Fine pumpkin sells for 85% to 115%, at today\'s price');
   assert.equal(balance(db, 'company:FARM') - tr, Math.round(paid * 0.25));
   // November: back to normal
   now = eastern('2026-11-15T12:00', -5);
   addItem(db, G, A, 'crop_pumpkin');
   const c2 = balance(db, wallet(G, A));
   await run('sellcrops');
-  assert.equal(balance(db, wallet(G, A)) - c2, polygons(220));
+  const nov = polygons(220) * cropPrice('pumpkin', now), got = balance(db, wallet(G, A)) - c2;
+  assert.ok(got >= Math.floor(nov * 0.85) - 1 && got <= Math.ceil(nov * 1.15) + 1);
   assert.ok(audit(db).ok);
 });

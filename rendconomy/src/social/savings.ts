@@ -19,6 +19,11 @@ export const SAVINGS = {
   maxAccounts: 3
 };
 
+/** Multipliers on interest (a Bank Branch you own adds 25% a level). They multiply. */
+const boosts: ((db: Db, guildId: string, userId: string, now: number) => number)[] = [];
+export const addInterestBoost = (fn: (db: Db, guildId: string, userId: string, now: number) => number): void => { boosts.push(fn); };
+export const interestBoost = (db: Db, guildId: string, userId: string, now = Date.now()): number => boosts.reduce((m, fn) => m * fn(db, guildId, userId, now), 1);
+
 export interface SavingsAccount { id: number; guild_id: string; user_id: string; amount: Cents; rate_bp: number; days: number; opened_at: number; ends_at: number }
 
 export const accountId = (id: number): string => `savings:${id}`;
@@ -55,7 +60,7 @@ export function close(db: Db, a: SavingsAccount, now = Date.now()): Closed {
     const held = balance(db, accountId(a.id));
     if (held > 0) transfer(db, { from: accountId(a.id), to: w, cents: held, reason: 'savings.return', guildId: a.guild_id, actorId: a.user_id, now });
     db.run('DELETE FROM savings WHERE id = ?', a.id);
-    const interest = early ? 0 : payFromReserve(db, economy.reserveStart, { to: w, cents: interestOf(a), reason: 'savings.interest', guildId: a.guild_id, actorId: a.user_id, now });
+    const interest = early ? 0 : payFromReserve(db, economy.reserveStart, { to: w, cents: Math.floor(interestOf(a) * interestBoost(db, a.guild_id, a.user_id, now)), reason: 'savings.interest', guildId: a.guild_id, actorId: a.user_id, now });
     if (!early) emit('savings.matured', { guildId: a.guild_id, userId: a.user_id, cents: interest });
     return { account: a, interest, early };
   });

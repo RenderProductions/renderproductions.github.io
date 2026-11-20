@@ -11,9 +11,9 @@ import { DAY, HOUR } from '../src/core/time';
 import * as sessions from '../src/core/sessions';
 import { execute, typedAnswer } from '../src/discord/router';
 import { award, has } from '../src/achievements/achievements';
-import { addItem, count } from '../src/shop/inventory';
+import { addItem, count, items } from '../src/shop/inventory';
 import { unread } from '../src/social/inbox';
-import { CROPS, FARMING, plotsOf } from '../src/farming/farming';
+import { CROPS, FARMING, parseCropItem, plotsOf } from '../src/farming/farming';
 import { liveSnapshot } from '../src/discord/background';
 
 const G = 'g1', A = '111111111111111111', B = '222222222222222222';
@@ -106,7 +106,7 @@ test('the Farmhand waters and harvests for a daily wage, and leaves if unpaid', 
   const v = text(await run('farm'));
   assert.match(v, /While you were gone\*\*, your farmhand harvested 3 crops into your basket/);
   assert.equal(plotsOf(db, G, A).length, 0);
-  assert.equal(count(db, G, A, 'crop_carrot') + count(db, G, A, 'crop_golden_carrot') + count(db, G, A, 'crop_rainbow_carrot'), 3);
+  assert.equal(items(db, G, A).filter((r) => parseCropItem(r.item)?.crop.id === 'carrot').reduce((x, r) => x + r.qty, 0), 3);
   // wages: two more days get paid; then the money runs out and they leave
   const w = balance(db, wallet(G, A));
   later(DAY);

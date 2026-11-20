@@ -11,7 +11,7 @@ import { DAY, HOUR } from '../src/core/time';
 import { execute } from '../src/discord/router';
 import { has } from '../src/achievements/achievements';
 import { RARITY } from '../src/achievements/list';
-import { lotsOf, saveLot, settle as settleEstate, KINDS } from '../src/estate/estate';
+import { newLot, saveLot, settle as settleEstate, KINDS } from '../src/estate/estate';
 import { erasePlayer } from '../src/core/players';
 import {
   UG, CONTRABAND, dropLoot, fencePrice, heatNow, isPasswordNight, lootOf, maybeRaid, nightKey, passwordFor, raid, raidChance, row, stars, stockFor, tonight
@@ -60,18 +60,17 @@ test('where he squats: a condemned lot, else the most run-down place (half rent 
   await run('', '', '', B);
   assert.equal(tonight(db, G, now())!.where, 'empty');
   db.run("DELETE FROM meta WHERE key LIKE 'ug.night:%'");
-  const lots = lotsOf(db, G, now());
-  Object.assign(lots[1]!, { status: 'owned', owner_id: B, condition: 60, settled_at: now() - 2 * HOUR }); saveLot(db, lots[1]!);
-  Object.assign(lots[2]!, { status: 'owned', owner_id: B, condition: 30, settled_at: now() - 2 * HOUR }); saveLot(db, lots[2]!);
+  const built = (t: number, condition: number) => saveLot(db, { ...newLot(G, t, 'shack', B, now() - DAY, 0), build_until: now() - 3 * HOUR, built_at: null, condition, settled_at: now() - 2 * HOUR });
+  built(2, 60); built(3, 30);
   const t = tonight(db, G, now())!;
   assert.equal(t.where, 'rundown'); assert.equal(t.lot, 3);
-  assert.match(text(await run()), /most run-down place/);
+  assert.match(text(await run()), /most run-down Shack/);
   later(DAY);
   const ev = settleEstate(db, G, now());
   const paid = Object.fromEntries(ev.filter((e) => e.kind === 'paid').map((e) => [(e as { lot: number }).lot, (e as { rent: number }).rent]));
   assert.equal(paid[3], Math.floor(Math.floor(KINDS.shack.rent * 0.3) / 2), 'half rent the night he squatted there');
   db.run("DELETE FROM meta WHERE key LIKE 'ug.night:%'");
-  const l = lotsOf(db, G, now())[5]!; Object.assign(l, { status: 'auction', condition: 0, auction_until: now() + DAY }); saveLot(db, l);
+  saveLot(db, { ...newLot(G, 6, 'shack', B, now() - DAY, 0), build_until: 0, built_at: null, owner_id: null, status: 'auction', condition: 0, auction_until: now() + DAY });
   assert.deepEqual([tonight(db, G, now())!.where, tonight(db, G, now())!.lot], ['condemned', 6]);
 });
 
@@ -140,7 +139,7 @@ test('fencing pays 50% hot, 90% after three days; laundering pays it all through
   db.run('UPDATE underground SET heat = 0 WHERE guild_id = ? AND user_id = ?', G, A);
   const l2 = dropLoot(db, G, A, now(), () => 0)!;
   assert.match(text(await run('launder', String(l2.id), '11')), /Corner Shop you own/);
-  const shop = lotsOf(db, G, now())[10]!; Object.assign(shop, { status: 'owned', owner_id: A, settled_at: now() }); saveLot(db, shop);
+  saveLot(db, { ...newLot(G, 11, 'shop', A, now() - DAY, 0), build_until: 0, built_at: null, settled_at: now() });
   const r2 = text(await run('launder', String(l2.id), '11'));
   if (/BUSTED/.test(r2)) return;
   assert.match(r2, /out the back/);
@@ -225,11 +224,11 @@ test('contraband elsewhere: Loaded Dice in the casino, a Fake ID past TODD, a Sm
   // Smoke Bomb
   db.run('UPDATE underground SET smoke = 1 WHERE guild_id = ? AND user_id = ?', G, A);
   const p = (action: string, lot: string, amount: string, u = A) => execute(find('property')!, ctx(u), { action, lot, amount });
-  await p('buy', '1', '');
+  await p('build', 'A1', 'shack');
   await execute(find('balance')!, ctx(B), {}); transfer(db, { from: RESERVE, to: wallet(G, B), cents: polygons(10_000), reason: 'mod.give' });
-  await p('bid', '1', '4000', B);
+  await p('bid', 'A1', '5000', B);
   const before = balance(db, wallet(G, A));
-  assert.match(text(await p('refuse', '1', '')), /Smoke Bomb/);
+  assert.match(text(await p('refuse', 'A1', '')), /Smoke Bomb/);
   assert.equal(balance(db, wallet(G, A)), before, 'no fee');
   assert.ok(audit(db).ok);
 });

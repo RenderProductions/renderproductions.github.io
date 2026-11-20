@@ -7,8 +7,8 @@ import type { Rng } from '../core/rng';
 import { DAY } from '../core/time';
 import { addItem, count, takeItem } from '../shop/inventory';
 import {
-  CROPS, CROP_ORDER, FARMING, clearPlot, cropItem, farmhandUntil, newPlot, plotCount, plotsOf, rollMutation,
-  savePlot, seedItem, setFarmhand, simulate, weatherLog, type Env, type Plot
+  CROPS, CROP_ORDER, FARMING, clearPlot, cropItem, farmhandUntil, newPlot, plotCount, plotsOf, rollGrade, rollMutation,
+  savePlot, seedItem, setFarmhand, simulate, stageOf, weatherLog, type Env, type Plot
 } from './farming';
 
 /** What the farmhand did since you last looked. */
@@ -16,6 +16,7 @@ export interface ShiftLog {
   from: number;
   harvested: Record<string, number>;   // crop item → how many
   replanted: number;
+  fertilized?: number;                  // plots he worked Fertilizer into
   crows: number;
   storms: number;
   outOf: string[];                      // crops he ran out of ('any': an empty plot, nothing to plant)
@@ -24,9 +25,9 @@ export interface ShiftLog {
 }
 const emptyLog = (from: number): ShiftLog => ({ from, harvested: {}, replanted: 0, crows: 0, storms: 0, outOf: [], idle: 0, left: false });
 
-interface HandRow { hand_shed: string | null; hand_last: string | null; hand_log: string | null; hand_at: number | null; hand_sell: number; hand_dm: number; hand_out: number; hand_dm_at: number }
+interface HandRow { hand_shed: string | null; hand_last: string | null; hand_log: string | null; hand_at: number | null; hand_sell: number; hand_dm: number; hand_out: number; hand_dm_at: number; hand_fert: number }
 const handRow = (db: Db, g: string, u: string): HandRow | undefined =>
-  db.get<HandRow>('SELECT hand_shed, hand_last, hand_log, hand_at, hand_sell, hand_dm, hand_out, hand_dm_at FROM farms WHERE guild_id = ? AND user_id = ?', g, u);
+  db.get<HandRow>('SELECT hand_shed, hand_last, hand_log, hand_at, hand_sell, hand_dm, hand_out, hand_dm_at, hand_fert FROM farms WHERE guild_id = ? AND user_id = ?', g, u);
 const parse = <T>(s: string | null | undefined, d: T): T => { try { return s ? (JSON.parse(s) as T) : d; } catch { return d; } };
 function setCols(db: Db, g: string, u: string, cols: Partial<Record<keyof HandRow, string | number | null>>): void {
   const keys = Object.keys(cols) as (keyof HandRow)[];
@@ -66,12 +67,33 @@ export function takeSeeds(db: Db, g: string, u: string, crop: string, n: number 
   addItem(db, g, u, seedItem(crop), k);
   return k;
 }
-/** Everything in the shed back to the inventory (he's leaving). */
+/** Everything in the shed back to the inventory (he's leaving): seeds and Fertilizer. */
 export function emptyShed(db: Db, g: string, u: string): number {
   let n = 0;
   for (const [c, q] of Object.entries(shedOf(db, g, u))) { addItem(db, g, u, seedItem(c), q); n += q; }
   saveShed(db, g, u, {});
+  const f = fertOf(db, g, u);
+  if (f > 0) { addItem(db, g, u, 'fertilizer', f); setCols(db, g, u, { hand_fert: 0 }); n += f; }
   return n;
+}
+
+// ---------------------------------------------------------------- the Fertilizer stock (Oh My God, 2 in 1!)
+// He works one into every crop he plants (and every growing crop that doesn't have one yet).
+export const fertOf = (db: Db, g: string, u: string): number => handRow(db, g, u)?.hand_fert ?? 0;
+export function giveFert(db: Db, g: string, u: string, n: number | 'all'): number {
+  const have = count(db, g, u, 'fertilizer');
+  const k = n === 'all' ? have : Math.min(n, have);
+  if (k <= 0 || !takeItem(db, g, u, 'fertilizer', k)) return 0;
+  setCols(db, g, u, { hand_fert: fertOf(db, g, u) + k });
+  return k;
+}
+export function takeFert(db: Db, g: string, u: string, n: number | 'all'): number {
+  const have = fertOf(db, g, u);
+  const k = n === 'all' ? have : Math.min(n, have);
+  if (k <= 0) return 0;
+  setCols(db, g, u, { hand_fert: have - k });
+  addItem(db, g, u, 'fertilizer', k);
+  return k;
 }
 
 // ---------------------------------------------------------------- settings
@@ -133,7 +155,12 @@ export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): {
   const owned = plotCount(db, g, u);
   const plots = new Map(plotsOf(db, g, u).map((p) => [p.slot, p] as const));
   const outOf = new Set<string>();
-  let idle = 0;
+  let idle = 0, fert = fertOf(db, g, u);
+  const feed = (q: Plot): Plot => {
+    if (fert <= 0 || q.fert || q.wilted || q.ready_at !== null) return q;
+    fert--; log.fertilized = (log.fertilized ?? 0) + 1;
+    return { ...q, fert: 1 };
+  };
 
   for (let slot = 0; slot < owned; slot++) {
     let p: Plot | undefined = plots.get(slot);
@@ -144,12 +171,13 @@ export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): {
         if (!c) { outOf.add(last[String(slot)] ?? 'any'); idle++; break; }
         if (c !== last[String(slot)] && last[String(slot)]) outOf.add(last[String(slot)]!);
         shed[c] = shed[c]! - 1;
-        p = newPlot(g, u, slot, c, t, rng, true);
+        p = feed(newPlot(g, u, slot, c, t, rng, true));
         last[String(slot)] = c;
         log.replanted++;
         continue;
       }
       if (p.updated_at > until) break;
+      if (stageOf(p) === 'sprout' || stageOf(p) === 'growing') p = feed(p);
       const r = simulate(p, env, until);
       if (r.gone) {
         const lost = r.events.find((e) => e.kind === 'crow_ate' || e.kind === 'storm');
@@ -164,10 +192,10 @@ export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): {
       if (p.ready_at === null) break;
       // harvest it the moment it's ready
       const at = p.ready_at, c = CROPS[p.crop]!;
-      const item = cropItem(p.crop, rollMutation(p.crop, rng));
+      const item = cropItem(p.crop, rollMutation(p.crop, rng), rollGrade(rng, !!p.fert));
       addItem(db, g, u, item);
       log.harvested[item] = (log.harvested[item] ?? 0) + 1;
-      if (p.harvests_left > 1) { p = { ...p, harvests_left: p.harvests_left - 1, progress: c.growMs / 2, ready_at: null, watered: 1, stage_since: at, updated_at: at, crow_at: null, fert: 0, reminded: 0 }; continue; }
+      if (p.harvests_left > 1) { p = feed({ ...p, harvests_left: p.harvests_left - 1, progress: c.growMs / 2, ready_at: null, watered: 1, stage_since: at, updated_at: at, crow_at: null, fert: 0, reminded: 0 }); continue; }
       last[String(slot)] = p.crop;
       t = at;
       p = undefined;
@@ -177,9 +205,9 @@ export function runShift(db: Db, g: string, u: string, now: number, rng: Rng): {
 
   log.outOf = [...outOf];
   log.idle = idle;
-  if (pay.left) { log.left = true; emptyShed(db, g, u); } else saveShed(db, g, u, shed);
+  if (pay.left) { log.left = true; setCols(db, g, u, { hand_fert: fert }); emptyShed(db, g, u); } else saveShed(db, g, u, shed);
   const newlyOut = idle > 0 && (row?.hand_out ?? 0) === 0;
-  setCols(db, g, u, { hand_at: until, hand_last: JSON.stringify(last), hand_log: JSON.stringify(log), hand_out: idle ? 1 : 0 });
+  setCols(db, g, u, { hand_at: until, hand_last: JSON.stringify(last), hand_log: JSON.stringify(log), hand_out: idle ? 1 : 0, ...(pay.left ? {} : { hand_fert: fert }) });
   return { log, newlyOut, left: pay.left };
 }
 
@@ -189,4 +217,4 @@ export function takeLog(db: Db, g: string, u: string): ShiftLog | null {
   if (log) setCols(db, g, u, { hand_log: log.left ? null : JSON.stringify(emptyLog(Date.now())) });
   return log;
 }
-export const quietLog = (log: ShiftLog | null): boolean => !log || (!Object.keys(log.harvested).length && !log.replanted && !log.crows && !log.storms && !log.outOf.length && !log.left);
+export const quietLog = (log: ShiftLog | null): boolean => !log || (!Object.keys(log.harvested).length && !log.replanted && !log.fertilized && !log.crows && !log.storms && !log.outOf.length && !log.left);
