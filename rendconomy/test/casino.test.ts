@@ -126,3 +126,86 @@ test('odds lists every game', async () => {
   const t = text(await run('odds'));
   for (const g of ['Slots', 'Coinflip', 'Dice', 'Roulette', 'Blackjack', 'Higher or Lower', 'Minesweeper', 'Rocket']) assert.ok(t.includes(g), g);
 });
+
+// ---------------------------------------------------------------- Make Gambling Fun Again
+import { JACKPOT, VIP, jackpotOf, vipOf } from '../src/casino/core';
+import { has } from '../src/achievements/achievements';
+import { startEvent } from '../src/events/world';
+
+test('the progressive jackpot grows with every bet and pays out on three diamonds', async () => {
+  const { db, run, fund, setRng, cash } = setup();
+  await run('balance');
+  fund(100_000);
+  assert.equal(jackpotOf(db, G), JACKPOT.seed);
+  await run('coinflip', { amount: '1000' });
+  assert.equal(jackpotOf(db, G), JACKPOT.seed + polygons(10), '1% of the bet');
+  startEvent(db, 'happy_hour', undefined, 1_000_000);
+  await run('coinflip', { amount: '1000' });
+  assert.equal(jackpotOf(db, G), JACKPOT.seed + polygons(40), '3% in Happy Hour');
+  const pot = jackpotOf(db, G);
+  setRng({ ...seededRng(1), pick: <T>(l: readonly T[]) => l[l.length - 1]! } as Rng);   // 💎 💎 💎
+  const before = cash();
+  const r = text(await run('slots', { amount: '500' }));
+  assert.match(r, /PROGRESSIVE JACKPOT/);
+  assert.equal(cash() - before, polygons(500) * 25 - polygons(500) + Math.floor((pot + polygons(15)) * 0.5), 'a half-max bet wins half the jackpot (fed by its own bet too)');
+  assert.ok(has(db, A, 'progressive'));
+  assert.ok(jackpotOf(db, G) >= JACKPOT.seed);
+  assert.ok(audit(db).ok);
+});
+
+test('VIP levels come from what you have bet, with a daily free spin', async () => {
+  const { db, run, fund, cash } = setup(9);
+  await run('balance');
+  assert.match(text(await run('vip', { action: 'spin' })), /Free spins are for VIPs/);
+  fund(200_000);
+  for (let i = 0; i < 10; i++) await run('coinflip', { amount: '2500' });
+  assert.equal(vipOf(db, G, A).level, 0);
+  assert.match(text(await run('vip')), /Bronze/);
+  const before = cash();
+  const spin = text(await run('vip', { action: 'spin' }));
+  assert.match(spin, /Bronze free spin/);
+  assert.ok(cash() >= before, 'a free spin never costs anything');
+  assert.match(text(await run('vip', { action: 'spin' })), /had today's free spin/);
+  assert.equal(VIP.length, 5);
+});
+
+test('the blackjack table: three players, turns, TODD plays, everyone is paid', async () => {
+  const { db, ctx, run, fund } = setup(11);
+  const B = '222222222222222222', C = '333333333333333333';
+  const as = (id: string, name: string): Ctx => ({ ...ctx(), user: { id, name } });
+  await run('balance');
+  fund(10_000);
+  for (const [id, name] of [[B, 'B'], [C, 'C']] as const) { await execute(find('balance')!, as(id, name), {}); transfer(db, { from: RESERVE, to: wallet(G, id), cents: polygons(5_000), reason: 'mod.give' }); }
+  const r = await run('table', { amount: '100' });
+  assert.match(text(r), /The Blackjack Table/);
+  const id = (v: string) => sessions.buttonId(r.session!, v);
+  assert.match(press(as(B, 'B'), id('deal')).notice ?? '', /host deals/);
+  press(as(B, 'B'), id('sit')); press(as(C, 'C'), id('sit'));
+  const before = [A, B, C].map((u) => balance(db, wallet(G, u)));
+  let out = press(ctx(), id('deal'));
+  assert.ok([A, B, C].every((u, i) => balance(db, wallet(G, u)) <= before[i]! - polygons(100) + polygons(250)), 'everyone paid the stake when dealt');
+  // play it out: whoever's turn it is stands
+  for (let guard = 0; guard < 10 && out.update?.buttons?.length; guard++) {
+    const t = text(out.update).match(/👉 \*\*(\w)/)?.[1];
+    const who = t === 'A' ? ctx() : t === 'B' ? as(B, 'B') : as(C, 'C');
+    if (t !== 'A') assert.match(press(ctx(), id('stand')).notice ?? '', /turn/);
+    out = press(who, id('stand'));
+  }
+  const end = text(out.update);
+  assert.match(end, /TODD:.*\(\*\*\d+\*\*\)/);
+  assert.ok(/wins|loses|push|blackjack|bust/.test(end));
+  assert.ok(audit(db).ok);
+});
+
+test('Happy Hour: TODD looks the other way on a hot streak; Fun Again for every game in a day', async () => {
+  const { db, run, setRng, fund } = setup();
+  await run('balance');
+  fund(10_000);
+  startEvent(db, 'happy_hour', undefined, 1_000_000);
+  setRng({ ...seededRng(1), chance: () => true } as Rng);
+  let last: ReplyObject | undefined;
+  for (let i = 0; i < 11; i++) last = await run('coinflip', { amount: '10', side: 'heads' });
+  assert.doesNotMatch(text(last), /escorts you out/);
+  assert.ok(!has(db, A, 'fun_again'));
+  assert.equal(crashPoint(0.0001, false, 100), 100, 'the Rocket landmark lifts the cap');
+});

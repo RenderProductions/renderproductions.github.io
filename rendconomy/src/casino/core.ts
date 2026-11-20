@@ -3,13 +3,15 @@
 import { addMoment, compact } from '../core/moments';
 import { emojiOr } from '../discord/emoji';
 import { bigNumber, compactPolygons } from '../discord/icons';
-import { awardHere, bump, setProgress } from '../achievements/achievements';
+import { award, bump, getProgress, setProgress } from '../achievements/achievements';
+import { isEvent } from '../events/world';
 import type { Ctx } from '../commands/types';
 import { GameError } from '../core/errors';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, parseAmount, polygons, type Cents } from '../core/money';
 import * as sessions from '../core/sessions';
-import { HOUR, MINUTE, discordTime, takeCooldown } from '../core/time';
+import { HOUR, MINUTE, dayKey, discordTime, takeCooldown } from '../core/time';
+import type { Db } from '../core/db';
 import { useEffect } from '../shop/inventory';
 import { UG, useCharge } from '../underground/underground';
 
@@ -36,14 +38,14 @@ export const NAMES: Record<Game, string> = {
 
 /** The house edge and payout rules, for /odds. Every number here matches the code. */
 export const ODDS: Record<Game, string> = {
-  slots: 'Three of a kind: 🍒 3x · 🍋 5x · 🔔 8x · 🔺 10x · 💎 25x. Any pair returns the bet. Lose, and **Redeem yourself** spins 15 reels: 7 of a kind (about 9%) wins the bet back. Expected return: 93.2%.',
+  slots: 'Three of a kind: 🍒 3x · 🍋 5x · 🔔 8x · 🔺 10x · 💎 25x. Any pair returns the bet. Three 💎 also win the **progressive jackpot** (all of it at the max bet, a share of it below). Lose, and **Redeem yourself** spins 15 reels: 7 of a kind (about 9%) wins the bet back. Expected return: 93.2% before the jackpot.',
   coinflip: 'A correct call pays 1.95x. Expected return: 97.5%.',
   dice: 'Pays 96% of the fair odds for the chosen range. Expected return: 96%.',
   roulette: 'Red/black, odd/even, low/high pay 2x; dozens pay 3x; a single number pays 36x. The green 0 is the edge. Expected return: 97.3%.',
   blackjack: 'A win pays 2x, a blackjack 2.5x, a tie returns the bet. TODD stands on 17. Expected return: about 99% with good play.',
   hilo: 'Each correct guess multiplies by 96% of its fair odds (capped at 100x). Expected return: 96% per guess.',
   mines: 'Each safe tile multiplies by 96% of its fair odds. Expected return: 96%.',
-  rocket: 'The chance of reaching a multiplier x is 96% ÷ x (capped at 50x). Expected return: 96%.'
+  rocket: 'The chance of reaching a multiplier x is 96% ÷ x (capped at 50x, or 100x in a server that built the Rocket). Expected return: 96%.'
 };
 
 const subject = (ctx: Ctx) => `${ctx.guildId}:${ctx.user.id}`;
@@ -51,6 +53,54 @@ const subject = (ctx: Ctx) => `${ctx.guildId}:${ctx.user.id}`;
 export function bannedUntil(ctx: Ctx, guildId: string): number {
   const until = ctx.db.get<{ ban_until: number }>('SELECT ban_until FROM casino WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id)?.ban_until ?? 0;
   return until > ctx.now ? until : 0;
+}
+
+// ---------------------------------------------------------------- Make Gambling Fun Again
+/** The progressive jackpot: every bet in the server feeds it; three diamonds on Slots win it. */
+export const JACKPOT = { seed: polygons(10_000), cut: 0.01, happyCut: 0.03 };
+export const jackpotOf = (db: Db, guildId: string): Cents => Number(db.meta(`casino.jackpot:${guildId}`) ?? JACKPOT.seed);
+export const happyHour = (db: Db, now: number): boolean => isEvent(db, 'happy_hour', undefined, now);
+/** Pays the jackpot (a share of it below the max Slots bet) and starts it again from the seed. */
+export function winJackpot(ctx: Ctx, guildId: string, bet: Cents): Cents {
+  const pot = jackpotOf(ctx.db, guildId);
+  const want = Math.floor(pot * Math.min(1, bet / CASINO.maxBet.slots));
+  const cents = Math.min(want, balance(ctx.db, RESERVE));
+  if (cents > 0) transfer(ctx.db, { from: RESERVE, to: wallet(guildId, ctx.user.id), cents, reason: 'casino.jackpot', guildId, actorId: ctx.user.id, now: ctx.now });
+  ctx.db.setMeta(`casino.jackpot:${guildId}`, String(Math.max(JACKPOT.seed, pot - cents)));
+  award(ctx.db, guildId, ctx.user.id, 'progressive', ctx.now);
+  addMoment(`💎 Someone just hit the progressive jackpot for ${compact(cents)}`, ctx.now);
+  return cents;
+}
+
+/** VIP levels, by everything you've ever bet in this server. Each comes with a daily free spin on Slots. */
+export const VIP = [
+  { name: 'Bronze', emoji: '🥉', at: polygons(25_000), spin: polygons(50) },
+  { name: 'Silver', emoji: '🥈', at: polygons(100_000), spin: polygons(100) },
+  { name: 'Gold', emoji: '🥇', at: polygons(500_000), spin: polygons(250) },
+  { name: 'Platinum', emoji: '💿', at: polygons(2_000_000), spin: polygons(500) },
+  { name: 'Diamond', emoji: '💎', at: polygons(10_000_000), spin: polygons(1_000) }
+];
+export const wageredBy = (db: Db, guildId: string, userId: string): Cents =>
+  db.get<{ n: number | null }>('SELECT SUM(wagered) AS n FROM gambling WHERE guild_id = ? AND user_id = ?', guildId, userId)?.n ?? 0;
+/** The VIP level (-1: not a VIP yet), what's been wagered and the next level. */
+export function vipOf(db: Db, guildId: string, userId: string): { level: number; tier: (typeof VIP)[number] | null; wagered: Cents; next: (typeof VIP)[number] | null } {
+  const wagered = wageredBy(db, guildId, userId);
+  let level = -1;
+  VIP.forEach((t, i) => { if (wagered >= t.at) level = i; });
+  return { level, tier: VIP[level] ?? null, wagered, next: VIP[level + 1] ?? null };
+}
+/** Free spins left today (one a day, two during Happy Hour). */
+export function freeSpinsLeft(db: Db, guildId: string, userId: string, now: number): number {
+  if (vipOf(db, guildId, userId).level < 0) return 0;
+  const r = db.get<{ free_day: string | null; free_used: number }>('SELECT free_day, free_used FROM casino WHERE guild_id = ? AND user_id = ?', guildId, userId);
+  const used = r?.free_day === dayKey(now) ? r.free_used : 0;
+  return Math.max(0, (happyHour(db, now) ? 2 : 1) - used);
+}
+export function useFreeSpin(db: Db, guildId: string, userId: string, now: number): void {
+  db.run('INSERT OR IGNORE INTO casino (guild_id, user_id) VALUES (?, ?)', guildId, userId);
+  const r = db.get<{ free_day: string | null; free_used: number }>('SELECT free_day, free_used FROM casino WHERE guild_id = ? AND user_id = ?', guildId, userId)!;
+  const today = dayKey(now);
+  db.run('UPDATE casino SET free_day = ?, free_used = ? WHERE guild_id = ? AND user_id = ?', today, r.free_day === today ? r.free_used + 1 : 1, guildId, userId);
 }
 
 /** Checks that may refuse gambling (loans add one: no gambling while you owe TODD). */
@@ -65,6 +115,17 @@ export function activeGame(ctx: Ctx): sessions.Session | null {
 
 /** Checks and takes a bet (into the Reserve). Returns the bet in cents. */
 export function takeBet(ctx: Ctx, guildId: string, game: Game, raw: string | number | undefined): Cents {
+  const bet = checkBet(ctx, guildId, game, raw);
+  if (!takeCooldown(ctx.db, 'casino', subject(ctx), CASINO.cooldownMs, ctx.now)) throw new GameError('casino.cooldown', 'One moment between games.');
+  const w = wallet(guildId, ctx.user.id), max = CASINO.maxBet[game];
+  transfer(ctx.db, { from: w, to: RESERVE, cents: bet, reason: 'casino.bet', guildId, actorId: ctx.user.id, now: ctx.now, note: { game } });
+  afterBet(ctx, guildId, game, bet);
+  if (bet === max) award(ctx.db, guildId, ctx.user.id, 'high_roller', ctx.now);
+  return bet;
+}
+
+/** Everything takeBet checks (bans, gates, a game in progress, limits, funds) without taking anything. */
+export function checkBet(ctx: Ctx, guildId: string, game: Game, raw: string | number | undefined): Cents {
   let ban = bannedUntil(ctx, guildId);
   // No Questions Asked: a Fake ID gets you past TODD
   if (ban && useCharge(ctx.db, guildId, ctx.user.id, 'fake_id')) {
@@ -79,11 +140,23 @@ export function takeBet(ctx: Ctx, guildId: string, game: Game, raw: string | num
   const max = CASINO.maxBet[game];
   const bet = parseAmount(raw, { all: Math.min(balance(ctx.db, w), max), max, min: CASINO.minBet });
   if (balance(ctx.db, w) < bet) throw new GameError('funds.short', `Insufficient Polygons. The balance is ${format(balance(ctx.db, w))}.`);
-  if (!takeCooldown(ctx.db, 'casino', subject(ctx), CASINO.cooldownMs, ctx.now)) throw new GameError('casino.cooldown', 'One moment between games.');
-  transfer(ctx.db, { from: w, to: RESERVE, cents: bet, reason: 'casino.bet', guildId, actorId: ctx.user.id, now: ctx.now, note: { game } });
-  stat(ctx, guildId, game, { played: 1, wagered: bet });
-  if (bet === max) awardHere('high_roller');
   return bet;
+}
+
+/** Everything a bet feeds: the stats (and VIP), the jackpot, Fun Again. */
+export function afterBet(ctx: Ctx, guildId: string, game: Game, bet: Cents): void {
+  const before = vipOf(ctx.db, guildId, ctx.user.id).level;
+  stat(ctx, guildId, game, { played: 1, wagered: bet });
+  const after = vipOf(ctx.db, guildId, ctx.user.id);
+  if (after.level > before && after.tier) {
+    ctx.notes.push(`${after.tier.emoji} **VIP: ${after.tier.name}!** You've bet ${format(after.tier.at)} here. Your daily free spin is worth ${format(after.tier.spin)}: \`${ctx.config.prefix}vip spin\``);
+    if (after.level === VIP.length - 1) award(ctx.db, guildId, ctx.user.id, 'high_society', ctx.now);
+  }
+  const cut = Math.floor(bet * (happyHour(ctx.db, ctx.now) ? JACKPOT.happyCut : JACKPOT.cut));
+  if (cut > 0) ctx.db.setMeta(`casino.jackpot:${guildId}`, String(jackpotOf(ctx.db, guildId) + cut));
+  const today = Number(dayKey(ctx.now).replace(/-/g, ''));
+  setProgress(ctx.db, ctx.user.id, `played_${game}`, today);
+  if ((Object.keys(NAMES) as Game[]).every((g) => getProgress(ctx.db, ctx.user.id, `played_${g}`) === today)) award(ctx.db, guildId, ctx.user.id, 'fun_again', ctx.now);
 }
 
 /**
@@ -114,8 +187,8 @@ export function settle(ctx: Ctx, guildId: string, game: Game, bet: Cents, payout
   // a real win gets its amount in big gold digits above the result
   if (paid - bet >= CASINO.bigWin) ctx.big = bigNumber('+' + compactPolygons(paid - bet)) ?? undefined;
   if (paid - bet >= CASINO.statusWin) addMoment(`🎰 Someone just won ${compact(paid - bet)} on ${NAMES[game]}`, ctx.now);
-  if (paid > 0) { awardHere('beginners_luck'); setProgress(ctx.db, ctx.user.id, 'loss_streak', 0); }
-  else if (bump(ctx.db, ctx.user.id, 'loss_streak') >= 10) awardHere('down_bad');
+  if (paid > 0) { award(ctx.db, guildId, ctx.user.id, 'beginners_luck', ctx.now); setProgress(ctx.db, ctx.user.id, 'loss_streak', 0); }
+  else if (bump(ctx.db, ctx.user.id, 'loss_streak') >= 10) award(ctx.db, guildId, ctx.user.id, 'down_bad', ctx.now);
 
   if (result !== 'push') {
     ctx.db.run('INSERT OR IGNORE INTO casino (guild_id, user_id) VALUES (?, ?)', guildId, ctx.user.id);
@@ -123,10 +196,11 @@ export function settle(ctx: Ctx, guildId: string, game: Game, bet: Cents, payout
     else {
       ctx.db.run('UPDATE casino SET win_streak = win_streak + 1 WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id);
       const n = ctx.db.get<{ win_streak: number }>('SELECT win_streak FROM casino WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id)!.win_streak;
-      if (n >= CASINO.hotStreak) {
+      // Happy Hour: TODD looks the other way
+      if (n >= CASINO.hotStreak && !happyHour(ctx.db, ctx.now)) {
         const until = ctx.now + CASINO.banMs;
         ctx.db.run('UPDATE casino SET win_streak = 0, ban_until = ? WHERE guild_id = ? AND user_id = ?', until, guildId, ctx.user.id);
-        awardHere('escorted_out');
+        award(ctx.db, guildId, ctx.user.id, 'escorted_out', ctx.now);
         lines.push(`**TODD escorts you out of the Rend-Sino.** ${CASINO.hotStreak} wins in a row is not luck. You keep your winnings, but gambling is closed to you until ${discordTime(until, 't')} (${discordTime(until)}).`);
       }
     }

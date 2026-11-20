@@ -19,7 +19,8 @@ export const EVENTS: Record<string, { emoji: string; name: string; desc: (t?: st
   bear_rumors: { emoji: '🐻', name: 'Bear Rumors', desc: () => 'Everyone smells a drop. Shorts open with **no fee**.' },
   chatty: { emoji: '💬', name: 'Gossip Hour', desc: () => 'Chat pay is **doubled**, and so is the daily cap.' },
   spotlight: { emoji: '🔦', name: 'Hiring Spree', desc: (t) => `**${t}** is hiring heavily. Its shifts pay **2x**.` },
-  fire_sale: { emoji: '🔥', name: 'Fire Sale', desc: (t) => `**${t}** is sliding. Shorts on it open with **no fee**.` }
+  fire_sale: { emoji: '🔥', name: 'Fire Sale', desc: (t) => `**${t}** is sliding. Shorts on it open with **no fee**.` },
+  happy_hour: { emoji: '🥂', name: 'Happy Hour', desc: () => 'The Rend-Sino is buzzing. The progressive jackpot grows **3x** as fast, VIPs get a **second free spin**, and TODD looks the other way on hot streaks.' }
 };
 export const WORLD = { lengthMs: HOUR, gapMinMs: 3 * HOUR, gapMaxMs: 6 * HOUR, firstMs: HOUR };
 
@@ -40,7 +41,7 @@ export function pickEvent(m: MarketData | null, rng: Rng, now = Date.now()): Wor
   const r = rng.next();
   if (up && r < 0.3) return { id: 'spotlight', ticker: up[0] };
   if (down && r < 0.6) return { id: 'fire_sale', ticker: down[0] };
-  return { id: rng.pick(['labor_shortage', 'fish_frenzy', 'police_strike', 'bear_rumors', 'chatty', 'rain', 'storm']) };
+  return { id: rng.pick(['labor_shortage', 'fish_frenzy', 'police_strike', 'bear_rumors', 'chatty', 'rain', 'storm', 'happy_hour']) };
 }
 
 /** Once per market tick. Returns an event that just started (to announce), or null. */

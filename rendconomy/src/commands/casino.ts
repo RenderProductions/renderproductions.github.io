@@ -2,8 +2,12 @@
 // session (kind "casino.<game>"), so their buttons survive restarts and each press is handled once.
 import { bigNumber } from '../discord/icons';
 import type { APIEmbed } from 'discord.js';
-import { awardHere } from '../achievements/achievements';
-import { CASINO, NAMES, ODDS, cardBack, cardText, deck, mult, settle, takeBet, type Card, type Game } from '../casino/core';
+import { award, awardHere } from '../achievements/achievements';
+import { CASINO, NAMES, ODDS, VIP, cardBack, checkBet, cardText, deck, freeSpinsLeft, happyHour, jackpotOf, mult, settle, takeBet, useFreeSpin, vipOf, winJackpot, type Card, type Game } from '../casino/core';
+import { isBuilt } from '../estate/landmarks';
+import { player } from '../core/economy';
+import { economy } from '../config';
+import { discordTime } from '../core/time';
 import { GameError } from '../core/errors';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
@@ -52,7 +56,8 @@ export const slots: Command = {
       const [x, y, z] = [ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS)];
       const win = x === y && y === z ? bet * TRIPLE[x]! : x === y || y === z || x === z ? bet : 0;
       const r = settle(ctx, guildId, 'slots', bet, win);
-      const what = x === y && y === z ? (x === '💎' ? `${show('💎')} **DIAMONDS!** Three of a kind.` : `Three ${show(x)}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair.' : 'No match.';
+      const jackpot = x === '💎' && y === '💎' && z === '💎' ? winJackpot(ctx, guildId, bet) : 0;
+      const what = x === y && y === z ? (x === '💎' ? `${show('💎')} **DIAMONDS!** Three of a kind.${jackpot ? `\n## 💎 PROGRESSIVE JACKPOT: +${format(jackpot)}!` : ''}` : `Three ${show(x)}! Pays ${TRIPLE[x]}x.`) : win ? 'A pair.' : 'No match.';
       // The reels blur, then stop one at a time, left to right
       const blur = () => ctx.rng.pick(SYMBOLS);
       const frame = (a: string, b: string, c: string, text: string, ms: number) => ({ embeds: [card('slots', [`## [ ${show(a)} | ${show(b)} | ${show(c)} ]`, text])], ms });
@@ -60,7 +65,8 @@ export const slots: Command = {
       const offer = win === 0 ? sessions.create(ctx.db, { kind: 'redeem.slots', guildId: ctx.guildId, channelId: ctx.channelId, userId: ctx.user.id, state: { bet } as RD, ttlMs: REDEEM.windowMs, now: ctx.now }) : null;
       return {
         embeds: [card('slots', [`## [ ${show(x!)} | ${show(y!)} | ${show(z!)} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines),
-          offer ? `-# ${emoji('slots')} **Redeem yourself:** one free spin of 15 reels. Land ${REDEEM.need} of a kind and your ${format(bet)} comes back.` : null], toneOf(bet, win))],
+          offer ? `-# ${emoji('slots')} **Redeem yourself:** one free spin of 15 reels. Land ${REDEEM.need} of a kind and your ${format(bet)} comes back.` : null,
+          `-# 💎 Progressive jackpot: **${format(jackpotOf(ctx.db, guildId))}**${happyHour(ctx.db, ctx.now) ? ' · 🥂 Happy Hour' : ''}`], toneOf(bet, win))],
         ...(offer ? { buttons: [[{ label: 'Redeem yourself', emoji: '🙏', id: sessions.buttonId(offer.id, 'go'), style: 'primary' as const }]], session: offer.id, later: { ms: REDEEM.windowMs - 3000, edit: { buttons: [] } } } : {}),
         teaser: {
           ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} ${emoji('slots')}`, 700),
@@ -431,7 +437,7 @@ function onMines(ctx: Ctx, s: sessions.Session<MS>, value: string): SessionReply
 interface RK { bet: Cents; t0: number; crashAt: number }
 const ROCKET = { edge: 0.96, cap: 50, growth: 0.06, frameMs: 1500 };
 const rocketAt = (st: RK, now: number) => Math.exp((ROCKET.growth * Math.max(0, now - st.t0)) / 1000);
-export const crashPoint = (u: number, fuel = false): number => Math.min(ROCKET.cap, Math.max(1, (ROCKET.edge / Math.max(1e-9, u)) * (fuel ? 1.2 : 1)));
+export const crashPoint = (u: number, fuel = false, cap = ROCKET.cap): number => Math.min(cap, Math.max(1, (ROCKET.edge / Math.max(1e-9, u)) * (fuel ? 1.2 : 1)));
 
 function rkView(s: sessions.Session<RK>, now: number, end?: { line: string; tone: 'win' | 'loss'; at?: number }): ReplyObject {
   const m = end ? null : Math.min(rocketAt(s.state, now), s.state.crashAt);
@@ -452,7 +458,8 @@ export const rocket: Command = {
     return ctx.db.tx(() => {
       const bet = takeBet(ctx, guildId, 'rocket', args.amount);
       const fuel = useEffect(ctx.db, guildId, ctx.user.id, 'fuel');
-      const s = startGame<RK>(ctx, 'rocket', { bet, t0: ctx.now + 1000, crashAt: crashPoint(ctx.rng.next(), fuel) });
+      // Build It and They Will Come: a server with the Rocket landmark flies to 100x
+      const s = startGame<RK>(ctx, 'rocket', { bet, t0: ctx.now + 1000, crashAt: crashPoint(ctx.rng.next(), fuel, isBuilt(ctx.db, guildId, 'rocket') ? 100 : ROCKET.cap) });
       const db = ctx.db;
       return {
         ...rkView(s, ctx.now), session: s.id,
@@ -492,6 +499,208 @@ function onRocket(ctx: Ctx, s: sessions.Session<RK>, value: string): SessionRepl
   });
 }
 
+// ---------------------------------------------------------------- Make Gambling Fun Again: VIP
+
+export const vip: Command = {
+  name: 'vip', aliases: ['viplounge', 'freespin', 'jackpot'], description: 'Your VIP level, the progressive jackpot, and your daily free spin', system: 'casino', guildOnly: true,
+  options: [{ name: 'action', type: 'string', description: 'Blank to look, or: spin' }],
+  run(ctx, args) {
+    const { guildId } = me(ctx);
+    const P = ctx.config.prefix;
+    return ctx.db.tx(() => {
+      const v = vipOf(ctx.db, guildId, ctx.user.id);
+      const left = freeSpinsLeft(ctx.db, guildId, ctx.user.id, ctx.now);
+      if (/^(spin|free|claim)$/i.test(String(args.action ?? '').trim())) {
+        if (!v.tier) throw new GameError('vip.none', `Free spins are for VIPs. Bet ${format(VIP[0]!.at)} in the Rend-Sino to reach ${VIP[0]!.emoji} Bronze (you're at ${format(v.wagered)}).`);
+        if (!left) throw new GameError('vip.used', `You've had today's free spin. Another tomorrow${happyHour(ctx.db, ctx.now) ? '' : ' (two during Happy Hour)'}.`);
+        useFreeSpin(ctx.db, guildId, ctx.user.id, ctx.now);
+        const stake = v.tier.spin;
+        const [x, y, z] = [ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS)];
+        const win = x === y && y === z ? stake * TRIPLE[x]! : x === y || y === z || x === z ? stake : 0;
+        const w = wallet(guildId, ctx.user.id);
+        if (win > 0) transfer(ctx.db, { from: RESERVE, to: w, cents: Math.min(win, balance(ctx.db, RESERVE)), reason: 'casino.free', guildId, actorId: ctx.user.id, now: ctx.now });
+        const jackpot = x === '💎' && y === '💎' && z === '💎' ? winJackpot(ctx, guildId, stake) : 0;
+        return { embeds: [card('slots', [
+          `${v.tier.emoji} **${v.tier.name} free spin** · ${format(stake)} on the house`,
+          `## [ ${show(x!)} | ${show(y!)} | ${show(z!)} ]`,
+          win ? `🎉 **You win ${format(win)}!**` : 'No match. It was free, so nothing lost.',
+          jackpot ? `## 💎 PROGRESSIVE JACKPOT: +${format(jackpot)}!` : null,
+          `-# Balance: ${format(balance(ctx.db, w))}`
+        ], win ? 'win' : 'play')] };
+      }
+      const bar = v.next ? Math.min(1, (v.wagered - (v.tier?.at ?? 0)) / (v.next.at - (v.tier?.at ?? 0))) : 1;
+      const n = Math.round(bar * 12);
+      return { embeds: [card('slots', [
+        `## 💎 ${format(jackpotOf(ctx.db, guildId))}`,
+        'The **progressive jackpot**: every bet in this server adds to it. Three 💎 on Slots win it (all of it at the max bet).',
+        happyHour(ctx.db, ctx.now) ? '🥂 **Happy Hour!** The jackpot grows 3x as fast and VIPs get a second free spin.' : null,
+        '',
+        v.tier ? `**VIP:** ${v.tier.emoji} **${v.tier.name}** · daily free spin worth ${format(v.tier.spin)}` : '**VIP:** not yet',
+        `Bet here so far: ${format(v.wagered)}${v.next ? ` · ${v.next.emoji} ${v.next.name} at ${format(v.next.at)}` : ' · the top level'}`,
+        `\`${'▰'.repeat(n)}${'▱'.repeat(12 - n)}\``,
+        v.tier ? (left ? `🎰 ${left === 1 ? 'A free spin is' : `${left} free spins are`} waiting: \`${P}vip spin\`` : '-# Today\'s free spin is used.') : null,
+        '',
+        ...VIP.map((t, i) => `${t.emoji} ${i <= v.level ? `**${t.name}**` : t.name} · ${format(t.at)} bet · free spin ${format(t.spin)}`)
+      ])].map((e) => ({ ...e, title: '🥂 The VIP Lounge' })) };
+    });
+  }
+};
+
+// ---------------------------------------------------------------- Make Gambling Fun Again: the blackjack table
+// Up to 5 players at one table against TODD. Everyone bets the table's stake; hands are played in turn, each
+// with 45 seconds before TODD stands for you; then TODD plays out his hand and every seat is paid like solo
+// blackjack (2x, 2.5x on a blackjack, the bet back on a tie).
+export const TABLE = { seats: 5, turnMs: 45_000, lobbyMs: 2 * 60_000, tableMs: 10 * 60_000, tickMs: 5_000 };
+interface Seat { id: string; name: string; hand: Card[]; doubled: boolean; done: boolean; paid?: number; line?: string }
+interface TB { bet: Cents; phase: 'lobby' | 'play' | 'done'; seats: Seat[]; dealer: Card[]; deck: Card[]; turn: number; deadline: number; notes?: string[] }
+
+/** (advance() changes the phase, which TypeScript can't see through) */
+const phaseOf = (st: TB): TB['phase'] => st.phase;
+const seatCtx = (ctx: Ctx, seat: Seat, now = ctx.now): Ctx => ({ ...ctx, now, user: { ...ctx.user, id: seat.id, name: seat.name }, notes: [], big: undefined });
+
+function tableView(s: sessions.Session<TB>, line = ''): ReplyObject {
+  const st = s.state;
+  const done = st.phase === 'done';
+  const dealer = st.phase === 'lobby' ? 'waiting for players' : done ? `${showHand(st.dealer)} (**${handValue(st.dealer)}**)` : `${cardText(st.dealer[0]!)} ${cardBack()}`;
+  const rows = st.seats.map((p, i) => {
+    if (st.phase === 'lobby') return `🪑 **${p.name}**${i === 0 ? ' · host' : ''}`;
+    const turn = st.phase === 'play' && i === st.turn ? '👉 ' : '';
+    const v = handValue(p.hand);
+    return `${turn}**${p.name}:** ${showHand(p.hand)} (**${v}**)${p.doubled ? ' · doubled' : ''}${done && p.line ? ` · ${p.line}` : v > 21 ? ' · bust' : p.done ? ' · stands' : ''}`;
+  });
+  const cur = st.seats[st.turn];
+  const buttons: Button[][] = st.phase === 'lobby'
+    ? [[btn(s, 'sit', `Sit down (${format(st.bet)})`, 'primary', st.seats.length >= TABLE.seats), btn(s, 'leave', 'Leave'), btn(s, 'deal', 'Deal', 'success'), btn(s, 'close', 'Close the table', 'danger')]]
+    : st.phase === 'play' ? [[btn(s, 'hit', 'Hit', 'primary'), btn(s, 'stand', 'Stand'), ...(cur && cur.hand.length === 2 && !cur.doubled ? [btn(s, 'double', `Double (${format(st.bet)})`, 'success')] : [])]] : [];
+  return { embeds: [card('blackjack', [
+    `**Table stakes:** ${format(st.bet)} · ${st.seats.length}/${TABLE.seats} seats`,
+    `**TODD:** ${dealer}`, '',
+    ...rows,
+    st.phase === 'lobby' ? `\n-# Sit down to play. The host deals when everyone's in (the table closes ${discordTime(s.expires_at)}).` : null,
+    st.phase === 'play' && cur ? `\n-# ${cur.name}'s turn. TODD stands for them ${discordTime(st.deadline)}.` : null,
+    ...(st.notes ?? []).map((n) => `-# ${n}`),
+    line && `\n${line}`
+  ], done ? 'push' : 'play')].map((e) => ({ ...e, title: '🃏 The Blackjack Table' })), buttons };
+}
+
+/** Moves to the next seat that still has a hand to play; when nobody does, TODD plays and everyone is paid. */
+function advance(ctx: Ctx, s: sessions.Session<TB>): void {
+  const st = s.state;
+  while (st.turn < st.seats.length && (st.seats[st.turn]!.done || handValue(st.seats[st.turn]!.hand) >= 21)) { st.seats[st.turn]!.done = true; st.turn++; }
+  st.deadline = ctx.now + TABLE.turnMs;
+  if (st.turn < st.seats.length) return;
+  // TODD plays, if anyone is still standing
+  if (st.seats.some((p) => handValue(p.hand) <= 21)) while (handValue(st.dealer) < 17) st.dealer.push(st.deck.pop()!);
+  const d = handValue(st.dealer), g = s.guild_id!;
+  const party = st.seats.length >= 3;
+  for (const p of st.seats) {
+    const total = st.bet * (p.doubled ? 2 : 1), you = handValue(p.hand);
+    let win = 0;
+    if (you > 21) p.line = 'bust';
+    else if (natural(p.hand) && !natural(st.dealer)) { win = Math.round(st.bet * 2.5); p.line = `**blackjack**, +${format(win)}`; }
+    else if (d > 21 || you > d) { win = total * 2; p.line = `wins ${format(win)}`; }
+    else if (you === d) { win = total; p.line = 'push'; }
+    else p.line = 'loses';
+    const pc = seatCtx(ctx, p);
+    settle(pc, g, 'blackjack', total, win);
+    p.paid = win;
+    if (win > total && party) award(ctx.db, g, p.id, 'house_party', ctx.now);
+  }
+  st.phase = 'done';
+}
+
+export const table: Command = {
+  name: 'table', aliases: ['bjtable', 'blackjacktable', 'tables'], description: 'Open a blackjack table: up to 5 players against TODD', system: 'casino', guildOnly: true,
+  options: [betOption('blackjack')],
+  run(ctx, args) {
+    const { guildId } = me(ctx);
+    return ctx.db.tx(() => {
+      if (ctx.db.get("SELECT 1 FROM sessions WHERE kind = 'table' AND channel_id = ? AND expires_at > ?", ctx.channelId, ctx.now)) throw new GameError('table.live', 'There\'s already a table open in this channel.');
+      // the stake is checked like any bet (bans, limits); everyone pays it when the cards are dealt
+      const bet = checkBet(ctx, guildId, 'blackjack', args.amount);
+      const s = sessions.create<TB>(ctx.db, { kind: 'table', guildId, channelId: ctx.channelId, userId: ctx.user.id, state: { bet, phase: 'lobby', seats: [{ id: ctx.user.id, name: ctx.user.name, hand: [], doubled: false, done: false }], dealer: [], deck: [], turn: 0, deadline: 0 }, ttlMs: TABLE.lobbyMs, now: ctx.now });
+      return { ...tableView(s), session: s.id };
+    });
+  }
+};
+
+function onTable(ctx: Ctx, s: sessions.Session<TB>, value: string): SessionReply {
+  const st = s.state, g = s.guild_id!;
+  const host = ctx.user.id === s.user_id;
+  return ctx.db.tx(() => {
+    if (st.phase === 'lobby') {
+      if (value === 'sit') {
+        if (st.seats.some((p) => p.id === ctx.user.id)) return { notice: 'You already have a seat.' };
+        if (st.seats.length >= TABLE.seats) return { notice: 'The table is full.' };
+        player(ctx.db, g, ctx.user.id, economy.startingCash, ctx.now);
+        if (balance(ctx.db, wallet(g, ctx.user.id)) < st.bet) return { notice: `You need ${format(st.bet)} to sit down.` };
+        st.seats.push({ id: ctx.user.id, name: ctx.user.name, hand: [], doubled: false, done: false });
+        sessions.save(ctx.db, s.id, st);
+        return { update: tableView(s) };
+      }
+      if (value === 'leave') {
+        if (host) return { notice: 'The host can\'t leave. Close the table instead.' };
+        st.seats = st.seats.filter((p) => p.id !== ctx.user.id);
+        sessions.save(ctx.db, s.id, st);
+        return { update: tableView(s) };
+      }
+      if (value === 'close') { if (!host) return { notice: 'Only the host can close the table.' }; if (!sessions.end(ctx.db, s.id)) return {}; return { update: { ...tableView(s, 'The table is closed.'), buttons: [] } }; }
+      if (value !== 'deal') return {};
+      if (!host) return { notice: 'The host deals.' };
+      // everyone pays the stake now (anyone who can't, or isn't allowed to gamble, is left out)
+      const seated: Seat[] = [], left: string[] = [];
+      for (const p of st.seats) {
+        try { takeBet(seatCtx(ctx, p), g, 'blackjack', (st.bet / 100).toFixed(2)); seated.push(p); } catch (e) { if (e instanceof GameError) left.push(`${p.name} (${e.message})`); else throw e; }
+      }
+      if (!seated.length) { sessions.end(ctx.db, s.id); return { update: { ...tableView(s, `Nobody could play: ${left.join(', ')}. The table is closed.`), buttons: [] } }; }
+      const d = deck((l) => ctx.rng.shuffle(l));
+      for (const p of seated) p.hand = [d.pop()!, d.pop()!];
+      Object.assign(st, { seats: seated, phase: 'play', deck: d, dealer: [d.pop()!, d.pop()!], turn: 0, notes: left.length ? [`Left out (couldn't play): ${left.join(', ')}`] : [] });
+      for (const p of st.seats) if (natural(p.hand)) p.done = true;
+      advance(ctx, s);
+      if (phaseOf(st) === 'done') { sessions.end(ctx.db, s.id); return { update: tableView(s, 'Dealt, and done in one.') }; }
+      sessions.save(ctx.db, s.id, st, TABLE.tableMs, ctx.now);
+      // TODD stands for anyone who takes too long, even if nobody presses anything
+      const db = ctx.db, base = ctx;
+      return { update: { ...tableView(s), live: { everyMs: TABLE.tickMs, next: () => {
+        const now = Date.now();
+        return db.tx(() => {
+          const live = sessions.get<TB>(db, s.id, now);
+          if (!live) return null;
+          if (live.state.phase !== 'play') return null;
+          if (now < live.state.deadline) return tableView(live);
+          const c = { ...base, now };
+          live.state.seats[live.state.turn]!.done = true;
+          advance(c, live);
+          if (phaseOf(live.state) === 'done') { sessions.end(db, s.id); return tableView(live, 'TODD collects the cards.'); }
+          sessions.save(db, s.id, live.state, TABLE.tableMs, now);
+          return tableView(live);
+        });
+      } } } };
+    }
+    if (st.phase !== 'play') return {};
+    // someone ran out of time: TODD stands for them first
+    if (ctx.now >= st.deadline) { st.seats[st.turn]!.done = true; advance(ctx, s); }
+    const cur = st.seats[st.turn];
+    if (st.phase === 'play' && cur && cur.id !== ctx.user.id) { sessions.save(ctx.db, s.id, st, TABLE.tableMs, ctx.now); return st.seats.some((p) => p.id === ctx.user.id) ? { notice: `It's ${cur.name}'s turn.`, update: tableView(s) } : { notice: 'You\'re not at this table.' }; }
+    if (st.phase === 'play' && cur) {
+      if (value === 'double') {
+        if (cur.hand.length !== 2 || cur.doubled) return {};
+        const w = wallet(g, cur.id);
+        if (balance(ctx.db, w) < st.bet) return { notice: `Doubling requires ${format(st.bet)}.` };
+        transfer(ctx.db, { from: w, to: RESERVE, cents: st.bet, reason: 'casino.bet', guildId: g, actorId: cur.id, now: ctx.now, note: { game: 'blackjack', double: true, table: true } });
+        cur.doubled = true; cur.hand.push(st.deck.pop()!); cur.done = true;
+      } else if (value === 'hit') { cur.hand.push(st.deck.pop()!); if (handValue(cur.hand) >= 21) cur.done = true; }
+      else if (value === 'stand') cur.done = true;
+      else return {};
+      if (cur.done) advance(ctx, s); else st.deadline = ctx.now + TABLE.turnMs;
+    }
+    if (phaseOf(st) === 'done') { if (!sessions.end(ctx.db, s.id)) return {}; return { update: tableView(s, 'TODD collects the cards.') }; }
+    sessions.save(ctx.db, s.id, st, TABLE.tableMs, ctx.now);
+    return { update: tableView(s) };
+  });
+}
+
 // ---------------------------------------------------------------- odds
 
 export const odds: Command = {
@@ -503,6 +712,7 @@ export const odds: Command = {
 
 export const casinoHandlers = {
   'casino.blackjack': onBlackjack,
+  'table': onTable,
   'casino.hilo': onHilo,
   'casino.mines': onMines,
   'casino.rocket': onRocket,
