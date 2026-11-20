@@ -155,7 +155,7 @@
     $('skyline').innerHTML = LANDMARKS.map(function (L) {
       var done = built.indexOf(L[0]) >= 0, now = cur && cur.id === L[0];
       var sub = done ? 'Built · ' + L[3] : now ? money(cur.funded) + ' of ' + money(cur.cost) + '<div class="fund"><i style="width:' + Math.min(100, cur.funded / cur.cost * 100) + '%"></i></div>' : 'Locked';
-      return '<div class="' + (done ? '' : 'off') + '">' + img('landmark_' + L[0], L[2]) + '<span><b>' + L[1] + '</b><br><span class="rv-dim" style="font-size:12px">' + sub + '</span></span></div>';
+      return '<div class="' + (done || now ? '' : 'off') + '">' + img('landmark_' + L[0], L[2]) + '<span><b>' + L[1] + '</b><br><span class="rv-dim" style="font-size:12px">' + sub + '</span></span></div>';
     }).join('');
     $('trains').textContent = city.trains ? '🚂 ' + city.trains + ' freight ' + (city.trains === 1 ? 'train' : 'trains') + ' on the rails' : '';
     var html = '<span></span>';
