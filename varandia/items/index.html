@@ -108,6 +108,8 @@
         '<div><dt>Attack</dt><dd>d20 + half ' + (i.props && i.props.indexOf('Finesse') >= 0 ? 'Strength or Speed' : i.ranged ? 'Speed' : 'Strength') + '</dd></div>' +
         (i.range ? '<div><dt>Range</dt><dd>' + T.esc(i.range) + '</dd></div>' : '') +
         (i.props ? '<div><dt>Properties</dt><dd>' + T.esc(i.props.join(', ')) + '</dd></div>' : '') + '</dl>';
+      if (i.note) h += '<div>' + para(i.note) + '</div>';
+      if (i.own) h += '<p class="pencil" style="margin:0">from the Pirate Era · Varandia\u2019s own</p>';
     } else if (i.group === 'armor') {
       h += '<dl class="facts2"><div><dt>Defense</dt><dd>+' + i.defense + '</dd></div><div><dt>Kind</dt><dd>' + T.esc(i.kind) + '</dd></div>' +
         (i.stealth ? '<div><dt>Stealth</dt><dd>Noisy: sneaking is harder</dd></div>' : '') + (i.heavy ? '<div><dt>Weight</dt><dd>Heavy: the GM may want some Strength</dd></div>' : '') + '</dl>';
@@ -127,7 +129,8 @@
       h += '<p style="font-size:18px;margin:0">' + T.esc(i.text) + '</p><p class="pencil" style="margin:0">an Elemental Mask, made when Varandia was. Each is bound to a Wielder. They belong to the story, and only the GM decides where they turn up.</p>';
     }
     if (i.text && (i.group === 'weapon' || i.group === 'armor' || i.group === 'gear')) h += '<div>' + para(i.text) + '</div>';
-    if (i.group === 'weapon' || i.group === 'armor' || i.group === 'gear') h += '<p class="credit">' + T.esc(X.credit) + '</p>';
+    if (i.own && i.group === 'gear') h += '<p class="pencil" style="margin:0">from the Pirate Era · Varandia\u2019s own</p>';
+    if (!i.own && (i.group === 'weapon' || i.group === 'armor' || i.group === 'gear')) h += '<p class="credit">' + T.esc(X.credit) + '</p>';
     T.$('#card').innerHTML = h;
   }
   function groupIntro() {
