@@ -138,7 +138,7 @@
         '<div class="inked"><b>' + c.need + '</b><span>Need (d20 + ½ INT)</span></div>' +
         '<div class="inked"><b style="font-size:' + (String(c.fail).length > 8 ? 17 : 30) + 'px;padding-top:' + (String(c.fail).length > 8 ? 6 : 0) + 'px">' + T.esc(c.fail) + '</b><span>' + (sp.own ? 'On a failed roll' : 'Health lost on a fail') + '</span></div>' +
       '</div>';
-    if (c.chaotic) html += '<div class="inked dashed note" style="padding:14px 16px"><b class="sc">Chaotic.</b> Need starts at ' + c.need + ' and drops by 1 for every level you have past the first, down to ' + (D.spells.needBase + sp.level) + '. Roll a natural ' + D.spells.chaotic.surgeOn + ' or lower and it <b>surges</b>: <a href="/varandia/magic/#surge">roll on the Chaos Surge table</a>.</div>';
+    if (c.chaotic) html += '<div class="inked dashed note" style="padding:14px 16px"><b class="sc">Chaotic.</b> Need starts at ' + c.need + ' and drops by 1 at levels 3, 5 and so on, down to ' + (D.spells.needBase + sp.level) + '. Roll a natural ' + D.spells.chaotic.surgeOn + ' or lower and it <b>surges</b>: <a href="/varandia/magic/#surge">roll on the Chaos Surge table</a>.</div>';
     if (sp.own) {
       html += '<div class="spelltext">' + para(sp.text) + '</div>' + evilRulesHtml();
     } else {

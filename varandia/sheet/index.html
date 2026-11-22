@@ -84,12 +84,24 @@
           <div><dt>Level</dt><dd><button type="button" class="step" id="lvDown" aria-label="Level down">−</button><span id="level">1</span><button type="button" class="step" id="lvUp" aria-label="Level up">+</button></dd></div>
         </dl>
 
+        <div class="inked dashed note" id="lvPanel" hidden style="display: flex; flex-direction: column; gap: 10px">
+          <h3>Level up</h3>
+          <p id="lvInfo" style="margin: 0; font-size: 16px"></p>
+          <div class="chips" id="lvPick"></div>
+          <button type="button" class="linkish" id="lvCancel" style="align-self: flex-start">not yet</button>
+        </div>
+
         <div>
           <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px">
             <h2>The Seven</h2>
             <span class="hand" style="font-size: 22px">tap one to roll →</span>
           </div>
           <div class="statrow" id="seven"></div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px">
+            <span class="sc faded" style="font-size: 14px">Training marks</span>
+            <div class="chips" id="marks" role="group" aria-label="Training marks"></div>
+          </div>
+          <p class="pencil" style="margin: 4px 0 0; font-size: 17px">a natural 20 marks a stat; the GM can mark one after a hard roll. Marked stats grow when you level up.</p>
         </div>
 
         <div style="display: flex; flex-wrap: wrap; gap: 12px">
@@ -255,6 +267,7 @@
     T.$('#attack').textContent = 'Melee attack (' + T.sign(dv.attack) + ')';
     T.$('#level').textContent = c.level || 1;
     T.$('#lvDown').disabled = (c.level || 1) <= 1;
+    T.$('#lvUp').disabled = (c.level || 1) >= D.leveling.maxLevel;
     var r = T.race(D, c.race);
     var k = T.cls(D, c.cls);
     T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, c.bgName].filter(Boolean).join(' · ');
@@ -278,15 +291,58 @@
     T.$('#race').textContent = r ? r.name : '—';
     T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
 
-    T.$('#seven').innerHTML = D.stats.map(function (s) {
-      var v = T.stat(c, s.key, D);
-      return '<button type="button" class="stat" data-key="' + s.key + '"><span class="num">' + v + '</span><span class="what"><b>' + s.name + '</b><i>' + T.esc(s.hint) + '</i></span><span class="bonus">' + T.sign(T.half(v)) + '</span></button>';
-    }).join('');
+    if (!c.marks) c.marks = {};
+    if (!c.grow) c.grow = {};
+    if (!Array.isArray(c.levelLog)) c.levelLog = [];
+    var L = D.leveling;
+    function drawSeven() {
+      T.$('#seven').innerHTML = D.stats.map(function (s) {
+        var v = T.stat(c, s.key, D);
+        return '<button type="button" class="stat" data-key="' + s.key + '"><span class="num">' + v + '</span><span class="what"><b>' + s.name + (c.marks[s.key] ? ' <span class="hand" title="training mark" style="font-size:20px">✦</span>' : '') + '</b><i>' + T.esc(s.hint) + '</i></span><span class="bonus">' + T.sign(T.half(v)) + '</span></button>';
+      }).join('');
+      T.$('#marks').innerHTML = D.stats.map(function (s) {
+        return '<button type="button" class="chip" data-mark="' + s.key + '" aria-pressed="' + !!c.marks[s.key] + '">' + s.short + '</button>';
+      }).join('');
+    }
+    drawSeven();
+    T.$('#marks').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mark]'); if (!b) return;
+      var k = b.dataset.mark; if (c.marks[k]) delete c.marks[k]; else c.marks[k] = true;
+      drawSeven(); save();
+    });
+    function levelUp(pointTo) {
+      var before = T.derive(c, D), grown = Object.keys(c.marks);
+      grown.forEach(function (k) { c.grow[k] = (c.grow[k] || 0) + L.markGrowth; });
+      c.grow[pointTo] = (c.grow[pointTo] || 0) + L.pointsPerLevel;
+      c.levelLog.push({ point: pointTo, marks: grown });
+      c.marks = {};
+      c.level = (c.level || 1) + 1;
+      var after = T.derive(c, D);
+      c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina;
+      var names = function (ks) { return ks.map(function (k) { return D.stats.filter(function (x) { return x.key === k; })[0].short; }).join(', '); };
+      c.log.unshift('Level ' + c.level + '! +' + L.pointsPerLevel + ' ' + names([pointTo]) + (grown.length ? ', trained ' + names(grown) : ''));
+      T.$('#lvPanel').hidden = true;
+      drawSeven(); drawVitals(); drawLog(); save();
+    }
+    function levelDown() {
+      if ((c.level || 1) <= 1) return;
+      var before = T.derive(c, D), last = c.levelLog.pop();
+      if (last) {
+        c.grow[last.point] -= L.pointsPerLevel;
+        last.marks.forEach(function (k) { c.grow[k] -= L.markGrowth; c.marks[k] = true; });
+      }
+      c.level -= 1;
+      var after = T.derive(c, D);
+      c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina;
+      drawSeven(); drawVitals(); save();
+    }
     T.$('#seven').addEventListener('click', function (e) {
       var b = e.target.closest('.stat'); if (!b) return;
       var s = D.stats.filter(function (x) { return x.key === b.dataset.key; })[0];
       T.$$('#seven .stat').forEach(function (x) { x.classList.toggle('hot', x === b); });
-      var w = withProf(s.name, T.half(T.stat(c, s.key, D))); writeRoll(w.label, w.r);
+      var w = withProf(s.name, T.half(T.stat(c, s.key, D)));
+      if (w.r.die === 20 && !c.marks[s.key]) { c.marks[s.key] = true; drawSeven(); }
+      writeRoll(w.label + (w.r.die === 20 ? ' (marked for training)' : ''), w.r);
     });
     T.$('#attack').onclick = function () { var w = withProf('Melee attack', dv.attack); writeRoll(w.label, w.r); };
     T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };
@@ -294,8 +350,16 @@
     T.$('#d20').onclick = function () { writeRoll('d20', T.roll(0)); };
     T.$('#d6').onclick = function () { writeRoll('d6', T.roll(0, 6)); };
     T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; drawVitals(); save(); };
-    T.$('#lvUp').onclick = function () { var before = T.derive(c, D); c.level = (c.level || 1) + 1; var after = T.derive(c, D); c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina; drawVitals(); save(); };
-    T.$('#lvDown').onclick = function () { if ((c.level || 1) > 1) { c.level -= 1; drawVitals(); save(); } };
+    T.$('#lvUp').onclick = function () {
+      if ((c.level || 1) >= L.maxLevel) return;
+      var marked = Object.keys(c.marks);
+      T.$('#lvInfo').textContent = 'Level ' + ((c.level || 1) + 1) + ': put your point somewhere.' + (marked.length ? ' Your training marks (' + marked.map(function (k) { return D.stats.filter(function (x) { return x.key === k; })[0].name; }).join(', ') + ') each grow by ' + L.markGrowth + ' too.' : ' No training marks this time.');
+      T.$('#lvPick').innerHTML = D.stats.map(function (s) { return '<button type="button" class="chip" data-up="' + s.key + '">' + s.name + '</button>'; }).join('');
+      T.$('#lvPanel').hidden = false; T.$('#lvPick button').focus();
+    };
+    T.$('#lvPick').addEventListener('click', function (e) { var b = e.target.closest('[data-up]'); if (b) levelUp(b.dataset.up); });
+    T.$('#lvCancel').onclick = function () { T.$('#lvPanel').hidden = true; };
+    T.$('#lvDown').onclick = levelDown;
 
     drawVitals(); drawList('items'); drawList('cardinal'); drawLog();
 

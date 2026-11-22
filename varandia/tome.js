@@ -88,7 +88,7 @@
     else {
       var r = d.spells, lv = sp.level, ch = sp.element === 'chaotic';
       var need = r.needBase + lv;
-      if (ch) need = r.chaotic.needBase + lv - (c ? Math.max(0, (c.level || 1) - 1) * r.chaotic.easierPerLevel : 0);
+      if (ch) need = r.chaotic.needBase + lv - (c ? Math.floor(Math.max(0, (c.level || 1) - 1) / (r.chaotic.easierEvery || 1)) * r.chaotic.easierPerLevel : 0);
       out = {
         stamina: lv === 0 ? r.cantripStamina : r.staminaPerLevel * lv, blood: 0,
         need: Math.max(r.needBase + lv, need), chaotic: ch,
@@ -120,7 +120,7 @@
   // ---------------------------------------------------------------- rules
   Tome.stat = function (c, key, d) {
     var race = d && Tome.race(d, c.race);
-    return ((c.d6 && c.d6[key]) || 0) + ((c.pts && c.pts[key]) || 0) + ((race && race.mods[key]) || 0);
+    return ((c.d6 && c.d6[key]) || 0) + ((c.pts && c.pts[key]) || 0) + ((race && race.mods[key]) || 0) + ((c.grow && c.grow[key]) || 0);
   };
   Tome.derive = function (c, d) {
     var r = d.derived, s = function (k) { return Tome.stat(c, k, d); }, lv = Math.max(1, c.level || 1), h = Tome.half;

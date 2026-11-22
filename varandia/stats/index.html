@@ -84,6 +84,16 @@
           </table></div>
           <p class="pencil" style="margin-top: 12px">no armor class: armor will add to Defense once items exist</p>
         </div>
+
+        <div class="inked" style="padding: 20px 22px">
+          <h2 style="margin-bottom: 8px">Levelling up</h2>
+          <p style="font-size: 16px">You level up when the GM says so, after the big moments of the story, up to level <span data-max>20</span>. Each level:</p>
+          <ul style="margin: 0; padding-left: 1.2em; font-size: 16px; display: flex; flex-direction: column; gap: 4px">
+            <li><b class="sc">+<span data-ppl>1</span> point</b> to put in any stat.</li>
+            <li><b class="sc">Training:</b> every stat with a training mark grows by 1, then the marks clear. A natural 20 marks the stat you rolled; the GM can mark one after a hard roll.</li>
+            <li>More Health and Stamina, a bigger proficiency bonus every four levels, Chaotic spells get easier every two, and new class features.</li>
+          </ul>
+        </div>
       </div>
       <span class="folio">— 6 —</span>
     </section>
@@ -97,6 +107,8 @@
   var T = Tome;
   T.data().then(function (d) {
     T.$$('[data-points]').forEach(function (e) { e.textContent = d.creation.points; });
+    T.$$('[data-max]').forEach(function (e) { e.textContent = d.leveling.maxLevel; });
+    T.$$('[data-ppl]').forEach(function (e) { e.textContent = d.leveling.pointsPerLevel; });
     T.$('#seven').innerHTML = d.stats.map(function (s) {
       return '<div class="stat"><span class="num sc" style="font-size:17px">' + s.short + '</span><span class="what"><b>' + T.esc(s.name) + '</b><i>' + T.esc(s.text) + '</i></span></div>';
     }).join('');

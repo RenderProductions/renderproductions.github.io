@@ -33,7 +33,7 @@ body.tome { margin: 0; min-height: 100vh; background: var(--desk); color: var(--
 .book { position: relative; max-width: 1320px; margin: 0 auto; padding: 12px; background: var(--leather); border-radius: 10px;
   box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), inset 0 0 0 2px var(--leather-dark), inset 0 0 30px rgba(0, 0, 0, 0.5); }
 .spread { position: relative; display: flex; flex-wrap: wrap; }
-.spread[hidden] { display: none; }
+.spread[hidden], .tome [hidden] { display: none !important; }
 .spine { position: absolute; top: 0; bottom: 0; left: 50%; width: 46px; transform: translateX(-50%); pointer-events: none; z-index: 2;
   background: linear-gradient(90deg, transparent, rgba(30, 15, 5, 0.45) 45%, rgba(30, 15, 5, 0.62) 50%, rgba(30, 15, 5, 0.45) 55%, transparent); }
 

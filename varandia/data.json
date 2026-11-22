@@ -162,7 +162,7 @@
     "failCantrip": "1",
     "failDie": "d4",
     "chaotic": {
-      "_about": "Chaotic spells start harder (needBase + spell level), get 1 easier per character level after the first, down to the normal Need. A natural roll at or under surgeOn surges: roll the surge table.",
+      "_about": "Chaotic spells start harder (needBase + spell level) and get easierPerLevel easier every easierEvery character levels, down to the normal Need. A natural roll at or under surgeOn surges: roll the surge table.",
       "needBase": 12,
       "easierPerLevel": 1,
       "surgeOn": 3,
@@ -179,7 +179,8 @@
         "Bloom: a burst of harmless light and colour, and nothing else. It costs you nothing.",
         "Overcharge: the spell does its most, but you take 1d4 per spell level.",
         "Lingering chaos: your next spell surges too."
-      ]
+      ],
+      "easierEvery": 2
     }
   },
   "magicKinds": [
@@ -446,5 +447,12 @@
         6
       ]
     ]
+  },
+  "leveling": {
+    "_about": "Milestone leveling: the GM says when you level up. Each level: pointsPerLevel to spend, and every stat with a training mark grows by 1 (marks then clear). A natural 20 on a stat roll marks it; the GM can also mark a stat after a hard roll.",
+    "milestones": true,
+    "maxLevel": 20,
+    "pointsPerLevel": 1,
+    "markGrowth": 1
   }
 }
