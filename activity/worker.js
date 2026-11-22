@@ -381,55 +381,60 @@ const vIcon = { gm: '🎲', stat: '🎲', attack: '⚔️', weapon: '⚔️', in
 const vClean = (v, n) => String(v == null ? '' : v).replace(/[@`*_~|#<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 const vNum = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : Math.round(+v));
 function vHsl(h) { const S = 0.6, L = 0.55, a = S * Math.min(L, 1 - L), f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (L - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); }
+// The Render Room's Rune Seal emoji (custom emoji show in descriptions and field values, not titles or footers)
+const vSealIds = Object.fromEntries('fire:1574195685253714010 water:1574195429179129988 ice:1574195644258717728 earth:1574195793659957391 air:1574196004129865828 lightning:1574195530089766942 nature:1574195495104942080 poison:1574195459889701044 light:1574195574448857098 dark:1574195831823798404 evil:1574195761116094514 chaotic:1574195972358013008 d4:1574195905093959780 d6:1574195864551817435 d8:1574195338288439466 d10:1574195304130158712 d12:1574195239437078729 d20:1574195191244660816 nat20:1574194971152617492 nat1:1574195003201429555 str:1574194786276085780 dur:1574195155987079238 spd:1574194877816774767 cha:1574195381481250887 int:1574195042585940098 per:1574194909357936671 sta:1574194845906640996 health:1574195119949615254 defense:1574194712485830797 init:1574194684014764106 taint:1574194627303579679 blood:1574194738947563540 surge:1574194653291614289'.split(' ').map((x) => x.split(':')));
+const vSeal = (k) => (vSealIds[k] ? '<:v_' + k + ':' + vSealIds[k] + '>' : /^d\d+$/.test(k) ? vSeal('d20') : '');
+const vStatKey = { Strength: 'str', Durability: 'dur', Speed: 'spd', Charisma: 'cha', Intelligence: 'int', Perception: 'per', Stamina: 'sta' };
 function vEmbed(i, line, campName, pic) {
   i = i && typeof i === 'object' ? i : {};
   const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell', 'gm', 'turn'].includes(i.kind) ? i.kind : 'note';
   if (kind === 'turn') {
     // the initiative order, with whoever's up marked
     const order = (Array.isArray(i.order) ? i.order : []).slice(0, 30).map((x) => (x && x.cur ? '▶ **' + vClean(x.name, 40) + '**' : '-# ' + vClean(x && x.name, 40)) + (vNum(x && x.init) != null ? ' · ' + vNum(x.init) : ''));
-    return { color: 0x5e6f80, title: '⏱️ ' + (vClean(i.title, 80) || 'Initiative'), description: (vClean(i.text, 200) ? vClean(i.text, 200) + '\n\n' : '') + order.join('\n'), footer: { text: campName }, timestamp: new Date().toISOString() };
+    return { color: 0x5e6f80, title: 'Initiative', description: '## ' + vSeal('init') + ' ' + (vClean(i.title, 80) || 'Initiative') + '\n' + (vClean(i.text, 200) ? vClean(i.text, 200) + '\n' : '') + order.join('\n'), footer: { text: campName }, timestamp: new Date().toISOString() };
   }
   const el = kind === 'spell' ? (vClean(i.element, 12) in vIcon ? vClean(i.element, 12) : 'chaotic') : null;
   const die = vNum(i.die), bonus = vNum(i.bonus), total = vNum(i.total), nat20 = die === 20 && i.sides == null, nat1 = die === 1 && i.sides == null;
-  let color = el ? (el === 'chaotic' ? vHsl(Math.floor(Math.random() * 360)) : vCol[el]) : vCol[kind];
-  const icon = el ? vIcon[el] : vIcon[kind];
+  const color = el ? (el === 'chaotic' ? vHsl(Math.floor(Math.random() * 360)) : vCol[el]) : vCol[kind];
+  // which seal leads the post
+  const sides = vNum(i.sides);
+  const sealKey = el ? el : kind === 'stat' ? (vStatKey[vClean(i.stat, 20)] || 'd20') : kind === 'die' ? ('d' + (sides || 20)) : kind === 'attack' ? 'd20' : kind === 'gm' ? (sides ? 'd' + sides : ((String(i.rolled || '').match(/^\d*d(\d+)/) || [])[1] ? 'd' + String(i.rolled).match(/^\d*d(\d+)/)[1] : 'd20'))
+    : kind === 'init' ? 'init' : kind === 'heal' ? 'health' : kind === 'tonic' ? 'sta' : '';
+  const lead = sealKey ? vSeal(sealKey) + ' ' : '';
   const title = vClean(i.title, 80) || 'A roll';
   const e = { color, fields: [], timestamp: new Date().toISOString() };
   const lines = [];
   // the headline
-  if (kind === 'spell') e.title = icon + ' Casts ' + title;
-  else if (kind === 'weapon') e.title = icon + ' Attacks with ' + title;
-  else if (kind === 'stat') e.title = icon + ' ' + title;
-  else e.title = icon + ' ' + title;
-  if (nat20) { e.color = 0xf1c40f; lines.push('**✨ NATURAL 20 ✨**' + (kind === 'stat' ? ' · ' + vClean(i.stat, 20) + ' earns a training mark' : kind === 'weapon' ? ' · critical hit, damage dice doubled' : '')); }
-  if (nat1) { e.color = 0x2b0f0f; lines.push('**💀 NATURAL 1**'); }
+  e.title = kind === 'spell' ? 'Casts ' + title : kind === 'weapon' ? '⚔️ Attacks with ' + title : (lead ? '' : vIcon[kind] + ' ') + title;
+  if (nat20) { e.color = 0xf1c40f; lines.push('### ' + vSeal('nat20') + ' NATURAL 20' + (kind === 'stat' ? ' · ' + vClean(i.stat, 20) + ' earns a training mark' : kind === 'weapon' ? ' · critical hit, damage dice doubled' : '')); }
+  if (nat1) { e.color = 0x2b0f0f; lines.push('### ' + vSeal('nat1') + ' NATURAL 1'); }
   if (total != null && kind !== 'heal' && kind !== 'tonic') {
     const what = kind === 'spell' ? 'vs Need ' + (vNum(i.need) ?? '?') : vClean(i.what, 20);
-    lines.push('# ' + total + (what ? ' ' + what : ''));
+    lines.push('# ' + lead + total + (what ? ' ' + what : ''));
     if (i.rolled) lines.push('-# ' + vClean(i.rolled, 120));
-    else if (die != null) lines.push('-# ' + (i.sides ? 'd' + vNum(i.sides) : 'd20') + ' rolled ' + die + (bonus ? (bonus < 0 ? ' − ' + Math.abs(bonus) : ' + ' + bonus) : '') + (i.notes ? ' · ' + vClean(i.notes, 60) : ''));
+    else if (die != null) lines.push('-# ' + (sides ? 'd' + sides : 'd20') + ' rolled ' + die + (bonus ? (bonus < 0 ? ' − ' + Math.abs(bonus) : ' + ' + bonus) : '') + (i.notes ? ' · ' + vClean(i.notes, 60) : ''));
   }
-  if (kind === 'heal' || kind === 'tonic') { lines.push('# +' + (total ?? '?') + ' ' + vClean(i.what, 20)); if (i.dice) lines.push('-# rolled ' + vClean(i.dice, 30)); }
+  if (kind === 'heal' || kind === 'tonic') { lines.push('# ' + lead + '+' + (total ?? '?') + ' ' + vClean(i.what, 20)); if (i.dice) lines.push('-# rolled ' + vClean(i.dice, 30)); }
   if (kind === 'level' || kind === 'rest' || kind === 'note') lines.push(vClean(i.text || (kind === 'note' ? line : ''), 300));
-  e.description = lines.filter(Boolean).join('\n').slice(0, 1000) || vClean(line, 300);
   // the details
-  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: '🗡️ Damage', value: '**' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 20) + (i.dice ? '\n-# ' + vClean(i.dice, 30) : ''), inline: true });
+  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: 'Damage', value: '🗡️ **' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 20) + (i.dice ? '\n-# ' + vClean(i.dice, 30) : ''), inline: true });
   if (kind === 'spell') {
-    e.fields.push(i.ok ? { name: '✅ Cast!', value: i.damage ? 'Damage: ' + vClean(i.damage, 40) : 'It works.', inline: true }
-                       : { name: '💨 Fizzled', value: vClean(i.fail, 80) || 'The magic slips away.', inline: true });
-    e.fields.push({ name: 'Cost', value: (vNum(i.stamina) || 0) + ' Stamina' + (vNum(i.blood) ? ' · 🩸 ' + vNum(i.blood) + ' blood' : ''), inline: true });
-    if (i.surge && typeof i.surge === 'object') { e.fields.push({ name: '🌀 CHAOS SURGE (' + (vNum(i.surge.n) ?? '?') + ')', value: vClean(i.surge.text, 200) || '…', inline: false }); }
+    e.fields.push(i.ok ? { name: 'Cast!', value: '✅ ' + (i.damage ? 'Damage: ' + vClean(i.damage, 40) : 'It works.'), inline: true }
+                       : { name: 'Fizzled', value: '💨 ' + (vClean(i.fail, 80) || 'The magic slips away.'), inline: true });
+    e.fields.push({ name: 'Cost', value: vSeal('sta') + ' ' + (vNum(i.stamina) || 0) + ' Stamina' + (vNum(i.blood) ? '\n' + vSeal('blood') + ' ' + vNum(i.blood) + ' blood' : ''), inline: true });
+    if (i.surge && typeof i.surge === 'object') { e.fields.push({ name: 'CHAOS SURGE (' + (vNum(i.surge.n) ?? '?') + ')', value: vSeal('surge') + ' ' + (vClean(i.surge.text, 200) || '…'), inline: false }); }
   }
   // the big portrait for the big moments
   if (pic && (nat20 || (i.surge && kind === 'spell'))) e.thumbnail = { url: pic };
-  // the state of things
+  // the state of things, at the bottom of the post (footers can't show custom emoji)
   const st = [];
-  if (vNum(i.hp) != null) st.push('❤ ' + vNum(i.hp) + '/' + (vNum(i.maxHp) ?? '?'));
-  if (vNum(i.sta) != null) st.push('◆ ' + vNum(i.sta) + '/' + (vNum(i.maxSta) ?? '?') + ' Stamina');
+  if (vNum(i.hp) != null) st.push(vSeal('health') + ' ' + vNum(i.hp) + '/' + (vNum(i.maxHp) ?? '?'));
+  if (vNum(i.sta) != null) st.push(vSeal('sta') + ' ' + vNum(i.sta) + '/' + (vNum(i.maxSta) ?? '?') + ' Stamina');
   if (vNum(i.exhaustion)) st.push('Exhaustion ' + vNum(i.exhaustion));
-  if (vNum(i.taint)) st.push('Taint ' + vNum(i.taint));
-  st.push(campName);
-  e.footer = { text: st.join(' · ').slice(0, 200) };
+  if (vNum(i.taint)) st.push(vSeal('taint') + ' Taint ' + vNum(i.taint));
+  if (st.length) lines.push('-# ' + st.join(' · '));
+  e.description = lines.filter(Boolean).join('\n').slice(0, 2000) || vClean(line, 300);
+  e.footer = { text: String(campName || '').slice(0, 200) };
   return e;
 }
 // Discord won't take a webhook name with these words in it
