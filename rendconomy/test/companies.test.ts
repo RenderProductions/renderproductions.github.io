@@ -6,13 +6,13 @@ import { eastern, freshDb } from './helpers';
 import { find } from '../src/commands';
 import type { Ctx, ReplyObject } from '../src/commands/types';
 import { botConfig } from '../src/config';
-import { audit, balance, transfer, wallet, RESERVE } from '../src/core/ledger';
+import { audit, balance, escrow, transfer, wallet, RESERVE } from '../src/core/ledger';
 import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import { DAY } from '../src/core/time';
 import { execute } from '../src/discord/router';
 import { tick } from '../src/market/market';
-import { bidOn, companiesTick, getCompany, treasury, treasuryId, holding, worthOf } from '../src/companies/companies';
+import { bidOn, companiesTick, die, getCompany, treasury, treasuryId, holding, worthOf } from '../src/companies/companies';
 import { siteFiles } from '../src/site/publish';
 
 const G = 'g1', A = '111111111111111111', B = '222222222222222222', OWNER = '999999999999999999';
@@ -159,4 +159,69 @@ test('the one-time REND fix does nothing harmful when there is no REND', async (
   const { db } = setup();
   const { runFixes } = await import('../src/fixes.js');
   assert.match(runFixes(db)[0]!, /no company REND/);
+});
+
+test('Refined Everything!: close your company, or sell it to another player', async () => {
+  const { db, run, fund, later } = setup();
+  await run('balance'); await run('balance', {}, B);
+  fund(A, 60_000); fund(B, 60_000);
+  await run('found', { ticker: 'MEOW', name: 'Cat Corp' });
+  assert.match(text(await run('closecompany', { confirm: 'confirm' })), /waiting for approval/);
+  await run('approve', { ticker: 'MEOW' }, OWNER, true);
+  await run('invest', { amount: '7500' });   // 10,000 in the treasury
+  assert.match(text(await run('closecompany')), /You get \*\*⬡9,000(\.00)?\*\*[\s\S]*can't be undone/);
+  assert.equal(getCompany(db, 'MEOW')!.status, 'private', 'the preview changes nothing');
+
+  // sell it to B instead
+  assert.match(text(await run('sellcompany', { action: `<@${B}> 5000` })), /for sale/);
+  assert.match(text(await run('sellcompany', { action: 'accept' })), /Nobody has offered/);
+  const a0 = balance(db, wallet(G, A));
+  assert.match(text(await run('sellcompany', { action: 'accept' }, B)), /Cat Corp is yours/);
+  assert.equal(getCompany(db, 'MEOW')!.owner_id, B);
+  assert.equal(balance(db, wallet(G, A)) - a0, polygons(5000));
+  assert.match(text(await run('closecompany')), /do not run a company/);
+
+  // B closes it: 90% of the treasury, and no new company for a week
+  const b0 = balance(db, wallet(G, B));
+  assert.match(text(await run('closecompany', { confirm: 'confirm' }, B)), /is closed/);
+  assert.equal(balance(db, wallet(G, B)) - b0, polygons(9000));
+  assert.equal(getCompany(db, 'MEOW')!.status, 'dead');
+  assert.match(text(await run('found', { ticker: 'WOOF', name: 'Dog Corp' }, B)), /closed a company recently/);
+  later(8 * DAY);
+  assert.match(text(await run('found', { ticker: 'WOOF', name: 'Dog Corp' }, B)), /Founded/);
+  assert.ok(audit(db).ok);
+});
+
+test('closing a public company buys out its shareholders first', async () => {
+  const { db, run, fund } = setup();
+  await run('balance'); await run('balance', {}, B);
+  fund(A, 60_000); fund(B, 20_000);
+  await run('found', { ticker: 'MEOW', name: 'Cat Corp' });
+  await run('approve', { ticker: 'MEOW' }, OWNER, true);
+  await run('invest', { amount: '20000' });
+  await run('upgrade'); await run('upgrade'); await run('ipo');
+  await run('buy', { ticker: 'MEOW', amount: '10' }, B);
+  const price = Math.round(getCompany(db, 'MEOW')!.price * 100);
+  const b0 = balance(db, wallet(G, B));
+  assert.match(text(await run('closecompany')), /1 shareholder get bought out/);
+  await run('closecompany', { confirm: 'confirm' });
+  assert.equal(balance(db, wallet(G, B)) - b0, price * 10, 'B is paid the share price for every share');
+  assert.equal(holding(db, G, B, 'MEOW'), 0);
+  assert.ok(audit(db).ok);
+});
+
+test('a company that dies with a takeover bid on it gives the bidder their premium back', async () => {
+  const { db, run, fund, now } = setup();
+  await run('balance'); await run('balance', {}, B); fund(A, 50_000); fund(B, 200_000);
+  await run('found', { ticker: 'PREY', name: 'Prey Inc' });
+  await run('approve', { ticker: 'PREY' }, OWNER, true);
+  await run('invest', { amount: '20000' }); await run('upgrade'); await run('upgrade'); await run('ipo');
+  for (let i = 0; i < 10; i++) await run('buy', { ticker: 'PREY', amount: '20' }, B);
+  await run('takeover', { action: 'bid PREY' }, B);
+  const premium = bidOn(db, 'PREY')!.premium;
+  const b0 = balance(db, wallet(G, B));
+  die(db, getCompany(db, 'PREY')!, 'Share price hit 0', now());
+  assert.equal(balance(db, wallet(G, B)) - b0, premium);
+  assert.equal(balance(db, escrow(G, B)), 0);
+  assert.ok(audit(db).ok);
 });

@@ -13,6 +13,11 @@
 
 <h2 id="building">Building and upgrading</h2>
 <p>Pick an empty tile and a building: <code>r!property build C4 shack</code> (or just <code>r!build C4 shack</code>). You pay the building's price plus the land, and construction takes real time; no rent until it's done. Most buildings can be upgraded twice (<code>r!property upgrade C4</code>): rent goes ×1.6, then ×2.4, and the building is fixed up to 100% along the way.</p>
+<h3>Selling or tearing down</h3>
+<ul>
+<li><strong>Sell</strong> (<code>r!property sell C4</code>): the bank buys the building and the land for <span data-v="refined.sellBackEstate" data-f="pct">?</span> of everything that went into it (less if it's run down), and the tile is open land again.</li>
+<li><strong>Tear down</strong> (<code>r!property teardown C4 park</code>): knock it down and build something else, keeping the land. The crew pays <span data-v="refined.salvage" data-f="pct">?</span> of what went in as salvage, and you pay the new building's price (no land this time).</li>
+</ul>
 
 <h2 id="buildings">The twelve buildings <span class="auto">FROM THE BOT</span></h2>
 <div data-table="buildings"></div>

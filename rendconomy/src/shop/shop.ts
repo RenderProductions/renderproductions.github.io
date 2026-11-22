@@ -7,7 +7,7 @@ import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { HOUR, DAY } from '../core/time';
-import { addItem, count } from './inventory';
+import { addItem, count, takeItem } from './inventory';
 import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, ROTATION, anyItem, isCollectible, type Item } from './items';
 import { isHoliday, season } from '../holidays/holidays';
 
@@ -50,6 +50,26 @@ export function priceOf(db: Db, id: string): Cents {
   const it = anyItem(id);
   if (!it) throw new Error(`Unknown item ${id}`);
   return it.price ?? (Number(db.meta('shop.mystery')) || polygons(SHOP_RULES.mystery[0]));
+}
+
+/** Refined Everything!: Marquez buys things back at a share of his price (well under it, so buying and selling
+ *  back never pays) and puts them back on his shelf. Not collectibles (trade those), not fish or crops (they
+ *  have their own buyers), not Goods. */
+export const SELL_BACK = 0.4;
+export function sellBackPrice(db: Db, id: string): Cents { return Math.floor(priceOf(db, id) * SELL_BACK); }
+export function sellBack(db: Db, guildId: string, userId: string, id: string, qty: number, now = Date.now()): { item: Item; qty: number; paid: Cents; cash: Cents } {
+  const it = ITEMS[id];
+  if (!it || it.ready === false) throw new GameError('sell.no', isCollectible(id) ? `Marquez doesn't buy collectibles back. Trade them with other players: \`/trade\`.` : 'Marquez doesn\'t buy that.');
+  return db.tx(() => {
+    const have = count(db, guildId, userId, id);
+    if (have < qty) throw new GameError('sell.short', have ? `You have ${have} × ${it.name}.` : `You don't have any ${it.name}.`);
+    const each = sellBackPrice(db, id), paid = each * qty;
+    if (balance(db, RESERVE) < paid) throw new GameError('reserve.empty', 'The Reserve is too low for Marquez to buy anything back right now.');
+    takeItem(db, guildId, userId, id, qty);
+    if (paid > 0) transfer(db, { from: RESERVE, to: wallet(guildId, userId), cents: paid, reason: 'shop.sellback', guildId, actorId: userId, now, note: { item: id, qty } });
+    db.run('UPDATE shop_stock SET stock = MIN(stock + ?, ?) WHERE item = ?', qty, it.stock, id);
+    return { item: it, qty, paid, cash: balance(db, wallet(guildId, userId)) };
+  });
 }
 
 export type BuyFail = 'unknown' | 'unavailable' | 'soldOut' | 'broke' | 'once' | 'notThisWeek';

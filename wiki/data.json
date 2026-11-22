@@ -17,7 +17,7 @@
   "wallet": {
    "label": "Wallet",
    "emoji": "👛",
-   "count": 11
+   "count": 13
   },
   "social": {
    "label": "Players",
@@ -32,7 +32,7 @@
   "market": {
    "label": "Stock market",
    "emoji": "📈",
-   "count": 20
+   "count": 22
   },
   "casino": {
    "label": "Rend-Sino",
@@ -296,17 +296,62 @@
    ]
   },
   {
+   "name": "sellitem",
+   "aliases": [
+    "sellback",
+    "pawn"
+   ],
+   "description": "Sell items back to Marquez for 40% of his price",
+   "section": "wallet",
+   "slash": "/sellitem",
+   "options": [
+    {
+     "name": "item",
+     "description": "Item name, e.g. coffee",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How many (default 1), or \"all\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "discard",
+   "aliases": [
+    "toss",
+    "trash",
+    "throwaway"
+   ],
+   "description": "Throw items away (for nothing)",
+   "section": "wallet",
+   "slash": "/discard",
+   "options": [
+    {
+     "name": "item",
+     "description": "Item name, e.g. floppy",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How many (default 1), or \"all\"",
+     "required": false
+    }
+   ]
+  },
+  {
    "name": "settitle",
    "aliases": [
     "title"
    ],
-   "description": "Set your profile title (uses a Title item)",
+   "description": "Set your profile title (uses a Title item), or \"clear\" to remove it",
    "section": "wallet",
    "slash": "/settitle",
    "options": [
     {
      "name": "title",
-     "description": "Up to 32 characters",
+     "description": "Up to 32 characters, or \"clear\" to remove yours",
      "required": true
     }
    ]
@@ -641,7 +686,7 @@
    "options": [
     {
      "name": "action",
-     "description": "Blank for yours, or: map, buildings, build, upgrade, sell, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info",
+     "description": "Blank for yours, or: map, buildings, build, upgrade, sell, teardown, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info",
      "required": false
     },
     {
@@ -651,7 +696,7 @@
     },
     {
      "name": "amount",
-     "description": "For build: the building. For bid or donate: Polygons. For storefront: a company ticker",
+     "description": "For build or teardown: the building. For bid or donate: Polygons. For storefront: a company ticker",
      "required": false
     }
    ]
@@ -1110,6 +1155,39 @@
      "name": "amount",
      "description": "How much, or \"max\"",
      "required": true
+    }
+   ]
+  },
+  {
+   "name": "closecompany",
+   "aliases": [
+    "shutdown",
+    "liquidate"
+   ],
+   "description": "Close your company for good: you get its treasury, minus a 10% fee",
+   "section": "market",
+   "slash": "/closecompany",
+   "options": [
+    {
+     "name": "confirm",
+     "description": "Type \"confirm\" to close it (leave it out to see what you'd get)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "sellcompany",
+   "aliases": [
+    "sellco"
+   ],
+   "description": "Sell your company to another player, or answer an offer",
+   "section": "market",
+   "slash": "/sellcompany",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"@player <price>\", \"accept\", \"decline\", \"cancel\", or blank to see offers",
+     "required": false
     }
    ]
   },
@@ -3542,6 +3620,39 @@
    "secret": false
   }
  ],
+ "refined": {
+  "sellBack": 0.4,
+  "bulkMax": 25,
+  "closeFee": 0.1,
+  "refoundDays": 7,
+  "salvage": 0.25,
+  "sellBackEstate": 0.8,
+  "beg": {
+   "coins": [
+    5,
+    40
+   ],
+   "coinChance": 0.55,
+   "trinketChance": 0.2,
+   "caught": [
+    {
+     "above": 25000,
+     "chance": 0.25
+    },
+    {
+     "above": 100000,
+     "chance": 0.5
+    },
+    {
+     "above": 1000000,
+     "chance": 0.8
+    }
+   ],
+   "fineShare": 0.05,
+   "fineMax": 1000,
+   "cooldownMinutes": 60
+  }
+ },
  "work": {
   "companies": [
    {

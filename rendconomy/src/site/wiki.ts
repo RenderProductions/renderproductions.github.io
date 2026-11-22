@@ -6,7 +6,7 @@ import { ACHIEVEMENTS, CATEGORIES, RARITY } from '../achievements/list';
 import { CASINO, JACKPOT, NAMES, ODDS, VIP } from '../casino/core';
 import { commands } from '../commands';
 import { SECTIONS } from '../commands/general';
-import { CO, LEVELS, TAKEOVER } from '../companies/companies';
+import { CLOSE, CO, LEVELS, TAKEOVER } from '../companies/companies';
 import { economy } from '../config';
 import { RESERVE_RULES } from '../core/economy';
 import { ESTATE, KINDS, KIND_ORDER, taxRate } from '../estate/estate';
@@ -19,7 +19,9 @@ import { LOANS } from '../loans/loans';
 import { BROKERS, ORDERS, SHORTS, TRAITS } from '../market/schemes';
 import { MOD_SLASH } from '../discord/router';
 import { COLLECTIBLES, ITEMS, SHELVES } from '../shop/items';
-import { SHOP_RULES } from '../shop/shop';
+import { SELL_BACK, SHOP_RULES } from '../shop/shop';
+import { BULK_MAX } from '../shop/use';
+import { BEG } from '../commands/beg';
 import { CHATTER } from '../social/chatter';
 import { SAVINGS } from '../social/savings';
 import { CONTRABAND, LOOT, UG } from '../underground/underground';
@@ -47,6 +49,10 @@ export function wikiData(): Record<string, unknown> {
     achievements: ACHIEVEMENTS.map((a) => (a.secret
       ? { id: `secret-${ACHIEVEMENTS.indexOf(a)}`, name: '???', desc: 'A secret. Keep playing.', category: CATEGORIES[a.cat].label, rarity: a.rarity, secret: true }
       : { id: a.id, name: a.name, desc: a.desc, category: CATEGORIES[a.cat].label, rarity: a.rarity, secret: false })),
+    refined: {
+      sellBack: SELL_BACK, bulkMax: BULK_MAX, closeFee: CLOSE.fee, refoundDays: CLOSE.refoundMs / 86_400_000, salvage: ESTATE.salvage, sellBackEstate: ESTATE.sellBack,
+      beg: { coins: BEG.coins, coinChance: BEG.chances.coins, trinketChance: BEG.chances.trinket, caught: BEG.caught.map((c) => ({ above: p(c.above), chance: c.chance })), fineShare: BEG.fineShare, fineMax: p(BEG.fineMax), cooldownMinutes: BEG.cooldownMs / 60_000 }
+    },
     work: { companies: Object.values(COMPANIES).map((c) => ({ ticker: c.ticker, name: c.name, role: c.role, ranks: c.ranks })), rankPay: RANK_PAY, basePay: p(JOB_RULES.basePay), workMinutes: JOB_RULES.workCooldownMs / 60_000, gigMinutes: JOB_RULES.gigCooldownMs / 60_000, gigShare: JOB_RULES.gigShare, review: JOB_RULES.review, team: { each: JOB_RULES.team.each, max: JOB_RULES.team.max }, rushChance: JOB_RULES.rushChance, maxRush: JOB_RULES.maxRush, tipMax: JOB_RULES.tipMax, missShare: JOB_RULES.missShare, quitLockHours: hours(JOB_RULES.quitLockMs) },
     chatter: { min: p(CHATTER.chat.min), max: p(CHATTER.chat.max), perDay: p(CHATTER.chat.perDay), dropChance: CHATTER.drop.chance },
     savings: { plans: SAVINGS.plans, min: p(SAVINGS.min), maxTotal: p(SAVINGS.maxTotal), maxAccounts: SAVINGS.maxAccounts },

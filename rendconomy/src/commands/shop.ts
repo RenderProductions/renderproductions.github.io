@@ -8,7 +8,7 @@ import { embed } from '../discord/style';
 import { count, items as invItems, takeItem } from '../shop/inventory';
 import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, SHELVES, anyItem, findItem, marquez, type Shelf } from '../shop/items';
 import { isHoliday } from '../holidays/holidays';
-import { SHOP_RULES, ShopError, buy, collectibleOfWeek, priceOf, restock, stockOf } from '../shop/shop';
+import { SELL_BACK, SHOP_RULES, ShopError, buy, collectibleOfWeek, priceOf, restock, sellBack, sellBackPrice, stockOf } from '../shop/shop';
 import { BULK_MAX, useItem, useMany } from '../shop/use';
 import { FISHING, isCatch } from '../fishing/fishing';
 import { isCropItem } from '../farming/farming';
@@ -166,14 +166,76 @@ export const use: Command = {
   }
 };
 
-export const settitle: Command = {
-  name: 'settitle', aliases: ['title'],
-  description: 'Set your profile title (uses a Title item)',
+/** "coffee 3", "rocket fuel all", "mystery": the item, and how many (default 1). */
+function itemAndCount(ctx: Ctx, guildId: string, itemArg: unknown, amountArg: unknown, what: string): { id: string; qty: number } {
+  let name = String(itemArg ?? '').trim(), amount = String(amountArg ?? '').trim();
+  const m = /^(.*\S)\s+(\d+|all)$/i.exec(name);
+  if (!amount && m) { name = m[1]!; amount = m[2]!; }
+  const id = findItem(name);
+  if (!id) throw new GameError('item.unknown', `There's no item called "${name}". Check \`${ctx.config.prefix}inventory\`.`);
+  const have = count(ctx.db, guildId, ctx.user.id, id);
+  if (!have) throw new GameError('item.none', `You don't have any ${anyItem(id)!.name} to ${what}.`);
+  const qty = /^all$/i.test(amount) ? have : parseCount(amount || '1', { max: 1000 });
+  if (qty > have) throw new GameError('item.short', `You have ${have} × ${anyItem(id)!.name}.`);
+  return { id, qty };
+}
+
+export const sellitem: Command = {
+  name: 'sellitem', aliases: ['sellback', 'pawn'],
+  description: `Sell items back to Marquez for ${SELL_BACK * 100}% of his price`,
   system: 'wallet',
   guildOnly: true,
-  options: [{ name: 'title', type: 'string', description: 'Up to 32 characters', required: true }],
+  options: [
+    { name: 'item', type: 'string', description: 'Item name, e.g. coffee', required: true },
+    { name: 'amount', type: 'string', description: 'How many (default 1), or "all"' }
+  ],
   run(ctx, args) {
     const { guildId } = me(ctx);
+    const { id, qty } = itemAndCount(ctx, guildId, args.item, args.amount, 'sell');
+    const r = sellBack(ctx.db, guildId, ctx.user.id, id, qty, ctx.now);
+    receipt(ctx.db, guildId, ctx.user.id, `Sold ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name} back`, [['Paid to you', format(r.paid)], ['Balance', format(r.cash)]]);
+    const left = count(ctx.db, guildId, ctx.user.id, id);
+    return { embeds: [embed('wallet', `🛍️ Sold: ${r.item.emoji} ${r.item.name}${r.qty > 1 ? ` × ${r.qty}` : ''}`, [
+      `Marquez looks it over and gives you **${format(r.paid)}**${r.qty > 1 ? ` (${format(r.paid / r.qty)} each)` : ''}. It's back on his shelf.`,
+      `-# ${left ? `${left} left. ` : ''}Balance: ${format(r.cash)}.`
+    ])] };
+  }
+};
+
+export const discard: Command = {
+  name: 'discard', aliases: ['toss', 'trash', 'throwaway'],
+  description: 'Throw items away (for nothing)',
+  system: 'wallet',
+  guildOnly: true,
+  options: [
+    { name: 'item', type: 'string', description: 'Item name, e.g. floppy', required: true },
+    { name: 'amount', type: 'string', description: 'How many (default 1), or "all"' }
+  ],
+  run(ctx, args) {
+    const { guildId } = me(ctx);
+    const { id, qty } = itemAndCount(ctx, guildId, args.item, args.amount, 'throw away');
+    const it = anyItem(id)!;
+    takeItem(ctx.db, guildId, ctx.user.id, id, qty);
+    const back = ITEMS[id] && ITEMS[id]!.ready !== false ? sellBackPrice(ctx.db, id) * qty : 0;
+    return { embeds: [embed('wallet', `🗑️ ${it.emoji} ${it.name}${qty > 1 ? ` × ${qty}` : ''}`, [
+      `Gone. ${qty > 1 ? 'They\'re' : 'It\'s'} in the bin behind Marquez's shop.`,
+      back ? `-# Next time, Marquez would have paid ${format(back)} for ${qty > 1 ? 'them' : 'it'}: \`${ctx.config.prefix}sellitem\`.` : null
+    ])] };
+  }
+};
+
+export const settitle: Command = {
+  name: 'settitle', aliases: ['title'],
+  description: 'Set your profile title (uses a Title item), or "clear" to remove it',
+  system: 'wallet',
+  guildOnly: true,
+  options: [{ name: 'title', type: 'string', description: 'Up to 32 characters, or "clear" to remove yours', required: true }],
+  run(ctx, args) {
+    const { guildId } = me(ctx);
+    if (/^(clear|remove|none|off)$/i.test(String(args.title ?? '').trim())) {
+      ctx.db.run('UPDATE players SET title = NULL WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id);
+      return { embeds: [embed('wallet', 'Title cleared', ['Your profile has no title now. A new one takes another Title item.'])] };
+    }
     const t = String(args.title ?? '').replace(/[\n\r`*_~|<>@#]/g, '').trim().slice(0, 32);
     if (!t) throw new GameError('title.empty', 'Enter a title of up to 32 characters.');
     return ctx.db.tx(() => {

@@ -80,6 +80,7 @@ export const ESTATE = {
   unpaidDecay: 3,        // more when the upkeep and tax can't be paid
   pollutionWear: 1,      // more for each Factory next door
   sellBack: 0.8,         // the bank pays 80% of what went in (less for a wreck: down to 40% at 0%)
+  salvage: 0.25,         // tearing down (you keep the land): the crew pays 25% of what went in (less for a wreck)
   repairPerPoint: 0.0015,// of the value, per condition point
   levelRent: [1, 1.6, 2.4], levelUpkeep: [1, 1.5, 2], levelCost: [0, 0.75, 1.25],
   upgradeHours: 0.5,     // an upgrade takes this share of the building time
@@ -114,6 +115,7 @@ export const upgradeCost = (l: Lot): Cents | null => (l.level >= KINDS[l.kind].m
 export const buildMs = (k: Kind): number => KINDS[k].buildHours * HOUR;
 export const upgradeMs = (k: Kind): number => Math.round(buildMs(k) * ESTATE.upgradeHours);
 export const repairCost = (l: Lot, to = 100): Cents => Math.ceil(Math.max(0, to - l.condition) * value(l) * ESTATE.repairPerPoint);
+export const salvagePrice = (l: Lot): Cents => Math.floor(value(l) * ESTATE.salvage * (0.5 + 0.5 * Math.max(0, l.condition) / 100));
 export const sellPrice = (l: Lot): Cents => Math.floor(value(l) * ESTATE.sellBack * (0.5 + 0.5 * Math.max(0, l.condition) / 100));
 export const minBid = (l: Lot): Cents => l.status === 'auction'
   ? Math.max(Math.ceil(value(l) * ESTATE.auctionStart), l.bid_cents ? Math.ceil(l.bid_cents * ESTATE.auctionStep) : 0)

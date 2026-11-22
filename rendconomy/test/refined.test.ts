@@ -75,3 +75,25 @@ test('r!beg: once an hour; rich beggars get caught', async () => {
   assert.equal(before - balance(db, wallet(G, A)), polygons(1_000), 'fined 5%, at most ⬡1,000');
   assert.ok(audit(db).ok);
 });
+
+test('sell items back to Marquez, throw them away, clear your title', async () => {
+  const { db, run } = setup();
+  await run('balance');
+  addItem(db, G, A, 'coffee', 4);
+  const b0 = balance(db, wallet(G, A));
+  assert.match(text(await run('sellitem', { item: 'coffee 3' })), /gives you \*\*⬡120(\.00)?\*\*/);
+  assert.equal(balance(db, wallet(G, A)) - b0, polygons(120), '40% of ⬡100, three times');
+  assert.equal(count(db, G, A, 'coffee'), 1);
+  assert.match(text(await run('sellitem', { item: 'coffee', amount: '5' })), /You have 1/);
+  addItem(db, G, A, 'col_nacho', 1);
+  assert.match(text(await run('sellitem', { item: 'golden nacho' })), /doesn't buy collectibles/);
+  assert.match(text(await run('discard', { item: 'golden nacho' })), /Gone/);
+  assert.equal(count(db, G, A, 'col_nacho'), 0);
+  assert.match(text(await run('discard', { item: 'coffee', amount: 'all' })), /Gone[\s\S]*would have paid ⬡40/);
+  assert.match(text(await run('discard', { item: 'coffee' })), /don't have any/);
+  addItem(db, G, A, 'title', 1);
+  await run('settitle', { title: 'Big Cheese' });
+  assert.match(text(await run('settitle', { title: 'clear' })), /Title cleared/);
+  assert.equal(db.get<{ title: string | null }>('SELECT title FROM players WHERE guild_id = ? AND user_id = ?', G, A)!.title, null);
+  assert.ok(audit(db).ok);
+});

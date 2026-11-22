@@ -2,10 +2,11 @@
 //   pending -> waiting for approval (the founding cost already sits in the treasury; refunded if rejected)
 //   private -> levels up from its treasury, pays upkeep, earns from employees' shifts
 //   public  -> listed after its IPO; anyone but the owner can trade its shares
-//   dead    -> its share price hit 0, or (private) it missed upkeep 3 days running
+//   dead    -> its share price hit 0, (private) it missed upkeep 3 days running, or its owner closed it
 // The treasury is a ledger account ('company:<TICKER>'), so every Polygon in and out is on the books.
 // Also: hostile takeovers and mergers (Heists & Schemes).
 import { addMoment, compact } from '../core/moments';
+import { addInbox } from '../social/inbox';
 import { discordTime } from '../core/time';
 import { award } from '../achievements/achievements';
 import type { Db } from '../core/db';
@@ -22,6 +23,8 @@ export const LEVELS = [
   { name: 'Conglomerate', cost: polygons(75_000), upkeep: polygons(400), value: polygons(100_000), payMult: 1.5 }
 ];
 export const CO = { ipoLevel: 3, listingFee: polygons(2000), totalShares: 1000, float: 400, historyLength: 288, salaryMaxPct: 0.1, revenueShare: 0.5, privateStrikes: 3, impact: 0.5 };
+/** Refined Everything!: closing your own company, and selling it to another player. */
+export const CLOSE = { fee: 0.1, refoundMs: 7 * DAY, saleMs: DAY };
 export const TAKEOVER = { stake: 0.5, premium: 0.25, poisonPill: 0.1, bidMs: DAY, mergeMs: DAY, shieldMs: 7 * DAY, breakFee: 0.2 };
 
 export interface Company { ticker: string; name: string; owner_id: string; owner_name: string | null; owner_guild: string; status: string; level: number; price: number; offering_left: number; strikes: number; created_at: number; approved_at: number | null; ipo_at: number | null; died_at: number | null; last_upkeep: number | null; last_salary: number | null; history: number[]; note: string | null }
@@ -56,6 +59,8 @@ export const cleanName = (name: string): string => String(name ?? '').replace(/[
 
 export function found(db: Db, g: string, u: string, uname: string, ticker: string, name: string, houseTickers: readonly string[], now = Date.now()): Company {
   if (ownedBy(db, u)) throw new GameError('co.have', 'You already run a company.');
+  const wait = Number(db.meta(`co.closed:${u}`) ?? 0) + CLOSE.refoundMs;
+  if (wait > now) throw new GameError('co.wait', `You closed a company recently. You can found another ${discordTime(wait)}.`);
   if (!/^[A-Z]{2,5}$/.test(ticker)) throw new GameError('co.ticker', 'Tickers are 2 to 5 letters, for example MEOW.');
   if (houseTickers.includes(ticker)) throw new GameError('co.taken', `${ticker} is already a listed company.`);
   const taken = db.get<{ status: string }>("SELECT status FROM companies WHERE ticker = ? AND status != 'rejected'", ticker);
@@ -118,7 +123,88 @@ export function die(db: Db, c: Company, reason: string, now = Date.now()): void 
     update(db, c.ticker, { status: 'dead', price: 0, died_at: now, note: reason });
     db.run('DELETE FROM company_holdings WHERE ticker = ?', c.ticker);
     db.run('UPDATE players SET job = NULL WHERE job = ?', c.ticker);
-    db.run('DELETE FROM takeovers WHERE ticker = ?', c.ticker);
+    cancelBid(db, c.ticker, now);   // a bidder gets their premium back (it used to be left in escrow)
+    db.setMeta(`merger:${c.ticker}`, 'null');
+    db.setMeta(`sale:${c.ticker}`, 'null');
+  });
+}
+
+/** What closing costs and pays: shareholders are bought out at the share price (treasury first, then the
+ *  owner's wallet), then the owner gets what's left of the treasury minus the closing fee. */
+export function closeQuote(db: Db, c: Company): { buyout: Cents; holders: number; fromTreasury: Cents; fromOwner: Cents; fee: Cents; payout: Cents } {
+  const rows = c.status === 'public' ? db.all<{ shares: number }>('SELECT shares FROM company_holdings WHERE ticker = ? AND shares > 0', c.ticker) : [];
+  const buyout = rows.reduce((s, h) => s + Math.round(c.price * 100) * h.shares, 0);
+  const t = treasury(db, c);
+  const fromTreasury = Math.min(t, buyout), fromOwner = buyout - fromTreasury, left = t - fromTreasury;
+  const fee = Math.ceil(left * CLOSE.fee);
+  return { buyout, holders: rows.length, fromTreasury, fromOwner, fee, payout: left - fee };
+}
+
+/** The owner shuts their company down for good. Returns the quote it closed on. */
+export function closeCompany(db: Db, c: Company, now = Date.now()): ReturnType<typeof closeQuote> {
+  if (c.status !== 'private' && c.status !== 'public') throw new GameError('co.close', c.status === 'pending' ? 'Your company is still waiting for approval. If you change your mind, ask a moderator to reject it: you get everything back.' : 'That company is already closed.');
+  if (bidOn(db, c.ticker)) throw new GameError('co.close', 'There is a takeover bid on your company. Fight it off or let it finish first.');
+  return db.tx(() => {
+    const q = closeQuote(db, c);
+    const owner = wallet(c.owner_guild, c.owner_id);
+    if (q.fromOwner > balance(db, owner)) throw new GameError('funds.short', `Buying out your shareholders costs ${format(q.buyout)}. The treasury covers ${format(q.fromTreasury)}, so you need ${format(q.fromOwner)} in your wallet.`);
+    for (const h of db.all<{ guild_id: string; user_id: string; shares: number }>('SELECT guild_id, user_id, shares FROM company_holdings WHERE ticker = ? AND shares > 0', c.ticker)) {
+      let pay = Math.round(c.price * 100) * h.shares;
+      const ft = Math.min(pay, treasury(db, c));
+      if (ft > 0) transfer(db, { from: treasuryId(c.ticker), to: wallet(h.guild_id, h.user_id), cents: ft, reason: 'company.buyout', guildId: h.guild_id, now, note: { ticker: c.ticker } });
+      pay -= ft;
+      if (pay > 0) transfer(db, { from: owner, to: wallet(h.guild_id, h.user_id), cents: pay, reason: 'company.buyout', guildId: h.guild_id, actorId: c.owner_id, now, note: { ticker: c.ticker } });
+      addInbox(db, h.user_id, h.guild_id, `${c.ticker} closed`, `${c.name} was closed by its owner. Your ${h.shares} shares were bought out at ${format(Math.round(c.price * 100))} each: ${format(Math.round(c.price * 100) * h.shares)}.`, now);
+    }
+    if (q.fee > 0) transfer(db, { from: treasuryId(c.ticker), to: RESERVE, cents: q.fee, reason: 'company.close.fee', now, note: { ticker: c.ticker } });
+    if (q.payout > 0) transfer(db, { from: treasuryId(c.ticker), to: owner, cents: q.payout, reason: 'company.close', guildId: c.owner_guild, actorId: c.owner_id, now, note: { ticker: c.ticker } });
+    for (const e of db.all<{ guild_id: string; user_id: string }>('SELECT guild_id, user_id FROM players WHERE job = ?', c.ticker)) {
+      addInbox(db, e.user_id, e.guild_id, `${c.ticker} closed`, `${c.name} closed its doors, so you're out of a job. Find a new one with r!apply.`, now);
+    }
+    die(db, c, 'Closed by its owner', now);
+    db.setMeta(`co.closed:${c.owner_id}`, String(now));
+    return q;
+  });
+}
+
+// ---------------------------------------------------------------- selling a company to another player
+
+export interface Sale { to: string; guild: string; price: Cents; until: number }
+export function saleOf(db: Db, t: string, now = Date.now()): Sale | null {
+  try { const s = JSON.parse(db.meta(`sale:${t}`) ?? 'null') as Sale | null; return s && s.until > now ? s : null; } catch { return null; }
+}
+/** Any open offer made to this player (they can only answer one at a time anyway). */
+export function saleFor(db: Db, u: string, now = Date.now()): { c: Company; s: Sale } | null {
+  for (const c of listCompanies(db, ['private', 'public'])) { const s = saleOf(db, c.ticker, now); if (s && s.to === u) return { c, s }; }
+  return null;
+}
+export function offerSale(db: Db, c: Company, g: string, to: string, price: Cents, now = Date.now()): Sale {
+  if (!alive(c)) throw new GameError('co.sell', 'Only an approved company can be sold.');
+  if (to === c.owner_id) throw new GameError('co.sell', 'You already own it.');
+  if (bidOn(db, c.ticker)) throw new GameError('co.sell', 'There is a takeover bid on your company. It can\'t change hands until that\'s settled.');
+  if (ownedBy(db, to)) throw new GameError('co.sell', 'They already run a company. A player can only run one.');
+  const s: Sale = { to, guild: g, price, until: now + CLOSE.saleMs };
+  db.setMeta(`sale:${c.ticker}`, JSON.stringify(s));
+  return s;
+}
+export function cancelSale(db: Db, t: string): void { db.setMeta(`sale:${t}`, 'null'); }
+/** The buyer says yes: they pay the owner, and the company (treasury, level, staff and all) is theirs. */
+export function acceptSale(db: Db, c: Company, g: string, u: string, uname: string, now = Date.now()): Sale {
+  const s = saleOf(db, c.ticker, now);
+  if (!s || s.to !== u || s.guild !== g) throw new GameError('co.sell', 'That offer is gone.');
+  if (!alive(c)) throw new GameError('co.sell', 'That company has closed.');
+  if (bidOn(db, c.ticker)) throw new GameError('co.sell', 'There is a takeover bid on it now. The sale is off until that\'s settled.');
+  if (ownedBy(db, u)) throw new GameError('co.sell', 'You already run a company. A player can only run one.');
+  const held = holding(db, g, u, c.ticker);
+  if (held) throw new GameError('co.sell', `Owners can't hold their own shares. Sell your ${held} shares of ${c.ticker} first.`);
+  if (balance(db, wallet(g, u)) < s.price) throw new GameError('funds.short', `It costs ${format(s.price)}. You have ${format(balance(db, wallet(g, u)))}.`);
+  return db.tx(() => {
+    if (s.price > 0) transfer(db, { from: wallet(g, u), to: wallet(c.owner_guild, c.owner_id), cents: s.price, reason: 'company.sale', guildId: g, actorId: u, now, note: { ticker: c.ticker } });
+    db.run('UPDATE players SET job = NULL WHERE guild_id = ? AND user_id = ? AND job = ?', g, u, c.ticker);
+    update(db, c.ticker, { owner_id: u, owner_guild: g, owner_name: uname, last_salary: null });
+    cancelSale(db, c.ticker);
+    db.setMeta(`merger:${c.ticker}`, 'null');
+    return s;
   });
 }
 

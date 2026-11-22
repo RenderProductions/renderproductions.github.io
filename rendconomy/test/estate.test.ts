@@ -383,3 +383,26 @@ test('the plow: the old 15 lots are refunded in full, bids come back, Eminent Do
   assert.ok(!db.get("SELECT 1 FROM sqlite_master WHERE name = 'estates_old'"));
   assert.ok(audit(db).ok);
 });
+
+test('Refined Everything!: selling and tearing down are two different things', async () => {
+  const { db, run, fund, at, later } = setup();
+  fund(A, 20_000);
+  await run('build', 'C4', 'shack');
+  later(2 * HOUR);
+  assert.match(text(await run('teardown', 'C4')), /build what instead[\s\S]*you keep the land/);
+  assert.match(text(await run('teardown', 'C4', 'shack')), /already a Shack/);
+  const salvage = Math.floor(value(at('C4')!) * ESTATE.salvage);
+  assert.ok(salvage > 0);
+  await run('');   // settles rent first
+  const b0 = balance(db, wallet(G, A));
+  assert.match(text(await run('teardown', 'C4', 'apartment')), /Rebuilding C4[\s\S]*Apartment/);
+  const l = at('C4')!;
+  assert.equal(l.kind, 'apartment');
+  assert.equal(l.owner_id, A, 'still yours: you kept the land');
+  // 25% of what went into the Shack back as salvage, then 8,000 for the Apartment
+  assert.equal(b0 - balance(db, wallet(G, A)), polygons(8000) - salvage);
+  later(4 * HOUR);
+  assert.match(text(await run('sell', 'C4')), /sold[\s\S]*open land again/);
+  assert.equal(at('C4'), undefined);
+  assert.ok(audit(db).ok);
+});

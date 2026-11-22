@@ -3,11 +3,11 @@ import { nameOf, receipt } from '../social/receipts';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
 import { balance } from '../core/ledger';
-import { format, parseAmount } from '../core/money';
+import { format, parseAmount, polygons } from '../core/money';
 import { discordTime } from '../core/time';
 import { embed } from '../discord/style';
 import { TICKERS } from '../market/market';
-import { CO, LEVELS, TAKEOVER, shieldedUntil, alive, approve as approveCo, bidOn, change, cleanName, employees, found as foundCo, getCompany, invest as investCo, ipo as ipoCo, levelOf, listCompanies, merge as mergeCo, mergerFor, ownedBy, poisonPill, proposeMerger, reject as rejectCo, salary as salaryCo, sharesHeld, spark, startBid, treasury, upgrade as upgradeCo, worthOf, completeBid } from '../companies/companies';
+import { CO, LEVELS, TAKEOVER, shieldedUntil, alive, approve as approveCo, bidOn, change, cleanName, employees, found as foundCo, getCompany, invest as investCo, ipo as ipoCo, levelOf, listCompanies, merge as mergeCo, mergerFor, ownedBy, poisonPill, proposeMerger, reject as rejectCo, salary as salaryCo, sharesHeld, CLOSE, closeQuote, closeCompany as closeCo, saleOf, saleFor, offerSale, cancelSale, acceptSale, spark, startBid, treasury, upgrade as upgradeCo, worthOf, completeBid } from '../companies/companies';
 import { me } from './shared';
 import type { Command, Ctx } from './types';
 
@@ -107,6 +107,87 @@ export const salary: Command = {
     salaryCo(ctx.db, c, cents, ctx.now);
     receipt(ctx.db, c.owner_guild, ctx.user.id, `Salary from ${c.name}`, [['Paid to you', format(cents)], ['Treasury left', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, `wallet:${c.owner_guild}:${ctx.user.id}`))]]);
     return { embeds: [embed('market', 'Salary paid', [`${format(cents)} from ${c.name}. Treasury: ${format(treasury(ctx.db, c))}.`])] };
+  }
+};
+
+// Refined Everything!: closing your company for good, or selling it to another player.
+export const closecompany: Command = {
+  name: 'closecompany', aliases: ['shutdown', 'liquidate'], description: 'Close your company for good: you get its treasury, minus a 10% fee', system: 'market', guildOnly: true,
+  options: [{ name: 'confirm', type: 'string', description: 'Type "confirm" to close it (leave it out to see what you\'d get)' }],
+  run(ctx, args) {
+    const c = mine(ctx);
+    const P = ctx.config.prefix;
+    if (!alive(c)) throw new GameError('co.pending', 'Your company is still waiting for approval. If you change your mind, ask a moderator to reject it: you get everything back.');
+    if (!/^confirm$/i.test(String(args.confirm ?? '').trim())) {
+      const q = closeQuote(ctx.db, c);
+      return { embeds: [embed('market', `Close ${c.name} (${c.ticker})?`, [
+        c.status === 'public' ? `First, ${q.holders} shareholder${q.holders === 1 ? '' : 's'} get bought out at the share price: **${format(q.buyout)}**${q.fromOwner ? `, ${format(q.fromTreasury)} from the treasury and **${format(q.fromOwner)} from your wallet**` : ' from the treasury'}.` : null,
+        `You get **${format(q.payout)}** from the treasury (after the ${CLOSE.fee * 100}% closing fee of ${format(q.fee)}).`,
+        [c.level > 1 ? `What you spent reaching ${levelOf(c).name} is gone` : null, employees(ctx.db, c.ticker) ? `${employees(ctx.db, c.ticker)} employee${employees(ctx.db, c.ticker) === 1 ? ' loses their job' : 's lose their jobs'}` : null, `you can't found another company for ${CLOSE.refoundMs / 86_400_000} days`]
+          .filter(Boolean).join(', ').replace(/^./, (x) => x.toUpperCase()) + '.',
+        `**This can't be undone.** To go ahead: \`${P}closecompany confirm\`. Or sell it instead: \`${P}sellcompany @player <price>\`.`
+      ])] };
+    }
+    const n = employees(ctx.db, c.ticker);
+    const q = closeCo(ctx.db, c, ctx.now);
+    receipt(ctx.db, c.owner_guild, ctx.user.id, `Closed ${c.name}`, [['Shareholders bought out', format(q.buyout)], ['Closing fee', format(q.fee)], ['Paid to you', format(q.payout)]]);
+    emit('mod.action', { guildId: c.owner_guild, modId: ctx.user.id, action: `company closed by its owner: ${c.ticker} (${c.name})` });
+    return { embeds: [embed('market', `${emoji('no')} ${c.name} is closed`, [
+      `You got **${format(q.payout)}** from the treasury.${q.buyout ? ` Shareholders were paid ${format(q.buyout)}.` : ''}${n ? ` ${n} employee${n === 1 ? ' was' : 's were'} let go.` : ''}`,
+      `-# ${c.ticker} is retired. You can found a new company ${discordTime(ctx.now + CLOSE.refoundMs)}.`
+    ])] };
+  }
+};
+
+export const sellcompany: Command = {
+  name: 'sellcompany', aliases: ['sellco'], description: 'Sell your company to another player, or answer an offer', system: 'market', guildOnly: true,
+  options: [{ name: 'action', type: 'string', description: '"@player <price>", "accept", "decline", "cancel", or blank to see offers', required: false }],
+  run(ctx, args) {
+    const { guildId } = me(ctx);
+    const P = ctx.config.prefix;
+    const line = String(args.action ?? '').trim();
+    const word = line.toLowerCase();
+    if (word === 'accept' || word === 'decline') {
+      const o = saleFor(ctx.db, ctx.user.id, ctx.now);
+      if (!o || o.s.guild !== guildId) throw new GameError('co.sell', 'Nobody has offered to sell you a company here.');
+      if (word === 'decline') {
+        cancelSale(ctx.db, o.c.ticker);
+        receipt(ctx.db, o.c.owner_guild, o.c.owner_id, `${ctx.user.name} declined to buy ${o.c.name}`, [['Price', format(o.s.price)]]);
+        return { embeds: [embed('market', 'Offer declined', [`You turned down ${o.c.name} (${o.c.ticker}).`])] };
+      }
+      const seller = o.c.owner_id;
+      acceptSale(ctx.db, o.c, guildId, ctx.user.id, ctx.user.name, ctx.now);
+      receipt(ctx.db, o.c.owner_guild, seller, `Sold ${o.c.name} to ${ctx.user.name}`, [['Price', format(o.s.price)]]);
+      return { embeds: [embed('market', `🤝 ${o.c.name} is yours`, [
+        `You bought **${o.c.name} (${o.c.ticker})** from <@${seller}> for **${format(o.s.price)}**: its treasury of ${format(treasury(ctx.db, o.c))}, its ${levelOf(o.c).name} level and its ${employees(ctx.db, o.c.ticker)} employees.`,
+        `-# See it with \`${P}company\`. It still owes ${format(levelOf(o.c).upkeep)} a day in upkeep.`
+      ])] };
+    }
+    const c = mine(ctx);
+    if (word === 'cancel') {
+      if (!saleOf(ctx.db, c.ticker, ctx.now)) throw new GameError('co.sell', 'You have no open offer.');
+      cancelSale(ctx.db, c.ticker);
+      return { embeds: [embed('market', 'Offer cancelled', [`${c.name} is off the market.`])] };
+    }
+    const m = /^<@!?(\d+)>\s+(.+)$/.exec(line) ?? /^(\d{15,22})\s+(.+)$/.exec(line);
+    if (!m) {
+      const s = saleOf(ctx.db, c.ticker, ctx.now);
+      return { embeds: [embed('market', `Selling ${c.name}`, [
+        s ? `Offered to <@${s.to}> for **${format(s.price)}**, until ${discordTime(s.until)}. \`${P}sellcompany cancel\` takes it back.` : 'No open offer.',
+        `-# Offer it: \`${P}sellcompany @player <price>\`. They get the treasury (${format(treasury(ctx.db, c))}), the level and the staff, and answer with \`${P}sellcompany accept\`.`
+      ])] };
+    }
+    const to = m[1]!;
+    if (to === ctx.user.id) throw new GameError('co.sell', 'You already own it.');
+    if (ctx.botId && to === ctx.botId) throw new GameError('co.sell', 'TODD is not in the market for a company.');
+    if (!ctx.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', guildId, to)) throw new GameError('player.none', 'That player has no account in this server yet.');
+    const price = parseAmount(m[2]!, { min: polygons(1) });
+    const s = offerSale(ctx.db, c, guildId, to, price, ctx.now);
+    receipt(ctx.db, guildId, to, `${ctx.user.name} offers you ${c.name}`, [['Price', format(price)], ['Treasury', format(treasury(ctx.db, c))], ['Answer', `${P}sellcompany accept or ${P}sellcompany decline`]]);
+    return { content: `<@${to}>`, embeds: [embed('market', `🏢 ${c.name} (${c.ticker}) for sale`, [
+      `<@${ctx.user.id}> offers <@${to}> the whole company for **${format(price)}**: a ${levelOf(c).name} with ${format(treasury(ctx.db, c))} in the treasury and ${employees(ctx.db, c.ticker)} employees.`,
+      `Accept with \`${P}sellcompany accept\`, or \`${P}sellcompany decline\`. The offer stands until ${discordTime(s.until)}.`
+    ])] };
   }
 };
 

@@ -1,4 +1,4 @@
-// Oh My God, 2 in 1!: r!property. The city map, building, upgrading, demolishing, repairs, buyout bids,
+// Oh My God, 2 in 1!: r!property. The city map, building, upgrading, selling and tearing down, repairs, buyout bids,
 // auctions, Storefronts, the Ballroom, freight trains, Goods, and the server's landmarks.
 import { addMoment, compact } from '../core/moments';
 import { award, awardHere, bump } from '../achievements/achievements';
@@ -13,7 +13,7 @@ import { emojiOr } from '../discord/emoji';
 import { embed } from '../discord/style';
 import {
   ESTATE, KINDS, KIND_ORDER, SIZE, TILES, around, buyout, clearLot, dayRent, distance, effects, goodsPerDay, isEdge, lastShipment, lotAt, lotsOf,
-  minBid, newLot, ownedBy, parseTile, partyUntil, perkLevel, placeBid, refundBid, rentAt, repairCost, saveLot, sellPrice, settle, ship, startParty, taxRate,
+  minBid, newLot, ownedBy, parseTile, partyUntil, perkLevel, placeBid, refundBid, rentAt, repairCost, saveLot, salvagePrice, sellPrice, settle, ship, startParty, taxRate,
   tileName, trainsOf, upgradeCost, upgradeMs, upkeepAt, value, type EstateNews, type Kind, type Lot
 } from '../estate/estate';
 import { LANDMARKS, MIN_DONATION, current, donate, donors, finished, isBuilt, STATUE_RENT } from '../estate/landmarks';
@@ -305,9 +305,9 @@ export const property: Command = {
   name: 'property', aliases: ['estate', 'realestate', 'prop', 'properties', 'lots', 'city', 'build'], system: 'property', guildOnly: true,
   description: 'The city: your buildings, the map, building and upgrading, freight, bids, auctions and landmarks',
   options: [
-    { name: 'action', type: 'string', description: 'Blank for yours, or: map, buildings, build, upgrade, sell, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info' },
+    { name: 'action', type: 'string', description: 'Blank for yours, or: map, buildings, build, upgrade, sell, teardown, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info' },
     { name: 'lot', type: 'string', description: 'A tile like C4 (or "all" for repair)' },
-    { name: 'amount', type: 'string', description: 'For build: the building. For bid or donate: Polygons. For storefront: a company ticker' }
+    { name: 'amount', type: 'string', description: 'For build or teardown: the building. For bid or donate: Polygons. For storefront: a company ticker' }
   ],
   run(ctx, args) {
     const { guildId, wallet } = me(ctx);
@@ -371,7 +371,35 @@ export const property: Command = {
         ]);
       }
 
-      if (action === 'sell' || action === 'demolish' || action === 'raze' || action === 'bulldoze') {
+      // Refined Everything!: tear down and build something else, keeping the land
+      if (action === 'teardown' || action === 'demolish' || action === 'raze' || action === 'bulldoze' || action === 'rebuild') {
+        const { t, l } = at(args.lot); const x = mineOnly(ctx, l, t);
+        const k = findKind(String(args.amount ?? ''));
+        const salvage = salvagePrice(x);
+        if (!k) throw new GameError('estate.kind', `Tear down your ${KINDS[x.kind].name} and build what instead? Like \`${P}property teardown ${tileName(t)} shack\`. The crew pays **${format(salvage)}** in salvage and you keep the land. (Or sell it all to the bank for ${format(sellPrice(x))}: \`${P}property sell ${tileName(t)}\`.)`);
+        if (k === x.kind) throw new GameError('estate.same', `It's already a ${KINDS[k].name}. Fix it up instead: \`${P}property repair ${tileName(t)}\`.`);
+        if (k === 'lighthouse' && !isEdge(t)) throw new GameError('estate.edge', 'A Lighthouse has to go on the edge of the map (column A or H, or row 1 or 8).');
+        if (k === 'barn' && ownedBy(lots, ctx.user.id).some((y) => y.kind === 'barn' && y.lot !== t)) throw new GameError('estate.barn', 'You already have a Barn. One is all a farm needs.');
+        const cost = KINDS[k].price;
+        if (balance(ctx.db, wallet) + salvage < cost) throw new GameError('funds.short', `A ${KINDS[k].name} costs ${format(cost)}. With ${format(salvage)} in salvage you'd still need ${format(cost - salvage - balance(ctx.db, wallet))} more.`);
+        refundBid(ctx.db, x, ctx.now);
+        const paid = salvage > 0 ? payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: salvage, reason: 'estate.teardown', guildId, actorId: ctx.user.id, now: ctx.now, note: { lot: t, kind: x.kind } }) : 0;
+        if (balance(ctx.db, wallet) < cost) throw new GameError('funds.short', `The Reserve is low, so the salvage came to ${format(paid)}: you need ${format(cost - balance(ctx.db, wallet))} more for a ${KINDS[k].name}.`);
+        transfer(ctx.db, { from: wallet, to: RESERVE, cents: cost, reason: 'estate.rebuild', guildId, actorId: ctx.user.id, now: ctx.now, note: { lot: t, kind: k } });
+        const nl = newLot(guildId, t, k, ctx.user.id, ctx.now, cost + ESTATE.land);
+        saveLot(ctx.db, nl);
+        if (k === 'factory') for (const y of around(t).map((z) => lotAt(lots, z))) if (y?.status === 'owned' && y.owner_id && y.owner_id !== ctx.user.id) {
+          award(ctx.db, guildId, y.owner_id, 'not_in_my_backyard', ctx.now);
+          addInbox(ctx.db, y.owner_id, guildId, 'A new neighbor', `${kindE('factory')} **${ctx.user.name} is building a Factory on ${tileName(t)}**, right next to your ${KINDS[y.kind].name} on ${tileName(y.lot)}. ${KINDS[y.kind].industrial ? 'Industrial buildings don\'t mind the smoke.' : `Expect ${ESTATE.pollution * 100}% less rent and faster wear.`}`, ctx.now);
+        }
+        checkOwnership(ctx.db, guildId, ctx.user.id, ctx.now);
+        return done(`${emojiOr('construction', '🚧')} Rebuilding ${tileName(t)}`, [
+          `${kindE(x.kind)} The **${KINDS[x.kind].name}** comes down (the crew pays **${format(paid)}** in salvage), and a **${KINDS[k].name}** goes up for **${format(cost)}**. ${kindE(k)} Done ${discordTime(nl.build_until)} (${KINDS[k].buildHours}h).`,
+          `${KINDS[k].rent ? `Rent up to **${format(KINDS[k].rent)}** a day` : k === 'factory' ? `**${ESTATE.goodsPerDay}** Goods a day` : 'No rent'}, **${format(KINDS[k].upkeep)}** a day to keep up. **${KINDS[k].perk}:** ${KINDS[k].perkText}.`
+        ]);
+      }
+
+      if (action === 'sell') {
         const { t, l } = at(args.lot); const x = mineOnly(ctx, l, t);
         const price = sellPrice(x);
         refundBid(ctx.db, x, ctx.now);

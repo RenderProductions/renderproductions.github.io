@@ -50,6 +50,10 @@
 
 <h2 id="upkeep"><img class="hi" src="/bot/emojis/rc_tax.png" alt="">Upkeep and closing</h2>
 <p>The treasury pays upkeep every day. Miss a payment and the market panics; keep missing them and the price slides to zero and the company closes for good, taking every share with it. A private company closes after missing upkeep three days in a row.</p>
+<h3>Closing it yourself</h3>
+<p><code>r!closecompany</code> shows what you'd get; <code>r!closecompany confirm</code> does it. A public company first buys out every shareholder at the share price, from the treasury and then your wallet if the treasury runs short. You get what's left of the treasury minus a <span data-v="refined.closeFee" data-f="pct">?</span> closing fee. The levels you paid for are gone, employees lose their jobs, and you can't found another company for <span data-v="refined.refoundDays" data-f="num">?</span> days.</p>
+<h3>Selling it</h3>
+<p><code>r!sellcompany @player &lt;price&gt;</code> offers the whole company (treasury, level and staff) to another player in your server. They have a day to answer with <code>r!sellcompany accept</code> or <code>decline</code>; <code>r!sellcompany cancel</code> takes it back. The buyer can't already run a company, and has to sell any shares they hold in it first. No sale while a takeover bid is open.</p>
 
 <h2 id="takeovers"><img class="hi" src="/bot/emojis/rc_raid.png" alt="">Takeovers and mergers</h2>
 <ul>
