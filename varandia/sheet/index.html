@@ -88,6 +88,12 @@
     .ribbons { display: none; }
   }
   @media (max-width: 560px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts > div:nth-child(3) { border-left: 0; } .tabs button { padding: 0 9px; font-size: 13px; } }
+  .portrait { position: relative; width: 120px; height: 150px; display: grid; place-items: center; cursor: pointer; }
+  .portrait img { position: absolute; inset: 6px; width: calc(100% - 12px); height: calc(100% - 12px); border-radius: 50%; object-fit: cover; filter: sepia(0.25) contrast(1.05) saturate(0.9); mix-blend-mode: multiply; }
+  .portrait .pHint { position: absolute; bottom: 6px; font: 13px/1 var(--hand); color: var(--faded); opacity: 0; transition: opacity 0.15s; }
+  .portrait:hover .pHint, .portrait:focus-within .pHint { opacity: 1; }
+  .portrait:focus-within { outline: 2px dashed var(--red); outline-offset: 3px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 </style>
 </head>
 <body class="tome">
@@ -118,13 +124,23 @@
     <section class="page left" aria-labelledby="name">
       <div class="leaf" id="leftLeaf">
         <div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap">
-          <div class="inked round" style="width: 120px; height: 150px; flex: none; display: grid; place-items: center">
-            <span id="initial" style="font: 64px/1 var(--sc); color: var(--faded)"></span>
+          <div style="flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px">
+            <label class="portrait inked round" title="Choose a portrait">
+              <span id="initial" style="font: 64px/1 var(--sc); color: var(--faded)"></span>
+              <img id="pImg" alt="" hidden>
+              <input type="file" id="pFile" accept="image/*" class="sr-only">
+              <span class="pHint">portrait</span>
+            </label>
+            <button type="button" class="linkish" id="pDel" hidden style="font-size: 14px; min-height: 0; color: var(--faded)">remove</button>
           </div>
           <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0">
             <h1 id="name" style="overflow-wrap: anywhere">…</h1>
             <span id="ctitle" style="font-style: italic; font-size: 24px; color: var(--ink-soft)"></span>
             <span id="cline" class="sc faded" style="margin-top: 8px; font-size: 16px"></span>
+            <span style="display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; font-size: 15px">
+              <a id="edit2" href="/varandia/builder/">rewrite</a>
+              <button type="button" class="linkish" id="del2" style="color: var(--red); min-height: 0">tear out</button>
+            </span>
           </div>
         </div>
 
@@ -384,16 +400,38 @@
     if (useProf && profNext) { extra += T.prof(D, c.level || 1); notes.push('proficient'); profNext = false; T.$('#profNext').setAttribute('aria-pressed', 'false'); }
     if (c.exhaustion) { extra -= c.exhaustion; notes.push('exhausted'); }
     var r = T.roll(bonus + extra);
-    return { r: r, label: label + (notes.length ? ' (' + notes.join(', ') + ')' : '') };
+    return { r: r, label: label + (notes.length ? ' (' + notes.join(', ') + ')' : ''), notes: notes };
   }
   function lineFor(label, r) {
     var b = r.bonus;
     return label + ': ' + r.die + (b ? (b < 0 ? ' − ' + Math.abs(b) : ' + ' + b) : '') + ' = ' + r.total;
   }
+  function drawPortrait() {
+    var src = T.portrait(c), img = T.$('#pImg');
+    img.hidden = !src; T.$('#initial').hidden = !!src; T.$('#pDel').hidden = !src;
+    if (src && img.getAttribute('src') !== src) img.src = src;
+    img.alt = src ? 'Portrait of ' + c.name : '';
+    T.$('.pHint').textContent = src ? 'change' : 'portrait';
+  }
+  T.$('#pFile').onchange = function () {
+    var f = this.files[0]; this.value = '';
+    T.makePortrait(f).then(function (data) { c.portrait = data; c.pic = Date.now(); drawPortrait(); save(); },
+      function (m) { T.$('#status').textContent = m; });
+  };
+  T.$('#pDel').onclick = function () { delete c.portrait; c.pic = null; drawPortrait(); save(); };
   var camp = null;
-  function logLine(line) {
+  // what Discord gets: the line, plus what kind of roll it was so the post can look the part
+  function info(kind, title, w, more) {
+    var o = { kind: kind, title: title };
+    if (w) { o.die = w.r.die; o.bonus = w.r.bonus; o.total = w.r.total; o.notes = (w.notes || []).join(', '); }
+    return Object.assign(o, more || {});
+  }
+  function logLine(line, inf) {
     c.log.unshift(line); c.log = c.log.slice(0, 8); drawLog(); save();
-    if (camp && camp.hasWebhook && c.postRolls) T.cloud.call('POST', 'roll', { char: c.id, line: line }).catch(function (e) { T.$('#status').textContent = 'Discord: ' + ((e && e.error) || 'couldn\u2019t post'); });
+    if (!(camp && camp.hasWebhook && c.postRolls)) return;
+    var dv2 = T.derive(c, D);
+    var post = Object.assign({ kind: 'note', title: line }, inf || {}, { hp: c.hp, maxHp: dv2.hp, sta: c.sta, maxSta: dv2.stamina, exhaustion: c.exhaustion || 0, taint: c.taint || 0 });
+    T.cloud.call('POST', 'roll', { char: c.id, line: line, info: post }).catch(function (e) { T.$('#status').textContent = 'Discord: ' + ((e && e.error) || 'couldn\u2019t post'); });
   }
   function drawLog() {
     T.$$('[data-last]').forEach(function (e) { e.textContent = c.log[0] || 'no rolls yet'; });
@@ -460,7 +498,8 @@
     c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina;
     T.$('#lvPanel').hidden = true;
     drawSeven(); drawVitals(); drawKnown(); drawSpellCard();
-    logLine('Level ' + c.level + '! +' + L.pointsPerLevel + ' ' + statShort(pointTo) + (grown.length ? ', trained ' + grown.map(statShort).join(', ') : ''));
+    var lvLine = '+' + L.pointsPerLevel + ' ' + statShort(pointTo) + (grown.length ? ', trained ' + grown.map(statShort).join(', ') : '');
+    logLine('Level ' + c.level + '! ' + lvLine, info('level', 'Reached level ' + c.level + '!', null, { text: lvLine }));
   }
   function levelDown() {
     if ((c.level || 1) <= 1) return;
@@ -539,14 +578,16 @@
       } else { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', lost ' + f1 + ' health'; }
     }
     if (sp.own) c.taint += 1;
-    var surge = '';
+    var surge = '', surgeInfo = null;
     if (cc.chaotic && r.die <= D.spells.chaotic.surgeOn) {
       var table = D.spells.chaotic.surge, n = 1 + Math.floor(Math.random() * table.length);
       surge = ' — SURGE (' + n + ') ' + table[n - 1];
+      surgeInfo = { n: n, text: table[n - 1] };
     }
     c.hp = Math.max(0, c.hp - lost);
     drawVitals(); drawConds(); drawKnown(); drawSpellCard();
-    logLine(lineFor(w.label, r) + ' vs ' + cc.need + (ok ? ' — cast!' : ' — fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '') + surge);
+    logLine(lineFor(w.label, r) + ' vs ' + cc.need + (ok ? ' — cast!' : ' — fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '') + surge,
+      info('spell', sp.name, w, { element: cc.chaotic ? 'chaotic' : (sp.element || 'chaotic'), need: cc.need, ok: ok, fail: ok ? '' : extra.replace(/^[,:]\s*/, ''), blood: blood || 0, stamina: cc.stamina, damage: ok && sp.damage ? String(sp.damage) : '', surge: surgeInfo }));
   }
 
   // ---------------------------------------------------------------- lists
@@ -582,12 +623,14 @@
     var r = T.race(D, c.race);
     document.title = c.name + ' | Story of Varandia';
     T.$('#initial').textContent = c.name.charAt(0);
+    drawPortrait();
     T.$('#name').textContent = c.name;
     T.$('#ctitle').textContent = c.title || '';
     T.$('#age').textContent = c.age || '—';
     T.$('#cls').textContent = (T.cls(D, c.cls) || {}).name || '—';
     T.$('#race').textContent = r ? r.name : '—';
-    T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+    T.$('#edit').href = T.$('#edit2').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+    T.$('#del').hidden = T.$('#del2').hidden = !!c.foreign;   // only the player can tear their character out
     T.$('#itemNames').innerHTML = X.all.filter(function (i) { return i.group !== 'mask'; }).map(function (i) { return '<option value="' + T.esc(i.name) + '"></option>'; }).join('');
     T.$('#spellNames').innerHTML = S.all.map(function (x) { return '<option value="' + T.esc(x.name) + '"></option>'; }).join('');
 
@@ -620,7 +663,7 @@
       T.$$('#seven .stat').forEach(function (x) { x.classList.toggle('hot', x === b); });
       var w = rollWith(s.name, T.half(T.stat(c, s.key, D)), true);
       if (w.r.die === 20 && !c.marks[s.key]) { c.marks[s.key] = true; drawSeven(); }
-      logLine(lineFor(w.label, w.r) + (w.r.die === 20 ? ' — marked for training' : ''));
+      logLine(lineFor(w.label, w.r) + (w.r.die === 20 ? ' — marked for training' : ''), info('stat', s.name + ' check', w, { stat: s.name }));
     });
     T.$('#marks').addEventListener('click', function (e) {
       var b = e.target.closest('[data-mark]'); if (!b) return;
@@ -643,13 +686,13 @@
     T.$('#heal').onclick = function () { c.hp = Math.min(dv.hp, c.hp + amount('#hpAmt')); after(); };
     T.$('#spend').onclick = function () { c.sta = Math.max(0, c.sta - amount('#staAmt')); after(); };
     T.$('#restore').onclick = function () { c.sta = Math.min(dv.stamina, c.sta + amount('#staAmt')); after(); };
-    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared'); };
+    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared', info('rest', 'Long rest', null, { text: 'Health and Stamina full, Exhaustion cleared' })); };
 
     // rolls
-    T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r)); };
-    T.$('#init').onclick = function () { var w = rollWith('Initiative', dv.initiative, false); logLine(lineFor(w.label, w.r)); };
-    T.$('#d20').onclick = function () { logLine(lineFor('d20', T.roll(0))); };
-    T.$('#d6').onclick = function () { logLine(lineFor('d6', T.roll(0, 6))); };
+    T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r), info('attack', 'Melee attack', w, { what: 'to hit' })); };
+    T.$('#init').onclick = function () { var w = rollWith('Initiative', dv.initiative, false); logLine(lineFor(w.label, w.r), info('init', 'Initiative', w)); };
+    T.$('#d20').onclick = function () { var r1 = T.roll(0); logLine(lineFor('d20', r1), info('die', 'd20', { r: r1 })); };
+    T.$('#d6').onclick = function () { var r2 = T.roll(0, 6); logLine(lineFor('d6', r2), info('die', 'd6', { r: r2 }, { sides: 6 })); };
     T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };
 
     // conditions
@@ -698,8 +741,8 @@
         var ub = e.target.closest('[data-use]');
         if (ub) {
           var idx = +ub.dataset.use, h = itemFor(c[k][idx]);
-          if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health'); }
-          if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina'); }
+          if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health', info('heal', h.name, null, { total: n1, what: 'Health', dice: h.heal })); }
+          if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina', info('tonic', h.name, null, { total: n2, what: 'Stamina', dice: h.stamina })); }
           if (h.kind !== 'Kit') c[k].splice(idx, 1);
           drawList(k); drawVitals(); drawKnown(); drawSpellCard(); save(); return;
         }
@@ -714,7 +757,8 @@
       var b = e.target.closest('[data-attack]'); if (!b) return;
       var w = itemFor(b.dataset.attack), a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
       var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0) + (w.plus || 0);
-      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage');
+      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage',
+        info('weapon', w.name, a, { what: 'to hit', dmg: dmg, dmgType: (w.type || '').toLowerCase(), dice: (crit ? '2×' : '') + w.dice + (w.plus ? ' + ' + w.plus : ''), crit: crit, ranged: /ranged/i.test(w.kind || w.cat || '') }));
     });
     T.$$('form.adder[data-list]').forEach(function (f) {
       f.addEventListener('submit', function (e) {
@@ -747,6 +791,7 @@
       var text = lines.join('\n');
       (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { T.$('#status').textContent = 'copied'; }, function () { T.$('#status').textContent = 'couldn’t copy'; });
     };
+    T.$('#del2').onclick = function () { T.$('#del').click(); };
     T.$('#del').onclick = function () {
       if (!confirm('Tear ' + c.name + ' out of the book? This can’t be undone.')) return;
       T.chars.remove(c.id); location.href = '/varandia/characters/';

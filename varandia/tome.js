@@ -224,9 +224,17 @@
       if (!Tome.cloud.token() || !c || !c.id) return;
       clearTimeout(pushTimers[c.id]);
       var go = function () {
-        var data = Object.assign({}, c); delete data.foreign;
+        // the portrait travels on its own, only when it changes
+        var data = Object.assign({}, c); delete data.foreign; delete data.portrait; delete data.picUp;
         Tome.cloud.call('PUT', 'chars/' + c.id, { data: data }).then(function (row) {
-          if (!c.foreign) { var l = Tome.chars.get(c.id); if (l) { l.owner = row.owner; l.synced = row.updated; writeOne(l); } }
+          var pic = null;
+          if (c.portrait && c.pic && c.picUp !== c.pic) pic = Tome.cloud.call('PUT', 'pic/' + c.id, { img: c.portrait });
+          else if (!c.pic && c.picUp) pic = Tome.cloud.call('DELETE', 'pic/' + c.id);
+          return Promise.resolve(pic).then(function () { return row; });
+        }).then(function (row) {
+          c.picUp = c.pic || null;
+          var l = Tome.chars.get(c.id);
+          if (l) { if (!c.foreign) { l.owner = row.owner; l.synced = row.updated; } if (l.pic === c.pic) l.picUp = c.picUp; writeOne(l); }
           document.dispatchEvent(new CustomEvent('tome-synced', { detail: row }));
         }, function (e) { document.dispatchEvent(new CustomEvent('tome-sync-failed', { detail: e })); });
       };
@@ -241,7 +249,10 @@
           byId[r.id] = r;
           var local = Tome.chars.get(r.id);
           if (!local || (r.updated > (local.synced || 0) && r.updated > (local.updated || 0) - 2000)) {
-            var d = r.data; d.id = r.id; d.owner = r.owner; d.synced = r.updated; d.updated = r.updated; writeOne(d);
+            var d = r.data; d.id = r.id; d.owner = r.owner; d.synced = r.updated; d.updated = r.updated;
+            if (local && local.portrait && local.pic === d.pic) { d.portrait = local.portrait; d.picUp = d.pic; }
+            else if (d.pic) d.picUp = d.pic;   // the server already has this one
+            writeOne(d);
           }
         });
         readAll().forEach(function (c) {
@@ -252,6 +263,27 @@
         return res.chars;
       });
     }
+  };
+  /** A character's portrait, from this browser or from the account. '' if none. */
+  Tome.portrait = function (c) { return (c && (c.portrait || (c.pic ? RELAY + '/api/v/pic/' + encodeURIComponent(c.id) + '?v=' + c.pic : ''))) || ''; };
+  /** Turns a picture file into a small portrait (240x300 JPEG, cropped to fill). */
+  Tome.makePortrait = function (file) {
+    return new Promise(function (res, rej) {
+      if (!file || !/^image\//.test(file.type)) return rej('that isn\u2019t a picture');
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function () {
+        var W = 240, H = 300, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+        var s = Math.max(W / img.width, H / img.height), w = img.width * s, h = img.height * s, x = cv.getContext('2d');
+        x.fillStyle = '#efe2c4'; x.fillRect(0, 0, W, H);
+        x.drawImage(img, (W - w) / 2, (H - h) / 2.6, w, h);   // a bit above centre, where faces usually are
+        URL.revokeObjectURL(url);
+        var q = 0.85, out = cv.toDataURL('image/jpeg', q);
+        while (out.length > 110000 && q > 0.4) { q -= 0.1; out = cv.toDataURL('image/jpeg', q); }
+        res(out);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); rej('couldn\u2019t read that picture'); };
+      img.src = url;
+    });
   };
   function writeOne(c) { var all = readAll().filter(function (x) { return x.id !== c.id; }); all.push(c); writeAll(all); }
 
