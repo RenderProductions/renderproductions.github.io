@@ -122,9 +122,22 @@
     }).then(function (x) {
       x.relics.forEach(function (r) { r.group = 'relic'; if (r.weapon) { r.dice = r.weapon.dice; r.type = r.weapon.type; } });
       x.masks.forEach(function (m) { m.group = 'mask'; });
-      x.all = [].concat(x.weapons, x.armor, x.gear, x.relics, x.masks);
+      x.healing.forEach(function (h) { h.group = 'healing'; });
+      x.all = [].concat(x.weapons, x.armor, x.healing, x.magic, x.gear, x.relics, x.masks);
       x.byKey = {}; x.byName = {};
-      x.all.forEach(function (i) { x.byKey[i.key] = i; x.byName[i.name.toLowerCase()] = i; });
+      x.all.forEach(function (i) { x.byKey[i.key] = i; if (!x.byName[i.name.toLowerCase()]) x.byName[i.name.toLowerCase()] = i; });
+      /** Finds an item by what's written in a Satchel: "Longsword", or "+1 Longsword" for a magic version. */
+      x.find = function (text) {
+        var t = String(text || '').trim().toLowerCase(), it = x.byName[t];
+        if (it) return it;
+        var m = t.match(/^\+([1-3])\s+(.+)$/) || t.match(/^(.+?),?\s+\+([1-3])$/);
+        if (!m) return null;
+        var n = /^\d$/.test(m[1]) ? +m[1] : +m[2], base = x.byName[/^\d$/.test(m[1]) ? m[2] : m[1]];
+        if (!base || !(base.group === 'weapon' || base.group === 'armor')) return null;
+        var c2 = Object.assign({}, base); c2.plus = n; c2.name = '+' + n + ' ' + base.name;
+        if (base.group === 'armor') c2.defense = base.defense + n;
+        return c2;
+      };
       return x;
     });
     return itemsP;

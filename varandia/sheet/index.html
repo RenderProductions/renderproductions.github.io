@@ -529,13 +529,14 @@
 
   // ---------------------------------------------------------------- lists
   var X = null;
-  function itemFor(name) { return X && X.byName[String(name).trim().toLowerCase()] || null; }
-  function isWorn(it) { return (c.worn || []).some(function (w) { return w.key === it.key; }); }
+  function itemFor(name) { return X ? X.find(name) : null; }
+  function isWorn(it) { return (c.worn || []).some(function (w) { return w.name === it.name; }); }
   function drawList(key) {
     T.$('#' + key).innerHTML = c[key].map(function (t, i) {
       var it = itemFor(t), extra = '';
-      if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + it.key + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
-      else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + '</span>';
+      if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + T.esc(t) + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
+      else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + (it.plus ? ' +' + it.plus : '') + '</span>';
+      else if (it && it.group === 'healing') extra = '<span class="tag">' + T.esc(it.heal || it.stamina) + '</span><button type="button" class="btn small" data-use="' + i + '">' + (it.kind === 'Kit' ? 'Use' : 'Drink') + '</button>';
       var label = it ? '<a href="/varandia/items/?i=' + it.key + '" style="color:var(--ink);text-decoration:none">' + T.esc(t) + '</a>' : T.esc(t);
       return '<li><span>' + label + '</span>' + extra + '<button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
     }).join('');
@@ -546,7 +547,7 @@
     var ws = c.items.map(itemFor).filter(function (it) { return it && it.dice; });
     T.$('#weaponsBox').hidden = !ws.length;
     T.$('#weapons').innerHTML = ws.map(function (w) {
-      return '<button type="button" data-attack="' + w.key + '"><span>' + T.esc(w.name) + '</span><span>' + T.sign(T.weaponBonus(c, D, w)) + ' · ' + T.esc(w.dice) + '</span></button>';
+      return '<button type="button" data-attack="' + T.esc(w.name) + '"><span>' + T.esc(w.name) + '</span><span>' + T.sign(T.weaponBonus(c, D, w) + (w.plus || 0)) + ' · ' + T.esc(w.dice) + (w.plus ? '+' + w.plus : '') + '</span></button>';
     }).join('');
     var worn = (c.worn || []).map(function (w) { return w.name; });
     T.$('#defNote').textContent = worn.length ? 'wearing ' + worn.join(' & ') : '';
@@ -645,8 +646,8 @@
       T.$('#' + k).addEventListener('click', function (e) {
         var wb = e.target.closest('[data-wear]');
         if (wb) {
-          var it = X.byKey[wb.dataset.wear];
-          if (isWorn(it)) c.worn = c.worn.filter(function (w) { return w.key !== it.key; });
+          var it = itemFor(wb.dataset.wear);
+          if (isWorn(it)) c.worn = c.worn.filter(function (w) { return w.name !== it.name; });
           else {
             var shield = it.kind === 'Shield';
             c.worn = c.worn.filter(function (w) { return (w.kind === 'Shield') !== shield; });
@@ -654,17 +655,25 @@
           }
           drawList(k); drawVitals(); save(); return;
         }
+        var ub = e.target.closest('[data-use]');
+        if (ub) {
+          var idx = +ub.dataset.use, h = itemFor(c[k][idx]);
+          if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health'); }
+          if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina'); }
+          if (h.kind !== 'Kit') c[k].splice(idx, 1);
+          drawList(k); drawVitals(); drawKnown(); drawSpellCard(); save(); return;
+        }
         var b = e.target.closest('[data-rm]'); if (!b) return;
         var gone = itemFor(c[k][+b.dataset.rm]);
         c[k].splice(+b.dataset.rm, 1);
-        if (gone && isWorn(gone) && !c[k].some(function (t) { return itemFor(t) === gone; })) c.worn = c.worn.filter(function (w) { return w.key !== gone.key; });
+        if (gone && isWorn(gone) && !c[k].some(function (t) { var o = itemFor(t); return o && o.name === gone.name; })) c.worn = c.worn.filter(function (w) { return w.name !== gone.name; });
         drawList(k); drawVitals(); save();
       });
     });
     T.$('#weapons').addEventListener('click', function (e) {
       var b = e.target.closest('[data-attack]'); if (!b) return;
-      var w = X.byKey[b.dataset.attack], a = rollWith(w.name, T.weaponBonus(c, D, w), true);
-      var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0);
+      var w = itemFor(b.dataset.attack), a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
+      var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0) + (w.plus || 0);
       logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage');
     });
     T.$$('form.adder[data-list]').forEach(function (f) {
