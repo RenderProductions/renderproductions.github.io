@@ -99,7 +99,11 @@
     return out;
   };
   Tome.cls = function (d, key) { return (d.classes || []).filter(function (x) { return x.key === key; })[0] || null; };
-  Tome.background = function (d, key) { return (d.backgrounds || []).filter(function (x) { return x.key === key; })[0] || null; };
+  /** Proficiency bonus for a character level (D&D's table: +2 at 1, +3 at 5, ... +6 at 17). */
+  Tome.prof = function (d, level) {
+    var b = 0; (d.proficiency ? d.proficiency.byLevel : []).forEach(function (r) { if ((level || 1) >= r[0]) b = r[1]; });
+    return b;
+  };
   /** Rolls dice written like "3d4", "1d20+5" or "2"; null if it isn't dice. */
   Tome.dice = function (expr) {
     var m = String(expr).replace(/\s/g, '').match(/^(\d*)d(\d+)([+-]\d+)?$|^(\d+)$/);

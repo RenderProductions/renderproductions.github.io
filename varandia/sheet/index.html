@@ -97,6 +97,10 @@
           <button type="button" class="btn" id="d20">Plain d20</button>
           <button type="button" class="btn" id="d6">d6</button>
         </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-top: -10px">
+          <button type="button" class="chip" id="profNext" aria-pressed="false">Add proficiency <span id="profVal" class="hand" style="font-size: 22px">+2</span> to the next roll</button>
+          <span class="pencil" style="font-size: 19px">for anything you're proficient in</span>
+        </div>
 
         <div style="display: flex; flex-direction: column; gap: 8px">
           <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap">
@@ -209,6 +213,12 @@
     if (now) go(); else saveT = setTimeout(go, 400);
   }
 
+  var profNext = false;
+  function withProf(label, bonus) {
+    if (!profNext) return { label: label, r: T.roll(bonus) };
+    var p = T.prof(D, c.level || 1); profNext = false; T.$('#profNext').setAttribute('aria-pressed', 'false');
+    return { label: label + ' (proficient)', r: T.roll(bonus + p) };
+  }
   function writeRoll(label, r) {
     var b = r.bonus, line = label + ': ' + r.die + (b ? (b < 0 ? ' − ' + Math.abs(b) : ' + ' + b) : '') + ' = ' + r.total;
     if (r.die === 20 && label.indexOf('d6') < 0) line += '!';
@@ -246,8 +256,9 @@
     T.$('#level').textContent = c.level || 1;
     T.$('#lvDown').disabled = (c.level || 1) <= 1;
     var r = T.race(D, c.race);
-    var k = T.cls(D, c.cls), b = T.background(D, c.bg);
-    T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, b && b.key !== 'own' ? b.name : ''].filter(Boolean).join(' · ');
+    var k = T.cls(D, c.cls);
+    T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, c.bgName].filter(Boolean).join(' · ');
+    T.$('#profVal').textContent = T.sign(T.prof(D, c.level || 1));
   }
   function drawList(key) {
     T.$('#' + key).innerHTML = c[key].map(function (t, i) {
@@ -275,9 +286,10 @@
       var b = e.target.closest('.stat'); if (!b) return;
       var s = D.stats.filter(function (x) { return x.key === b.dataset.key; })[0];
       T.$$('#seven .stat').forEach(function (x) { x.classList.toggle('hot', x === b); });
-      writeRoll(s.name, T.roll(T.half(T.stat(c, s.key, D))));
+      var w = withProf(s.name, T.half(T.stat(c, s.key, D))); writeRoll(w.label, w.r);
     });
-    T.$('#attack').onclick = function () { writeRoll('Melee attack', T.roll(dv.attack)); };
+    T.$('#attack').onclick = function () { var w = withProf('Melee attack', dv.attack); writeRoll(w.label, w.r); };
+    T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };
     T.$('#init').onclick = function () { writeRoll('Initiative', T.roll(dv.initiative)); };
     T.$('#d20').onclick = function () { writeRoll('d20', T.roll(0)); };
     T.$('#d6').onclick = function () { writeRoll('d6', T.roll(0, 6)); };

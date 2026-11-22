@@ -49,7 +49,11 @@
         <h1 id="title">Classes</h1>
         <p>Your class is what you do. In Varandia a class adds to your <b>Health</b> every level, points at the stats it leans on, and makes the spells on its list <b>easier</b>: their Need drops by <span data-cl>1</span>. Anyone can still learn any spell.</p>
         <ol class="toc" id="toc" style="font-size: 20px"></ol>
-        <p class="pencil">class features are D&amp;D's own: your GM turns their numbers into Varandia's</p>
+        <div class="inked thin" style="padding: 16px 18px">
+          <h3 style="margin-bottom: 6px">Reading D&amp;D features</h3>
+          <p style="margin: 0 0 6px; font-size: 16px"><b class="sc">Spell slots</b> don't exist in Varandia. Wherever a feature talks about slots, you pay the spell's Stamina instead.</p>
+          <p style="margin: 0; font-size: 16px"><b class="sc">Proficiency bonus</b> works as in D&amp;D: <span id="profTable">+2 at level 1</span>. Add it to rolls for anything you're proficient in.</p>
+        </div>
       </div>
       <span class="folio">— 3 —</span>
     </section>
@@ -95,6 +99,7 @@
   Promise.all([T.data(), fetch('/varandia/classes.json').then(function (r) { return r.json(); }), T.spells()]).then(function (r) {
     D = r[0]; X = r[1]; S = r[2];
     T.$$('[data-cl]').forEach(function (e) { e.textContent = D.classRules.classListNeed; });
+    T.$('#profTable').textContent = D.proficiency.byLevel.map(function (r) { return '+' + r[1] + ' from level ' + r[0]; }).join(', ');
     T.$('#toc').innerHTML = D.classes.map(function (c, i) {
       return '<li><a href="#' + c.key + '" data-key="' + c.key + '"><span class="n">' + (i + 1) + '</span><span class="t">' + T.esc(c.name) + '</span><span class="dots" aria-hidden="true"></span><span class="pencil" style="font-size:19px">+' + c.hpPerLevel + ' hp</span></a></li>';
     }).join('');

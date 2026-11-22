@@ -125,9 +125,10 @@
         </div>
         <div style="display: flex; flex-direction: column; gap: 12px">
           <h2>V. Where do they come from?</h2>
-          <div class="chips" id="bgs" role="radiogroup" aria-label="Background"></div>
-          <p id="bgText" style="font-style: italic; margin: 0"></p>
-          <p id="bgInfo" class="faded" style="font-size: 16px; margin: 0"></p>
+          <label class="field"><span>Background</span><input type="text" id="f-bg" maxlength="80" autocomplete="off" placeholder="forge-hand from the Emberkin foundries"></label>
+          <label class="field"><span>What they're good at (proficiencies)</span><input type="text" id="f-profs" maxlength="160" autocomplete="off" placeholder="smithing, haggling, longswords"></label>
+          <label class="field"><span>What they carry (starting gear, split with commas)</span><input type="text" id="f-gear" maxlength="240" autocomplete="off" placeholder="hammer, leather apron, 3 iron ingots"></label>
+          <p class="faded" style="font-size: 15px; margin: 0">You add your proficiency bonus (<span id="profNow">+2</span> at level 1) to rolls for anything you're proficient in.</p>
         </div>
       </div>
       <span class="folio">— 17 —</span>
@@ -166,7 +167,7 @@
 (function () {
   var T = Tome, D = null, params = new URLSearchParams(location.search);
   var editing = params.get('id') ? T.chars.get(params.get('id')) : null;
-  var c = editing || { id: T.chars.newId(), level: 1, race: params.get('race') || 'human', cls: params.get('cls') || '', bg: 'own', d6: {}, pts: {}, created: Date.now() };
+  var c = editing || { id: T.chars.newId(), level: 1, race: params.get('race') || 'human', cls: params.get('cls') || '', d6: {}, pts: {}, created: Date.now() };
 
   function spent() { return D.stats.reduce(function (n, s) { return n + (c.pts[s.key] || 0); }, 0); }
   function rolled() { return D.stats.every(function (s) { var v = c.d6[s.key]; return v >= 1 && v <= D.creation.startingDie; }); }
@@ -232,15 +233,6 @@
     T.$('#clsInfo').innerHTML = k ? '+' + k.hpPerLevel + ' Health every level · leans on ' + k.leans.map(function (x) { return D.stats.filter(function (s) { return s.key === x; })[0].name; }).join(' & ') +
       (k.caster ? ' · its spells are ' + D.classRules.classListNeed + ' easier' : '') + ' · <a href="/varandia/classes/#' + k.key + '" target="_blank" rel="noopener">features</a>' : '';
   }
-  function drawBgs() {
-    T.$('#bgs').innerHTML = D.backgrounds.map(function (b) {
-      var on = b.key === c.bg;
-      return '<button type="button" class="chip" role="radio" aria-checked="' + on + '" aria-pressed="' + on + '" data-key="' + b.key + '">' + T.esc(b.name) + '</button>';
-    }).join('');
-    var b = T.background(D, c.bg);
-    T.$('#bgText').textContent = b ? b.text : '';
-    T.$('#bgInfo').textContent = b && b.profs.length ? 'Good at ' + b.profs.join(', ') + '. Starts with ' + b.gear.join(', ') + '.' : '';
-  }
   function step(n) {
     T.$$('#form > .spread').forEach(function (sp) { sp.hidden = sp.dataset.step !== String(n); });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -254,11 +246,13 @@
     T.$('#f-title').value = c.title || '';
     T.$('#f-age').value = c.age || '';
     T.$('#f-height').value = c.height || '';
-    if (editing) { T.$('#title').textContent = 'Rewriting ' + c.name; T.$('#save').textContent = 'Save changes'; if (!c.bg) c.bg = 'own'; }
-    drawRaces(); drawStats(); drawClasses(); drawBgs();
+    if (editing) { T.$('#title').textContent = 'Rewriting ' + c.name; T.$('#save').textContent = 'Save changes'; }
+    drawRaces(); drawStats(); drawClasses();
+    T.$('#profNow').textContent = T.sign(T.prof(D, c.level || 1));
+    T.$('#f-bg').value = c.bgName || ''; T.$('#f-profs').value = c.profs || '';
+    if (editing) T.$('#f-gear').closest('label').hidden = true;
     [['f-look', 'look'], ['f-pers', 'pers'], ['f-ideal', 'ideal'], ['f-bond', 'bond'], ['f-flaw', 'flaw'], ['f-story', 'story']].forEach(function (f) { T.$('#' + f[0]).value = c[f[1]] || ''; });
     T.$('#classes').addEventListener('click', function (e) { var b = e.target.closest('[data-key]'); if (!b) return; c.cls = b.dataset.key; drawClasses(); update(); T.$('#classes [aria-checked="true"]').focus(); });
-    T.$('#bgs').addEventListener('click', function (e) { var b = e.target.closest('[data-key]'); if (!b) return; c.bg = b.dataset.key; drawBgs(); T.$('#bgs [aria-checked="true"]').focus(); });
     T.$('#next').addEventListener('click', function () { update(); if (!T.$('#next').disabled) step(2); });
     T.$('#back').addEventListener('click', function () { step(1); });
 
@@ -296,12 +290,12 @@
       c.title = T.$('#f-title').value.trim();
       c.age = T.$('#f-age').value.trim();
       c.height = T.$('#f-height').value.trim();
+      c.bgName = T.$('#f-bg').value.trim(); c.profs = T.$('#f-profs').value.trim();
       [['f-look', 'look'], ['f-pers', 'pers'], ['f-ideal', 'ideal'], ['f-bond', 'bond'], ['f-flaw', 'flaw'], ['f-story', 'story']].forEach(function (f) { c[f[1]] = T.$('#' + f[0]).value.trim(); });
       var dv = T.derive(c, D);
       if (!editing) {
         c.hp = dv.hp; c.sta = dv.stamina;
-        var bg = T.background(D, c.bg);
-        c.items = bg ? bg.gear.slice() : []; c.cardinal = []; c.profs = bg ? bg.profs.join(', ') : ''; c.known = []; c.bodies = 0; c.log = [];
+        c.items = T.$('#f-gear').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean); c.cardinal = []; c.known = []; c.bodies = 0; c.log = [];
       } else {
         c.hp = Math.min(c.hp == null ? dv.hp : c.hp, dv.hp); c.sta = Math.min(c.sta == null ? dv.stamina : c.sta, dv.stamina);
       }

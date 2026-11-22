@@ -422,86 +422,29 @@
     "_about": "Classes are the standard D&D classes. hpPerLevel is added to max Health at every level (d6 0, d8 1, d10 2, d12 3). Spells on your class's list are easier: their Need drops by classListNeed.",
     "classListNeed": 1
   },
-  "backgrounds": [
-    {
-      "key": "acolyte",
-      "name": "Acolyte",
-      "text": "Raised in service to a temple, schooled in its rites.",
-      "profs": [
-        "Insight",
-        "Religion",
-        "Calligrapher's Supplies"
+  "proficiency": {
+    "_about": "Proficiency bonus by character level, as in D&D. Add it to a roll for something you're proficient in (your Proficiencies). Not added to spells: they have their own costs.",
+    "byLevel": [
+      [
+        1,
+        2
       ],
-      "gear": [
-        "Calligrapher's Supplies",
-        "Book (prayers)",
-        "Holy Symbol",
-        "Parchment (10 sheets)",
-        "Robe"
+      [
+        5,
+        3
       ],
-      "coin": null
-    },
-    {
-      "key": "criminal",
-      "name": "Criminal",
-      "text": "Made a living on the wrong side of the law.",
-      "profs": [
-        "Sleight of Hand",
-        "Stealth",
-        "Thieves' Tools"
+      [
+        9,
+        4
       ],
-      "gear": [
-        "2 Daggers",
-        "Thieves' Tools",
-        "Crowbar",
-        "2 Pouches",
-        "Traveler's Clothes"
+      [
+        13,
+        5
       ],
-      "coin": null
-    },
-    {
-      "key": "sage",
-      "name": "Sage",
-      "text": "Spent years among books, scrolls and scholars.",
-      "profs": [
-        "Arcana",
-        "History",
-        "Calligrapher's Supplies"
-      ],
-      "gear": [
-        "Quarterstaff",
-        "Calligrapher's Supplies",
-        "Book (history)",
-        "Parchment (8 sheets)",
-        "Robe"
-      ],
-      "coin": null
-    },
-    {
-      "key": "soldier",
-      "name": "Soldier",
-      "text": "Trained for war and served in the ranks.",
-      "profs": [
-        "Athletics",
-        "Intimidation"
-      ],
-      "gear": [
-        "Spear",
-        "Shortbow",
-        "20 Arrows",
-        "Gaming Set",
-        "Healer's Kit",
-        "Quiver",
-        "Traveler's Clothes"
-      ],
-      "coin": null
-    },
-    {
-      "key": "own",
-      "name": "Your own",
-      "text": "Write where they come from yourself.",
-      "profs": [],
-      "gear": []
-    }
-  ]
+      [
+        17,
+        6
+      ]
+    ]
+  }
 }
