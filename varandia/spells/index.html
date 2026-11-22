@@ -62,14 +62,15 @@
 
     <section class="page left" aria-labelledby="title">
       <div class="leaf" style="gap: 20px">
-        <div class="kicker">Chapter V</div>
+        <div class="kicker">Chapter VI</div>
         <h1 id="title">The Spellbook</h1>
-        <p style="font-size: 16px; margin: 0">Cast with <b>d20 + half Intelligence</b>; meet or beat the Need. A spell costs <b>1 Stamina</b> as a cantrip and <b>2 per level</b> after that. Fail and you lose <b>1d4 health per level</b>.</p>
+        <p style="font-size: 16px; margin: 0">Cast with <b>d20 + half Intelligence</b>; meet or beat the Need. A spell costs <b>1 Stamina</b> as a cantrip and <b>2 per level</b> after that. Fail and you lose <b>1d4 health per level</b>. Chaotic spells start 2 harder, get easier as you level, and can surge.</p>
         <div class="filters">
           <div class="chips" id="els" role="group" aria-label="Element"></div>
           <div class="row">
             <label class="field" style="flex: 1 1 180px"><span>Search</span><input type="text" id="q" autocomplete="off" placeholder="fireball…"></label>
-            <label class="field" style="width: 130px"><span>Level</span><select id="lv"><option value="">Any</option></select></label>
+            <label class="field" style="width: 120px"><span>Level</span><select id="lv"><option value="">Any</option></select></label>
+            <label class="field" style="width: 150px"><span>Class list</span><select id="cls"><option value="">Any</option></select></label>
           </div>
         </div>
         <div>
@@ -95,13 +96,14 @@
 <script>
 (function () {
   var T = Tome, D, S, params = new URLSearchParams(location.search);
-  var state = { el: params.get('el') || '', q: '', lv: '', pick: params.get('s') || '' };
+  var state = { el: params.get('el') || '', q: '', lv: '', cls: params.get('cls') || '', pick: params.get('s') || '' };
   var colorOf = {};
 
   function cost(sp) { return T.spellCost(sp, D); }
   function matches(sp) {
     if (state.el && sp.element !== state.el) return false;
     if (state.lv !== '' && String(sp.level) !== state.lv) return false;
+    if (state.cls && !(sp.classes && sp.classes.indexOf(state.cls) >= 0)) return false;
     if (state.q && sp.name.toLowerCase().indexOf(state.q) < 0) return false;
     return true;
   }
@@ -115,7 +117,7 @@
         '<span class="num">' + c.stamina + (c.blood ? '<small style="font-size:15px;color:var(--red)"> +' + c.blood + '♥</small>' : '') + '</span>' +
         '<span class="num">' + c.need + '</span></button></li>';
     }).join('');
-    T.$('#count').textContent = list.length + ' spell' + (list.length === 1 ? '' : 's') + (state.el || state.lv || state.q ? ' match' : ' in the book');
+    T.$('#count').textContent = list.length + ' spell' + (list.length === 1 ? '' : 's') + (state.el || state.lv || state.q || state.cls ? ' match' : ' in the book');
     T.$$('#els .chip').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.key === state.el ? 'true' : 'false'); });
   }
   function para(t) { return T.esc(t).split(/\n+/).map(function (p) { return '<p>' + p.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>'; }).join(''); }
@@ -136,6 +138,7 @@
         '<div class="inked"><b>' + c.need + '</b><span>Need (d20 + ½ INT)</span></div>' +
         '<div class="inked"><b style="font-size:' + (String(c.fail).length > 8 ? 17 : 30) + 'px;padding-top:' + (String(c.fail).length > 8 ? 6 : 0) + 'px">' + T.esc(c.fail) + '</b><span>' + (sp.own ? 'On a failed roll' : 'Health lost on a fail') + '</span></div>' +
       '</div>';
+    if (c.chaotic) html += '<div class="inked dashed note" style="padding:14px 16px"><b class="sc">Chaotic.</b> Need starts at ' + c.need + ' and drops by 1 for every level you have past the first, down to ' + (D.spells.needBase + sp.level) + '. Roll a natural ' + D.spells.chaotic.surgeOn + ' or lower and it <b>surges</b>: <a href="/varandia/magic/#surge">roll on the Chaos Surge table</a>.</div>';
     if (sp.own) {
       html += '<div class="spelltext">' + para(sp.text) + '</div>' + evilRulesHtml();
     } else {
@@ -187,6 +190,10 @@
     });
     T.$('#q').addEventListener('input', function () { state.q = this.value.trim().toLowerCase(); drawList(); });
     lv.addEventListener('change', function () { state.lv = this.value; drawList(); });
+    var cs = T.$('#cls');
+    D.classes.filter(function (c) { return c.caster; }).forEach(function (c) { cs.insertAdjacentHTML('beforeend', '<option value="' + c.key + '">' + T.esc(c.name) + '</option>'); });
+    cs.value = state.cls;
+    cs.addEventListener('change', function () { state.cls = this.value; drawList(); var p = new URLSearchParams(location.search); if (state.cls) p.set('cls', state.cls); else p.delete('cls'); history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '')); });
     T.$('#list').addEventListener('click', function (e) {
       var b = e.target.closest('[data-key]'); if (!b) return;
       state.pick = b.dataset.key; drawList(); drawCard(); sync();

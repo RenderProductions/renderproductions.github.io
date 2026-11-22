@@ -33,7 +33,7 @@
 
     <section class="page left" aria-labelledby="title">
       <div class="leaf">
-        <div class="kicker">Chapter III</div>
+        <div class="kicker">Chapter IV</div>
         <h1 id="title">Magic</h1>
         <p style="font-size: 20px">Anyone can use magic, but it takes a toll on their <b class="sc">Stamina</b>.</p>
 
@@ -62,11 +62,16 @@
 
     <section class="page right" aria-labelledby="elements">
       <div class="leaf">
-        <div class="kicker">Chapter IV</div>
+        <div class="kicker">Chapter V</div>
         <h1 id="elements" style="font-size: 44px">The Eleven Elements</h1>
         <p>Controlled magic comes in eleven elements.</p>
         <ul id="els" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 26px"></ul>
         <p style="font-size: 16px">Every spell, with what it costs and the roll it needs, is in <a href="/varandia/spells/">the Spellbook</a>.</p>
+        <div id="surge" class="inked" style="padding: 20px 22px">
+          <h2 style="margin-bottom: 6px">Chaos Surge</h2>
+          <p style="font-size: 16px">Chaotic spells start harder to cast (Need <span data-cb>12</span> + spell level) and get 1 easier for every level you have past the first, down to the normal Need. Roll a natural <span data-so>3</span> or lower on one and it surges. Roll a d<span data-sn>12</span>:</p>
+          <ol id="surgeList" style="margin: 0; padding-left: 1.6em; display: flex; flex-direction: column; gap: 4px; font-size: 16px"></ol>
+        </div>
       </div>
       <span class="folio">— 10 —</span>
     </section>
@@ -85,6 +90,11 @@ Promise.all([Tome.data(), Tome.spells()]).then(function (r) {
       '<span class="sc" style="font-size:21px;flex:1">' + Tome.esc(e.name) + '</span><span class="pencil" style="font-size:20px">' + (n[e.key] || 0) + ' spells</span></a>' +
       (e.text ? '<p style="margin:4px 0 0;font-size:16px">' + Tome.esc(e.text) + '</p>' : '') + '</li>';
   }).join('');
+  var ch = d.spells.chaotic;
+  Tome.$$('[data-cb]').forEach(function (e) { e.textContent = ch.needBase; });
+  Tome.$$('[data-so]').forEach(function (e) { e.textContent = ch.surgeOn; });
+  Tome.$$('[data-sn]').forEach(function (e) { e.textContent = ch.surge.length; });
+  Tome.$('#surgeList').innerHTML = ch.surge.map(function (t) { var i = t.indexOf(':'); return '<li><b class="sc">' + Tome.esc(t.slice(0, i)) + '.</b>' + Tome.esc(t.slice(i + 1)) + '</li>'; }).join('');
   if (location.hash) { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
 });
 </script>

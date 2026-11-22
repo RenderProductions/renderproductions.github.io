@@ -53,11 +53,12 @@
     <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
     <a href="/varandia/characters/" aria-current="true" style="--rib:#8a6a2a">Characters</a>
   </nav>
-  <form class="spread" id="form" novalidate>
+  <form id="form" novalidate>
+  <div class="spread" data-step="1">
 
     <section class="page left" aria-labelledby="title">
       <div class="leaf">
-        <div class="kicker">Chapter VII</div>
+        <div class="kicker">Chapter VIII</div>
         <h1 id="title">Making a Character</h1>
 
         <div style="display: flex; flex-direction: column; gap: 16px">
@@ -105,12 +106,57 @@
         </div>
 
         <div style="display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center">
-          <button type="submit" class="btn ink" id="save">Ink it into the book</button>
+          <button type="button" class="btn ink" id="next">Turn the page →</button>
           <span class="pencil" id="why" aria-live="polite"></span>
         </div>
       </div>
       <span class="folio">— 16 —</span>
     </section>
+  </div>
+
+  <div class="spread" data-step="2" hidden>
+    <section class="page left" aria-labelledby="t2">
+      <div class="leaf">
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <h2 id="t2">IV. What do they do?</h2>
+          <div class="chips" id="classes" role="radiogroup" aria-label="Class"></div>
+          <p id="clsText" style="font-style: italic; margin: 0"></p>
+          <p id="clsInfo" class="faded" style="font-size: 16px; margin: 0"></p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <h2>V. Where do they come from?</h2>
+          <div class="chips" id="bgs" role="radiogroup" aria-label="Background"></div>
+          <p id="bgText" style="font-style: italic; margin: 0"></p>
+          <p id="bgInfo" class="faded" style="font-size: 16px; margin: 0"></p>
+        </div>
+      </div>
+      <span class="folio">— 17 —</span>
+    </section>
+
+    <section class="page right" aria-labelledby="t3">
+      <div class="leaf" style="gap: 18px">
+        <h2 id="t3">VI. Flesh and bone</h2>
+        <p class="faded" style="font-size: 16px; margin: 0">All optional, and all of it can be filled in later on the sheet.</p>
+        <label class="field"><span>What they look like</span><input type="text" id="f-look" maxlength="160" autocomplete="off" placeholder="scarred knuckles, a coat two sizes too big"></label>
+        <label class="field"><span>Personality</span><input type="text" id="f-pers" maxlength="160" autocomplete="off" placeholder="talks too much when nervous"></label>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+          <label class="field"><span>Ideals</span><input type="text" id="f-ideal" maxlength="100" autocomplete="off" placeholder="freedom"></label>
+          <label class="field"><span>Bonds</span><input type="text" id="f-bond" maxlength="100" autocomplete="off" placeholder="a sister in the capital"></label>
+          <label class="field"><span>Flaws</span><input type="text" id="f-flaw" maxlength="100" autocomplete="off" placeholder="can't resist a bet"></label>
+        </div>
+        <div>
+          <h3 id="storyLbl" style="font-size: 16px" class="faded">Their story</h3>
+          <textarea class="lined" id="f-story" rows="5" maxlength="4000" aria-labelledby="storyLbl" placeholder="Where they come from, what they want…"></textarea>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center">
+          <button type="button" class="btn" id="back">← Back</button>
+          <button type="submit" class="btn ink" id="save">Ink it into the book</button>
+          <span class="pencil" id="why2" aria-live="polite"></span>
+        </div>
+      </div>
+      <span class="folio">— 18 —</span>
+    </section>
+  </div>
 
   </form>
 </main>
@@ -120,7 +166,7 @@
 (function () {
   var T = Tome, D = null, params = new URLSearchParams(location.search);
   var editing = params.get('id') ? T.chars.get(params.get('id')) : null;
-  var c = editing || { id: T.chars.newId(), level: 1, race: params.get('race') || 'human', d6: {}, pts: {}, created: Date.now() };
+  var c = editing || { id: T.chars.newId(), level: 1, race: params.get('race') || 'human', cls: params.get('cls') || '', bg: 'own', d6: {}, pts: {}, created: Date.now() };
 
   function spent() { return D.stats.reduce(function (n, s) { return n + (c.pts[s.key] || 0); }, 0); }
   function rolled() { return D.stats.every(function (s) { var v = c.d6[s.key]; return v >= 1 && v <= D.creation.startingDie; }); }
@@ -171,7 +217,34 @@
     T.$('#p-mov').textContent = dv ? dv.movement + ' ft' : '—';
     var why = !T.$('#f-name').value.trim() ? 'needs a name' : !ok ? 'roll every d6 first' : left > 0 ? left + ' point' + (left === 1 ? '' : 's') + ' still to spend' : '';
     T.$('#why').textContent = why;
-    T.$('#save').disabled = !!why;
+    T.$('#next').disabled = !!why;
+    T.$('#why2').textContent = c.cls ? '' : 'pick a class';
+    T.$('#save').disabled = !!why || !c.cls;
+  }
+
+  function drawClasses() {
+    T.$('#classes').innerHTML = D.classes.map(function (k) {
+      var on = k.key === c.cls;
+      return '<button type="button" class="chip" role="radio" aria-checked="' + on + '" aria-pressed="' + on + '" data-key="' + k.key + '">' + T.esc(k.name) + '</button>';
+    }).join('');
+    var k = T.cls(D, c.cls);
+    T.$('#clsText').textContent = k ? k.text : 'Pick one. You can read about each in the Classes chapter.';
+    T.$('#clsInfo').innerHTML = k ? '+' + k.hpPerLevel + ' Health every level · leans on ' + k.leans.map(function (x) { return D.stats.filter(function (s) { return s.key === x; })[0].name; }).join(' & ') +
+      (k.caster ? ' · its spells are ' + D.classRules.classListNeed + ' easier' : '') + ' · <a href="/varandia/classes/#' + k.key + '" target="_blank" rel="noopener">features</a>' : '';
+  }
+  function drawBgs() {
+    T.$('#bgs').innerHTML = D.backgrounds.map(function (b) {
+      var on = b.key === c.bg;
+      return '<button type="button" class="chip" role="radio" aria-checked="' + on + '" aria-pressed="' + on + '" data-key="' + b.key + '">' + T.esc(b.name) + '</button>';
+    }).join('');
+    var b = T.background(D, c.bg);
+    T.$('#bgText').textContent = b ? b.text : '';
+    T.$('#bgInfo').textContent = b && b.profs.length ? 'Good at ' + b.profs.join(', ') + '. Starts with ' + b.gear.join(', ') + '.' : '';
+  }
+  function step(n) {
+    T.$$('#form > .spread').forEach(function (sp) { sp.hidden = sp.dataset.step !== String(n); });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    var h = n === 2 ? T.$('#t2') : T.$('#title'); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
   }
 
   T.data().then(function (d) {
@@ -181,8 +254,13 @@
     T.$('#f-title').value = c.title || '';
     T.$('#f-age').value = c.age || '';
     T.$('#f-height').value = c.height || '';
-    if (editing) { T.$('#title').textContent = 'Rewriting ' + c.name; T.$('#save').textContent = 'Save changes'; }
-    drawRaces(); drawStats();
+    if (editing) { T.$('#title').textContent = 'Rewriting ' + c.name; T.$('#save').textContent = 'Save changes'; if (!c.bg) c.bg = 'own'; }
+    drawRaces(); drawStats(); drawClasses(); drawBgs();
+    [['f-look', 'look'], ['f-pers', 'pers'], ['f-ideal', 'ideal'], ['f-bond', 'bond'], ['f-flaw', 'flaw'], ['f-story', 'story']].forEach(function (f) { T.$('#' + f[0]).value = c[f[1]] || ''; });
+    T.$('#classes').addEventListener('click', function (e) { var b = e.target.closest('[data-key]'); if (!b) return; c.cls = b.dataset.key; drawClasses(); update(); T.$('#classes [aria-checked="true"]').focus(); });
+    T.$('#bgs').addEventListener('click', function (e) { var b = e.target.closest('[data-key]'); if (!b) return; c.bg = b.dataset.key; drawBgs(); T.$('#bgs [aria-checked="true"]').focus(); });
+    T.$('#next').addEventListener('click', function () { update(); if (!T.$('#next').disabled) step(2); });
+    T.$('#back').addEventListener('click', function () { step(1); });
 
     T.$('#races').addEventListener('click', function (e) {
       var b = e.target.closest('[data-key]'); if (!b) return;
@@ -218,10 +296,12 @@
       c.title = T.$('#f-title').value.trim();
       c.age = T.$('#f-age').value.trim();
       c.height = T.$('#f-height').value.trim();
+      [['f-look', 'look'], ['f-pers', 'pers'], ['f-ideal', 'ideal'], ['f-bond', 'bond'], ['f-flaw', 'flaw'], ['f-story', 'story']].forEach(function (f) { c[f[1]] = T.$('#' + f[0]).value.trim(); });
       var dv = T.derive(c, D);
       if (!editing) {
         c.hp = dv.hp; c.sta = dv.stamina;
-        c.items = []; c.cardinal = []; c.profs = ''; c.spells = ''; c.story = ''; c.bodies = 0; c.log = [];
+        var bg = T.background(D, c.bg);
+        c.items = bg ? bg.gear.slice() : []; c.cardinal = []; c.profs = bg ? bg.profs.join(', ') : ''; c.known = []; c.bodies = 0; c.log = [];
       } else {
         c.hp = Math.min(c.hp == null ? dv.hp : c.hp, dv.hp); c.sta = Math.min(c.sta == null ? dv.stamina : c.sta, dv.stamina);
       }

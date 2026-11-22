@@ -78,9 +78,9 @@
         </div>
 
         <dl class="facts">
-          <div><dt>Age</dt><dd id="age">—</dd></div>
-          <div><dt>Height</dt><dd id="height">—</dd></div>
           <div><dt>Race</dt><dd id="race">—</dd></div>
+          <div><dt>Class</dt><dd id="cls">—</dd></div>
+          <div><dt>Age</dt><dd id="age">—</dd></div>
           <div><dt>Level</dt><dd><button type="button" class="step" id="lvDown" aria-label="Level down">−</button><span id="level">1</span><button type="button" class="step" id="lvUp" aria-label="Level up">+</button></dd></div>
         </dl>
 
@@ -152,6 +152,14 @@
         <div>
           <h2 style="margin-bottom: 2px" id="storyTitle">Their Story</h2>
           <textarea class="lined" id="story" aria-labelledby="storyTitle" rows="4" maxlength="4000" placeholder="Where they come from, what they want…"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px">
+          <label class="field" style="grid-column: 1 / -1"><span>Looks</span><input id="look" maxlength="160" autocomplete="off" placeholder="what people notice first"></label>
+          <label class="field" style="grid-column: 1 / -1"><span>Personality</span><input id="pers" maxlength="160" autocomplete="off"></label>
+          <label class="field"><span>Ideals</span><input id="ideal" maxlength="100" autocomplete="off"></label>
+          <label class="field"><span>Bonds</span><input id="bond" maxlength="100" autocomplete="off"></label>
+          <label class="field" style="grid-column: 1 / -1"><span>Flaws</span><input id="flaw" maxlength="100" autocomplete="off"></label>
         </div>
 
         <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap">
@@ -238,7 +246,8 @@
     T.$('#level').textContent = c.level || 1;
     T.$('#lvDown').disabled = (c.level || 1) <= 1;
     var r = T.race(D, c.race);
-    T.$('#cline').textContent = (r ? r.name : '') + ' · Level ' + (c.level || 1);
+    var k = T.cls(D, c.cls), b = T.background(D, c.bg);
+    T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, b && b.key !== 'own' ? b.name : ''].filter(Boolean).join(' · ');
   }
   function drawList(key) {
     T.$('#' + key).innerHTML = c[key].map(function (t, i) {
@@ -254,7 +263,7 @@
     T.$('#name').textContent = c.name;
     T.$('#ctitle').textContent = c.title || '';
     T.$('#age').textContent = c.age || '—';
-    T.$('#height').textContent = c.height || '—';
+    T.$('#cls').textContent = (T.cls(D, c.cls) || {}).name || '—';
     T.$('#race').textContent = r ? r.name : '—';
     T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
 
@@ -286,9 +295,9 @@
       function drawKnown() {
         var list = c.known.map(function (k) { return S.byKey[k]; }).filter(Boolean);
         T.$('#known').innerHTML = list.map(function (sp) {
-          var cc = T.spellCost(sp, D);
+          var cc = T.spellCost(sp, D, c);
           return '<li><span class="dot" style="background:' + (colorOf[sp.element] || '#5a4632') + '"></span>' +
-            '<span class="nm"><a href="/varandia/spells/?s=' + sp.key + '">' + T.esc(sp.name) + '</a><small>' + (sp.own ? 'Evil' : T.levelName(sp.level)) + ' · need ' + cc.need + '</small></span>' +
+            '<span class="nm"><a href="/varandia/spells/?s=' + sp.key + '">' + T.esc(sp.name) + '</a><small>' + (sp.own ? 'Evil' : (cc.chaotic ? 'Chaotic · ' : '') + T.levelName(sp.level)) + ' · need ' + cc.need + (cc.favored ? ' · class' : '') + '</small></span>' +
             '<span class="cost">' + cc.stamina + ' sta' + (cc.blood ? ' + ' + cc.blood + ' hp' : '') + '</span>' +
             '<button type="button" class="btn small" data-cast="' + sp.key + '">Cast</button>' +
             '<button type="button" class="rm" data-forget="' + sp.key + '" aria-label="Forget ' + T.esc(sp.name) + '">×</button></li>';
@@ -308,7 +317,7 @@
         var f = e.target.closest('[data-forget]');
         if (f) { c.known = c.known.filter(function (k) { return k !== f.dataset.forget; }); drawKnown(); save(); return; }
         var b = e.target.closest('[data-cast]'); if (!b) return;
-        var sp = S.byKey[b.dataset.cast], cc = T.spellCost(sp, D);
+        var sp = S.byKey[b.dataset.cast], cc = T.spellCost(sp, D, c);
         var blood = cc.blood;
         if (blood === 'X') {
           var x = parseInt(prompt('How much health do you spend on ' + sp.name + '?', '5'), 10);
@@ -326,9 +335,14 @@
             else extra = ': ' + cc.fail.replace(/\.$/, '');
           } else { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', lost ' + f1 + ' health'; }
         }
+        var surge = '';
+        if (cc.chaotic && r.die <= D.spells.chaotic.surgeOn) {
+          var table = D.spells.chaotic.surge, n = 1 + Math.floor(Math.random() * table.length);
+          surge = ' \u2014 SURGE (' + n + ') ' + table[n - 1];
+        }
         c.hp = Math.max(0, c.hp - lost);
         writeRoll(sp.name, r);
-        c.log[0] = sp.name + ': ' + r.die + ' ' + (bonus < 0 ? '\u2212 ' + Math.abs(bonus) : '+ ' + bonus) + ' = ' + r.total + (ok ? ' \u2014 cast!' : ' \u2014 fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '');
+        c.log[0] = sp.name + ': ' + r.die + ' ' + (bonus < 0 ? '\u2212 ' + Math.abs(bonus) : '+ ' + bonus) + ' = ' + r.total + (ok ? ' \u2014 cast!' : ' \u2014 fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '') + surge;
         drawLog(); drawVitals(); save();
       });
     });
@@ -345,7 +359,7 @@
         c[f.dataset.list].push(v); inp.value = ''; drawList(f.dataset.list); save();
       });
     });
-    [['profs', 'profs'], ['story', 'story']].forEach(function (p) {
+    [['profs', 'profs'], ['story', 'story'], ['look', 'look'], ['pers', 'pers'], ['ideal', 'ideal'], ['bond', 'bond'], ['flaw', 'flaw']].forEach(function (p) {
       var el = T.$('#' + p[0]); el.value = c[p[1]] || '';
       el.addEventListener('input', function () { c[p[1]] = el.value; save(); });
     });

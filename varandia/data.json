@@ -160,7 +160,27 @@
     "staminaPerLevel": 2,
     "needBase": 10,
     "failCantrip": "1",
-    "failDie": "d4"
+    "failDie": "d4",
+    "chaotic": {
+      "_about": "Chaotic spells start harder (needBase + spell level), get 1 easier per character level after the first, down to the normal Need. A natural roll at or under surgeOn surges: roll the surge table.",
+      "needBase": 12,
+      "easierPerLevel": 1,
+      "surgeOn": 3,
+      "surge": [
+        "Backfire: the spell hits you instead, or turns its effect on you.",
+        "Wrong target: it strikes a random creature in range, friend or foe.",
+        "Echo: it goes off twice. Pay its Stamina again, or take that much damage.",
+        "Wild growth: its range and area double.",
+        "Sputter: it works at half strength, and you get the Stamina back.",
+        "Flip: the GM swaps it for a random spell of the same level.",
+        "Static: everyone within 10 ft, you included, takes 1d6.",
+        "Drain: you lose its Stamina cost a second time.",
+        "Blink: you teleport 1d4 × 10 ft in a random direction.",
+        "Bloom: a burst of harmless light and colour, and nothing else. It costs you nothing.",
+        "Overcharge: the spell does its most, but you take 1d4 per spell level.",
+        "Lingering chaos: your next spell surges too."
+      ]
+    }
   },
   "magicKinds": [
     {
@@ -258,6 +278,230 @@
       "kind": "chaotic",
       "color": "#7a3e8e",
       "text": "Raw magic with no element: the wild energy itself, cast before it's been trained into anything. Powerful and unpredictable."
+    }
+  ],
+  "classes": [
+    {
+      "key": "barbarian",
+      "name": "Barbarian",
+      "hitDie": 12,
+      "hpPerLevel": 3,
+      "leans": [
+        "str"
+      ],
+      "caster": false,
+      "text": "A warrior fuelled by rage, who shrugs off blows that would fell anyone else."
+    },
+    {
+      "key": "bard",
+      "name": "Bard",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "cha"
+      ],
+      "caster": true,
+      "text": "A performer whose words and music carry real magic."
+    },
+    {
+      "key": "cleric",
+      "name": "Cleric",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "per"
+      ],
+      "caster": true,
+      "text": "A servant of the divine who heals, protects and smites."
+    },
+    {
+      "key": "druid",
+      "name": "Druid",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "per"
+      ],
+      "caster": true,
+      "text": "A keeper of the wild who draws on nature and can take the shape of beasts."
+    },
+    {
+      "key": "fighter",
+      "name": "Fighter",
+      "hitDie": 10,
+      "hpPerLevel": 2,
+      "leans": [
+        "str",
+        "spd"
+      ],
+      "caster": false,
+      "text": "A master of weapons and armor, trained for every kind of fight."
+    },
+    {
+      "key": "monk",
+      "name": "Monk",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "spd",
+        "per"
+      ],
+      "caster": false,
+      "text": "A disciplined martial artist who turns inner focus into speed and strikes."
+    },
+    {
+      "key": "paladin",
+      "name": "Paladin",
+      "hitDie": 10,
+      "hpPerLevel": 2,
+      "leans": [
+        "str",
+        "cha"
+      ],
+      "caster": true,
+      "text": "A holy warrior bound by an oath, mixing steel with divine magic."
+    },
+    {
+      "key": "ranger",
+      "name": "Ranger",
+      "hitDie": 10,
+      "hpPerLevel": 2,
+      "leans": [
+        "spd",
+        "per"
+      ],
+      "caster": true,
+      "text": "A hunter and tracker at home in the wilds, deadly at range."
+    },
+    {
+      "key": "rogue",
+      "name": "Rogue",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "spd"
+      ],
+      "caster": false,
+      "text": "A sneak and a specialist who strikes where it hurts most."
+    },
+    {
+      "key": "sorcerer",
+      "name": "Sorcerer",
+      "hitDie": 6,
+      "hpPerLevel": 0,
+      "leans": [
+        "cha"
+      ],
+      "caster": true,
+      "text": "Born with magic in the blood, shaping it by instinct rather than study."
+    },
+    {
+      "key": "warlock",
+      "name": "Warlock",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "cha"
+      ],
+      "caster": true,
+      "text": "Someone who made a pact with a powerful being, and pays for the power."
+    },
+    {
+      "key": "wizard",
+      "name": "Wizard",
+      "hitDie": 6,
+      "hpPerLevel": 0,
+      "leans": [
+        "int"
+      ],
+      "caster": true,
+      "text": "A scholar of magic who learns spells from books and long study."
+    }
+  ],
+  "classRules": {
+    "_about": "Classes are the standard D&D classes. hpPerLevel is added to max Health at every level (d6 0, d8 1, d10 2, d12 3). Spells on your class's list are easier: their Need drops by classListNeed.",
+    "classListNeed": 1
+  },
+  "backgrounds": [
+    {
+      "key": "acolyte",
+      "name": "Acolyte",
+      "text": "Raised in service to a temple, schooled in its rites.",
+      "profs": [
+        "Insight",
+        "Religion",
+        "Calligrapher's Supplies"
+      ],
+      "gear": [
+        "Calligrapher's Supplies",
+        "Book (prayers)",
+        "Holy Symbol",
+        "Parchment (10 sheets)",
+        "Robe"
+      ],
+      "coin": null
+    },
+    {
+      "key": "criminal",
+      "name": "Criminal",
+      "text": "Made a living on the wrong side of the law.",
+      "profs": [
+        "Sleight of Hand",
+        "Stealth",
+        "Thieves' Tools"
+      ],
+      "gear": [
+        "2 Daggers",
+        "Thieves' Tools",
+        "Crowbar",
+        "2 Pouches",
+        "Traveler's Clothes"
+      ],
+      "coin": null
+    },
+    {
+      "key": "sage",
+      "name": "Sage",
+      "text": "Spent years among books, scrolls and scholars.",
+      "profs": [
+        "Arcana",
+        "History",
+        "Calligrapher's Supplies"
+      ],
+      "gear": [
+        "Quarterstaff",
+        "Calligrapher's Supplies",
+        "Book (history)",
+        "Parchment (8 sheets)",
+        "Robe"
+      ],
+      "coin": null
+    },
+    {
+      "key": "soldier",
+      "name": "Soldier",
+      "text": "Trained for war and served in the ranks.",
+      "profs": [
+        "Athletics",
+        "Intimidation"
+      ],
+      "gear": [
+        "Spear",
+        "Shortbow",
+        "20 Arrows",
+        "Gaming Set",
+        "Healer's Kit",
+        "Quiver",
+        "Traveler's Clothes"
+      ],
+      "coin": null
+    },
+    {
+      "key": "own",
+      "name": "Your own",
+      "text": "Write where they come from yourself.",
+      "profs": [],
+      "gear": []
     }
   ]
 }

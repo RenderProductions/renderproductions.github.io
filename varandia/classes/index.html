@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classes | Story of Varandia</title>
+<meta name="description" content="The classes of Story of Varandia: the twelve D&D classes, with what each adds to your Health, the stats it leans on, its favored spells and its features.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Classes | Story of Varandia">
+<meta property="og:description" content="Barbarian to Wizard: the twelve classes and what they mean in Varandia.">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/classes/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .feat { border-bottom: 1px dashed rgba(42, 29, 18, 0.35); }
+  .feat summary { display: flex; align-items: baseline; gap: 12px; min-height: 44px; padding: 8px 0; cursor: pointer; list-style: none; }
+  .feat summary::-webkit-details-marker { display: none; }
+  .feat summary::before { content: "✦"; color: var(--red); font-size: 14px; }
+  .feat[open] summary::before { content: "✧"; }
+  .feat summary b { font: 400 19px/1.2 var(--sc); flex: 1; }
+  .feat summary span { font: 19px/1 var(--hand); color: var(--faded); }
+  .feat .body p { margin: 0 0 0.6em; font-size: 16px; }
+  .feat .body { padding: 0 0 10px 26px; }
+  .credit { font-size: 13px; color: var(--faded); line-height: 1.4; }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf">
+        <div class="kicker">Chapter II</div>
+        <h1 id="title">Classes</h1>
+        <p>Your class is what you do. In Varandia a class adds to your <b>Health</b> every level, points at the stats it leans on, and makes the spells on its list <b>easier</b>: their Need drops by <span data-cl>1</span>. Anyone can still learn any spell.</p>
+        <ol class="toc" id="toc" style="font-size: 20px"></ol>
+        <p class="pencil">class features are D&amp;D's own: your GM turns their numbers into Varandia's</p>
+      </div>
+      <span class="folio">— 3 —</span>
+    </section>
+
+    <section class="page right" aria-live="polite">
+      <div class="leaf" id="card" style="gap: 22px"><p class="pencil">pick a class</p></div>
+      <span class="folio">— 4 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, D, X, S;
+  var statName = function (k) { return (D.stats.filter(function (s) { return s.key === k; })[0] || {}).name || k; };
+  function para(t) { return T.esc(t).split(/\n+/).map(function (p) { return '<p>' + p.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>'; }).join(''); }
+  function show(key) {
+    var c = T.cls(D, key) || D.classes[0], x = X.classes.filter(function (y) { return y.key === c.key; })[0];
+    T.$$('#toc a').forEach(function (a) { if (a.dataset.key === c.key) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); });
+    var favored = S.srd.filter(function (s) { return s.classes && s.classes.indexOf(c.key) >= 0; }).length;
+    var byLevel = {};
+    x.features.forEach(function (f) { (byLevel[f.level] = byLevel[f.level] || []).push(f); });
+    T.$('#card').innerHTML =
+      '<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap"><span class="inked round" style="width:90px;height:90px;flex:none;display:grid;place-items:center;font:42px/1 var(--sc)">' + c.name.charAt(0) + '</span>' +
+      '<div style="flex:1 1 200px"><h2 style="font-style:normal;font-size:46px">' + T.esc(c.name) + '</h2><p style="margin:4px 0 0;font-style:italic;font-size:19px">' + T.esc(c.text) + '</p></div></div>' +
+      '<div class="costs" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:center">' +
+        '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:30px">+' + c.hpPerLevel + '</b><span class="sc faded" style="font-size:13px">Health per level</span></div>' +
+        '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:' + (c.leans.length > 1 ? 19 : 24) + 'px;line-height:1.5">' + c.leans.map(statName).join(' &amp; ') + '</b><span class="sc faded" style="font-size:13px">Leans on</span></div>' +
+        '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:30px">' + favored + '</b><span class="sc faded" style="font-size:13px">' + (favored ? '<a href="/varandia/spells/?cls=' + c.key + '">favored spells</a>' : 'favored spells') + '</span></div>' +
+      '</div>' +
+      (x.subclasses.length ? '<p style="margin:0;font-size:16px"><span class="sc">Path in the book:</span> ' + x.subclasses.map(T.esc).join(', ') + '</p>' : '') +
+      '<div><h3 style="margin-bottom:4px">Features</h3>' + Object.keys(byLevel).sort(function (a, b) { return a - b; }).map(function (lv) {
+        return byLevel[lv].map(function (f) {
+          return '<details class="feat"><summary><b>' + T.esc(f.name) + '</b><span>level ' + lv + '</span></summary><div class="body">' + para(f.text) + '</div></details>';
+        }).join('');
+      }).join('') + '</div>' +
+      '<a class="btn ink" href="/varandia/builder/?cls=' + c.key + '" style="align-self:flex-start">Make ' + (/^[AEIOU]/.test(c.name) ? 'an ' : 'a ') + T.esc(c.name) + '</a>' +
+      '<p class="credit">' + T.esc(S.credit.replace('Spells have been sorted into elements and given Varandia costs.', 'Class features are reproduced from it; Health, favored spells and the short descriptions are Varandia’s.')) + '</p>';
+    history.replaceState(null, '', '#' + c.key);
+  }
+  Promise.all([T.data(), fetch('/varandia/classes.json').then(function (r) { return r.json(); }), T.spells()]).then(function (r) {
+    D = r[0]; X = r[1]; S = r[2];
+    T.$$('[data-cl]').forEach(function (e) { e.textContent = D.classRules.classListNeed; });
+    T.$('#toc').innerHTML = D.classes.map(function (c, i) {
+      return '<li><a href="#' + c.key + '" data-key="' + c.key + '"><span class="n">' + (i + 1) + '</span><span class="t">' + T.esc(c.name) + '</span><span class="dots" aria-hidden="true"></span><span class="pencil" style="font-size:19px">+' + c.hpPerLevel + ' hp</span></a></li>';
+    }).join('');
+    T.$('#toc').addEventListener('click', function (e) {
+      var a = e.target.closest('a[data-key]'); if (!a) return; e.preventDefault(); show(a.dataset.key);
+      if (window.innerWidth < 1020) T.$('#card').scrollIntoView({ behavior: 'smooth' });
+    });
+    show(location.hash.slice(1) || 'barbarian');
+  }).catch(function () { T.$('#card').innerHTML = '<p>The pages are stuck together. Try reloading.</p>'; });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

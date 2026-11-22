@@ -80,15 +80,26 @@
     });
     return spellsP;
   };
-  /** What a spell costs in Varandia: { stamina, blood, need, fail }. Evil spells carry their own numbers. */
-  Tome.spellCost = function (sp, d) {
-    if (sp.own) return { stamina: sp.stamina, blood: sp.blood, need: sp.need, fail: sp.fail };
-    var r = d.spells, lv = sp.level;
-    return {
-      stamina: lv === 0 ? r.cantripStamina : r.staminaPerLevel * lv, blood: 0, need: r.needBase + lv,
-      fail: lv === 0 ? r.failCantrip : lv + r.failDie
-    };
+  /** What a spell costs in Varandia: { stamina, blood, need, fail, chaotic, favored }. Evil spells carry their own numbers.
+      With a character c, the Need is theirs: Chaotic spells get easier with level, and spells on their class's list are easier. */
+  Tome.spellCost = function (sp, d, c) {
+    var out;
+    if (sp.own) out = { stamina: sp.stamina, blood: sp.blood, need: sp.need, fail: sp.fail };
+    else {
+      var r = d.spells, lv = sp.level, ch = sp.element === 'chaotic';
+      var need = r.needBase + lv;
+      if (ch) need = r.chaotic.needBase + lv - (c ? Math.max(0, (c.level || 1) - 1) * r.chaotic.easierPerLevel : 0);
+      out = {
+        stamina: lv === 0 ? r.cantripStamina : r.staminaPerLevel * lv, blood: 0,
+        need: Math.max(r.needBase + lv, need), chaotic: ch,
+        fail: lv === 0 ? r.failCantrip : lv + r.failDie
+      };
+    }
+    if (c && c.cls && sp.classes && sp.classes.indexOf(c.cls) >= 0) { out.need -= (d.classRules || {}).classListNeed || 0; out.favored = true; }
+    return out;
   };
+  Tome.cls = function (d, key) { return (d.classes || []).filter(function (x) { return x.key === key; })[0] || null; };
+  Tome.background = function (d, key) { return (d.backgrounds || []).filter(function (x) { return x.key === key; })[0] || null; };
   /** Rolls dice written like "3d4", "1d20+5" or "2"; null if it isn't dice. */
   Tome.dice = function (expr) {
     var m = String(expr).replace(/\s/g, '').match(/^(\d*)d(\d+)([+-]\d+)?$|^(\d+)$/);
@@ -111,7 +122,7 @@
     var r = d.derived, s = function (k) { return Tome.stat(c, k, d); }, lv = Math.max(1, c.level || 1), h = Tome.half;
     return {
       defense: r.defense.base + h(s(r.defense.halfOf)),
-      hp: Math.max(1, r.hp.base + s(r.hp.plusStat) + (lv - 1) * (r.hp.perLevel + h(s(r.hp.perLevelHalfOf)))),
+      hp: Math.max(1, r.hp.base + s(r.hp.plusStat) + (lv - 1) * (r.hp.perLevel + h(s(r.hp.perLevelHalfOf))) + lv * ((Tome.cls(d, c.cls) || {}).hpPerLevel || 0)),
       stamina: Math.max(0, r.stamina.base + s(r.stamina.stat) * r.stamina.statTimes + (lv - 1) * (r.stamina.perLevel + h(s(r.stamina.perLevelHalfOf)))),
       initiative: h(s(r.initiative.halfOf)),
       movement: Math.max(0, r.movement.baseFeet + r.movement.feetPerTwo * Math.floor(Math.max(0, s(r.movement.stat)) / 2)),
