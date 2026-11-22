@@ -67,6 +67,39 @@
     });
     return dataP;
   };
+  var spellsP = null;
+  /** All spells as one list: Varandia's Evil spells first (element "evil", own: true), then the SRD ones. */
+  Tome.spells = function () {
+    if (!spellsP) spellsP = fetch('/varandia/spells.json').then(function (r) {
+      if (!r.ok) throw new Error('spells.json: ' + r.status);
+      return r.json();
+    }).then(function (s) {
+      s.all = s.evil.map(function (e) { var x = Object.assign({}, e); x.element = 'evil'; x.own = true; return x; }).concat(s.srd);
+      s.byKey = {}; s.all.forEach(function (x) { s.byKey[x.key] = x; });
+      return s;
+    });
+    return spellsP;
+  };
+  /** What a spell costs in Varandia: { stamina, blood, need, fail }. Evil spells carry their own numbers. */
+  Tome.spellCost = function (sp, d) {
+    if (sp.own) return { stamina: sp.stamina, blood: sp.blood, need: sp.need, fail: sp.fail };
+    var r = d.spells, lv = sp.level;
+    return {
+      stamina: lv === 0 ? r.cantripStamina : r.staminaPerLevel * lv, blood: 0, need: r.needBase + lv,
+      fail: lv === 0 ? r.failCantrip : lv + r.failDie
+    };
+  };
+  /** Rolls dice written like "3d4", "1d20+5" or "2"; null if it isn't dice. */
+  Tome.dice = function (expr) {
+    var m = String(expr).replace(/\s/g, '').match(/^(\d*)d(\d+)([+-]\d+)?$|^(\d+)$/);
+    if (!m) return null;
+    if (m[4]) return +m[4];
+    var n = +(m[1] || 1), sides = +m[2], t = +(m[3] || 0);
+    for (var i = 0; i < n; i++) t += 1 + Math.floor(Math.random() * sides);
+    return t;
+  };
+  Tome.levelName = function (lv) { return lv === 0 ? 'Cantrip' : 'Level ' + lv; };
+
   Tome.race = function (d, key) { return d.races.filter(function (r) { return r.key === key; })[0] || null; };
 
   // ---------------------------------------------------------------- rules

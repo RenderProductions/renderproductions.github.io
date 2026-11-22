@@ -153,6 +153,15 @@
       "halfOf": "str"
     }
   },
+  "spells": {
+    "_about": "How a D&D spell level turns into Varandia costs. Cantrips are level 0.",
+    "stat": "int",
+    "cantripStamina": 1,
+    "staminaPerLevel": 2,
+    "needBase": 10,
+    "failCantrip": "1",
+    "failDie": "d4"
+  },
   "elements": [
     {
       "key": "fire",
@@ -218,7 +227,13 @@
       "key": "evil",
       "name": "Evil",
       "color": "#7a1424",
-      "text": "Lethal, malicious magic aimed at ending life. Think Power Word Kill."
+      "text": "Lethal, malicious magic aimed at ending life. Varandia's own: every Evil spell costs blood as well as Stamina."
+    },
+    {
+      "key": "unaligned",
+      "name": "Unaligned",
+      "color": "#5a4632",
+      "text": "Spells that haven't been given an element yet."
     }
   ]
 }

@@ -26,6 +26,7 @@
   <nav class="ribbons" aria-label="Bookmarks">
     <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
     <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" aria-current="true" style="--rib:#3e3466">Spells</a>
     <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
   </nav>
   <div class="spread">
@@ -64,7 +65,7 @@
         <h1 id="elements" style="font-size: 44px">The Eleven Elements</h1>
         <p>Spells are sorted by element.</p>
         <ul id="els" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 26px"></ul>
-        <p class="pencil">spell lists, Stamina costs and how much a failed roll hurts are still being written: they'll depend on each spell</p>
+        <p style="font-size: 16px">Every spell, with what it costs and the roll it needs, is in <a href="/varandia/spells/">the Spellbook</a>.</p>
       </div>
       <span class="folio">— 10 —</span>
     </section>
@@ -74,12 +75,14 @@
 
 <script src="/varandia/tome.js"></script>
 <script>
-Tome.data().then(function (d) {
-  Tome.$('#els').innerHTML = d.elements.map(function (e) {
+Promise.all([Tome.data(), Tome.spells()]).then(function (r) {
+  var d = r[0], s = r[1], n = {};
+  s.all.forEach(function (x) { n[x.element] = (n[x.element] || 0) + 1; });
+  Tome.$('#els').innerHTML = d.elements.filter(function (e) { return e.key !== 'unaligned'; }).map(function (e) {
     return '<li id="' + e.key + '" style="padding:10px 0;border-bottom:1px dashed rgba(42,29,18,.35)">' +
-      '<div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:' + e.color + ';filter:url(#tome-rough)"></span>' +
-      '<span class="sc" style="font-size:21px">' + Tome.esc(e.name) + '</span></div>' +
-      (e.text ? '<p style="margin:4px 0 0;font-size:16px">' + Tome.esc(e.text) + '</p>' : '<p class="unwritten" style="margin:2px 0 0;font-size:15px">No spells written yet.</p>') + '</li>';
+      '<a href="/varandia/spells/?el=' + e.key + '" style="display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:' + e.color + ';filter:url(#tome-rough)"></span>' +
+      '<span class="sc" style="font-size:21px;flex:1">' + Tome.esc(e.name) + '</span><span class="pencil" style="font-size:20px">' + (n[e.key] || 0) + ' spells</span></a>' +
+      (e.text ? '<p style="margin:4px 0 0;font-size:16px">' + Tome.esc(e.text) + '</p>' : '') + '</li>';
   }).join('');
   if (location.hash) { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
 });

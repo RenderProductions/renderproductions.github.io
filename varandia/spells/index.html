@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Spellbook | Story of Varandia</title>
+<meta name="description" content="Every spell in Story of Varandia, sorted by element, with Stamina costs and the roll you need. Includes Varandia's own Evil magic.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="The Spellbook | Story of Varandia">
+<meta property="og:description" content="Spells sorted by element, with Stamina costs, and Varandia's own Evil magic.">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/spells/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .filters { display: flex; flex-direction: column; gap: 12px; }
+  .filters .row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-end; }
+  .chips .chip { min-height: 36px; font-size: 15px; padding: 0 12px; }
+  .chip .n { font: 15px/1 var(--hand); color: var(--faded); }
+  .spell-list { list-style: none; margin: 0; padding: 0 6px 0 0; max-height: 560px; overflow-y: auto; border-top: 1.5px solid rgba(42, 29, 18, 0.55); border-bottom: 1.5px solid rgba(42, 29, 18, 0.55);
+    scrollbar-color: rgba(42, 29, 18, 0.5) transparent; }
+  .spell-list button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 64px 50px 40px; align-items: center; gap: 6px; min-height: 44px; padding: 4px 6px;
+    background: transparent; border: 0; border-bottom: 1px dashed rgba(42, 29, 18, 0.3); text-align: left; }
+  .spell-list button:hover { background: rgba(110, 31, 23, 0.07); }
+  .spell-list button[aria-current="true"] { background: rgba(110, 31, 23, 0.13); }
+  .spell-list .nm { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 18px; }
+  .spell-list .nm i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .spell-list .nm span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spell-list .lv { font: 14px/1 var(--sc); color: var(--faded); }
+  .spell-list .num { font: 22px/1 var(--hand); text-align: right; }
+  .list-head { display: grid; grid-template-columns: minmax(0, 1fr) 64px 50px 40px; gap: 6px; padding: 0 12px 4px 6px; font: 13px/1.2 var(--sc); color: var(--faded); }
+  .list-head span:nth-child(n+3) { text-align: right; }
+  .costs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .costs > div { padding: 12px 8px; text-align: center; }
+  .costs b { display: block; font-weight: 400; font-size: 30px; line-height: 1.1; }
+  .costs span { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .facts { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; font-size: 16px; }
+  .facts dt { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .facts dd { margin: 0 0 4px; }
+  .spelltext p { margin: 0 0 0.7em; font-size: 18px; }
+  .credit { font-size: 13px; color: var(--faded); line-height: 1.4; }
+  .credit a { color: var(--faded); }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" aria-current="page" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf" style="gap: 20px">
+        <div class="kicker">Chapter V</div>
+        <h1 id="title">The Spellbook</h1>
+        <p style="font-size: 16px; margin: 0">Cast with <b>d20 + half Intelligence</b>; meet or beat the Need. A spell costs <b>1 Stamina</b> as a cantrip and <b>2 per level</b> after that. Fail and you lose <b>1d4 health per level</b>.</p>
+        <div class="filters">
+          <div class="chips" id="els" role="group" aria-label="Element"></div>
+          <div class="row">
+            <label class="field" style="flex: 1 1 180px"><span>Search</span><input type="text" id="q" autocomplete="off" placeholder="fireball…"></label>
+            <label class="field" style="width: 130px"><span>Level</span><select id="lv"><option value="">Any</option></select></label>
+          </div>
+        </div>
+        <div>
+          <div class="list-head" aria-hidden="true"><span>Spell</span><span>Level</span><span>Stam.</span><span>Need</span></div>
+          <ul class="spell-list" id="list" aria-label="Spells"></ul>
+          <p class="pencil" id="count" style="margin-top: 8px" aria-live="polite"></p>
+        </div>
+      </div>
+      <span class="folio">— 11 —</span>
+    </section>
+
+    <section class="page right" aria-live="polite">
+      <div class="leaf" id="card" style="gap: 22px">
+        <p class="pencil">pick a spell</p>
+      </div>
+      <span class="folio">— 12 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, D, S, params = new URLSearchParams(location.search);
+  var state = { el: params.get('el') || '', q: '', lv: '', pick: params.get('s') || '' };
+  var colorOf = {};
+
+  function cost(sp) { return T.spellCost(sp, D); }
+  function matches(sp) {
+    if (state.el && sp.element !== state.el) return false;
+    if (state.lv !== '' && String(sp.level) !== state.lv) return false;
+    if (state.q && sp.name.toLowerCase().indexOf(state.q) < 0) return false;
+    return true;
+  }
+  function drawList() {
+    var list = S.all.filter(matches);
+    T.$('#list').innerHTML = list.map(function (sp) {
+      var c = cost(sp);
+      return '<li><button type="button" data-key="' + sp.key + '"' + (sp.key === state.pick ? ' aria-current="true"' : '') + '>' +
+        '<span class="nm"><i style="background:' + (colorOf[sp.element] || '#5a4632') + '"></i><span>' + T.esc(sp.name) + '</span></span>' +
+        '<span class="lv">' + (sp.own ? 'Evil' : sp.level === 0 ? 'Cantrip' : 'Lv ' + sp.level) + '</span>' +
+        '<span class="num">' + c.stamina + (c.blood ? '<small style="font-size:15px;color:var(--red)"> +' + c.blood + '♥</small>' : '') + '</span>' +
+        '<span class="num">' + c.need + '</span></button></li>';
+    }).join('');
+    T.$('#count').textContent = list.length + ' spell' + (list.length === 1 ? '' : 's') + (state.el || state.lv || state.q ? ' match' : ' in the book');
+    T.$$('#els .chip').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.key === state.el ? 'true' : 'false'); });
+  }
+  function para(t) { return T.esc(t).split(/\n+/).map(function (p) { return '<p>' + p.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>'; }).join(''); }
+  function drawCard() {
+    var sp = S.byKey[state.pick];
+    if (!sp) {
+      if (state.el === 'evil') return drawEvilIntro();
+      T.$('#card').innerHTML = '<p class="pencil">pick a spell from the list</p>';
+      return;
+    }
+    var c = cost(sp), el = D.elements.filter(function (e) { return e.key === sp.element; })[0];
+    var html = '<div style="display:flex;align-items:center;gap:12px;font:14px/1 var(--sc);color:var(--faded);letter-spacing:.12em">' +
+      '<span style="width:12px;height:12px;border-radius:50%;background:' + (el ? el.color : '#5a4632') + '"></span>' + T.esc(el ? el.name : '') +
+      (sp.own ? ' · Varandia' : ' · ' + T.levelName(sp.level) + ' · ' + T.esc(sp.school)) + '</div>' +
+      '<h2 style="font-style:normal;font-size:44px">' + T.esc(sp.name) + '</h2>' +
+      '<div class="costs">' +
+        '<div class="inked"><b>' + c.stamina + (c.blood ? ' <span style="font:28px/1 var(--hand);color:var(--red)">+' + c.blood + ' hp</span>' : '') + '</b><span>Stamina' + (c.blood ? ' + blood' : '') + '</span></div>' +
+        '<div class="inked"><b>' + c.need + '</b><span>Need (d20 + ½ INT)</span></div>' +
+        '<div class="inked"><b style="font-size:' + (String(c.fail).length > 8 ? 17 : 30) + 'px;padding-top:' + (String(c.fail).length > 8 ? 6 : 0) + 'px">' + T.esc(c.fail) + '</b><span>' + (sp.own ? 'On a failed roll' : 'Health lost on a fail') + '</span></div>' +
+      '</div>';
+    if (sp.own) {
+      html += '<div class="spelltext">' + para(sp.text) + '</div>' + evilRulesHtml();
+    } else {
+      html += '<dl class="facts">' +
+        '<div><dt>Casting time</dt><dd>' + T.esc(sp.time) + (sp.ritual ? ' (ritual)' : '') + '</dd></div>' +
+        '<div><dt>Range</dt><dd>' + T.esc(sp.range) + '</dd></div>' +
+        '<div><dt>Duration</dt><dd>' + T.esc(sp.duration) + (sp.conc ? ', concentration' : '') + '</dd></div>' +
+        '<div><dt>Components</dt><dd>' + T.esc(sp.comp.split('').join(', ')) + (sp.material ? ' (' + T.esc(sp.material) + ')' : '') + '</dd></div>' +
+        (sp.damage ? '<div><dt>Damage</dt><dd>' + T.esc(sp.damage) + '</dd></div>' : '') +
+        '</dl><div class="spelltext">' + para(sp.text) +
+        (sp.higher ? '<p class="faded" style="font-size:16px"><b class="sc">Stronger casting.</b> ' + T.esc(sp.higher) + ' <span class="pencil">(in Varandia: pay 2 more Stamina for each step up)</span></p>' : '') + '</div>' +
+        '<p class="pencil" style="font-size:19px">D&amp;D words: a <b>saving throw</b> is the target rolling d20 + half the matching stat against your Need. Strength stays Strength, Dexterity is Speed, Constitution is Durability, Wisdom is Perception.</p>' +
+        '<p class="credit">' + T.esc(S.credit) + '</p>';
+    }
+    T.$('#card').innerHTML = html;
+  }
+  function evilRulesHtml() {
+    return '<div class="inked thin" style="padding:16px 18px"><h3 style="margin-bottom:6px">Every Evil spell</h3>' +
+      S.evilRules.map(function (r) { return '<p style="margin:0 0 6px;font-size:16px"><b class="sc">' + T.esc(r.name) + '.</b> ' + T.esc(r.text) + '</p>'; }).join('') + '</div>';
+  }
+  function drawEvilIntro() {
+    T.$('#card').innerHTML = '<h2 style="font-style:normal;font-size:44px">Evil</h2><p style="font-size:19px">Lethal, malicious magic aimed at ending life. These are Varandia’s own spells, and every one of them takes blood.</p>' + evilRulesHtml() + '<p class="pencil">pick an Evil spell from the list</p>';
+  }
+  function sync() {
+    var p = new URLSearchParams();
+    if (state.el) p.set('el', state.el);
+    if (state.pick) p.set('s', state.pick);
+    var qs = p.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+  }
+
+  Promise.all([T.data(), T.spells()]).then(function (r) {
+    D = r[0]; S = r[1];
+    D.elements.forEach(function (e) { colorOf[e.key] = e.color; });
+    var counts = {}; S.all.forEach(function (s) { counts[s.element] = (counts[s.element] || 0) + 1; });
+    T.$('#els').innerHTML = '<button type="button" class="chip" data-key="">All <span class="n">' + S.all.length + '</span></button>' +
+      D.elements.filter(function (e) { return counts[e.key]; }).map(function (e) {
+        return '<button type="button" class="chip" data-key="' + e.key + '" style="--c:' + e.color + '"><span class="dot"></span>' + T.esc(e.name) + ' <span class="n">' + counts[e.key] + '</span></button>';
+      }).join('');
+    var lv = T.$('#lv');
+    for (var i = 0; i <= 9; i++) lv.insertAdjacentHTML('beforeend', '<option value="' + i + '">' + T.levelName(i) + '</option>');
+    T.$('#els').addEventListener('click', function (e) {
+      var b = e.target.closest('.chip'); if (!b) return;
+      state.el = b.dataset.key;
+      if (state.pick && S.byKey[state.pick] && state.el && S.byKey[state.pick].element !== state.el) state.pick = '';
+      drawList(); drawCard(); sync();
+    });
+    T.$('#q').addEventListener('input', function () { state.q = this.value.trim().toLowerCase(); drawList(); });
+    lv.addEventListener('change', function () { state.lv = this.value; drawList(); });
+    T.$('#list').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-key]'); if (!b) return;
+      state.pick = b.dataset.key; drawList(); drawCard(); sync();
+      if (window.innerWidth < 1020) T.$('#card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    drawList(); drawCard();
+    var cur = T.$('#list [aria-current="true"]'); if (cur) cur.scrollIntoView({ block: 'nearest' });
+  }).catch(function () { T.$('#card').innerHTML = '<p>The pages are stuck together. Try reloading.</p>'; });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

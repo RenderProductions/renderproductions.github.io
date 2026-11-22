@@ -31,6 +31,16 @@
   .adder { display: flex; gap: 10px; align-items: center; }
   .adder input { flex: 1; min-width: 0; font-size: 21px !important; }
   .log span { display: block; font: 19px/1.25 var(--hand); color: var(--pencil); text-decoration: line-through; text-decoration-color: rgba(90, 70, 50, 0.5); }
+  .known { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .known li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto 36px; align-items: center; gap: 10px; min-height: 48px; border-bottom: 1px dashed rgba(42, 29, 18, 0.35); }
+  .known .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .known .nm { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+  .known .nm a { color: var(--ink); text-decoration: none; font-size: 19px; }
+  .known .nm a:hover { color: var(--red); }
+  .known .nm small { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .known .cost { font: 20px/1 var(--hand); color: var(--red); white-space: nowrap; }
+  .known .rm { width: 36px; height: 36px; background: transparent; border: 0; color: var(--faded); font-size: 20px; }
+  .known .rm:hover { color: var(--red); }
   .gone { text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center; padding-top: 120px; }
   @media (max-width: 560px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts > div:nth-child(3) { border-left: 0; } }
 </style>
@@ -48,6 +58,7 @@
   <nav class="ribbons" aria-label="Bookmarks">
     <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
     <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
     <a href="/varandia/characters/" aria-current="true" style="--rib:#8a6a2a">Characters</a>
   </nav>
   <div class="spread" id="spread">
@@ -85,6 +96,16 @@
           <button type="button" class="btn ink" id="attack">Melee attack</button>
           <button type="button" class="btn" id="d20">Plain d20</button>
           <button type="button" class="btn" id="d6">d6</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+            <h2>Spells</h2>
+            <a href="/varandia/spells/" style="font-size: 16px">open the Spellbook</a>
+          </div>
+          <ul class="known" id="known"></ul>
+          <form class="adder" id="learn"><label class="sr" for="learnIn">Learn a spell</label><input id="learnIn" list="spellNames" maxlength="60" placeholder="learn a spell…" autocomplete="off"><datalist id="spellNames"></datalist><button class="btn small" type="submit">Learn</button></form>
+          <p class="pencil" id="spellNote" style="margin: 0"></p>
         </div>
       </div>
       <span class="folio" id="folioL">— 17 —</span>
@@ -126,10 +147,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
-          <label class="field"><span>Proficiencies</span><input id="profs" maxlength="120" autocomplete="off" placeholder="Sniper"></label>
-          <label class="field"><span>Spells</span><input id="spells" maxlength="120" autocomplete="off" placeholder="none trained yet"></label>
-        </div>
+        <label class="field"><span>Proficiencies</span><input id="profs" maxlength="120" autocomplete="off" placeholder="Sniper"></label>
 
         <div>
           <h2 style="margin-bottom: 2px" id="storyTitle">Their Story</h2>
@@ -259,20 +277,75 @@
     T.$('#lvDown').onclick = function () { if ((c.level || 1) > 1) { c.level -= 1; drawVitals(); save(); } };
 
     drawVitals(); drawList('items'); drawList('cardinal'); drawLog();
+
+    // ---- spells: learn from the Spellbook, cast with d20 + half INT, pay Stamina (and blood for Evil)
+    if (!Array.isArray(c.known)) c.known = [];
+    T.spells().then(function (S) {
+      T.$('#spellNames').innerHTML = S.all.map(function (x) { return '<option value="' + T.esc(x.name) + '"></option>'; }).join('');
+      var colorOf = {}; D.elements.forEach(function (e) { colorOf[e.key] = e.color; });
+      function drawKnown() {
+        var list = c.known.map(function (k) { return S.byKey[k]; }).filter(Boolean);
+        T.$('#known').innerHTML = list.map(function (sp) {
+          var cc = T.spellCost(sp, D);
+          return '<li><span class="dot" style="background:' + (colorOf[sp.element] || '#5a4632') + '"></span>' +
+            '<span class="nm"><a href="/varandia/spells/?s=' + sp.key + '">' + T.esc(sp.name) + '</a><small>' + (sp.own ? 'Evil' : T.levelName(sp.level)) + ' · need ' + cc.need + '</small></span>' +
+            '<span class="cost">' + cc.stamina + ' sta' + (cc.blood ? ' + ' + cc.blood + ' hp' : '') + '</span>' +
+            '<button type="button" class="btn small" data-cast="' + sp.key + '">Cast</button>' +
+            '<button type="button" class="rm" data-forget="' + sp.key + '" aria-label="Forget ' + T.esc(sp.name) + '">×</button></li>';
+        }).join('');
+        T.$('#spellNote').textContent = list.length ? '' : (c.spells ? 'notes: ' + c.spells : 'no spells learned yet');
+      }
+      drawKnown();
+      T.$('#learn').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = T.$('#learnIn').value.trim().toLowerCase(); if (!v) return;
+        var sp = S.all.filter(function (x) { return x.name.toLowerCase() === v; })[0];
+        if (!sp) { T.$('#spellNote').textContent = 'that spell isn\u2019t in the Spellbook'; return; }
+        if (c.known.indexOf(sp.key) < 0) c.known.push(sp.key);
+        T.$('#learnIn').value = ''; drawKnown(); save();
+      });
+      T.$('#known').addEventListener('click', function (e) {
+        var f = e.target.closest('[data-forget]');
+        if (f) { c.known = c.known.filter(function (k) { return k !== f.dataset.forget; }); drawKnown(); save(); return; }
+        var b = e.target.closest('[data-cast]'); if (!b) return;
+        var sp = S.byKey[b.dataset.cast], cc = T.spellCost(sp, D);
+        var blood = cc.blood;
+        if (blood === 'X') {
+          var x = parseInt(prompt('How much health do you spend on ' + sp.name + '?', '5'), 10);
+          if (!(x > 0)) return;
+          blood = x;
+        }
+        if (cc.stamina > c.sta) { T.$('#spellNote').textContent = 'not enough Stamina for ' + sp.name + ' (' + cc.stamina + ' needed)'; return; }
+        var bonus = T.half(T.stat(c, D.spells.stat, D)), r = T.roll(bonus), ok = r.total >= cc.need;
+        c.sta -= cc.stamina;
+        var lost = blood || 0, extra = '';
+        if (!ok) {
+          if (sp.own) {
+            var m = String(cc.fail).match(/Lose\s+([\dd+]+)(\s*[×x]\s*(\d+))?\s+health/i);
+            if (m && T.dice(m[1]) != null) { var f2 = T.dice(m[1]) * (m[3] ? +m[3] : 1); lost += f2; extra = ', lost ' + f2 + ' health'; }
+            else extra = ': ' + cc.fail.replace(/\.$/, '');
+          } else { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', lost ' + f1 + ' health'; }
+        }
+        c.hp = Math.max(0, c.hp - lost);
+        writeRoll(sp.name, r);
+        c.log[0] = sp.name + ': ' + r.die + ' ' + (bonus < 0 ? '\u2212 ' + Math.abs(bonus) : '+ ' + bonus) + ' = ' + r.total + (ok ? ' \u2014 cast!' : ' \u2014 fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '');
+        drawLog(); drawVitals(); save();
+      });
+    });
     ['items', 'cardinal'].forEach(function (k) {
       T.$('#' + k).addEventListener('click', function (e) {
         var b = e.target.closest('[data-rm]'); if (!b) return;
         c[k].splice(+b.dataset.rm, 1); drawList(k); save();
       });
     });
-    T.$$('form.adder').forEach(function (f) {
+    T.$$('form.adder[data-list]').forEach(function (f) {
       f.addEventListener('submit', function (e) {
         e.preventDefault();
         var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
         c[f.dataset.list].push(v); inp.value = ''; drawList(f.dataset.list); save();
       });
     });
-    [['profs', 'profs'], ['spells', 'spells'], ['story', 'story']].forEach(function (p) {
+    [['profs', 'profs'], ['story', 'story']].forEach(function (p) {
       var el = T.$('#' + p[0]); el.value = c[p[1]] || '';
       el.addEventListener('input', function () { c[p[1]] = el.value; save(); });
     });
