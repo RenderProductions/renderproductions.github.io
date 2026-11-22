@@ -24,6 +24,14 @@ export const LEVELS = [
 ];
 export const CO = { ipoLevel: 3, listingFee: polygons(2000), totalShares: 1000, float: 400, historyLength: 288, salaryMaxPct: 0.1, revenueShare: 0.5, privateStrikes: 3, impact: 0.5 };
 /** Refined Everything!: closing your own company, and selling it to another player. */
+/** Refined Everything!: like the house companies, a public player company's shift pay follows its share price,
+ *  against its IPO price. Kept between a quarter and 3x so a pump (or a crash) can't run away with it. */
+export const PAY_PRICE = { min: 0.25, max: 3 };
+export const ipoPrice = (db: Db, c: Company): number => Number(db.meta(`co.ipo_price:${c.ticker}`)) || c.history[0] || c.price;
+export function payFactor(db: Db, c: Company): number {
+  if (c.status !== 'public' || !(c.price > 0)) return 1;
+  return Math.min(PAY_PRICE.max, Math.max(PAY_PRICE.min, c.price / ipoPrice(db, c)));
+}
 export const CLOSE = { fee: 0.1, refoundMs: 7 * DAY, saleMs: DAY };
 export const TAKEOVER = { stake: 0.5, premium: 0.25, poisonPill: 0.1, bidMs: DAY, mergeMs: DAY, shieldMs: 7 * DAY, breakFee: 0.2 };
 
@@ -110,6 +118,7 @@ export function ipo(db: Db, c: Company, now = Date.now()): number {
     transfer(db, { from: treasuryId(c.ticker), to: RESERVE, cents: CO.listingFee, reason: 'company.listing', now, note: { ticker: c.ticker } });
     const price = Math.max(0.01, Math.round(fairValue(db, c) * 100) / 100);
     update(db, c.ticker, { status: 'public', price, offering_left: CO.float, ipo_at: now, history: [price] });
+    db.setMeta(`co.ipo_price:${c.ticker}`, String(price));
     award(db, c.owner_guild, c.owner_id, 'going_public', now);
     addMoment(`🔔 ${c.ticker} just went public at ⬡${price.toFixed(2)}`, now);
     return price;

@@ -14,10 +14,17 @@ import { load as loadMarket, nudge, quote } from '../market/market';
 import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay, type Career } from './jobs';
 import { isRight, makeTask, type Task } from './tasks';
 import { takeItem, useEffect } from '../shop/inventory';
-import { CO, addRevenue, getCompany, levelOf } from '../companies/companies';
+import { CO, addRevenue, getCompany, levelOf, payFactor } from '../companies/companies';
 import { shiftMultiplier } from '../events/world';
 
 export const KIND = 'work';
+
+/** A full shift's pay before bonuses, for a house company (follows its stock) or a player company (its level,
+ *  and its share price once it's public). */
+export function payFor(db: Ctx['db'], ticker: string, rank: number, priceCents?: Cents): Cents {
+  const pc = COMPANIES[ticker] ? null : getCompany(db, ticker);
+  return pc ? Math.round(JOB_RULES.basePay * RANK_PAY[clampRank(rank)] * levelOf(pc).payMult * payFactor(db, pc)) : shiftPay(ticker, priceCents, rank);
+}
 
 export interface WorkState {
   mode: 'work' | 'gig';
@@ -121,7 +128,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
   const q = m ? quote(m, ticker) : null;
   const career = careerOf(ctx, guildId, ticker);
   const pc = COMPANIES[ticker] ? null : getCompany(ctx.db, ticker);
-  let pay = pc ? Math.round(JOB_RULES.basePay * RANK_PAY[clampRank(career.rank)] * levelOf(pc).payMult) : shiftPay(ticker, q?.priceCents, career.rank);
+  let pay = payFor(ctx.db, ticker, career.rank, q?.priceCents);
   const extras: string[] = [];
   let tip = 0, team = 0;
 

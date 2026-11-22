@@ -21,6 +21,16 @@ export const FIXES: Fix[] = [
     }
   },
   {
+    // Refined Everything!: player-company pay follows the share price against the IPO price, which wasn't stored.
+    // For companies already public, the oldest price still in their history is the best record of it.
+    id: '2026-11-21-ipo-prices',
+    run(db) {
+      const rows = db.all<{ ticker: string; history: string; price: number }>("SELECT ticker, history, price FROM companies WHERE status = 'public'");
+      for (const r of rows) { const h = JSON.parse(r.history) as number[]; db.setMeta(`co.ipo_price:${r.ticker}`, String(h[0] || r.price)); }
+      return `${rows.length} public ${rows.length === 1 ? 'company' : 'companies'}`;
+    }
+  },
+  {
     // Nov 18, 2026 (Farm Handiness Update): the Farmhand waters now, so the Sprinkler is gone. Owners get back
     // what Marquez charged (⬡2,500 each), and Marquez's stock of them is cleared.
     id: '2026-11-18-sprinklers',

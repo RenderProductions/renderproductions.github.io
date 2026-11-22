@@ -3621,6 +3621,10 @@
   }
  ],
  "refined": {
+  "payPrice": {
+   "min": 0.25,
+   "max": 3
+  },
   "sellBack": 0.4,
   "bulkMax": 25,
   "closeFee": 0.1,

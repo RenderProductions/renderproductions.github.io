@@ -7,7 +7,7 @@ import { cooldown, discordTime, takeCooldown } from '../core/time';
 import { embed } from '../discord/style';
 import { load as loadMarket, quote } from '../market/market';
 import { COMPANIES, JOB_RULES, RANK_PAY, clampRank, rankName, shiftPay } from '../work/jobs';
-import { KIND, careerOf, layOff, startTask } from '../work/shift';
+import { KIND, careerOf, layOff, payFor, startTask } from '../work/shift';
 import { guildOf, me } from './shared';
 import { takeItem } from '../shop/inventory';
 import { awardHere } from '../achievements/achievements';
@@ -103,7 +103,7 @@ export const apply: Command = {
     return {
       embeds: [embed('work', career.shifts ? `Rehired: ${c.name}` : `Hired: ${c.name}`, [
         career.shifts ? `You return as **${rank}**, with ${career.shifts} shifts on record.` : `You start as **${rank}** on ${c.role}.`,
-        `Work a shift with \`${ctx.config.prefix}work\`. Pay follows the ${t} share price.`,
+        `Work a shift with \`${ctx.config.prefix}work\`. ${COMPANIES[t] || pc?.status === 'public' ? `Pay follows the ${t} share price.` : `Pay follows its level, and its share price once it goes public.`}`,
         `A performance review every ${JOB_RULES.review.every} shifts decides promotions.`
       ])]
     };
@@ -184,7 +184,7 @@ export const job: Command = {
     return { embeds: [embed('work', `Career: ${ctx.user.name}`, [
       `**${co.name}** (${p.job})`,
       ladder,
-      `Pay multiplier: ${RANK_PAY[clampRank(c.rank)]}×. A correct shift currently pays about ${format(shiftPay(p.job, q?.priceCents, c.rank))}.`,
+      `Pay multiplier: ${RANK_PAY[clampRank(c.rank)]}×. A correct shift currently pays about ${format(payFor(ctx.db, p.job, c.rank, q?.priceCents))}.`,
       `Next review in ${JOB_RULES.review.every - c.rev_total} ${JOB_RULES.review.every - c.rev_total === 1 ? 'shift' : 'shifts'} (${c.rev_right}/${c.rev_total} correct so far).`,
       `Shifts: ${c.shifts} · Accuracy: ${c.shifts ? Math.round((c.correct / c.shifts) * 100) : 0}% · Earned: ${format(c.earned)}`,
       w.ready ? 'Your next shift is available now.' : `Next shift: ${discordTime(w.until)}`,
@@ -200,7 +200,7 @@ export function onStrikeButton(ctx: Ctx, s: sessions.Session<{ job: string; tier
   const g = s.guild_id!;
   if (value === 'strike') {
     const m = loadMarket(ctx.db);
-    const pay = payFromReserve(ctx.db, economy.reserveStart, { to: wallet(g, ctx.user.id), cents: Math.round(shiftPay(s.state.job, m ? quote(m, s.state.job)?.priceCents : undefined, s.state.tier) * 0.25), reason: 'work.strike', guildId: g, actorId: ctx.user.id, now: ctx.now });
+    const pay = payFromReserve(ctx.db, economy.reserveStart, { to: wallet(g, ctx.user.id), cents: Math.round(payFor(ctx.db, s.state.job, s.state.tier, m ? quote(m, s.state.job)?.priceCents : undefined) * 0.25), reason: 'work.strike', guildId: g, actorId: ctx.user.id, now: ctx.now });
     awardHere('solidarity');
     return { update: { content: `**Solidarity.** You hold the line with the union. Strike pay: **+${format(pay)}**.\n-# Strikes do not count toward your review.`, buttons: [] } };
   }

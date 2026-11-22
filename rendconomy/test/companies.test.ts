@@ -14,6 +14,8 @@ import { execute } from '../src/discord/router';
 import { tick } from '../src/market/market';
 import { bidOn, companiesTick, die, getCompany, treasury, treasuryId, holding, worthOf } from '../src/companies/companies';
 import { siteFiles } from '../src/site/publish';
+import { payFor } from '../src/work/shift';
+import { JOB_RULES, RANK_PAY } from '../src/work/jobs';
 
 const G = 'g1', A = '111111111111111111', B = '222222222222222222', OWNER = '999999999999999999';
 const text = (r: ReplyObject | undefined) => [r?.content ?? '', ...(r?.embeds ?? []).map((e) => `${e.title}\n${e.description}`)].join('\n');
@@ -144,7 +146,7 @@ test('the one-time REND fix: removes the bid, refunds the bidder in full, shield
   await run('takeover', { action: 'bid REND' }, B);
   assert.ok(bidOn(db, 'REND'));
   const out = runFixes(db, now());
-  assert.equal(out.length, 3, 'the REND fix, the sprinkler refund and the plow');
+  assert.equal(out.length, 4, 'the REND fix, the IPO prices, the sprinkler refund and the plow');
   assert.match(out[0]!, /REND|rend-takeover.*removed the bid/);
   assert.equal(bidOn(db, 'REND'), null);
   assert.equal(balance(db, wallet(G, B)), before, 'refunded in full');
@@ -224,4 +226,23 @@ test('a company that dies with a takeover bid on it gives the bidder their premi
   assert.equal(balance(db, wallet(G, B)) - b0, premium);
   assert.equal(balance(db, escrow(G, B)), 0);
   assert.ok(audit(db).ok);
+});
+
+test('player-company pay follows its share price once public, between 0.25x and 3x', async () => {
+  const { db, run, fund } = setup();
+  await run('balance'); fund(A, 60_000);
+  await run('found', { ticker: 'MEOW', name: 'Cat Corp' });
+  await run('approve', { ticker: 'MEOW' }, OWNER, true);
+  await run('invest', { amount: '20000' }); await run('upgrade'); await run('upgrade');
+  const base = Math.round(JOB_RULES.basePay * RANK_PAY[0] * 1.2);
+  assert.equal(payFor(db, 'MEOW', 0), base, 'private: level only');
+  await run('ipo');
+  const ipo = getCompany(db, 'MEOW')!.price;
+  assert.equal(payFor(db, 'MEOW', 0), base, 'at the IPO price, the same');
+  db.run('UPDATE companies SET price = ? WHERE ticker = ?', ipo * 2, 'MEOW');
+  assert.equal(payFor(db, 'MEOW', 0), Math.round(base * 2));
+  db.run('UPDATE companies SET price = ? WHERE ticker = ?', ipo * 50, 'MEOW');
+  assert.equal(payFor(db, 'MEOW', 0), Math.round(base * 3), 'capped at 3x');
+  db.run('UPDATE companies SET price = ? WHERE ticker = ?', ipo / 100, 'MEOW');
+  assert.equal(payFor(db, 'MEOW', 0), Math.round(base * 0.25), 'never below a quarter');
 });
