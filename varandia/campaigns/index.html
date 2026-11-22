@@ -48,6 +48,14 @@
   .saved button { background: transparent; border: 0; min-height: 40px; padding: 4px 10px; font-size: 16px; cursor: pointer; text-align: left; }
   .saved button small { display: block; font: 12px/1.2 var(--sc); color: var(--faded); }
   .saved button.x { color: var(--red); padding: 4px 8px; font-size: 18px; }
+  .npcs { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .npcs li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 16px; }
+  .npcs .nm { flex: 1 1 120px; }
+  .npcs .nm { background: transparent; border: 0; padding: 0; text-align: left; font: 18px/1.2 var(--fell); cursor: pointer; min-height: 36px; overflow-wrap: anywhere; }
+  .npcs .pair { display: flex; align-items: center; gap: 2px; white-space: nowrap; }
+  .tome .npcs input { width: 2.8em !important; min-width: 0 !important; padding: 2px 2px !important; font: 18px/1.1 var(--hand) !important; text-align: center; background: transparent; border: 0; border-bottom: 1.4px solid var(--ink); -moz-appearance: textfield; }
+  .npcs input::-webkit-inner-spin-button, .npcs input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .npcs .x { background: transparent; border: 0; color: var(--red); font-size: 18px; cursor: pointer; min-height: 36px; padding: 0 6px; }
   .gLast { font: 20px/1.3 var(--hand); color: var(--red); min-height: 26px; }
   .gLast b { font: 40px/1 var(--fell); color: var(--ink); margin-right: 8px; }
   .glog { list-style: none; margin: 6px 0 0; padding: 0; font-size: 15px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 2px; }
@@ -102,6 +110,7 @@
                 <label class="field" style="flex: 1 1 120px"><span>Dice</span><input id="gDice" maxlength="40" autocomplete="off" placeholder="d20+4" value="d20"></label>
                 <button type="submit" class="btn ink small">Roll</button>
                 <button type="button" class="btn small" id="gSave" title="Keep this roll for later">Save</button>
+                <button type="button" class="btn small" id="gTrack" title="Track Health and Stamina for whoever is in Who">Track</button>
               </div>
             </form>
             <div class="quick" id="gQuick" role="group" aria-label="Quick dice">
@@ -112,6 +121,7 @@
               <button type="button" class="chip" id="gPublic" aria-pressed="false">to Discord</button>
               <span class="pencil" id="gNote" style="font-size: 16px" aria-live="polite"></span>
             </div>
+            <div id="gNpcBox" hidden><span class="sc faded" style="font-size: 13px">Keeping track of</span><ul class="npcs" id="gNpcs"></ul></div>
             <div id="gSavedBox" hidden><span class="sc faded" style="font-size: 13px">Saved</span><ul class="saved" id="gSaved"></ul></div>
             <div aria-live="polite"><div class="gLast" id="gLast"></div><ul class="glog" id="gLog"></ul></div>
           </section>
@@ -190,19 +200,31 @@
   }
 
   // ---- the GM screen
-  var screen = { camp: null, saved: [], log: [], pub: false };
+  var screen = { camp: null, saved: [], npcs: [], log: [], pub: false }, npcT = null;
   try { screen.pub = localStorage.getItem('varandia_gm_public') === '1'; } catch (e) {}
   function drawScreen(c) {
     var isGm = c && c.isGm;
     T.$('#screen').hidden = !isGm;
     if (!isGm) return;
     if (screen.camp !== c.id) {
-      screen.camp = c.id; screen.saved = []; screen.log = [];
+      screen.camp = c.id; screen.saved = []; screen.npcs = []; screen.log = [];
       try { screen.log = JSON.parse(sessionStorage.getItem('varandia_gm_log_' + c.id) || '[]'); } catch (e) {}
-      T.cloud.call('GET', 'screen/' + c.id).then(function (r) { screen.saved = r.saved || []; drawSaved(); }, function () {});
+      T.cloud.call('GET', 'screen/' + c.id).then(function (r) { screen.saved = r.saved || []; screen.npcs = r.npcs || []; drawSaved(); drawNpcs(); }, function () {});
     }
     screen.hook = c.hasWebhook;
-    drawMode(); drawSaved(); drawGLog();
+    drawMode(); drawSaved(); drawNpcs(); drawGLog();
+  }
+  function npcOf(name) { name = (name || '').trim().toLowerCase(); return screen.npcs.filter(function (x) { return x.name.toLowerCase() === name; })[0] || null; }
+  function drawNpcs() {
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#gNpcs')) return;   // don't redraw under the GM's fingers
+    T.$('#gNpcBox').hidden = !screen.npcs.length;
+    var num = function (i, k, v, lab) { return '<input type="number" inputmode="numeric" data-npc="' + i + '" data-k="' + k + '" value="' + (v == null ? '' : v) + '" aria-label="' + lab + '">'; };
+    T.$('#gNpcs').innerHTML = screen.npcs.map(function (x, i) {
+      return '<li><button type="button" class="nm" data-pick="' + i + '" title="Roll as ' + T.esc(x.name) + '">' + T.esc(x.name) + '</button>' +
+        '<span class="pair">❤ ' + num(i, 'hp', x.hp, x.name + ' Health') + '/' + num(i, 'maxHp', x.maxHp, x.name + ' max Health') + '</span>' +
+        '<span class="pair">◆ ' + num(i, 'sta', x.sta, x.name + ' Stamina') + '/' + num(i, 'maxSta', x.maxSta, x.name + ' max Stamina') + '</span>' +
+        '<button type="button" class="x" data-untrack="' + i + '" aria-label="Stop tracking ' + T.esc(x.name) + '">×</button></li>';
+    }).join('');
   }
   function drawMode() {
     var pub = screen.pub && screen.hook;
@@ -226,6 +248,7 @@
     var r = T.rollExpr(dice);
     if (!r) { T.$('#gNote').textContent = 'can\u2019t read \u201c' + dice + '\u201d (try d20+4 or 2d8+3)'; return; }
     who = (who || '').trim(); what = (what || '').trim();
+    if (npcOf(who)) who = npcOf(who).name;   // "ogre" rolls as the Ogre you're tracking
     var label = (who || 'The GM') + (what ? ' ' + what : '') + ': ' + r.said + ' = ' + r.total;
     var pub = screen.pub && screen.hook;
     screen.log.unshift({ total: r.total, label: label, secret: !pub }); screen.log = screen.log.slice(0, 20);
@@ -233,11 +256,31 @@
     drawGLog();
     if (!pub) return;
     T.$('#gNote').textContent = 'sending…';
-    T.cloud.call('POST', 'gmroll', { camp: screen.camp, who: who || 'The GM', line: label,
-      info: { title: what ? (who || 'The GM') + ' ' + what : (who || 'The GM') + ' rolls', total: r.total, die: r.sides === 20 ? r.die : null, bonus: r.bonus, rolled: r.said } })
+    var npc = npcOf(who), info = { title: what ? (who || 'The GM') + ' ' + what : (who || 'The GM') + ' rolls', total: r.total, die: r.sides === 20 ? r.die : null, bonus: r.bonus, rolled: r.said };
+    if (npc) { info.hp = npc.hp; info.maxHp = npc.maxHp; info.sta = npc.sta; info.maxSta = npc.maxSta; }
+    T.cloud.call('POST', 'gmroll', { camp: screen.camp, who: who || 'The GM', line: label, info: info })
       .then(function () { T.$('#gNote').textContent = 'posted'; }, function (e) { T.$('#gNote').textContent = err(e); });
   }
-  function saveScreen() { return T.cloud.call('PUT', 'screen/' + screen.camp, { saved: screen.saved }).then(function (r) { screen.saved = r.saved; drawSaved(); }, function (e) { T.$('#gNote').textContent = err(e); }); }
+  function saveScreen() { return T.cloud.call('PUT', 'screen/' + screen.camp, { saved: screen.saved, npcs: screen.npcs }).then(function (r) { screen.saved = r.saved; drawSaved(); }, function (e) { T.$('#gNote').textContent = err(e); }); }
+  T.$('#gTrack').onclick = function () {
+    var name = T.$('#gWho').value.trim();
+    if (!name) { T.$('#gNote').textContent = 'put a name in Who first'; T.$('#gWho').focus(); return; }
+    if (npcOf(name)) { T.$('#gNote').textContent = 'already tracking ' + name; return; }
+    screen.npcs.push({ name: name, hp: null, maxHp: null, sta: null, maxSta: null }); drawNpcs(); saveScreen();
+    var first = T.$('#gNpcs li:last-child input'); if (first) first.focus();
+  };
+  T.$('#gNpcs').addEventListener('input', function (e) {
+    var t = e.target.closest('[data-npc]'); if (!t) return;
+    var x = screen.npcs[+t.dataset.npc], v = t.value === '' ? null : Math.round(+t.value);
+    x[t.dataset.k] = v;
+    if ((t.dataset.k === 'maxHp' && x.hp == null) || (t.dataset.k === 'maxSta' && x.sta == null)) { x[t.dataset.k === 'maxHp' ? 'hp' : 'sta'] = v; t.parentNode.querySelector('input').value = v == null ? '' : v; }
+    clearTimeout(npcT); npcT = setTimeout(saveScreen, 700);
+  });
+  T.$('#gNpcs').addEventListener('click', function (e) {
+    var pk = e.target.closest('[data-pick]'), un = e.target.closest('[data-untrack]');
+    if (pk) { T.$('#gWho').value = screen.npcs[+pk.dataset.pick].name; T.$('#gWhat').focus(); }
+    if (un) { screen.npcs.splice(+un.dataset.untrack, 1); drawNpcs(); saveScreen(); }
+  });
   T.$('#gForm').addEventListener('submit', function (e) { e.preventDefault(); gmRoll(T.$('#gWho').value, T.$('#gWhat').value, T.$('#gDice').value || 'd20'); });
   T.$('#gQuick').addEventListener('click', function (e) { var b = e.target.closest('[data-q]'); if (b) gmRoll(T.$('#gWho').value, T.$('#gWhat').value, b.dataset.q); });
   T.$('#gSave').onclick = function () {

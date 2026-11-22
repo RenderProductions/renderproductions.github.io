@@ -586,12 +586,15 @@ async function varandia(req, env, path, out) {
     if (!c || c.gm !== u.id) return out({ error: 'not found' }, 404);
     if (req.method === 'GET') {
       const r = await env.DB.prepare('SELECT data FROM v_screens WHERE camp = ?').bind(c.id).first();
-      return out({ saved: r ? JSON.parse(r.data) : [] });
+      const d = r ? JSON.parse(r.data) : [];
+      return out(Array.isArray(d) ? { saved: d, npcs: [] } : { saved: d.saved || [], npcs: d.npcs || [] });
     }
     if (req.method === 'PUT') {
       const saved = (Array.isArray(body.saved) ? body.saved : []).slice(0, 40).map((x) => ({ who: String(x && x.who || '').slice(0, 60), what: String(x && x.what || '').slice(0, 60), dice: String(x && x.dice || '').slice(0, 40) })).filter((x) => x.dice);
-      await env.DB.prepare('INSERT INTO v_screens (camp, data, updated) VALUES (?, ?, ?) ON CONFLICT(camp) DO UPDATE SET data = excluded.data, updated = excluded.updated').bind(c.id, JSON.stringify(saved), Date.now()).run();
-      return out({ saved });
+      const n = (v) => (v === '' || v == null || !Number.isFinite(+v) ? null : Math.max(-9999, Math.min(99999, Math.round(+v))));
+      const npcs = (Array.isArray(body.npcs) ? body.npcs : []).slice(0, 40).map((x) => ({ name: String(x && x.name || '').slice(0, 60), hp: n(x && x.hp), maxHp: n(x && x.maxHp), sta: n(x && x.sta), maxSta: n(x && x.maxSta) })).filter((x) => x.name);
+      await env.DB.prepare('INSERT INTO v_screens (camp, data, updated) VALUES (?, ?, ?) ON CONFLICT(camp) DO UPDATE SET data = excluded.data, updated = excluded.updated').bind(c.id, JSON.stringify({ saved, npcs }), Date.now()).run();
+      return out({ saved, npcs });
     }
   }
   if (path === '/api/v/gmroll' && req.method === 'POST') {
@@ -602,7 +605,7 @@ async function varandia(req, env, path, out) {
     if (times.length >= 30) return out({ error: 'slow down' }, 429);
     times.push(now); vRolls.set(u.id, times);
     const line = String(body.line || '').replace(/[@`]/g, '').slice(0, 300);
-    const info = Object.assign({}, body.info && typeof body.info === 'object' ? body.info : {}, { kind: 'gm', hp: null, maxHp: null, sta: null, maxSta: null, exhaustion: null, taint: null });
+    const info = Object.assign({ hp: null, maxHp: null, sta: null, maxSta: null }, body.info && typeof body.info === 'object' ? body.info : {}, { kind: 'gm', exhaustion: null, taint: null });
     const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       username: vHookName(body.who, 'The GM'), allowed_mentions: { parse: [] }, embeds: [vEmbed(info, line, c.name.slice(0, 100))]
     }) });
