@@ -23,6 +23,8 @@
   .pc { position: relative; }
   .pc:has(.pcpic) { padding-right: 84px; min-height: 100px; }
   .pcpic { position: absolute; top: 14px; right: 14px; width: 56px; height: 70px; object-fit: cover; border: 1.6px solid var(--ink); filter: sepia(0.25) contrast(1.05); mix-blend-mode: multiply; }
+  .pc.hiddennpc { border-style: dashed; }
+  .pc .vis { min-height: 0; padding: 0; font: 13px/1.3 var(--sc); color: var(--red); text-align: left; }
   .pc b { font: 400 22px/1.1 var(--fell); }
   .pc .meta { font: 13px/1.3 var(--sc); color: var(--faded); }
   .pc .bar2 { position: relative; height: 12px; }
@@ -199,7 +201,7 @@
     }).join('');
   }
   function drawJoinChars() {
-    var mine = T.chars.list();
+    var mine = T.chars.list().filter(function (c) { return !c.npc; });
     T.$('#jChar').innerHTML = mine.length ? mine.map(function (c) { return '<option value="' + c.id + '">' + T.esc(c.name) + '</option>'; }).join('') : '<option value="">make a character first</option>';
   }
   function load() {
@@ -211,15 +213,19 @@
     var dv = T.derive(c, D), hp = c.hp == null ? dv.hp : c.hp, sta = c.sta == null ? dv.stamina : c.sta;
     var conds = Object.keys(c.conds || {}).concat(c.exhaustion ? ['Exhaustion ' + c.exhaustion] : []).concat(c.taint ? ['Taint ' + c.taint] : []);
     var k = T.cls(D, c.cls), mine = me && ch.owner === me.id;
-    var pic = T.portrait(c);
-    return '<div class="inked pc">' + (pic ? '<img class="pcpic" src="' + T.esc(pic) + '" alt="">' : '') + '<b>' + T.esc(c.name) + '</b><span class="meta">' + T.esc([race(D, c.race) + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1)].join(' · ')) + '<br>played by ' + T.esc(ch.ownerName || '?') + '</span>' +
+    var pic = T.portrait(c), line = T.esc([race(D, c.race) + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1)].join(' · '));
+    if (c.npc && !isGm) {   // an NPC the GM has shown the players: who they are, not their numbers
+      return '<div class="inked pc">' + (pic ? '<img class="pcpic" src="' + T.esc(pic) + '" alt="">' : '') + '<b>' + T.esc(c.name) + '</b>' + (c.title ? '<i class="faded">' + T.esc(c.title) + '</i>' : '') + '<span class="meta">' + line + '</span>' + (c.look ? '<span style="font-size:15px">' + T.esc(c.look) + '</span>' : '') + '</div>';
+    }
+    return '<div class="inked pc' + (c.npc && c.hidden ? ' hiddennpc' : '') + '">' + (pic ? '<img class="pcpic" src="' + T.esc(pic) + '" alt="">' : '') + '<b>' + T.esc(c.name) + '</b><span class="meta">' + line + '<br>' +
+      (c.npc ? '<button type="button" class="linkish vis" data-vis="' + ch.id + '" aria-pressed="' + !c.hidden + '">' + (c.hidden ? '🙈 hidden from players' : '👁 players can see them') + '</button>' : 'played by ' + T.esc(ch.ownerName || '?')) + '</span>' +
       '<div class="row"><span class="sc">Health</span><span>' + hp + ' / ' + dv.hp + '</span></div><div class="bar2"><i style="width:calc(' + (dv.hp ? hp / dv.hp * 100 : 0) + '% - 4px)"></i></div>' +
       '<div class="row"><span class="sc">Stamina</span><span>' + sta + ' / ' + dv.stamina + '</span></div><div class="bar2 sta"><i style="width:calc(' + (dv.stamina ? sta / dv.stamina * 100 : 0) + '% - 4px)"></i></div>' +
       '<div class="row"><span class="sc">Defense</span><span>' + dv.defense + '</span></div>' +
       (conds.length ? '<span class="conds">' + T.esc(conds.join(' · ')) + '</span>' : '') +
       (c.log && c.log[0] ? '<span class="roll">' + T.esc(c.log[0]) + '</span>' : '') +
       '<span class="acts">' + (isGm || mine ? '<a href="/varandia/sheet/?id=' + encodeURIComponent(ch.id) + '&cloud=1">open sheet</a>' : '') +
-      (isGm || mine ? '<button type="button" class="linkish" data-leave="' + ch.id + '" style="color:var(--red);min-height:0">' + (mine ? 'leave' : 'remove') + '</button>' : '') + '</span></div>';
+      (isGm || mine ? '<button type="button" class="linkish" data-leave="' + ch.id + '" style="color:var(--red);min-height:0">' + (c.npc ? 'remove' : mine ? 'leave' : 'remove') + '</button>' : '') + '</span></div>';
   }
 
   // ---- the GM screen
@@ -350,7 +356,12 @@
       order: f.list.filter(function (x) { return !x.out; }).map(function (x) { return { name: x.name, init: x.init, cur: x.id === f.current }; }) } }).catch(function () {});
   }
   function hpOf(e) {
-    if (e.kind === 'pc') { var ch = charOf(e); if (!ch) return ''; var d = ch.data, dv = T.derive(d, D); return '❤ ' + (d.hp == null ? dv.hp : d.hp) + '/' + dv.hp; }
+    if (e.char) {
+      var ch = charOf(e);
+      if (!ch || (ch.data.npc && !F.camp.isGm)) return '';   // players don't see an NPC's health
+      var d = ch.data, dv = T.derive(d, D); return '❤ ' + (d.hp == null ? dv.hp : d.hp) + '/' + dv.hp;
+    }
+    if (!F.camp.isGm) return '';
     var n = npcOf(e.name); return n && n.maxHp != null ? '❤ ' + (n.hp == null ? n.maxHp : n.hp) + '/' + n.maxHp : '';
   }
   function drawFight() {
@@ -383,11 +394,25 @@
     postTurn('Round ' + f.round + ' · ' + live[n].name + '\u2019s turn');
   }
   T.$('#detail').addEventListener('click', function (e) {
+    var v = e.target.closest('[data-vis]');
+    if (v) {
+      var ch = F.chars.filter(function (x) { return x.id === v.dataset.vis; })[0]; if (!ch) return;
+      var local = T.chars.get(ch.id), d = local || Object.assign({}, ch.data);
+      d.hidden = !d.hidden; d.id = ch.id;
+      v.textContent = d.hidden ? '🙈 hidden from players' : '👁 players can see them';
+      if (local) { T.chars.save(local); T.cloud.push(local, true); }
+      else { delete d.portrait; T.cloud.call('PUT', 'chars/' + ch.id, { data: d }); }
+      ch.data.hidden = d.hidden; v.closest('.pc').classList.toggle('hiddennpc', d.hidden);
+      return;
+    }
     var b = e.target.closest('[data-fight],[data-up],[data-down],[data-out]'); if (!b || !F.camp || !F.camp.isGm) return;
     var f = F.fight;
     if (b.dataset.fight === 'start') {
       var list = [];
-      F.chars.forEach(function (ch) { list.push({ id: 'c' + ch.id, kind: 'pc', name: ch.data.name || ch.name, char: ch.id, init: null, spd: T.stat(ch.data, 'spd', D) }); });
+      F.chars.forEach(function (ch) {
+        if (ch.data.npc) list = place(list, { id: 'c' + ch.id, kind: 'npc', name: ch.data.name || ch.name, char: ch.id, init: T.roll(T.derive(ch.data, D).initiative).total, spd: T.stat(ch.data, 'spd', D) });
+        else list.push({ id: 'c' + ch.id, kind: 'pc', name: ch.data.name || ch.name, char: ch.id, init: null, spd: T.stat(ch.data, 'spd', D) });
+      });
       screen.npcs.forEach(function (n, k) { list = place(list, { id: 'n' + k + Date.now().toString(36), kind: 'npc', name: n.name, init: T.roll(n.ini || 0).total, spd: 0 }); });
       F.fight = { round: 1, started: Date.now(), list: list, current: '' };
       F.fight.current = (list.filter(function (x) { return x.init != null; })[0] || list[0] || {}).id || '';
@@ -429,7 +454,11 @@
       h += '<div id="fight"></div>';
       h += c.isGm ? '<div><h3 id="introT" style="margin-bottom:2px">The story so far</h3><textarea class="lined" id="intro" rows="5" maxlength="8000" aria-labelledby="introT" placeholder="what your players read before the first session…">' + T.esc(c.intro) + '</textarea></div>'
                   : (c.intro ? '<div style="white-space:pre-wrap;font-size:17px">' + T.esc(c.intro) + '</div>' : '');
-      h += '<div><h3 style="margin-bottom:10px">The party</h3>' + (r.chars.length ? '<div class="party">' + r.chars.map(function (ch) { return pcCard(ch, c.isGm, me); }).join('') + '</div>' : '<p class="pencil" style="margin:0">no one has joined yet</p>') + '</div>';
+      var pcs = r.chars.filter(function (ch) { return !ch.data.npc; }), npcs = r.chars.filter(function (ch) { return ch.data.npc; });
+      h += '<div><h3 style="margin-bottom:10px">The party</h3>' + (pcs.length ? '<div class="party">' + pcs.map(function (ch) { return pcCard(ch, c.isGm, me); }).join('') + '</div>' : '<p class="pencil" style="margin:0">no one has joined yet</p>') + '</div>';
+      if (c.isGm) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px"><h3 style="margin:0">NPCs</h3><a class="btn small" href="/varandia/builder/?npc=' + encodeURIComponent(c.id) + '">+ New NPC</a></div>' +
+        (npcs.length ? '<div class="party">' + npcs.map(function (ch) { return pcCard(ch, true, me); }).join('') + '</div>' : '<p class="pencil" style="margin:0">full sheets for notable figures: spells, weapons, the lot. They start hidden from players.</p>') + '</div>';
+      else if (npcs.length) h += '<div><h3 style="margin-bottom:10px">Met along the way</h3><div class="party">' + npcs.map(function (ch) { return pcCard(ch, false, me); }).join('') + '</div></div>';
       if (c.isGm) h += '<div class="inked thin" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><h3>Rolls to Discord</h3>' +
         '<p style="margin:0;font-size:15px">Paste a Discord webhook link (Channel settings → Integrations → Webhooks) and players can send their rolls to that channel from their sheets.</p>' +
         '<label class="field"><span>Webhook link</span><input type="text" id="hook" autocomplete="off" value="' + T.esc(c.webhook) + '" placeholder="https://discord.com/api/webhooks/…" style="font-size:16px !important"></label>' +
