@@ -27,7 +27,7 @@
   "work": {
    "label": "Work",
    "emoji": "💼",
-   "count": 6
+   "count": 7
   },
   "market": {
    "label": "Stock market",
@@ -287,6 +287,11 @@
      "name": "item",
      "description": "Item name, e.g. coffee",
      "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How many (up to 25, or \"all\"), or for a Rush Order: the item to restock",
+     "required": false
     }
    ]
   },
@@ -798,6 +803,17 @@
    "description": "A quick paid task, no job needed (every 10 minutes)",
    "section": "work",
    "slash": "/gig",
+   "options": []
+  },
+  {
+   "name": "beg",
+   "aliases": [
+    "panhandle",
+    "sparechange"
+   ],
+   "description": "Ask around for spare change (once an hour). Being rich and caught begging is embarrassing",
+   "section": "work",
+   "slash": "/beg",
    "options": []
   },
   {
@@ -1784,6 +1800,17 @@
    "unlock": false
   },
   {
+   "id": "rushorder",
+   "emoji": "📦",
+   "name": "Rush Order",
+   "price": 1500,
+   "stock": 2,
+   "shelf": "Odds & Ends",
+   "desc": "Marquez restocks one item of your choice right now, for everyone: /use rush order <item>. Not for collectibles.",
+   "passive": false,
+   "unlock": false
+  },
+  {
    "id": "overtime",
    "emoji": "⏰",
    "name": "Overtime",
@@ -2383,6 +2410,22 @@
    "name": "First Paycheck",
    "desc": "Work your first shift",
    "category": "Getting started",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "spare_change",
+   "name": "Spare Change?",
+   "desc": "Beg for the first time",
+   "category": "Getting started",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "rush_order",
+   "name": "Rush Job",
+   "desc": "Get Marquez to restock something with a Rush Order",
+   "category": "Social",
    "rarity": "common",
    "secret": false
   },
@@ -3419,27 +3462,11 @@
    "secret": false
   },
   {
-   "id": "secret-130",
-   "name": "???",
-   "desc": "A secret. Keep playing.",
-   "category": "Secret",
-   "rarity": "rare",
-   "secret": true
-  },
-  {
-   "id": "secret-131",
-   "name": "???",
-   "desc": "A secret. Keep playing.",
-   "category": "Secret",
-   "rarity": "rare",
-   "secret": true
-  },
-  {
    "id": "secret-132",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "common",
+   "rarity": "rare",
    "secret": true
   },
   {
@@ -3447,7 +3474,7 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "common",
+   "rarity": "rare",
    "secret": true
   },
   {
@@ -3463,7 +3490,7 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "epic",
+   "rarity": "common",
    "secret": true
   },
   {
@@ -3471,11 +3498,35 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "rare",
+   "rarity": "common",
    "secret": true
   },
   {
    "id": "secret-137",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "secret-138",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "epic",
+   "secret": true
+  },
+  {
+   "id": "secret-139",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "secret-140",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",

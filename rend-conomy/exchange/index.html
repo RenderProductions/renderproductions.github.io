@@ -117,20 +117,14 @@
     <div class="closed-list" id="closed-list"></div>
   </section>
 
-  <section aria-labelledby="how-title" style="margin-top: 2.5rem;">
+  <section aria-labelledby="learn-title" style="margin-top: 2.5rem;">
     <div class="section-head">
-      <h2 id="how-title">How companies work</h2>
+      <h2 id="learn-title">How companies work</h2>
+      <span><a href="/wiki/">The wiki</a></span>
     </div>
     <div class="panel prose">
-      <p>Prices and costs are marked <b>⬡</b>; Polygons a company has are marked <b>⬢</b>.</p>
-      <p>Anyone can start a company with <code>r!found &lt;ticker&gt; &lt;name&gt;</code> for <b id="rule-founding">⬡ 2,500.00</b>. A mod approves the name first, and if it's rejected you get your money back. Once approved, that money becomes the company's treasury.</p>
-      <p>The treasury pays a daily upkeep. It grows when the owner invests (<code>r!invest</code>), when players work there (every shift adds half the worker's pay), and from IPO share sales. Spend it to level up with <code>r!upgrade</code>.</p>
-      <p>At <b id="rule-ipo">Firm</b> level, the owner can go public with <code>r!ipo</code> (a <b id="rule-fee">⬡ 2,000.00</b> listing fee). Then anyone can <code>r!buy</code> and <code>r!sell</code> its shares, except the owner. The first <b id="rule-float">400</b> shares sold fund the company. The owner can pay themselves up to 10% of the treasury a day with <code>r!salary</code>, but the stock dips when they do.</p>
-      <p>Miss an upkeep payment and the market panics. Keep missing them and the price slides to zero, and the company closes for good, taking every share with it. A private company closes after missing upkeep 3 days in a row.</p>
-      <table class="board levels" aria-label="Company levels" style="margin-top: 1rem;">
-        <thead><tr><th scope="col">Level</th><th scope="col" class="num">Cost</th><th scope="col" class="num">Upkeep / day</th><th scope="col" class="num hide-sm">Employee pay</th></tr></thead>
-        <tbody id="levels-body"></tbody>
-      </table>
+      <p>Starting a company, levels, going public, salaries and takeovers are explained in the wiki.</p>
+      <p><a href="/wiki/companies/">Player companies →</a></p>
     </div>
   </section>
 
@@ -261,13 +255,6 @@
         cl.appendChild(item);
       });
 
-      if (data.levels) renderLevels(data.levels);
-      if (data.rules) {
-        $('rule-founding').textContent = amt(data.rules.founding);
-        $('rule-fee').textContent = amt(data.rules.listingFee);
-        $('rule-float').textContent = String(data.rules.float);
-        if (data.levels && data.levels[data.rules.ipoLevel - 1]) $('rule-ipo').textContent = data.levels[data.rules.ipoLevel - 1].name;
-      }
       var tagEl = $('mode-tag');
       tagEl.textContent = 'LIVE';
       tagEl.className = 'tag live';

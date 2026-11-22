@@ -26,9 +26,13 @@ export function reserveSnapshot(db: Db) {
   return { polygons: cents / 100, start: economy.reserveStart / 100, level: Math.round((cents / economy.reserveStart) * 1000) / 1000, payouts: Math.round(payoutFactor(db, economy.reserveStart) * 100) / 100 };
 }
 
+/** When this process started (the bot page shows "up for ..."). */
+const STARTED = new Date().toISOString();
+
 export function botStats(db: Db, dir: Directory = {}) {
   const one = <T>(sql: string) => db.get<T>(sql)!;
   return {
+    online: STARTED,
     servers: dir.servers?.() ?? null,
     players: one<{ n: number }>('SELECT COUNT(*) AS n FROM players').n,
     polygons: one<{ s: number }>("SELECT COALESCE(SUM(balance), 0) AS s FROM accounts WHERE kind = 'wallet'").s / 100,

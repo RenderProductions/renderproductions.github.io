@@ -10,14 +10,18 @@
 </div>
 
 <h2 id="founding">Founding one</h2>
-<p><code>r!found TICK Your Company Name</code> sends it to the server's moderators for approval. Once approved, put money into its treasury with <code>r!invest</code> and see it with <code>r!company</code>.</p>
+<p><code>r!found TICK Your Company Name</code> sends it to the server's moderators for approval; if the name is rejected you get your money back. Once approved, that money becomes the company's treasury. See it with <code>r!company</code>.</p>
+<p>The treasury grows when you invest (<code>r!invest</code>), when players work there (every shift adds half the worker's pay, and anyone can <code>r!apply TICK</code>), and from share sales after it goes public.</p>
 
 <h2 id="levels">Levels</h2>
 <p>Upgrades are paid from the treasury (<code>r!upgrade</code>). Every level costs upkeep each day, and raises what the company can pay.</p>
 <div data-table="levels"></div>
 
 <h2 id="public">Going public</h2>
-<p>At level 3, <code>r!ipo</code> lists the company. Its price then moves with trading, and its treasury earns from revenue: farmers' market sales, a Corner Shop's Storefront on the city map, and more. You can pay yourself a salary of up to 10% of the treasury a day (<code>r!salary</code>).</p>
+<p>At level 3 (Firm), <code>r!ipo</code> lists the company. Anyone but the owner can then buy and sell its shares, and the first <span data-v="companies.float" data-f="num">400</span> shares sold fund the company. Its price moves with trading, and its treasury earns from revenue: farmers' market sales, a Corner Shop's Storefront on the city map, and more. You can pay yourself a salary of up to 10% of the treasury a day (<code>r!salary</code>), but the stock dips when you do.</p>
+
+<h2 id="upkeep">Upkeep and closing</h2>
+<p>The treasury pays upkeep every day. Miss a payment and the market panics; keep missing them and the price slides to zero and the company closes for good, taking every share with it. A private company closes after missing upkeep three days in a row.</p>
 
 <h2 id="takeovers">Takeovers and mergers</h2>
 <ul>

@@ -44,11 +44,7 @@
   .owners div { background: var(--panel); border: 1px solid var(--line); padding: .55rem .7rem; font-size: 14px; display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
   .owners div span { white-space: nowrap; color: var(--grey); }
   .owners div b { color: var(--bright); }
-  .kinds { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: .6rem; }
-  .kinds td, .kinds th { padding: .45rem .5rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-  .kinds th { color: var(--grey); font-weight: 400; font-size: 12px; } .kinds img { width: 28px; height: 28px; image-rendering: pixelated; vertical-align: middle; }
-  .kinds .perk { color: var(--grey); }
-  @media (max-width: 560px) { .city { gap: 2px; grid-template-columns: 14px repeat(8, minmax(0, 1fr)); } .tile .lv, .tile .hp { display: none; } .kinds .perk, .kinds th:last-child, .kinds .hrs { display: none; } }
+  @media (max-width: 560px) { .city { gap: 2px; grid-template-columns: 14px repeat(8, minmax(0, 1fr)); } .tile .lv, .tile .hp { display: none; } }
 </style>
 </head>
 <body>
@@ -73,7 +69,7 @@
     <p class="tagline">Every server's map starts as 64 tiles of open land. Players claim a tile and build on it: homes, shops, Stations and Factories, Barns, Banks, Parks and Police. Neighbors matter, and the whole server builds its landmarks together.</p>
     <div class="btns">
       <a class="btn primary" href="/play/#property">Build something</a>
-      <a class="btn" href="#kinds-sec">What you can build</a>
+      <a class="btn" href="/wiki/city/">How the city works</a>
     </div>
   </header>
 
@@ -88,10 +84,15 @@
     <div id="owners" class="owners"></div>
   </section>
 
-  <section id="kinds-sec" style="margin-top: 2.5rem;">
-    <div class="section-head"><h2>What you can build</h2><span>Prices, money and perks</span></div>
-    <table class="kinds"><thead><tr><th></th><th>Building</th><th>Price</th><th>Makes / day</th><th>Upkeep</th><th class="hrs">Build</th><th>Perk</th></tr></thead><tbody id="kinds"></tbody></table>
-    <p class="rv-dim" style="font-size:13px">Every building costs its price plus ⬡1,000 for the land. Most can be upgraded twice (rent ×1.6, then ×2.4). Neighbors: a Park next door adds 15% rent (up to two), a Factory next door takes 15% and wears things down faster (not Stations, Factories or Warehouses), a Station within two tiles adds 10%, and a Corner Shop earns 5% more for each home beside it. The Connector won't set up within a tile of a Police Station. Property tax: none for 1–3 buildings, then 0.5%, 1% and 1.5% of everything's value a day at 4, 9 and 17. Play it in Discord with <code>r!property</code>, or from <a href="/play/#property">the Play hub</a>.</p>
+  <section aria-labelledby="learn-title" style="margin-top: 2.5rem;">
+    <div class="section-head">
+      <h2 id="learn-title">What you can build</h2>
+      <span><a href="/wiki/">The wiki</a></span>
+    </div>
+    <div class="panel prose">
+      <p>All twelve buildings, neighbors, tax, freight and landmarks are in the wiki.</p>
+      <p><a href="/wiki/city/">The City →</a></p>
+    </div>
   </section>
 
   <footer class="footer">
@@ -124,10 +125,7 @@
   var money = function (n) { return '⬡' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); };
   var me = RV.me(), guild = null, servers = {}, last = {}, feed = null;
 
-  $('kinds').innerHTML = Object.keys(KINDS).map(function (k) {
-    var x = KINDS[k];
-    return '<tr><td>' + img('prop_' + k, x[1]) + '</td><td><b>' + x[0] + '</b></td><td>' + money(x[2]) + '</td><td>' + x[3] + '</td><td>' + money(x[4]) + '</td><td class="hrs">' + x[5] + 'h</td><td class="perk">' + RV.esc(x[6]) + '</td></tr>';
-  }).join('');
+
 
   function when(ms) {
     if (!ms) return '';
