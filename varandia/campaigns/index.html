@@ -226,15 +226,15 @@
     var r = T.rollExpr(dice);
     if (!r) { T.$('#gNote').textContent = 'can\u2019t read \u201c' + dice + '\u201d (try d20+4 or 2d8+3)'; return; }
     who = (who || '').trim(); what = (what || '').trim();
-    var label = (who || 'The GM') + (what ? ' ' + what : '') + ': ' + dice.replace(/\s+/g, '') + ' → ' + r.text;
+    var label = (who || 'The GM') + (what ? ' ' + what : '') + ': ' + r.said + ' = ' + r.total;
     var pub = screen.pub && screen.hook;
     screen.log.unshift({ total: r.total, label: label, secret: !pub }); screen.log = screen.log.slice(0, 20);
     try { sessionStorage.setItem('varandia_gm_log_' + screen.camp, JSON.stringify(screen.log)); } catch (e) {}
     drawGLog();
     if (!pub) return;
     T.$('#gNote').textContent = 'sending…';
-    T.cloud.call('POST', 'gmroll', { camp: screen.camp, who: who || 'The GM', line: label + ' = ' + r.total,
-      info: { title: what ? (who || 'The GM') + ' ' + what : (who || 'The GM') + ' rolls', total: r.total, die: r.sides === 20 ? r.die : null, bonus: r.bonus, rolled: dice.replace(/\s+/g, '') + ': ' + r.text } })
+    T.cloud.call('POST', 'gmroll', { camp: screen.camp, who: who || 'The GM', line: label,
+      info: { title: what ? (who || 'The GM') + ' ' + what : (who || 'The GM') + ' rolls', total: r.total, die: r.sides === 20 ? r.die : null, bonus: r.bonus, rolled: r.said } })
       .then(function () { T.$('#gNote').textContent = 'posted'; }, function (e) { T.$('#gNote').textContent = err(e); });
   }
   function saveScreen() { return T.cloud.call('PUT', 'screen/' + screen.camp, { saved: screen.saved }).then(function (r) { screen.saved = r.saved; drawSaved(); }, function (e) { T.$('#gNote').textContent = err(e); }); }
