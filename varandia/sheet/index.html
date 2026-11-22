@@ -137,6 +137,10 @@
             <h1 id="name" style="overflow-wrap: anywhere">…</h1>
             <span id="ctitle" style="font-style: italic; font-size: 24px; color: var(--ink-soft)"></span>
             <span id="cline" class="sc faded" style="margin-top: 8px; font-size: 16px"></span>
+            <span style="display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; font-size: 15px">
+              <a id="edit2" href="/varandia/builder/">rewrite</a>
+              <button type="button" class="linkish" id="del2" style="color: var(--red); min-height: 0">tear out</button>
+            </span>
           </div>
         </div>
 
@@ -613,7 +617,8 @@
     T.$('#age').textContent = c.age || '—';
     T.$('#cls').textContent = (T.cls(D, c.cls) || {}).name || '—';
     T.$('#race').textContent = r ? r.name : '—';
-    T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+    T.$('#edit').href = T.$('#edit2').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+    T.$('#del').hidden = T.$('#del2').hidden = !!c.foreign;   // only the player can tear their character out
     T.$('#itemNames').innerHTML = X.all.filter(function (i) { return i.group !== 'mask'; }).map(function (i) { return '<option value="' + T.esc(i.name) + '"></option>'; }).join('');
     T.$('#spellNames').innerHTML = S.all.map(function (x) { return '<option value="' + T.esc(x.name) + '"></option>'; }).join('');
 
@@ -773,6 +778,7 @@
       var text = lines.join('\n');
       (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { T.$('#status').textContent = 'copied'; }, function () { T.$('#status').textContent = 'couldn’t copy'; });
     };
+    T.$('#del2').onclick = function () { T.$('#del').click(); };
     T.$('#del').onclick = function () {
       if (!confirm('Tear ' + c.name + ' out of the book? This can’t be undone.')) return;
       T.chars.remove(c.id); location.href = '/varandia/characters/';
