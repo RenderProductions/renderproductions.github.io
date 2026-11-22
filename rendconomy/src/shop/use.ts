@@ -114,7 +114,11 @@ export function useMany(ctx: Ctx, guildId: string, id: string, want: number | 'a
       seen.set(line, (seen.get(line) ?? 0) + 1);
       used++;
     }
-    return { lines: [...seen].map(([l, k]) => (k > 1 ? `**×${k}** ${l}` : l)), used };
+    const lines = [...seen].map(([l, k]) => (k > 1 ? `**×${k}** ${l}` : l));
+    // keep the reply under Discord's embed limit
+    let total = 0, keep = 0;
+    while (keep < lines.length && total + lines[keep]!.length < 3300) total += lines[keep++]!.length + 1;
+    return { lines: keep < lines.length ? [...lines.slice(0, keep), `-# …and ${lines.length - keep} more.`] : lines, used };
   });
 }
 

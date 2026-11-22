@@ -15,6 +15,8 @@ export const LANDMARKS: Landmark[] = [
   { id: 'rocket', name: 'The Rocket', emoji: '🚀', cost: polygons(5_000_000), perk: 'the Rend-Sino\'s Rocket can fly to 100x (instead of 50x)' }
 ];
 export const STATUE_RENT = 0.05;
+/** The smallest donation (so a cent can't buy Brick by Brick and Ribbon Cutting). */
+export const MIN_DONATION = polygons(100);
 export const STADIUM_CHAT = 1.25;
 
 interface Row { guild_id: string; idx: number; funded: number; done_at: number | null }

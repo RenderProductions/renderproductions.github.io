@@ -16,7 +16,7 @@ import {
   minBid, newLot, ownedBy, parseTile, partyUntil, perkLevel, placeBid, refundBid, rentAt, repairCost, saveLot, sellPrice, settle, ship, startParty, taxRate,
   tileName, trainsOf, upgradeCost, upgradeMs, upkeepAt, value, type EstateNews, type Kind, type Lot
 } from '../estate/estate';
-import { LANDMARKS, current, donate, donors, finished, isBuilt, STATUE_RENT } from '../estate/landmarks';
+import { LANDMARKS, MIN_DONATION, current, donate, donors, finished, isBuilt, STATUE_RENT } from '../estate/landmarks';
 import { rollSale } from '../farming/farming';
 import { count, takeItem } from '../shop/inventory';
 import { addInbox } from '../social/inbox';
@@ -536,7 +536,7 @@ export const property: Command = {
         if (sub !== 'donate' && sub !== 'give') return landmarkView(ctx, guildId, news);
         const c = current(ctx.db, guildId);
         if (!c) throw new GameError('estate.landmarks', 'Every landmark is already built here.');
-        const cents = parseAmount(amount as string | undefined, { all: Math.min(balance(ctx.db, wallet), c.l.cost - c.funded) });
+        const cents = parseAmount(amount as string | undefined, { all: Math.min(balance(ctx.db, wallet), c.l.cost - c.funded), min: Math.min(MIN_DONATION, c.l.cost - c.funded) });
         if (balance(ctx.db, wallet) < cents) throw new GameError('funds.short', `You have ${format(balance(ctx.db, wallet))}.`);
         const d = donate(ctx.db, guildId, ctx.user.id, cents, ctx.now);
         const lines = [`${emojiOr('brick', '🧱')} You put **${format(d.cents)}** toward **${c.l.name}**.`];
