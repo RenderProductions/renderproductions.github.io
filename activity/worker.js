@@ -371,6 +371,59 @@ async function vSetup(env) {
 const vId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
 const vCharOut = (r) => ({ id: r.id, owner: r.owner, ownerName: r.owner_name, name: r.name, campaign: r.campaign, updated: r.updated, data: JSON.parse(r.data) });
 const vCampOut = (c, isGm) => ({ id: c.id, name: c.name, intro: c.intro || '', gm: c.gm, gmName: c.gm_name, isGm, code: isGm ? c.code : undefined, hasWebhook: !!c.webhook, webhook: isGm ? (c.webhook || '') : undefined, created: c.created });
+// ---- how a roll looks in Discord
+const vCol = { stat: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
+  fire: 0xe8642c, water: 0x3b8fd9, ice: 0x9fdcf5, earth: 0x9c7442, air: 0xb4c6d4, lightning: 0xf2c92b, nature: 0x4caf50, poison: 0x8bc34a, light: 0xf7e8a6, dark: 0x5b3f9e, evil: 0x8b0a1a };
+const vIcon = { stat: '🎲', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
+  fire: '🔥', water: '🌊', ice: '❄️', earth: '🪨', air: '🌪️', lightning: '⚡', nature: '🌿', poison: '☠️', light: '☀️', dark: '🌑', evil: '🩸', chaotic: '🌀' };
+const vClean = (v, n) => String(v == null ? '' : v).replace(/[@`*_~|#<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
+const vNum = (v) => (Number.isFinite(+v) ? Math.round(+v) : null);
+function vHsl(h) { const S = 0.6, L = 0.55, a = S * Math.min(L, 1 - L), f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (L - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); }
+function vEmbed(i, line, campName, pic) {
+  i = i && typeof i === 'object' ? i : {};
+  const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell'].includes(i.kind) ? i.kind : 'note';
+  const el = kind === 'spell' ? (vClean(i.element, 12) in vIcon ? vClean(i.element, 12) : 'chaotic') : null;
+  const die = vNum(i.die), bonus = vNum(i.bonus), total = vNum(i.total), nat20 = die === 20 && i.sides == null, nat1 = die === 1 && i.sides == null;
+  let color = el ? (el === 'chaotic' ? vHsl(Math.floor(Math.random() * 360)) : vCol[el]) : vCol[kind];
+  const icon = el ? vIcon[el] : vIcon[kind];
+  const title = vClean(i.title, 80) || 'A roll';
+  const e = { color, fields: [], timestamp: new Date().toISOString() };
+  const lines = [];
+  // the headline
+  if (kind === 'spell') e.title = icon + ' Casts ' + title;
+  else if (kind === 'weapon') e.title = icon + ' Attacks with ' + title;
+  else if (kind === 'stat') e.title = icon + ' ' + title;
+  else e.title = icon + ' ' + title;
+  if (nat20) { e.color = 0xf1c40f; lines.push('**✨ NATURAL 20 ✨**' + (kind === 'stat' ? ' · ' + vClean(i.stat, 20) + ' earns a training mark' : kind === 'weapon' ? ' · critical hit, damage dice doubled' : '')); }
+  if (nat1) { e.color = 0x2b0f0f; lines.push('**💀 NATURAL 1**'); }
+  if (total != null && kind !== 'heal' && kind !== 'tonic') {
+    const what = kind === 'spell' ? 'vs Need ' + (vNum(i.need) ?? '?') : vClean(i.what, 20);
+    lines.push('# ' + total + (what ? ' ' + what : ''));
+    if (die != null) lines.push('-# ' + (i.sides ? 'd' + vNum(i.sides) : 'd20') + ' rolled ' + die + (bonus ? (bonus < 0 ? ' − ' + Math.abs(bonus) : ' + ' + bonus) : '') + (i.notes ? ' · ' + vClean(i.notes, 60) : ''));
+  }
+  if (kind === 'heal' || kind === 'tonic') { lines.push('# +' + (total ?? '?') + ' ' + vClean(i.what, 20)); if (i.dice) lines.push('-# rolled ' + vClean(i.dice, 30)); }
+  if (kind === 'level' || kind === 'rest' || kind === 'note') lines.push(vClean(i.text || (kind === 'note' ? line : ''), 300));
+  e.description = lines.filter(Boolean).join('\n').slice(0, 1000) || vClean(line, 300);
+  // the details
+  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: '🗡️ Damage', value: '**' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 20) + (i.dice ? '\n-# ' + vClean(i.dice, 30) : ''), inline: true });
+  if (kind === 'spell') {
+    e.fields.push(i.ok ? { name: '✅ Cast!', value: i.damage ? 'Damage: ' + vClean(i.damage, 40) : 'It works.', inline: true }
+                       : { name: '💨 Fizzled', value: vClean(i.fail, 80) || 'The magic slips away.', inline: true });
+    e.fields.push({ name: 'Cost', value: (vNum(i.stamina) || 0) + ' Stamina' + (vNum(i.blood) ? ' · 🩸 ' + vNum(i.blood) + ' blood' : ''), inline: true });
+    if (i.surge && typeof i.surge === 'object') { e.fields.push({ name: '🌀 CHAOS SURGE (' + (vNum(i.surge.n) ?? '?') + ')', value: vClean(i.surge.text, 200) || '…', inline: false }); }
+  }
+  // the big portrait for the big moments
+  if (pic && (nat20 || (i.surge && kind === 'spell'))) e.thumbnail = { url: pic };
+  // the state of things
+  const st = [];
+  if (vNum(i.hp) != null) st.push('❤ ' + vNum(i.hp) + '/' + (vNum(i.maxHp) ?? '?'));
+  if (vNum(i.sta) != null) st.push('◆ ' + vNum(i.sta) + '/' + (vNum(i.maxSta) ?? '?') + ' Stamina');
+  if (vNum(i.exhaustion)) st.push('Exhaustion ' + vNum(i.exhaustion));
+  if (vNum(i.taint)) st.push('Taint ' + vNum(i.taint));
+  st.push(campName);
+  e.footer = { text: st.join(' · ').slice(0, 200) };
+  return e;
+}
 const vRolls = new Map();   // user id -> times of rolls posted in the last minute
 
 async function varandia(req, env, path, out) {
@@ -511,10 +564,10 @@ async function varandia(req, env, path, out) {
     const line = String(body.line || '').replace(/[@`]/g, '').slice(0, 300);
     if (!line) return out({ error: 'nothing to post' }, 400);
     const pic = JSON.parse(row.data).pic;
+    const picUrl = pic ? new URL(req.url).origin + '/api/v/pic/' + row.id + '?v=' + Number(pic) : undefined;
     const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      username: row.name.slice(0, 80), allowed_mentions: { parse: [] },
-      avatar_url: pic ? new URL(req.url).origin + '/api/v/pic/' + row.id + '?v=' + Number(pic) : undefined,
-      embeds: [{ description: line, color: 0x6e1f17, footer: { text: c.name.slice(0, 100) + ' · Story of Varandia' } }]
+      username: row.name.slice(0, 80), allowed_mentions: { parse: [] }, avatar_url: picUrl,
+      embeds: [vEmbed(body.info, line, c.name.slice(0, 100), picUrl)]
     }) });
     if (!r.ok) return out({ error: 'Discord refused the post', detail: r.status }, 502);
     return out({ ok: true });

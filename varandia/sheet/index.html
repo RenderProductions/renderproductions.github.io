@@ -400,7 +400,7 @@
     if (useProf && profNext) { extra += T.prof(D, c.level || 1); notes.push('proficient'); profNext = false; T.$('#profNext').setAttribute('aria-pressed', 'false'); }
     if (c.exhaustion) { extra -= c.exhaustion; notes.push('exhausted'); }
     var r = T.roll(bonus + extra);
-    return { r: r, label: label + (notes.length ? ' (' + notes.join(', ') + ')' : '') };
+    return { r: r, label: label + (notes.length ? ' (' + notes.join(', ') + ')' : ''), notes: notes };
   }
   function lineFor(label, r) {
     var b = r.bonus;
@@ -420,9 +420,18 @@
   };
   T.$('#pDel').onclick = function () { delete c.portrait; c.pic = null; drawPortrait(); save(); };
   var camp = null;
-  function logLine(line) {
+  // what Discord gets: the line, plus what kind of roll it was so the post can look the part
+  function info(kind, title, w, more) {
+    var o = { kind: kind, title: title };
+    if (w) { o.die = w.r.die; o.bonus = w.r.bonus; o.total = w.r.total; o.notes = (w.notes || []).join(', '); }
+    return Object.assign(o, more || {});
+  }
+  function logLine(line, inf) {
     c.log.unshift(line); c.log = c.log.slice(0, 8); drawLog(); save();
-    if (camp && camp.hasWebhook && c.postRolls) T.cloud.call('POST', 'roll', { char: c.id, line: line }).catch(function (e) { T.$('#status').textContent = 'Discord: ' + ((e && e.error) || 'couldn\u2019t post'); });
+    if (!(camp && camp.hasWebhook && c.postRolls)) return;
+    var dv2 = T.derive(c, D);
+    var post = Object.assign({ kind: 'note', title: line }, inf || {}, { hp: c.hp, maxHp: dv2.hp, sta: c.sta, maxSta: dv2.stamina, exhaustion: c.exhaustion || 0, taint: c.taint || 0 });
+    T.cloud.call('POST', 'roll', { char: c.id, line: line, info: post }).catch(function (e) { T.$('#status').textContent = 'Discord: ' + ((e && e.error) || 'couldn\u2019t post'); });
   }
   function drawLog() {
     T.$$('[data-last]').forEach(function (e) { e.textContent = c.log[0] || 'no rolls yet'; });
@@ -489,7 +498,8 @@
     c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina;
     T.$('#lvPanel').hidden = true;
     drawSeven(); drawVitals(); drawKnown(); drawSpellCard();
-    logLine('Level ' + c.level + '! +' + L.pointsPerLevel + ' ' + statShort(pointTo) + (grown.length ? ', trained ' + grown.map(statShort).join(', ') : ''));
+    var lvLine = '+' + L.pointsPerLevel + ' ' + statShort(pointTo) + (grown.length ? ', trained ' + grown.map(statShort).join(', ') : '');
+    logLine('Level ' + c.level + '! ' + lvLine, info('level', 'Reached level ' + c.level + '!', null, { text: lvLine }));
   }
   function levelDown() {
     if ((c.level || 1) <= 1) return;
@@ -568,14 +578,16 @@
       } else { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', lost ' + f1 + ' health'; }
     }
     if (sp.own) c.taint += 1;
-    var surge = '';
+    var surge = '', surgeInfo = null;
     if (cc.chaotic && r.die <= D.spells.chaotic.surgeOn) {
       var table = D.spells.chaotic.surge, n = 1 + Math.floor(Math.random() * table.length);
       surge = ' — SURGE (' + n + ') ' + table[n - 1];
+      surgeInfo = { n: n, text: table[n - 1] };
     }
     c.hp = Math.max(0, c.hp - lost);
     drawVitals(); drawConds(); drawKnown(); drawSpellCard();
-    logLine(lineFor(w.label, r) + ' vs ' + cc.need + (ok ? ' — cast!' : ' — fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '') + surge);
+    logLine(lineFor(w.label, r) + ' vs ' + cc.need + (ok ? ' — cast!' : ' — fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '') + surge,
+      info('spell', sp.name, w, { element: cc.chaotic ? 'chaotic' : (sp.element || 'chaotic'), need: cc.need, ok: ok, fail: ok ? '' : extra.replace(/^[,:]\s*/, ''), blood: blood || 0, stamina: cc.stamina, damage: ok && sp.damage ? String(sp.damage) : '', surge: surgeInfo }));
   }
 
   // ---------------------------------------------------------------- lists
@@ -651,7 +663,7 @@
       T.$$('#seven .stat').forEach(function (x) { x.classList.toggle('hot', x === b); });
       var w = rollWith(s.name, T.half(T.stat(c, s.key, D)), true);
       if (w.r.die === 20 && !c.marks[s.key]) { c.marks[s.key] = true; drawSeven(); }
-      logLine(lineFor(w.label, w.r) + (w.r.die === 20 ? ' — marked for training' : ''));
+      logLine(lineFor(w.label, w.r) + (w.r.die === 20 ? ' — marked for training' : ''), info('stat', s.name + ' check', w, { stat: s.name }));
     });
     T.$('#marks').addEventListener('click', function (e) {
       var b = e.target.closest('[data-mark]'); if (!b) return;
@@ -674,13 +686,13 @@
     T.$('#heal').onclick = function () { c.hp = Math.min(dv.hp, c.hp + amount('#hpAmt')); after(); };
     T.$('#spend').onclick = function () { c.sta = Math.max(0, c.sta - amount('#staAmt')); after(); };
     T.$('#restore').onclick = function () { c.sta = Math.min(dv.stamina, c.sta + amount('#staAmt')); after(); };
-    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared'); };
+    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared', info('rest', 'Long rest', null, { text: 'Health and Stamina full, Exhaustion cleared' })); };
 
     // rolls
-    T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r)); };
-    T.$('#init').onclick = function () { var w = rollWith('Initiative', dv.initiative, false); logLine(lineFor(w.label, w.r)); };
-    T.$('#d20').onclick = function () { logLine(lineFor('d20', T.roll(0))); };
-    T.$('#d6').onclick = function () { logLine(lineFor('d6', T.roll(0, 6))); };
+    T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r), info('attack', 'Melee attack', w, { what: 'to hit' })); };
+    T.$('#init').onclick = function () { var w = rollWith('Initiative', dv.initiative, false); logLine(lineFor(w.label, w.r), info('init', 'Initiative', w)); };
+    T.$('#d20').onclick = function () { var r1 = T.roll(0); logLine(lineFor('d20', r1), info('die', 'd20', { r: r1 })); };
+    T.$('#d6').onclick = function () { var r2 = T.roll(0, 6); logLine(lineFor('d6', r2), info('die', 'd6', { r: r2 }, { sides: 6 })); };
     T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };
 
     // conditions
@@ -729,8 +741,8 @@
         var ub = e.target.closest('[data-use]');
         if (ub) {
           var idx = +ub.dataset.use, h = itemFor(c[k][idx]);
-          if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health'); }
-          if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina'); }
+          if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health', info('heal', h.name, null, { total: n1, what: 'Health', dice: h.heal })); }
+          if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina', info('tonic', h.name, null, { total: n2, what: 'Stamina', dice: h.stamina })); }
           if (h.kind !== 'Kit') c[k].splice(idx, 1);
           drawList(k); drawVitals(); drawKnown(); drawSpellCard(); save(); return;
         }
@@ -745,7 +757,8 @@
       var b = e.target.closest('[data-attack]'); if (!b) return;
       var w = itemFor(b.dataset.attack), a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
       var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0) + (w.plus || 0);
-      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage');
+      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage',
+        info('weapon', w.name, a, { what: 'to hit', dmg: dmg, dmgType: (w.type || '').toLowerCase(), dice: (crit ? '2×' : '') + w.dice + (w.plus ? ' + ' + w.plus : ''), crit: crit, ranged: /ranged/i.test(w.kind || w.cat || '') }));
     });
     T.$$('form.adder[data-list]').forEach(function (f) {
       f.addEventListener('submit', function (e) {
