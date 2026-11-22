@@ -3621,6 +3621,15 @@
   }
  ],
  "refined": {
+  "mystery": {
+   "jackpotChance": 0.05,
+   "jackpot": 500,
+   "overtimeChance": 0.25,
+   "cash": [
+    20,
+    100
+   ]
+  },
   "payPrice": {
    "min": 0.25,
    "max": 3

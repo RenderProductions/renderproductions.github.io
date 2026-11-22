@@ -20,7 +20,7 @@ import { BROKERS, ORDERS, SHORTS, TRAITS } from '../market/schemes';
 import { MOD_SLASH } from '../discord/router';
 import { COLLECTIBLES, ITEMS, SHELVES } from '../shop/items';
 import { SELL_BACK, SHOP_RULES } from '../shop/shop';
-import { BULK_MAX } from '../shop/use';
+import { BULK_MAX, MYSTERY } from '../shop/use';
 import { BEG } from '../commands/beg';
 import { CHATTER } from '../social/chatter';
 import { SAVINGS } from '../social/savings';
@@ -50,6 +50,7 @@ export function wikiData(): Record<string, unknown> {
       ? { id: `secret-${ACHIEVEMENTS.indexOf(a)}`, name: '???', desc: 'A secret. Keep playing.', category: CATEGORIES[a.cat].label, rarity: a.rarity, secret: true }
       : { id: a.id, name: a.name, desc: a.desc, category: CATEGORIES[a.cat].label, rarity: a.rarity, secret: false })),
     refined: {
+      mystery: { jackpotChance: MYSTERY.jackpotChance, jackpot: p(MYSTERY.jackpot), overtimeChance: MYSTERY.overtimeChance, cash: MYSTERY.cash },
       payPrice: PAY_PRICE, sellBack: SELL_BACK, bulkMax: BULK_MAX, closeFee: CLOSE.fee, refoundDays: CLOSE.refoundMs / 86_400_000, salvage: ESTATE.salvage, sellBackEstate: ESTATE.sellBack,
       beg: { coins: BEG.coins, coinChance: BEG.chances.coins, trinketChance: BEG.chances.trinket, caught: BEG.caught.map((c) => ({ above: p(c.above), chance: c.chance })), fineShare: BEG.fineShare, fineMax: p(BEG.fineMax), cooldownMinutes: BEG.cooldownMs / 60_000 }
     },

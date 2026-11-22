@@ -97,3 +97,12 @@ test('sell items back to Marquez, throw them away, clear your title', async () =
   assert.equal(db.get<{ title: string | null }>('SELECT title FROM players WHERE guild_id = ? AND user_id = ?', G, A)!.title, null);
   assert.ok(audit(db).ok);
 });
+
+test('achievements: a row of rarity buttons shows every achievement of one rarity', async () => {
+  const { run } = setup();
+  await run('balance');
+  const r = await run('achievements');
+  const last = r!.buttons!.at(-1)!;
+  assert.deepEqual(last.map((b) => b.label), ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic']);
+  assert.ok(last[3]!.id.endsWith('r:legendary'));
+});

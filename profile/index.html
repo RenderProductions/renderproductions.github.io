@@ -93,7 +93,9 @@
   .meter { height: 10px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); margin: 0.5rem 0 0.8rem; overflow: hidden; }
   .meter div { height: 100%; background: linear-gradient(90deg, var(--dim), var(--bright)); box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6); }
   .rar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
-  .rar div { border: 1px solid var(--line); border-top: 3px solid var(--rc); padding: 0.4rem 0.6rem; font-size: 12px; color: var(--grey); }
+  .rar button { border: 1px solid var(--line); border-top: 3px solid var(--rc); padding: 0.4rem 0.6rem; font: inherit; font-size: 12px; color: var(--grey); background: none; text-align: left; cursor: pointer; }
+  .rar button:hover { border-color: var(--rc); }
+  .rar button[aria-pressed="true"] { border-color: var(--rc); background: color-mix(in srgb, var(--rc) 14%, transparent); color: #fff; }
   .rar b { display: block; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1; color: var(--rc); }
   .filters { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; position: sticky; top: 0; z-index: 2; padding: 0.5rem 0; background: var(--panel); }
   .filters button { font: inherit; font-size: 12px; padding: 4px 10px; background: transparent; color: var(--grey); border: 1px solid var(--line); cursor: pointer; }
@@ -294,7 +296,7 @@
   var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
   var RC = { common: '#8e9297', rare: '#3ba7f2', epic: '#b57edc', legendary: '#ffd23f', mythic: '#ff6ad5' };
   var ICON = { start: '🌱', market: '📈', jobs: '💼', casino: '🎰', social: '🤝', companies: '🏢', heists: '🦹', fishing: '🎣', farming: '🌾', holiday: '🎄', mastery: '🌈', secret: '❓' };
-  var filter = 'all'; // all | got | locked | a category
+  var filter = 'all'; // all | got | locked | a category | r:<rarity>
   var pins = null;     // on your own profile: { list: [achievement ids pinned to the showcase], guild }
   var $ = function (id) { return document.getElementById(id); };
   var store = {
@@ -808,7 +810,10 @@
     Object.keys(RARITY).forEach(function (k) {
       var all = data.achievements.filter(function (a) { return a.rarity === k; });
       var have = all.filter(function (a) { return got.has(a.id); }).length;
-      var d = el('div', k); d.style.setProperty('--rc', RC[k]);
+      // Refined Everything! (NachoBellGrande's idea): click a rarity to see only those
+      var d = el('button', k); d.type = 'button'; d.style.setProperty('--rc', RC[k]);
+      d.title = 'Show only ' + RARITY[k] + ' achievements'; d.setAttribute('aria-pressed', String(filter === 'r:' + k));
+      d.onclick = function () { filter = filter === 'r:' + k ? 'all' : 'r:' + k; renderAchievements(data, got); };
       d.appendChild(el('b', null, have + '/' + all.length)); d.appendChild(document.createTextNode(RARITY[k]));
       rar.appendChild(d);
     });
@@ -829,8 +834,9 @@
     });
     var shown = 0;
     cats.forEach(function (cat) {
-      if (filter !== 'all' && filter !== 'got' && filter !== 'locked' && filter !== cat) return;
-      var list = data.achievements.filter(function (a) { return a.cat === cat; });
+      var rf = filter.indexOf('r:') === 0 ? filter.slice(2) : null;
+      if (!rf && filter !== 'all' && filter !== 'got' && filter !== 'locked' && filter !== cat) return;
+      var list = data.achievements.filter(function (a) { return a.cat === cat && (!rf || a.rarity === rf); });
       var have = list.filter(function (a) { return got.has(a.id); }).length;
       if (filter === 'got') list = list.filter(function (a) { return got.has(a.id); });
       if (filter === 'locked') list = list.filter(function (a) { return !got.has(a.id); });

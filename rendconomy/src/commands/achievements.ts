@@ -12,11 +12,15 @@ import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
 
 interface AchState { targetId: string; targetName: string }
 
-function view(ctx: Ctx, st: AchState, cat: Category | 'all', sessionId: string): ReplyObject {
+type Rarity = keyof typeof RARITY;
+type View = Category | 'all' | `r:${Rarity}`;
+function view(ctx: Ctx, st: AchState, cat: View, sessionId: string): ReplyObject {
   const have = new Map(unlocked(ctx.db, st.targetId).map((r) => [r.id, r]));
   const stats = rarityStats(ctx.db);
-  const list = ACHIEVEMENTS.filter((a) => cat === 'all' || a.cat === cat);
-  const shown = list.slice().sort((x, y) => Number(have.has(y.id)) - Number(have.has(x.id)) || RARITY[x.rarity].order - RARITY[y.rarity].order);
+  // Refined Everything! (NachoBellGrande's idea): a row of rarity buttons shows every achievement of one rarity
+  const rar = cat.startsWith('r:') ? cat.slice(2) as Rarity : null;
+  const list = ACHIEVEMENTS.filter((a) => cat === 'all' || (rar ? a.rarity === rar : a.cat === cat));
+  const shown = list.slice().sort((x, y) => Number(have.has(y.id)) - Number(have.has(x.id)) || RARITY[y.rarity].order - RARITY[x.rarity].order);
   const lines = (cat === 'all'
     ? shown.filter((a) => have.has(a.id))
     : shown
@@ -31,10 +35,11 @@ function view(ctx: Ctx, st: AchState, cat: Category | 'all', sessionId: string):
     ...cats.map((c) => ({ label: CATEGORIES[c].label, emoji: categoryE(c), id: sessions.buttonId(sessionId, c), style: (c === cat ? 'primary' : 'secondary') as Button['style'] }))];
   const rows: Button[][] = [];
   btns.forEach((b, i) => { if (i % 4 === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
+  rows.push((Object.keys(RARITY) as Rarity[]).map((k) => ({ label: RARITY[k].label, emoji: rarityE(k), id: sessions.buttonId(sessionId, `r:${k}`), style: (cat === `r:${k}` ? 'primary' : 'secondary') as Button['style'] })));
   return {
     embeds: [embed('social', `Achievements: ${st.targetName}`, [
       `${have.size} of ${total} unlocked.`,
-      cat === 'all' ? '' : `${categoryE(cat)} **${CATEGORIES[cat].label}**`,
+      cat === 'all' ? '' : rar ? `${rarityE(rar)} **${RARITY[rar].label}** · ${list.filter((a) => have.has(a.id)).length} of ${list.length}` : `${categoryE(cat as Category)} **${CATEGORIES[cat as Category].label}**`,
       ...(lines.length ? lines : ['None yet.']),
       '', `-# ${Object.entries(RARITY).map(([k, r]) => `${rarityE(k as keyof typeof RARITY)} ${r.label}`).join(' · ')}`
     ], { url: `${SITE}/profile/?id=${st.targetId}` })],
@@ -60,8 +65,8 @@ export const achievements: Command = {
 
 export function onAchievementsButton(ctx: Ctx, s: sessions.Session<AchState>, value: string): SessionReply {
   if (ctx.user.id !== s.user_id) return { notice: `Use \`${ctx.config.prefix}achievements\` to open your own.` };
-  if (value !== 'all' && !(value in CATEGORIES)) return {};
-  const { session: _s, ...v } = view(ctx, s.state, value as Category | 'all', s.id);
+  if (value !== 'all' && !(value in CATEGORIES) && !(value.startsWith('r:') && value.slice(2) in RARITY)) return {};
+  const { session: _s, ...v } = view(ctx, s.state, value as View, s.id);
   return { update: v };
 }
 

@@ -62,9 +62,9 @@ const USES: Record<string, Use> = {
   mystery: (ctx, g) => {
     const w = wallet(g, ctx.user.id);
     const roll = ctx.rng.next();
-    if (roll < 0.05) return `**Jackpot.** The box held ${format(payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: polygons(750), reason: 'shop.mystery', guildId: g, actorId: ctx.user.id, now: ctx.now }))}.`;
-    if (roll < 0.30) { addItem(ctx.db, g, ctx.user.id, 'overtime', 1); return `The box held an **Overtime** pass. It is in your inventory: \`${ctx.config.prefix}use overtime\`.`; }
-    return `The box held ${format(payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: polygons(ctx.rng.int(40, 160)), reason: 'shop.mystery', guildId: g, actorId: ctx.user.id, now: ctx.now }))}.`;
+    if (roll < MYSTERY.jackpotChance) return `**Jackpot.** The box held ${format(payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: MYSTERY.jackpot, reason: 'shop.mystery', guildId: g, actorId: ctx.user.id, now: ctx.now }))}.`;
+    if (roll < MYSTERY.jackpotChance + MYSTERY.overtimeChance) { addItem(ctx.db, g, ctx.user.id, 'overtime', 1); return `The box held an **Overtime** pass. It is in your inventory: \`${ctx.config.prefix}use overtime\`.`; }
+    return `The box held ${format(payFromReserve(ctx.db, economy.reserveStart, { to: w, cents: polygons(ctx.rng.int(MYSTERY.cash[0], MYSTERY.cash[1])), reason: 'shop.mystery', guildId: g, actorId: ctx.user.id, now: ctx.now }))}.`;
   },
   floppy: (ctx, g) => {
     const u = ctx.user.id, w = wallet(g, u);
@@ -92,6 +92,8 @@ const USES: Record<string, Use> = {
 
 /** Items where using more than one at once does nothing more (or would just spam). */
 export const ONE_AT_A_TIME = new Set(['kit', 'coffee', 'megaphone', 'rushorder', ...Object.keys(PAINTS).map((id) => `paint_${id}`)]);
+/** The Mystery box (Refined Everything! balance pass: it used to pay out more than it cost). */
+export const MYSTERY = { jackpotChance: 0.05, jackpot: polygons(500), overtimeChance: 0.25, cash: [20, 100] as [number, number] };
 export const BULK_MAX = 25;
 
 /**
