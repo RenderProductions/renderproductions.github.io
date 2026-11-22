@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stats &amp; Dice | Story of Varandia</title>
+<meta name="description" content="The seven stats of Story of Varandia, how to make a character, and how rolls work: d20 plus half the stat.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Stats &amp; Dice | Story of Varandia">
+<meta property="og:description" content="Seven stats, a d6 each, 20 points to spend, and d20 plus half the stat.">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/stats/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf">
+        <div class="kicker">Chapter III</div>
+        <h1 id="title">Stats &amp; Dice</h1>
+        <div>
+          <h2 style="margin-bottom: 12px">The seven stats</h2>
+          <div class="statrow" id="seven"></div>
+        </div>
+        <div>
+          <h2 style="margin-bottom: 10px">Making a character</h2>
+          <ol style="margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px">
+            <li><b class="sc">Roll a d6 for every stat.</b> That's where each one starts.</li>
+            <li><b class="sc">Spend <span data-points>20</span> points</b> however you like. There's no cap: put them all in one stat if you want.</li>
+            <li><b class="sc">Add your race.</b> Its modifiers go on top, and can take a stat below zero.</li>
+          </ol>
+        </div>
+        <a class="btn ink" href="/varandia/builder/" style="align-self: flex-start">Make a character</a>
+      </div>
+      <span class="folio">— 5 —</span>
+    </section>
+
+    <section class="page right" aria-labelledby="dice">
+      <div class="leaf">
+        <div>
+          <h2 id="dice" style="margin-bottom: 10px">Rolling</h2>
+          <p>Roll a <b>d20</b> and add <b>half the stat</b>, rounded down. Meet or beat the number the GM sets and you succeed.</p>
+          <p class="faded" style="font-size: 16px">Only half counts so that a huge stat still has to roll. The full number stays on your sheet for everything else, like how much you can lift.</p>
+        </div>
+
+        <div class="inked" style="padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+          <h3>Try it</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: flex-end">
+            <label class="field" style="width: 110px"><span>Your stat</span><input type="number" id="tryStat" value="8" inputmode="numeric"></label>
+            <button type="button" class="btn ink" id="tryRoll">Roll d20</button>
+          </div>
+          <p class="hand" id="tryOut" aria-live="polite" style="font-size: 30px; margin: 0; min-height: 34px"></p>
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 10px">Worked out from your stats</h2>
+          <div class="ledger-wrap"><table class="ledger">
+            <thead><tr><th scope="col">Number</th><th scope="col" style="text-align:left">How</th></tr></thead>
+            <tbody>
+              <tr><td class="sc">Defense</td><td style="text-align:left">10 + half Durability. Attacks must meet or beat it.</td></tr>
+              <tr><td class="sc">Health</td><td style="text-align:left">10 + Durability, then 5 + half Durability every level after the first</td></tr>
+              <tr><td class="sc">Stamina</td><td style="text-align:left">5 + Stamina × 2, then 2 + half Stamina every level after the first</td></tr>
+              <tr><td class="sc">Initiative</td><td style="text-align:left">d20 + half Speed</td></tr>
+              <tr><td class="sc">Movement</td><td style="text-align:left">20 ft, plus 5 ft for every 2 Speed</td></tr>
+              <tr><td class="sc">Melee attack</td><td style="text-align:left">d20 + half Strength, against Defense</td></tr>
+            </tbody>
+          </table></div>
+          <p class="pencil" style="margin-top: 12px">no armor class: armor will add to Defense once items exist</p>
+        </div>
+
+        <div class="inked" style="padding: 20px 22px">
+          <h2 style="margin-bottom: 8px">Levelling up</h2>
+          <p style="font-size: 16px">You level up when the GM says so, after the big moments of the story, up to level <span data-max>20</span>. Each level:</p>
+          <ul style="margin: 0; padding-left: 1.2em; font-size: 16px; display: flex; flex-direction: column; gap: 4px">
+            <li><b class="sc">+<span data-ppl>1</span> point</b> to put in any stat.</li>
+            <li><b class="sc">Training:</b> every stat with a training mark grows by 1, then the marks clear. A natural 20 marks the stat you rolled; the GM can mark one after a hard roll.</li>
+            <li>More Health and Stamina, a bigger proficiency bonus every four levels, Chaotic spells get easier every two, and new class features.</li>
+          </ul>
+        </div>
+      </div>
+      <span class="folio">— 6 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome;
+  T.data().then(function (d) {
+    T.$$('[data-points]').forEach(function (e) { e.textContent = d.creation.points; });
+    T.$$('[data-max]').forEach(function (e) { e.textContent = d.leveling.maxLevel; });
+    T.$$('[data-ppl]').forEach(function (e) { e.textContent = d.leveling.pointsPerLevel; });
+    T.$('#seven').innerHTML = d.stats.map(function (s) {
+      return '<div class="stat"><span class="num sc" style="font-size:17px">' + s.short + '</span><span class="what"><b>' + T.esc(s.name) + '</b><i>' + T.esc(s.text) + '</i></span></div>';
+    }).join('');
+  });
+  T.$('#tryRoll').addEventListener('click', function () {
+    var v = parseInt(T.$('#tryStat').value, 10) || 0, h = T.half(v), r = T.roll(h);
+    T.$('#tryOut').textContent = 'rolled ' + r.die + ' ' + (h < 0 ? '− ' + Math.abs(h) : '+ ' + h) + ' = ' + r.total + (r.die === 20 ? ' — a natural 20!' : r.die === 1 ? ' — a natural 1…' : '');
+  });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

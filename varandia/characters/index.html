@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Characters | Story of Varandia</title>
+<meta name="description" content="Your Story of Varandia characters.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Your Characters | Story of Varandia">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/characters/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .card { display: flex; gap: 18px; align-items: center; padding: 16px 18px; color: var(--ink); text-decoration: none; }
+  .card:hover { background: rgba(110, 31, 23, 0.07); }
+  .card .ini { width: 58px; height: 58px; flex: none; display: grid; place-items: center; font: 28px/1 var(--sc); }
+  .card .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .card .who b { font: 400 26px/1.1 var(--fell); overflow-wrap: anywhere; }
+  .card .who i { color: var(--ink-soft); }
+  .card .who span { font: 14px/1.3 var(--sc); color: var(--faded); }
+  .card .hp { font: 22px/1 var(--hand); color: var(--red); white-space: nowrap; }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" aria-current="page" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf">
+        <div class="kicker">Chapter VIII</div>
+        <h1 id="title">Your Characters</h1>
+        <ul class="cards" id="cards"></ul>
+        <p class="pencil" id="empty" hidden>no one here yet. Make your first character →</p>
+      </div>
+      <span class="folio">— 13 —</span>
+    </section>
+
+    <section class="page right" aria-label="New character">
+      <div class="leaf">
+        <div class="inked" style="padding: 26px 24px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start">
+          <h2>A fresh page</h2>
+          <p style="margin: 0">Roll a d6 for each stat, spend your points, pick a race, and the sheet fills itself in.</p>
+          <a class="btn ink" href="/varandia/builder/">Make a character</a>
+        </div>
+        <div id="acct">
+          <h3 style="margin-bottom: 6px">Where they're kept</h3>
+          <div id="acctOut">
+            <p>Right now your characters live in <b>this browser</b> only. Log in with Discord to keep them on your account, so they follow you to any device and can join a GM's campaign.</p>
+            <button type="button" class="btn ink" id="login">Log in with Discord</button>
+          </div>
+          <div id="acctIn" hidden>
+            <p>Signed in as <b id="who"></b>. Your characters are kept on your account and follow you to any device.</p>
+            <p class="pencil" id="syncNote" aria-live="polite" style="margin: 0"></p>
+          </div>
+        </div>
+        <div class="inked thin" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+          <h3>Campaigns</h3>
+          <p style="margin: 0; font-size: 17px">Run a game, or join one with your GM's code.</p>
+          <a class="btn" href="/varandia/campaigns/">Open the campaign book</a>
+        </div>
+      </div>
+      <span class="folio">— 14 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+function drawChars() { return Tome.data().then(function (d) {
+  var T = Tome, list = T.chars.list();
+  T.$('#empty').hidden = list.length > 0;
+  T.$('#cards').innerHTML = list.map(function (c) {
+    var r = T.race(d, c.race), dv = T.derive(c, d);
+    return '<li><a class="card inked thin" href="/varandia/sheet/?id=' + encodeURIComponent(c.id) + '">' +
+      '<span class="ini inked round" style="color:' + (r ? r.color : 'inherit') + '">' + T.esc((c.name || '?').charAt(0)) + '</span>' +
+      '<span class="who"><b>' + T.esc(c.name) + '</b>' + (c.title ? '<i>' + T.esc(c.title) + '</i>' : '') +
+      '<span>' + (r ? r.name : '') + (T.cls(d, c.cls) ? ' ' + T.cls(d, c.cls).name : '') + ' · Level ' + (c.level || 1) + '</span></span>' +
+      '<span class="hp">' + (c.hp == null ? dv.hp : c.hp) + ' / ' + dv.hp + ' hp</span></a></li>';
+  }).join('');
+}); }
+drawChars();
+Tome.cloud.ready.then(function () {
+  var T = Tome, me = T.cloud.me(), tok = T.cloud.token();
+  T.$('#login').onclick = function () { T.cloud.login(); };
+  if (!tok) { if (me) T.$('#acctOut p').textContent = 'Your Discord login has run out on this tab. Log in again to sync your characters.'; return; }
+  T.$('#acctOut').hidden = true; T.$('#acctIn').hidden = false;
+  T.$('#who').textContent = me ? me.username || me.name || 'you' : 'you';
+  T.$('#syncNote').textContent = 'syncing…';
+  T.cloud.sync().then(function (rows) {
+    T.$('#syncNote').textContent = rows ? 'all ' + T.chars.list().length + ' in sync' : '';
+    drawChars();
+  }, function (e) { T.$('#syncNote').textContent = 'couldn\u2019t reach your account (' + (e && e.error || 'offline') + '); they\u2019re still safe in this browser'; });
+});
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character Sheet | Story of Varandia</title>
+<meta name="description" content="A Story of Varandia character sheet: roll from your stats, track Health and Stamina, cast spells, keep your satchel and your story.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  /* the sheet is a little book of four spreads, picked with tabs on the page edge */
+  .tabs { position: absolute; right: -44px; top: 90px; display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+  .tabs button { width: 44px; min-height: 104px; padding: 12px 0; border: 0; border-radius: 0 8px 8px 0; background: #b29a6e; color: var(--ink);
+    font: 14px/1 var(--sc); writing-mode: vertical-rl; box-shadow: inset 6px 0 8px -4px rgba(40, 20, 5, 0.5); }
+  .tabs button:hover { background: #c4ab7c; }
+  .tabs button[aria-selected="true"] { background: var(--paper); width: 50px; box-shadow: none; }
+  .book.sheet { margin-right: 60px; }
+  @media (min-width: 1460px) { .book.sheet { margin-right: auto; } }
+
+  .facts { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1.5px solid rgba(42, 29, 18, 0.55); border-bottom: 1.5px solid rgba(42, 29, 18, 0.55); }
+  .facts > div { padding: 10px 6px; text-align: center; }
+  .facts > div + div { border-left: 1px solid rgba(42, 29, 18, 0.3); }
+  .facts dt { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .facts dd { margin: 0; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .step { width: 32px; height: 32px; padding: 0; background: transparent; border: 0; position: relative; font: 19px/1 var(--fell); flex: none; }
+  .step::before { content: ""; position: absolute; inset: 2px; border: 1.6px solid var(--ink); border-radius: 50%; filter: url(#tome-rough); }
+  .step:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .shield { position: relative; width: 104px; height: 120px; flex: none; }
+  .shield svg { position: absolute; inset: 0; filter: url(#tome-rough); }
+  .shield div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 8px; }
+  .shield b { font-weight: 400; font-size: 34px; line-height: 1; }
+  .shield span { font: 12px/1.2 var(--sc); color: var(--faded); }
+
+  .pool { display: flex; flex-direction: column; gap: 6px; }
+  .pool .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .bar { position: relative; height: 18px; }
+  .bar::before { content: ""; position: absolute; inset: 0; border: 2px solid var(--ink); filter: url(#tome-rough); }
+  .bar i { position: absolute; left: 3px; top: 3px; bottom: 3px; background: var(--ink); }
+  .bar.sta i { background: repeating-linear-gradient(135deg, var(--ink) 0 4px, transparent 4px 7px); }
+  .amount { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .amount input { width: 70px; text-align: center; }
+
+  .quick { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 17px; }
+  .conds { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+  .conds .chip { min-height: 36px; font-size: 15px; padding: 0 12px; }
+  .counter { display: inline-flex; align-items: center; gap: 8px; }
+  .counter b { font: 26px/1 var(--hand); color: var(--red); min-width: 18px; text-align: center; }
+
+  .rolls { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; }
+  .rolls .last { font: 28px/1.1 var(--hand); color: var(--red); }
+  .rolls span { display: block; font: 19px/1.25 var(--hand); color: var(--pencil); }
+
+  .satchel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 20px; }
+  .satchel li { display: flex; gap: 12px; align-items: center; min-height: 40px; border-bottom: 1px dashed rgba(42, 29, 18, 0.3); }
+  .satchel li::before { content: "✦"; color: var(--red); font-size: 15px; }
+  .satchel li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .x { width: 36px; height: 36px; background: transparent; border: 0; color: var(--faded); font-size: 20px; flex: none; }
+  .x:hover { color: var(--red); }
+  .adder { display: flex; gap: 10px; align-items: center; }
+  .adder input { flex: 1; min-width: 0; font-size: 21px !important; }
+
+  .spellgroup h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
+  .spellgroup h3 i { width: 11px; height: 11px; border-radius: 50%; }
+  .known { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .known li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 36px; align-items: center; gap: 10px; min-height: 50px; border-bottom: 1px dashed rgba(42, 29, 18, 0.35); }
+  .known li.on { background: rgba(110, 31, 23, 0.08); }
+  .known .nm { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; background: none; border: 0; padding: 4px 0; text-align: left; }
+  .known .nm b { font: 400 19px/1.2 var(--fell); }
+  .known .nm small { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .known .cost { font: 20px/1 var(--hand); color: var(--red); white-space: nowrap; }
+  .spelltext p { margin: 0 0 0.6em; font-size: 16px; }
+
+  .satchel li .tag { font: 13px/1 var(--sc); color: var(--faded); white-space: nowrap; }
+  .satchel li .btn.small { min-height: 34px; font-size: 14px; padding: 0 10px; }
+  .weapons { display: flex; flex-direction: column; gap: 6px; }
+  .weapons button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 44px; padding: 4px 10px; background: transparent; border: 0; border-bottom: 1px dashed rgba(42, 29, 18, 0.35); text-align: left; font-size: 18px; }
+  .weapons button:hover { background: rgba(110, 31, 23, 0.08); }
+  .weapons button span:last-child { font: 22px/1 var(--hand); color: var(--red); }
+  .gone { text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center; padding-top: 120px; }
+  @media (max-width: 1020px) {
+    .book.sheet { margin-right: auto; margin-top: 64px; }
+    .tabs { right: auto; left: 12px; top: -54px; flex-direction: row; }
+    .tabs button { writing-mode: horizontal-tb; min-height: 44px; width: auto; padding: 0 14px; border-radius: 8px 8px 0 0; box-shadow: inset 0 -6px 8px -4px rgba(40, 20, 5, 0.5); }
+    .tabs button[aria-selected="true"] { width: auto; }
+    .ribbons { display: none; }
+  }
+  @media (max-width: 560px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts > div:nth-child(3) { border-left: 0; } .tabs button { padding: 0 9px; font-size: 13px; } }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <a href="/varandia/characters/">Your characters</a>
+  <span class="beta">saved in this browser</span>
+</div>
+
+<main class="book sheet">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" aria-current="true" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="tabs" role="tablist" aria-label="Sheet pages">
+    <button type="button" role="tab" id="tab-fight" aria-controls="fight" aria-selected="true">The Fight</button>
+    <button type="button" role="tab" id="tab-spells" aria-controls="spells" aria-selected="false" tabindex="-1">Spells</button>
+    <button type="button" role="tab" id="tab-satchel" aria-controls="satchel" aria-selected="false" tabindex="-1">Satchel</button>
+    <button type="button" role="tab" id="tab-story" aria-controls="story" aria-selected="false" tabindex="-1">Story</button>
+  </div>
+
+  <!-- ============ 1. The Fight ============ -->
+  <div class="spread" id="fight" role="tabpanel" aria-labelledby="tab-fight">
+    <section class="page left" aria-labelledby="name">
+      <div class="leaf" id="leftLeaf">
+        <div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap">
+          <div class="inked round" style="width: 120px; height: 150px; flex: none; display: grid; place-items: center">
+            <span id="initial" style="font: 64px/1 var(--sc); color: var(--faded)"></span>
+          </div>
+          <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <h1 id="name" style="overflow-wrap: anywhere">…</h1>
+            <span id="ctitle" style="font-style: italic; font-size: 24px; color: var(--ink-soft)"></span>
+            <span id="cline" class="sc faded" style="margin-top: 8px; font-size: 16px"></span>
+          </div>
+        </div>
+
+        <dl class="facts">
+          <div><dt>Race</dt><dd id="race">—</dd></div>
+          <div><dt>Class</dt><dd id="cls">—</dd></div>
+          <div><dt>Age</dt><dd id="age">—</dd></div>
+          <div><dt>Level</dt><dd><button type="button" class="step" id="lvDown" aria-label="Level down">−</button><span id="level">1</span><button type="button" class="step" id="lvUp" aria-label="Level up">+</button></dd></div>
+        </dl>
+
+        <div class="inked dashed note" id="lvPanel" hidden style="display: flex; flex-direction: column; gap: 10px">
+          <h3>Level up</h3>
+          <p id="lvInfo" style="margin: 0; font-size: 16px"></p>
+          <div class="chips" id="lvPick"></div>
+          <button type="button" class="linkish" id="lvCancel" style="align-self: flex-start">not yet</button>
+        </div>
+
+        <div>
+          <div class="statrow" id="seven" role="group" aria-label="Stats: tap one to roll it"></div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px">
+            <span class="sc faded" style="font-size: 14px">Training marks</span>
+            <div class="conds" id="marks" role="group" aria-label="Training marks"></div>
+          </div>
+          <p class="pencil" style="margin: 4px 0 0; font-size: 17px">tap a stat to roll it · a natural 20 marks it for training</p>
+        </div>
+      </div>
+      <span class="folio">— 1 —</span>
+    </section>
+
+    <section class="page right" aria-label="Health, Stamina and rolls">
+      <div class="leaf" id="rightLeaf" style="gap: 24px">
+        <div style="display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap">
+          <div class="shield">
+            <svg width="104" height="120" viewBox="0 0 104 120" aria-hidden="true" fill="none" stroke="#2a1d12" stroke-width="2.5"><path d="M52 6 L96 20 C96 62 82 96 52 114 C22 96 8 62 8 20 Z"/><path d="M52 16 L86 27 C86 60 75 88 52 103 C29 88 18 60 18 27 Z" stroke-width="1"/></svg>
+            <div><b id="def">—</b><span>Defense</span></div>
+          </div>
+          <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+            <p class="pencil" id="defNote" style="margin: -6px 0 0; font-size: 17px"></p>
+            <div class="pool">
+              <div class="top"><span class="sc" style="font-size: 19px">Health</span><span class="hand" id="hpText" style="font-size: 24px"></span></div>
+              <div id="hpShow"></div>
+              <div class="amount"><label class="sr" for="hpAmt">Amount</label><input type="number" id="hpAmt" min="1" value="1" inputmode="numeric"><button type="button" class="btn small" id="hurt">Hurt</button><button type="button" class="btn small" id="heal">Heal</button></div>
+            </div>
+            <div class="pool">
+              <div class="top"><span class="sc" style="font-size: 19px">Stamina</span><span class="hand" id="staText" style="font-size: 24px"></span></div>
+              <div id="staShow"></div>
+              <div class="amount"><label class="sr" for="staAmt">Amount</label><input type="number" id="staAmt" min="1" value="1" inputmode="numeric"><button type="button" class="btn small" id="spend">Spend</button><button type="button" class="btn small" id="restore">Restore</button></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick">
+          <button type="button" class="linkish" id="init"><span class="sc">Initiative</span> <span id="iniVal"></span></button>
+          <span style="align-self: center"><span class="sc">Movement</span> <span id="move"></span></span>
+          <span style="align-self: center"><span class="sc">Proficiency</span> <span id="profVal"></span></span>
+          <button type="button" class="linkish" id="rest">Long rest</button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <button type="button" class="btn ink" id="attack">Melee attack</button>
+          <button type="button" class="btn" id="d20">d20</button>
+          <button type="button" class="btn" id="d6">d6</button>
+          <button type="button" class="chip" id="profNext" aria-pressed="false">+ proficiency next roll</button>
+        </div>
+
+        <div id="weaponsBox" hidden>
+          <h3 style="margin-bottom: 6px">Weapons</h3>
+          <div class="weapons" id="weapons"></div>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom: 8px">Conditions</h3>
+          <div class="conds" id="conds" role="group" aria-label="Conditions"></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px 26px; margin-top: 10px; font-size: 17px">
+            <span class="counter"><span class="sc">Exhaustion</span><button type="button" class="step" id="exDown" aria-label="Less exhaustion">−</button><b id="exVal">0</b><button type="button" class="step" id="exUp" aria-label="More exhaustion">+</button></span>
+            <span class="counter"><span class="sc">Taint</span><button type="button" class="step" id="tDown" aria-label="Less taint">−</button><b id="tVal">0</b><button type="button" class="step" id="tUp" aria-label="More taint">+</button></span>
+          </div>
+          <p class="pencil" id="condNote" style="margin: 4px 0 0; font-size: 17px"></p>
+        </div>
+
+        <div class="inked thin rolls" aria-live="polite"><span style="font: 14px/1.2 var(--sc); color: var(--faded)">Rolls</span><div class="last" data-last>no rolls yet</div><div data-log></div></div>
+        <div id="campBox" hidden style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: -10px">
+          <span class="pencil" id="campName" style="font-size: 18px"></span>
+          <button type="button" class="chip" id="postRolls" aria-pressed="false" hidden>post rolls to Discord</button>
+        </div>
+      </div>
+      <span class="folio">— 2 —</span>
+    </section>
+  </div>
+
+  <!-- ============ 2. Spells ============ -->
+  <div class="spread" id="spells" role="tabpanel" aria-labelledby="tab-spells" hidden>
+    <section class="page left" aria-labelledby="spT">
+      <div class="leaf" style="gap: 20px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+          <h1 id="spT" style="font-size: 44px">Spells</h1>
+          <a href="/varandia/spells/" style="font-size: 16px">open the Spellbook</a>
+        </div>
+        <div class="pool">
+          <div class="top"><span class="sc" style="font-size: 19px">Stamina</span><span class="hand" data-sta-text style="font-size: 24px"></span></div>
+          <div class="bar sta" data-sta-bar><i></i></div>
+        </div>
+        <form class="adder" id="learn"><label class="sr" for="learnIn">Learn a spell</label><input id="learnIn" list="spellNames" maxlength="60" placeholder="learn a spell…" autocomplete="off"><datalist id="spellNames"></datalist><button class="btn small" type="submit">Learn</button></form>
+        <div id="knownGroups" style="display: flex; flex-direction: column; gap: 18px"></div>
+        <p class="pencil" id="spellNote" style="margin: 0"></p>
+      </div>
+      <span class="folio">— 3 —</span>
+    </section>
+    <section class="page right" aria-label="Spell details and rolls">
+      <div class="leaf" style="gap: 20px">
+        <div id="spellCard"><p class="pencil">tap a spell to read it</p></div>
+        <div class="inked thin rolls" aria-live="polite"><span style="font: 14px/1.2 var(--sc); color: var(--faded)">Rolls</span><div class="last" data-last>no rolls yet</div><div data-log></div></div>
+        <p style="margin: auto 0 0; font-size: 12px; line-height: 1.4; color: var(--faded)">D&amp;D spells are from the <a href="https://www.dndbeyond.com/srd" style="color: inherit">System Reference Document 5.2</a> by Wizards of the Coast LLC, licensed under <a href="https://creativecommons.org/licenses/by/4.0/legalcode" style="color: inherit">CC BY 4.0</a>. Sorted into elements and given Varandia costs.</p>
+      </div>
+      <span class="folio">— 4 —</span>
+    </section>
+  </div>
+
+  <!-- ============ 3. Satchel ============ -->
+  <div class="spread" id="satchel" role="tabpanel" aria-labelledby="tab-satchel" hidden>
+    <section class="page left" aria-labelledby="saT">
+      <div class="leaf" style="gap: 18px">
+        <h1 id="saT" style="font-size: 44px">The Satchel</h1>
+        <ul class="satchel" id="items"></ul>
+        <form class="adder" data-list="items"><label class="sr" for="addItem">Add to the satchel</label><input id="addItem" list="itemNames" maxlength="60" placeholder="add something…" autocomplete="off"><datalist id="itemNames"></datalist><button class="btn small" type="submit">Add</button></form>
+        <p class="pencil" style="margin: 0">anything from <a href="/varandia/items/">the Armory</a> comes alive here: weapons get an attack button on The Fight, armor can be worn</p>
+      </div>
+      <span class="folio">— 5 —</span>
+    </section>
+    <section class="page right" aria-label="Cardinal Items and proficiencies">
+      <div class="leaf" style="gap: 24px">
+        <div class="inked" style="padding: 18px 20px 18px 80px; position: relative; display: flex; flex-direction: column; gap: 8px">
+          <span class="seal" aria-hidden="true" style="position: absolute; left: 16px; top: 18px"></span>
+          <h2>Cardinal Items</h2>
+          <ul class="satchel" id="cardinal"></ul>
+          <form class="adder" data-list="cardinal"><label class="sr" for="addCard">Add a cardinal item</label><input id="addCard" maxlength="60" placeholder="add one…" autocomplete="off"><button class="btn small" type="submit">Add</button></form>
+        </div>
+        <div>
+          <h2 style="margin-bottom: 6px" id="profT">Proficiencies</h2>
+          <p class="faded" style="margin: 0 0 4px; font-size: 15px">Add your proficiency bonus (<span data-prof>+2</span>) to rolls for any of these.</p>
+          <textarea class="lined" id="profs" rows="3" maxlength="400" aria-labelledby="profT" placeholder="what they're good at…"></textarea>
+        </div>
+      </div>
+      <span class="folio">— 6 —</span>
+    </section>
+  </div>
+
+  <!-- ============ 4. Story ============ -->
+  <div class="spread" id="story" role="tabpanel" aria-labelledby="tab-story" hidden>
+    <section class="page left" aria-labelledby="stT">
+      <div class="leaf" style="gap: 16px">
+        <h1 id="stT" style="font-size: 44px">Flesh &amp; Bone</h1>
+        <label class="field"><span>Background</span><input id="bgName" maxlength="80" autocomplete="off" placeholder="where they come from"></label>
+        <label class="field"><span>Looks</span><input id="look" maxlength="160" autocomplete="off" placeholder="what people notice first"></label>
+        <label class="field"><span>Personality</span><input id="pers" maxlength="160" autocomplete="off"></label>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px">
+          <label class="field"><span>Ideals</span><input id="ideal" maxlength="100" autocomplete="off"></label>
+          <label class="field"><span>Bonds</span><input id="bond" maxlength="100" autocomplete="off"></label>
+        </div>
+        <label class="field"><span>Flaws</span><input id="flaw" maxlength="100" autocomplete="off"></label>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px">
+          <span class="sc faded" style="font-size: 15px">Body count</span>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <button type="button" class="step" id="bDown" aria-label="One less">−</button>
+            <div class="tally" id="tally" role="img"></div>
+            <button type="button" class="step" id="bUp" aria-label="One more">+</button>
+          </div>
+        </div>
+      </div>
+      <span class="folio">— 7 —</span>
+    </section>
+    <section class="page right" aria-label="Story and notes">
+      <div class="leaf" style="gap: 20px">
+        <div>
+          <h2 id="storyT" style="margin-bottom: 2px">Their Story</h2>
+          <textarea class="lined" id="storyIn" rows="8" maxlength="6000" aria-labelledby="storyT" placeholder="Where they come from, what they want…"></textarea>
+        </div>
+        <div>
+          <h2 id="notesT" style="margin-bottom: 2px">Notes</h2>
+          <textarea class="lined" id="notes" rows="5" maxlength="6000" aria-labelledby="notesT" placeholder="the GM's notes, names, debts, rumours…"></textarea>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px 22px; padding-top: 6px; border-top: 1px dashed rgba(42,29,18,.35); font-size: 16px">
+          <a id="edit" href="/varandia/builder/">Rewrite stats or details</a>
+          <button type="button" class="linkish" id="export" style="color: var(--red)">Copy as text</button>
+          <button type="button" class="linkish" id="del" style="color: var(--red)">Tear out this character</button>
+          <span class="pencil" id="status" aria-live="polite"></span>
+        </div>
+      </div>
+      <span class="folio">— 8 —</span>
+    </section>
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, id = new URLSearchParams(location.search).get('id'), c = id && T.chars.get(id), D = null, S = null, dv = null;
+  var CONDS = ['Blinded', 'Charmed', 'Frightened', 'Grappled', 'Poisoned', 'Prone', 'Restrained', 'Stunned', 'Unconscious'];
+  var PIPS_UP_TO = 40;
+
+  function blank() {
+    T.$('#leftLeaf').innerHTML = '<div class="gone"><h1>A blank page</h1><p>This character isn\u2019t in this browser\u2019s book. They may have been torn out, or made on another device: log in with Discord on <a href="/varandia/characters/">Your characters</a> to bring them over.</p><a class="btn ink" href="/varandia/characters/">Your characters</a></div>';
+    T.$('#rightLeaf').innerHTML = '<div class="gone"><p class="pencil">nothing written here</p><a class="btn" href="/varandia/builder/">Make a character</a></div>';
+    T.$('.tabs').hidden = true;
+  }
+  if (!c) {
+    T.cloud.ready.then(function () {
+      if (!T.cloud.token()) return blank();
+      T.cloud.call('GET', 'chars/' + encodeURIComponent(id)).then(function (row) {
+        var d = row.data, me = T.cloud.me(); d.id = row.id; d.owner = row.owner;
+        if (!me || row.owner !== me.id) d.foreign = true;
+        main(d);
+      }, blank);
+    });
+    return;
+  }
+  main(c);
+  function main(c0) {
+  c = c0;
+  ['items', 'cardinal', 'log', 'known', 'levelLog'].forEach(function (k) { if (!Array.isArray(c[k])) c[k] = []; });
+  ['marks', 'grow', 'conds'].forEach(function (k) { if (!c[k] || typeof c[k] !== 'object') c[k] = {}; });
+  c.exhaustion = c.exhaustion || 0; c.taint = c.taint || 0;
+
+  // ---------------------------------------------------------------- tabs
+  var TABS = ['fight', 'spells', 'satchel', 'story'];
+  function tab(name, focus) {
+    if (TABS.indexOf(name) < 0) name = 'fight';
+    TABS.forEach(function (t) {
+      var on = t === name, b = T.$('#tab-' + t);
+      T.$('#' + t).hidden = !on;
+      b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
+      if (on && focus) b.focus();
+    });
+    history.replaceState(null, '', location.pathname + location.search + (name === 'fight' ? '' : '#' + name));
+  }
+  T.$('.tabs').addEventListener('click', function (e) { var b = e.target.closest('[role=tab]'); if (b) tab(b.id.slice(4)); });
+  T.$('.tabs').addEventListener('keydown', function (e) {
+    var i = TABS.indexOf(document.activeElement.id.slice(4)); if (i < 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { tab(TABS[(i + 1) % 4], true); e.preventDefault(); }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { tab(TABS[(i + 3) % 4], true); e.preventDefault(); }
+  });
+
+  // ---------------------------------------------------------------- saving
+  var saveT = null;
+  function save(now) {
+    clearTimeout(saveT);
+    var go = function () { T.$('#status').textContent = T.chars.save(c) ? '' : 'couldn’t save in this browser'; };
+    if (now) go(); else saveT = setTimeout(go, 400);
+  }
+  window.addEventListener('pagehide', function () { if (saveT) save(true); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && saveT) save(true); });
+
+  // ---------------------------------------------------------------- rolls
+  var profNext = false;
+  function rollWith(label, bonus, useProf) {
+    var extra = 0, notes = [];
+    if (useProf && profNext) { extra += T.prof(D, c.level || 1); notes.push('proficient'); profNext = false; T.$('#profNext').setAttribute('aria-pressed', 'false'); }
+    if (c.exhaustion) { extra -= c.exhaustion; notes.push('exhausted'); }
+    var r = T.roll(bonus + extra);
+    return { r: r, label: label + (notes.length ? ' (' + notes.join(', ') + ')' : '') };
+  }
+  function lineFor(label, r) {
+    var b = r.bonus;
+    return label + ': ' + r.die + (b ? (b < 0 ? ' − ' + Math.abs(b) : ' + ' + b) : '') + ' = ' + r.total;
+  }
+  var camp = null;
+  function logLine(line) {
+    c.log.unshift(line); c.log = c.log.slice(0, 8); drawLog(); save();
+    if (camp && camp.hasWebhook && c.postRolls) T.cloud.call('POST', 'roll', { char: c.id, line: line }).catch(function (e) { T.$('#status').textContent = 'Discord: ' + ((e && e.error) || 'couldn\u2019t post'); });
+  }
+  function drawLog() {
+    T.$$('[data-last]').forEach(function (e) { e.textContent = c.log[0] || 'no rolls yet'; });
+    T.$$('[data-log]').forEach(function (e) { e.innerHTML = c.log.slice(1, 5).map(function (l) { return '<span>' + T.esc(l) + '</span>'; }).join(''); });
+  }
+
+  // ---------------------------------------------------------------- health & stamina
+  function pips(el, n, max, word, key) {
+    if (max > PIPS_UP_TO) { el.innerHTML = '<div class="bar' + (key === 'sta' ? ' sta' : '') + '"><i style="width:calc(' + (max ? n / max * 100 : 0) + '% - 6px)"></i></div>'; el.onclick = null; return; }
+    var html = '<div class="pips' + (key === 'sta' ? ' diamond' : '') + '" role="group" aria-label="' + word + '">';
+    for (var i = 0; i < max; i++) html += '<button type="button" class="pip' + (i < n ? ' on' : '') + '" data-i="' + i + '" aria-label="' + word + ' ' + (i + 1) + ' of ' + max + '" aria-pressed="' + (i < n) + '"></button>';
+    el.innerHTML = html + '</div>';
+    el.onclick = function (e) {
+      var b = e.target.closest('.pip'); if (!b) return;
+      var i = +b.dataset.i; c[key] = c[key] === i + 1 ? i : i + 1;
+      drawVitals(); drawKnown(); drawSpellCard(); save();
+      var again = el.querySelector('[data-i="' + i + '"]'); if (again) again.focus();
+    };
+  }
+  function drawVitals() {
+    dv = T.derive(c, D);
+    c.hp = Math.max(0, Math.min(c.hp == null ? dv.hp : c.hp, dv.hp));
+    c.sta = Math.max(0, Math.min(c.sta == null ? dv.stamina : c.sta, dv.stamina));
+    T.$('#def').textContent = dv.defense;
+    T.$('#hpText').textContent = c.hp + ' of ' + dv.hp;
+    T.$('#staText').textContent = c.sta + ' of ' + dv.stamina;
+    T.$$('[data-sta-text]').forEach(function (e) { e.textContent = c.sta + ' of ' + dv.stamina; });
+    T.$$('[data-sta-bar] i').forEach(function (e) { e.style.width = 'calc(' + (dv.stamina ? c.sta / dv.stamina * 100 : 0) + '% - 6px)'; });
+    pips(T.$('#hpShow'), c.hp, dv.hp, 'Health', 'hp');
+    pips(T.$('#staShow'), c.sta, dv.stamina, 'Stamina', 'sta');
+    T.$('#iniVal').textContent = T.sign(dv.initiative);
+    T.$('#move').textContent = dv.movement + ' ft';
+    T.$('#profVal').textContent = T.sign(T.prof(D, c.level || 1));
+    T.$$('[data-prof]').forEach(function (e) { e.textContent = T.sign(T.prof(D, c.level || 1)); });
+    T.$('#attack').textContent = 'Melee attack (' + T.sign(dv.attack) + ')';
+    T.$('#level').textContent = c.level || 1;
+    T.$('#lvDown').disabled = (c.level || 1) <= 1;
+    T.$('#lvUp').disabled = (c.level || 1) >= D.leveling.maxLevel;
+    var r = T.race(D, c.race), k = T.cls(D, c.cls);
+    T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, c.bgName].filter(Boolean).join(' · ');
+    drawWeapons();
+  }
+  function amount(sel) { var v = parseInt(T.$(sel).value, 10); return v > 0 ? v : 0; }
+
+  // ---------------------------------------------------------------- stats, marks, levels
+  function drawSeven() {
+    T.$('#seven').innerHTML = D.stats.map(function (s) {
+      var v = T.stat(c, s.key, D);
+      return '<button type="button" class="stat" data-key="' + s.key + '"><span class="num">' + v + '</span><span class="what"><b>' + s.name +
+        (c.marks[s.key] ? ' <span class="hand" title="training mark" style="font-size:20px">✦</span>' : '') + '</b><i>' + T.esc(s.hint) + '</i></span><span class="bonus">' + T.sign(T.half(v)) + '</span></button>';
+    }).join('');
+    T.$('#marks').innerHTML = D.stats.map(function (s) {
+      return '<button type="button" class="chip" data-mark="' + s.key + '" aria-pressed="' + !!c.marks[s.key] + '" aria-label="Training mark on ' + s.name + '">' + s.short + '</button>';
+    }).join('');
+  }
+  function statShort(k) { return D.stats.filter(function (x) { return x.key === k; })[0].short; }
+  function levelUp(pointTo) {
+    var L = D.leveling, before = T.derive(c, D), grown = Object.keys(c.marks);
+    grown.forEach(function (k) { c.grow[k] = (c.grow[k] || 0) + L.markGrowth; });
+    c.grow[pointTo] = (c.grow[pointTo] || 0) + L.pointsPerLevel;
+    c.levelLog.push({ point: pointTo, marks: grown });
+    c.marks = {}; c.level = (c.level || 1) + 1;
+    var after = T.derive(c, D);
+    c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina;
+    T.$('#lvPanel').hidden = true;
+    drawSeven(); drawVitals(); drawKnown(); drawSpellCard();
+    logLine('Level ' + c.level + '! +' + L.pointsPerLevel + ' ' + statShort(pointTo) + (grown.length ? ', trained ' + grown.map(statShort).join(', ') : ''));
+  }
+  function levelDown() {
+    if ((c.level || 1) <= 1) return;
+    var L = D.leveling, before = T.derive(c, D), last = c.levelLog.pop();
+    if (last) {
+      c.grow[last.point] -= L.pointsPerLevel;
+      last.marks.forEach(function (k) { c.grow[k] -= L.markGrowth; c.marks[k] = true; });
+    }
+    c.level -= 1;
+    var after = T.derive(c, D);
+    c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina;
+    drawSeven(); drawVitals(); drawKnown(); drawSpellCard(); save();
+  }
+
+  // ---------------------------------------------------------------- conditions
+  function drawConds() {
+    T.$('#conds').innerHTML = CONDS.map(function (n) { return '<button type="button" class="chip" data-cond="' + n + '" aria-pressed="' + !!c.conds[n] + '">' + n + '</button>'; }).join('');
+    T.$('#exVal').textContent = c.exhaustion; T.$('#tVal').textContent = c.taint;
+    T.$('#exDown').disabled = !c.exhaustion; T.$('#tDown').disabled = !c.taint;
+    var notes = [];
+    if (c.exhaustion) notes.push('Exhaustion: −' + c.exhaustion + ' on every roll (a long rest clears it)');
+    if (c.taint >= 5) notes.push('Taint 5: the GM makes something go wrong');
+    T.$('#condNote').textContent = notes.join(' · ');
+  }
+
+  // ---------------------------------------------------------------- spells
+  var openSpell = null;
+  function drawKnown() {
+    if (!S) return;
+    var list = c.known.map(function (k) { return S.byKey[k]; }).filter(Boolean);
+    var groups = {};
+    list.forEach(function (sp) { (groups[sp.element] = groups[sp.element] || []).push(sp); });
+    T.$('#knownGroups').innerHTML = D.elements.filter(function (e) { return groups[e.key]; }).map(function (e) {
+      return '<div class="spellgroup"><h3><i style="background:' + e.color + '"></i>' + T.esc(e.kind === 'chaotic' ? 'Chaotic magic' : e.name) + '</h3><ul class="known">' +
+        groups[e.key].map(function (sp) {
+          var cc = T.spellCost(sp, D, c);
+          return '<li data-key="' + sp.key + '"' + (sp.key === openSpell ? ' class="on"' : '') + '><button type="button" class="nm" data-open="' + sp.key + '"><b>' + T.esc(sp.name) + '</b><small>' +
+            (sp.own ? 'Evil' : T.levelName(sp.level)) + ' · need ' + cc.need + (cc.favored ? ' · class' : '') + '</small></button>' +
+            '<span class="cost">' + cc.stamina + (cc.blood ? ' + ' + cc.blood + ' hp' : '') + '</span>' +
+            '<button type="button" class="btn small" data-cast="' + sp.key + '"' + (cc.stamina > c.sta ? ' disabled' : '') + '>Cast</button>' +
+            '<button type="button" class="x" data-forget="' + sp.key + '" aria-label="Forget ' + T.esc(sp.name) + '">×</button></li>';
+        }).join('') + '</ul></div>';
+    }).join('');
+    T.$('#spellNote').textContent = list.length ? '' : 'no spells learned yet: type one above, or find one in the Spellbook';
+  }
+  function para(t) { return T.esc(t).split(/\n+/).map(function (p) { return '<p>' + p.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>'; }).join(''); }
+  function drawSpellCard() {
+    if (!S) return;
+    var sp = openSpell && S.byKey[openSpell];
+    if (!sp) { T.$('#spellCard').innerHTML = '<p class="pencil">tap a spell to read it</p>'; return; }
+    var cc = T.spellCost(sp, D, c), el = D.elements.filter(function (e) { return e.key === sp.element; })[0];
+    T.$('#spellCard').innerHTML = '<div style="font:14px/1 var(--sc);letter-spacing:.12em;color:var(--faded)">' + (el ? (el.kind === 'chaotic' ? 'Chaotic magic' : T.esc(el.name)) : '') + (sp.own ? '' : ' · ' + T.levelName(sp.level)) + '</div>' +
+      '<h2 style="font-style:normal;font-size:38px;margin:6px 0 10px">' + T.esc(sp.name) + '</h2>' +
+      '<p style="margin:0 0 10px;font-size:16px"><b class="sc">' + cc.stamina + ' Stamina</b>' + (cc.blood ? ' + <b class="sc">' + cc.blood + ' health</b>' : '') + ' · Need <b>' + cc.need + '</b> · on a fail: ' + T.esc(cc.fail) + '</p>' +
+      (sp.own ? '' : '<p class="faded" style="margin:0 0 10px;font-size:15px">' + T.esc(sp.time) + ' · ' + T.esc(sp.range) + ' · ' + T.esc(sp.duration) + (sp.damage ? ' · ' + T.esc(sp.damage) : '') + '</p>') +
+      '<div class="spelltext" style="max-height:420px;overflow-y:auto;padding-right:6px">' + para(sp.text) + '</div>' +
+      '<button type="button" class="btn ink" data-cast="' + sp.key + '" style="margin-top:10px"' + (cc.stamina > c.sta ? ' disabled' : '') + '>Cast ' + T.esc(sp.name) + '</button>';
+  }
+  function cast(key) {
+    var sp = S.byKey[key], cc = T.spellCost(sp, D, c), blood = cc.blood;
+    if (blood === 'X') {
+      var x = parseInt(prompt('How much health do you spend on ' + sp.name + '?', '5'), 10);
+      if (!(x > 0)) return;
+      blood = x;
+    }
+    if (cc.stamina > c.sta) { T.$('#spellNote').textContent = 'not enough Stamina for ' + sp.name; return; }
+    var w = rollWith(sp.name, T.half(T.stat(c, D.spells.stat, D)), false), r = w.r, ok = r.total >= cc.need;
+    c.sta -= cc.stamina;
+    var lost = blood || 0, extra = '';
+    if (!ok) {
+      if (sp.own) {
+        var m = String(cc.fail).match(/Lose\s+([\dd+]+)(\s*[×x]\s*(\d+))?\s+health/i);
+        if (m && T.dice(m[1]) != null) { var f2 = T.dice(m[1]) * (m[3] ? +m[3] : 1); lost += f2; extra = ', lost ' + f2 + ' health'; }
+        else if (/exhaustion/i.test(cc.fail)) { c.exhaustion += 1; extra = ', +1 Exhaustion'; }
+        else extra = ': ' + String(cc.fail).replace(/\.$/, '');
+      } else { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', lost ' + f1 + ' health'; }
+    }
+    if (sp.own) c.taint += 1;
+    var surge = '';
+    if (cc.chaotic && r.die <= D.spells.chaotic.surgeOn) {
+      var table = D.spells.chaotic.surge, n = 1 + Math.floor(Math.random() * table.length);
+      surge = ' — SURGE (' + n + ') ' + table[n - 1];
+    }
+    c.hp = Math.max(0, c.hp - lost);
+    drawVitals(); drawConds(); drawKnown(); drawSpellCard();
+    logLine(lineFor(w.label, r) + ' vs ' + cc.need + (ok ? ' — cast!' : ' — fizzled' + extra) + (blood ? ' (' + blood + ' blood)' : '') + surge);
+  }
+
+  // ---------------------------------------------------------------- lists
+  var X = null;
+  function itemFor(name) { return X ? X.find(name) : null; }
+  function isWorn(it) { return (c.worn || []).some(function (w) { return w.name === it.name; }); }
+  function drawList(key) {
+    T.$('#' + key).innerHTML = c[key].map(function (t, i) {
+      var it = itemFor(t), extra = '';
+      if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + T.esc(t) + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
+      else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + (it.plus ? ' +' + it.plus : '') + '</span>';
+      else if (it && it.group === 'healing') extra = '<span class="tag">' + T.esc(it.heal || it.stamina) + '</span><button type="button" class="btn small" data-use="' + i + '">' + (it.kind === 'Kit' ? 'Use' : 'Drink') + '</button>';
+      var label = it ? '<a href="/varandia/items/?i=' + it.key + '" style="color:var(--ink);text-decoration:none">' + T.esc(t) + '</a>' : T.esc(t);
+      return '<li><span>' + label + '</span>' + extra + '<button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
+    }).join('');
+    if (key === 'items') drawWeapons();
+  }
+  function drawWeapons() {
+    if (!X || !D) return;
+    var ws = c.items.map(itemFor).filter(function (it) { return it && it.dice; });
+    T.$('#weaponsBox').hidden = !ws.length;
+    T.$('#weapons').innerHTML = ws.map(function (w) {
+      return '<button type="button" data-attack="' + T.esc(w.name) + '"><span>' + T.esc(w.name) + '</span><span>' + T.sign(T.weaponBonus(c, D, w) + (w.plus || 0)) + ' · ' + T.esc(w.dice) + (w.plus ? '+' + w.plus : '') + '</span></button>';
+    }).join('');
+    var worn = (c.worn || []).map(function (w) { return w.name; });
+    T.$('#defNote').textContent = worn.length ? 'wearing ' + worn.join(' & ') : '';
+  }
+
+  // ---------------------------------------------------------------- start
+  Promise.all([T.data(), T.spells(), T.items()]).then(function (res) {
+    D = res[0]; S = res[1]; X = res[2];
+    if (!Array.isArray(c.worn)) c.worn = [];
+    var r = T.race(D, c.race);
+    document.title = c.name + ' | Story of Varandia';
+    T.$('#initial').textContent = c.name.charAt(0);
+    T.$('#name').textContent = c.name;
+    T.$('#ctitle').textContent = c.title || '';
+    T.$('#age').textContent = c.age || '—';
+    T.$('#cls').textContent = (T.cls(D, c.cls) || {}).name || '—';
+    T.$('#race').textContent = r ? r.name : '—';
+    T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+    T.$('#itemNames').innerHTML = X.all.filter(function (i) { return i.group !== 'mask'; }).map(function (i) { return '<option value="' + T.esc(i.name) + '"></option>'; }).join('');
+    T.$('#spellNames').innerHTML = S.all.map(function (x) { return '<option value="' + T.esc(x.name) + '"></option>'; }).join('');
+
+    drawSeven(); drawVitals(); drawConds(); drawKnown(); drawSpellCard(); drawLog();
+    drawList('items'); drawList('cardinal');
+    tab(location.hash.slice(1));
+    if (c.foreign) T.$('#status').textContent = 'you\u2019re editing as the GM';
+
+    // campaign: which one, and whether its rolls go to Discord
+    T.cloud.ready.then(function () {
+      if (!T.cloud.token()) return;
+      T.cloud.call('GET', 'chars/' + encodeURIComponent(c.id)).then(function (row) {
+        if (!row.campaign) return null;
+        return T.cloud.call('GET', 'camps/' + row.campaign);
+      }).then(function (r) {
+        if (!r) return;
+        camp = r.camp;
+        T.$('#campBox').hidden = false;
+        T.$('#campName').innerHTML = 'in <a href="/varandia/campaigns/?c=' + camp.id + '">' + T.esc(camp.name) + '</a>';
+        T.$('#postRolls').hidden = !camp.hasWebhook;
+        T.$('#postRolls').setAttribute('aria-pressed', String(!!c.postRolls));
+      }, function () {});
+    });
+    T.$('#postRolls').onclick = function () { c.postRolls = !c.postRolls; this.setAttribute('aria-pressed', String(c.postRolls)); save(); };
+
+    // stats & marks
+    T.$('#seven').addEventListener('click', function (e) {
+      var b = e.target.closest('.stat'); if (!b) return;
+      var s = D.stats.filter(function (x) { return x.key === b.dataset.key; })[0];
+      T.$$('#seven .stat').forEach(function (x) { x.classList.toggle('hot', x === b); });
+      var w = rollWith(s.name, T.half(T.stat(c, s.key, D)), true);
+      if (w.r.die === 20 && !c.marks[s.key]) { c.marks[s.key] = true; drawSeven(); }
+      logLine(lineFor(w.label, w.r) + (w.r.die === 20 ? ' — marked for training' : ''));
+    });
+    T.$('#marks').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mark]'); if (!b) return;
+      var k = b.dataset.mark; if (c.marks[k]) delete c.marks[k]; else c.marks[k] = true;
+      drawSeven(); save();
+    });
+    T.$('#lvUp').onclick = function () {
+      var marked = Object.keys(c.marks).map(function (k) { return D.stats.filter(function (x) { return x.key === k; })[0].name; });
+      T.$('#lvInfo').textContent = 'Level ' + ((c.level || 1) + 1) + ': put your point somewhere.' + (marked.length ? ' Your training marks (' + marked.join(', ') + ') each grow by ' + D.leveling.markGrowth + ' too.' : ' No training marks this time.');
+      T.$('#lvPick').innerHTML = D.stats.map(function (s) { return '<button type="button" class="chip" data-up="' + s.key + '">' + s.name + '</button>'; }).join('');
+      T.$('#lvPanel').hidden = false; T.$('#lvPick button').focus();
+    };
+    T.$('#lvPick').addEventListener('click', function (e) { var b = e.target.closest('[data-up]'); if (b) levelUp(b.dataset.up); });
+    T.$('#lvCancel').onclick = function () { T.$('#lvPanel').hidden = true; };
+    T.$('#lvDown').onclick = levelDown;
+
+    // vitals
+    var after = function () { drawVitals(); drawKnown(); drawSpellCard(); save(); };
+    T.$('#hurt').onclick = function () { c.hp = Math.max(0, c.hp - amount('#hpAmt')); after(); };
+    T.$('#heal').onclick = function () { c.hp = Math.min(dv.hp, c.hp + amount('#hpAmt')); after(); };
+    T.$('#spend').onclick = function () { c.sta = Math.max(0, c.sta - amount('#staAmt')); after(); };
+    T.$('#restore').onclick = function () { c.sta = Math.min(dv.stamina, c.sta + amount('#staAmt')); after(); };
+    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared'); };
+
+    // rolls
+    T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r)); };
+    T.$('#init').onclick = function () { var w = rollWith('Initiative', dv.initiative, false); logLine(lineFor(w.label, w.r)); };
+    T.$('#d20').onclick = function () { logLine(lineFor('d20', T.roll(0))); };
+    T.$('#d6').onclick = function () { logLine(lineFor('d6', T.roll(0, 6))); };
+    T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };
+
+    // conditions
+    T.$('#conds').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-cond]'); if (!b) return;
+      var n = b.dataset.cond; if (c.conds[n]) delete c.conds[n]; else c.conds[n] = true;
+      drawConds(); save();
+    });
+    T.$('#exUp').onclick = function () { c.exhaustion += 1; drawConds(); save(); };
+    T.$('#exDown').onclick = function () { c.exhaustion = Math.max(0, c.exhaustion - 1); drawConds(); save(); };
+    T.$('#tUp').onclick = function () { c.taint += 1; drawConds(); save(); };
+    T.$('#tDown').onclick = function () { c.taint = Math.max(0, c.taint - 1); drawConds(); save(); };
+
+    // spells
+    T.$('#learn').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = T.$('#learnIn').value.trim().toLowerCase(); if (!v) return;
+      var sp = S.all.filter(function (x) { return x.name.toLowerCase() === v; })[0];
+      if (!sp) { T.$('#spellNote').textContent = 'that spell isn’t in the Spellbook'; return; }
+      if (c.known.indexOf(sp.key) < 0) c.known.push(sp.key);
+      openSpell = sp.key;
+      T.$('#learnIn').value = ''; drawKnown(); drawSpellCard(); save();
+    });
+    T.$('#spells').addEventListener('click', function (e) {
+      var f = e.target.closest('[data-forget]');
+      if (f) { c.known = c.known.filter(function (k) { return k !== f.dataset.forget; }); if (openSpell === f.dataset.forget) openSpell = null; drawKnown(); drawSpellCard(); save(); return; }
+      var o = e.target.closest('[data-open]');
+      if (o) { openSpell = o.dataset.open; drawKnown(); drawSpellCard(); return; }
+      var b = e.target.closest('[data-cast]'); if (b) cast(b.dataset.cast);
+    });
+
+    // satchel
+    ['items', 'cardinal'].forEach(function (k) {
+      T.$('#' + k).addEventListener('click', function (e) {
+        var wb = e.target.closest('[data-wear]');
+        if (wb) {
+          var it = itemFor(wb.dataset.wear);
+          if (isWorn(it)) c.worn = c.worn.filter(function (w) { return w.name !== it.name; });
+          else {
+            var shield = it.kind === 'Shield';
+            c.worn = c.worn.filter(function (w) { return (w.kind === 'Shield') !== shield; });
+            c.worn.push({ key: it.key, name: it.name, kind: it.kind, defense: it.defense });
+          }
+          drawList(k); drawVitals(); save(); return;
+        }
+        var ub = e.target.closest('[data-use]');
+        if (ub) {
+          var idx = +ub.dataset.use, h = itemFor(c[k][idx]);
+          if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health'); }
+          if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina'); }
+          if (h.kind !== 'Kit') c[k].splice(idx, 1);
+          drawList(k); drawVitals(); drawKnown(); drawSpellCard(); save(); return;
+        }
+        var b = e.target.closest('[data-rm]'); if (!b) return;
+        var gone = itemFor(c[k][+b.dataset.rm]);
+        c[k].splice(+b.dataset.rm, 1);
+        if (gone && isWorn(gone) && !c[k].some(function (t) { var o = itemFor(t); return o && o.name === gone.name; })) c.worn = c.worn.filter(function (w) { return w.name !== gone.name; });
+        drawList(k); drawVitals(); save();
+      });
+    });
+    T.$('#weapons').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-attack]'); if (!b) return;
+      var w = itemFor(b.dataset.attack), a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
+      var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0) + (w.plus || 0);
+      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage');
+    });
+    T.$$('form.adder[data-list]').forEach(function (f) {
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
+        c[f.dataset.list].push(v); inp.value = ''; drawList(f.dataset.list); save();
+      });
+    });
+
+    // words
+    [['profs', 'profs'], ['storyIn', 'story'], ['notes', 'notes'], ['bgName', 'bgName'], ['look', 'look'], ['pers', 'pers'], ['ideal', 'ideal'], ['bond', 'bond'], ['flaw', 'flaw']].forEach(function (p) {
+      var el = T.$('#' + p[0]); el.value = c[p[1]] || '';
+      el.addEventListener('input', function () { c[p[1]] = el.value; if (p[1] === 'bgName') drawVitals(); save(); });
+    });
+    var tally = function () { T.tally(T.$('#tally'), c.bodies || 0); T.$('#tally').setAttribute('aria-label', 'Body count: ' + (c.bodies || 0)); };
+    tally();
+    T.$('#bUp').onclick = function () { c.bodies = (c.bodies || 0) + 1; tally(); save(); };
+    T.$('#bDown').onclick = function () { c.bodies = Math.max(0, (c.bodies || 0) - 1); tally(); save(); };
+
+    T.$('#export').onclick = function () {
+      var k = T.cls(D, c.cls);
+      var lines = [c.name + (c.title ? ', ' + c.title : ''), [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.age ? 'Age ' + c.age : '', c.height, c.bgName].filter(Boolean).join(' · '), ''];
+      D.stats.forEach(function (s) { var v = T.stat(c, s.key, D); lines.push(s.name + ': ' + v + ' (' + T.sign(T.half(v)) + ')'); });
+      lines.push('', 'Defense ' + dv.defense + ' · Health ' + c.hp + '/' + dv.hp + ' · Stamina ' + c.sta + '/' + dv.stamina + ' · Initiative ' + T.sign(dv.initiative) + ' · Move ' + dv.movement + ' ft · Proficiency ' + T.sign(T.prof(D, c.level || 1)));
+      var sp = c.known.map(function (x) { return S.byKey[x]; }).filter(Boolean).map(function (x) { return x.name; });
+      if (sp.length) lines.push('Spells: ' + sp.join(', '));
+      if (c.items.length) lines.push('Satchel: ' + c.items.join(', '));
+      if (c.cardinal.length) lines.push('Cardinal Items: ' + c.cardinal.join(', '));
+      if (c.profs) lines.push('Proficiencies: ' + c.profs);
+      var text = lines.join('\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { T.$('#status').textContent = 'copied'; }, function () { T.$('#status').textContent = 'couldn’t copy'; });
+    };
+    T.$('#del').onclick = function () {
+      if (!confirm('Tear ' + c.name + ' out of the book? This can’t be undone.')) return;
+      T.chars.remove(c.id); location.href = '/varandia/characters/';
+    };
+  }).catch(function (err) { T.$('#status').textContent = 'the pages are stuck together, try reloading'; if (window.console) console.error(err); });
+  }
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

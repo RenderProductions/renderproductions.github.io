@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaigns | Story of Varandia</title>
+<meta name="description" content="Run a Story of Varandia campaign, or join one with your GM's code. The GM sees every character at a glance.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Campaigns | Story of Varandia">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/campaigns/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .camps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .camps button { width: 100%; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-height: 48px; padding: 6px 8px; background: transparent; border: 0; border-bottom: 1px dashed rgba(42, 29, 18, 0.35); text-align: left; font-size: 20px; }
+  .camps button:hover { background: rgba(110, 31, 23, 0.07); }
+  .camps button[aria-current="true"] { background: rgba(110, 31, 23, 0.13); }
+  .camps small { font: 14px/1 var(--sc); color: var(--faded); white-space: nowrap; }
+  .party { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .pc { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .pc b { font: 400 22px/1.1 var(--fell); }
+  .pc .meta { font: 13px/1.3 var(--sc); color: var(--faded); }
+  .pc .bar2 { position: relative; height: 12px; }
+  .pc .bar2::before { content: ""; position: absolute; inset: 0; border: 1.6px solid var(--ink); filter: url(#tome-rough); }
+  .pc .bar2 i { position: absolute; left: 2px; top: 2px; bottom: 2px; background: var(--ink); }
+  .pc .bar2.sta i { background: repeating-linear-gradient(135deg, var(--ink) 0 4px, transparent 4px 7px); }
+  .pc .row { display: flex; justify-content: space-between; font-size: 15px; }
+  .pc .roll { font: 18px/1.2 var(--hand); color: var(--red); }
+  .pc .conds { font: 13px/1.3 var(--sc); color: var(--red); }
+  .pc .acts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 15px; }
+  .code { font: 34px/1 var(--sc); letter-spacing: 0.25em; }
+  .tome select { font: 20px/1 var(--hand); }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <a href="/varandia/characters/">Your characters</a>
+  <span class="beta" id="whoBar"></span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf" id="leftLeaf" style="gap: 22px">
+        <div class="kicker">Chapter X</div>
+        <h1 id="title">Campaigns</h1>
+
+        <div id="loggedOut" hidden style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start">
+          <p style="margin: 0">Campaigns live on your Discord account, so a GM can see the whole table and players can join from anywhere.</p>
+          <button type="button" class="btn ink" id="login">Log in with Discord</button>
+        </div>
+
+        <div id="loggedIn" hidden style="display: flex; flex-direction: column; gap: 24px">
+          <div>
+            <h2 style="margin-bottom: 6px">Your campaigns</h2>
+            <ul class="camps" id="camps"></ul>
+            <p class="pencil" id="none" hidden style="margin: 4px 0 0">none yet: start one, or join with a code</p>
+          </div>
+
+          <form class="inked thin" id="joinForm" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+            <h3>Join with a code</h3>
+            <div style="display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 14px">
+              <label class="field"><span>Code</span><input type="text" id="jCode" maxlength="6" autocomplete="off" placeholder="ABC123" style="text-transform: uppercase"></label>
+              <label class="field"><span>Character</span><select id="jChar"></select></label>
+            </div>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap"><button type="submit" class="btn small">Join</button><span class="pencil" id="jNote" aria-live="polite"></span></div>
+          </form>
+
+          <form class="inked thin" id="newForm" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+            <h3>Start a campaign (you'll be the GM)</h3>
+            <label class="field"><span>Name</span><input type="text" id="nName" maxlength="80" autocomplete="off" placeholder="Varandia – Reborn"></label>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap"><button type="submit" class="btn small">Start it</button><span class="pencil" id="nNote" aria-live="polite"></span></div>
+          </form>
+        </div>
+      </div>
+      <span class="folio">— 19 —</span>
+    </section>
+
+    <section class="page right" aria-live="polite">
+      <div class="leaf" id="detail" style="gap: 20px">
+        <p class="pencil">pick a campaign</p>
+      </div>
+      <span class="folio">— 20 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, D = null, camps = [], open = new URLSearchParams(location.search).get('c'), timer = null;
+
+  function race(d, k) { var r = T.race(D, k); return r ? r.name : ''; }
+  function err(e) { return (e && e.error) || 'couldn’t reach the book (offline?)'; }
+
+  function drawCamps() {
+    T.$('#none').hidden = camps.length > 0;
+    T.$('#camps').innerHTML = camps.map(function (c) {
+      return '<li><button type="button" data-id="' + c.id + '"' + (c.id === open ? ' aria-current="true"' : '') + '><span>' + T.esc(c.name) + '</span><small>' + (c.isGm ? 'you’re the GM' : 'GM: ' + T.esc(c.gmName || '?')) + '</small></button></li>';
+    }).join('');
+  }
+  function drawJoinChars() {
+    var mine = T.chars.list();
+    T.$('#jChar').innerHTML = mine.length ? mine.map(function (c) { return '<option value="' + c.id + '">' + T.esc(c.name) + '</option>'; }).join('') : '<option value="">make a character first</option>';
+  }
+  function load() {
+    return T.cloud.call('GET', 'camps').then(function (r) { camps = r.camps; drawCamps(); if (open) show(open); else if (camps[0]) show(camps[0].id); });
+  }
+
+  function pcCard(ch, isGm, me) {
+    var c = ch.data; c.id = ch.id;
+    var dv = T.derive(c, D), hp = c.hp == null ? dv.hp : c.hp, sta = c.sta == null ? dv.stamina : c.sta;
+    var conds = Object.keys(c.conds || {}).concat(c.exhaustion ? ['Exhaustion ' + c.exhaustion] : []).concat(c.taint ? ['Taint ' + c.taint] : []);
+    var k = T.cls(D, c.cls), mine = me && ch.owner === me.id;
+    return '<div class="inked pc"><b>' + T.esc(c.name) + '</b><span class="meta">' + T.esc([race(D, c.race) + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1)].join(' · ')) + '<br>played by ' + T.esc(ch.ownerName || '?') + '</span>' +
+      '<div class="row"><span class="sc">Health</span><span>' + hp + ' / ' + dv.hp + '</span></div><div class="bar2"><i style="width:calc(' + (dv.hp ? hp / dv.hp * 100 : 0) + '% - 4px)"></i></div>' +
+      '<div class="row"><span class="sc">Stamina</span><span>' + sta + ' / ' + dv.stamina + '</span></div><div class="bar2 sta"><i style="width:calc(' + (dv.stamina ? sta / dv.stamina * 100 : 0) + '% - 4px)"></i></div>' +
+      '<div class="row"><span class="sc">Defense</span><span>' + dv.defense + '</span></div>' +
+      (conds.length ? '<span class="conds">' + T.esc(conds.join(' · ')) + '</span>' : '') +
+      (c.log && c.log[0] ? '<span class="roll">' + T.esc(c.log[0]) + '</span>' : '') +
+      '<span class="acts">' + (isGm || mine ? '<a href="/varandia/sheet/?id=' + encodeURIComponent(ch.id) + '&cloud=1">open sheet</a>' : '') +
+      (isGm || mine ? '<button type="button" class="linkish" data-leave="' + ch.id + '" style="color:var(--red);min-height:0">' + (mine ? 'leave' : 'remove') + '</button>' : '') + '</span></div>';
+  }
+
+  function show(id) {
+    open = id; drawCamps();
+    history.replaceState(null, '', location.pathname + '?c=' + id);
+    clearTimeout(timer);
+    T.cloud.call('GET', 'camps/' + id).then(function (r) {
+      var c = r.camp, me = T.cloud.me(), h = '<h2 style="font-style:normal;font-size:40px">' + T.esc(c.name) + '</h2>';
+      if (c.isGm) {
+        h += '<div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap"><span class="sc faded" style="font-size:15px">Join code</span><span class="code">' + T.esc(c.code) + '</span><span class="pencil" style="font-size:18px">hand this to your players</span></div>';
+      } else h += '<p class="faded" style="margin:0">Run by ' + T.esc(c.gmName || '?') + '</p>';
+      h += c.isGm ? '<div><h3 id="introT" style="margin-bottom:2px">The story so far</h3><textarea class="lined" id="intro" rows="5" maxlength="8000" aria-labelledby="introT" placeholder="what your players read before the first session…">' + T.esc(c.intro) + '</textarea></div>'
+                  : (c.intro ? '<div style="white-space:pre-wrap;font-size:17px">' + T.esc(c.intro) + '</div>' : '');
+      h += '<div><h3 style="margin-bottom:10px">The party</h3>' + (r.chars.length ? '<div class="party">' + r.chars.map(function (ch) { return pcCard(ch, c.isGm, me); }).join('') + '</div>' : '<p class="pencil" style="margin:0">no one has joined yet</p>') + '</div>';
+      if (c.isGm) h += '<div class="inked thin" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><h3>Rolls to Discord</h3>' +
+        '<p style="margin:0;font-size:15px">Paste a Discord webhook link (Channel settings → Integrations → Webhooks) and players can send their rolls to that channel from their sheets.</p>' +
+        '<label class="field"><span>Webhook link</span><input type="text" id="hook" autocomplete="off" value="' + T.esc(c.webhook) + '" placeholder="https://discord.com/api/webhooks/…" style="font-size:16px !important"></label>' +
+        '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button type="button" class="btn small" id="saveCamp">Save</button><button type="button" class="linkish" id="delCamp" style="color:var(--red)">End this campaign</button><span class="pencil" id="cNote" aria-live="polite"></span></div></div>';
+      else if (c.hasWebhook) h += '<p class="pencil" style="margin:0">this campaign has a Discord channel: switch on "post rolls" on your sheet</p>';
+      var keep = document.activeElement && document.activeElement.id;
+      if (c.isGm && T.$('#intro') && keep && (keep === 'intro' || keep === 'hook')) { /* don't redraw while the GM is typing */ }
+      else T.$('#detail').innerHTML = h;
+      timer = setTimeout(function () { if (!document.hidden) show(id); else timer = setTimeout(function () { show(id); }, 15000); }, 15000);
+    }, function (e) { T.$('#detail').innerHTML = '<p>' + T.esc(err(e)) + '</p>'; });
+  }
+
+  T.$('#detail').addEventListener('click', function (e) {
+    if (e.target.id === 'saveCamp') {
+      T.$('#cNote').textContent = 'saving…';
+      T.cloud.call('PUT', 'camps/' + open, { intro: T.$('#intro').value, webhook: T.$('#hook').value }).then(function (c) {
+        camps = camps.map(function (x) { return x.id === c.id ? c : x; }); T.$('#cNote').textContent = 'saved';
+      }, function (er) { T.$('#cNote').textContent = err(er); });
+    }
+    if (e.target.id === 'delCamp') {
+      if (!confirm('End this campaign? Characters stay with their players.')) return;
+      T.cloud.call('DELETE', 'camps/' + open).then(function () { camps = camps.filter(function (x) { return x.id !== open; }); open = null; drawCamps(); T.$('#detail').innerHTML = '<p class="pencil">campaign ended</p>'; });
+    }
+    var lv = e.target.closest('[data-leave]');
+    if (lv) T.cloud.call('POST', 'leave', { char: lv.dataset.leave }).then(function () { show(open); load(); });
+  });
+  T.$('#camps').addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) show(b.dataset.id); });
+  T.$('#newForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var n = T.$('#nName').value.trim(); if (!n) { T.$('#nNote').textContent = 'give it a name'; return; }
+    T.$('#nNote').textContent = 'starting…';
+    T.cloud.call('POST', 'camps', { name: n }).then(function (c) { T.$('#nName').value = ''; T.$('#nNote').textContent = ''; camps.unshift(c); show(c.id); }, function (er) { T.$('#nNote').textContent = err(er); });
+  });
+  T.$('#joinForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var code = T.$('#jCode').value.trim().toUpperCase(), ch = T.$('#jChar').value;
+    if (!code || !ch) { T.$('#jNote').textContent = 'needs a code and a character'; return; }
+    T.$('#jNote').textContent = 'joining…';
+    var local = T.chars.get(ch);
+    T.cloud.call('PUT', 'chars/' + ch, { data: local }).then(function () { return T.cloud.call('POST', 'join', { code: code, char: ch }); }).then(function (r) {
+      T.$('#jNote').textContent = 'joined ' + r.camp.name; T.$('#jCode').value = ''; return load().then(function () { show(r.camp.id); });
+    }, function (er) { T.$('#jNote').textContent = err(er); });
+  });
+
+  Promise.all([T.data(), T.cloud.ready]).then(function (r) {
+    D = r[0];
+    T.$('#login').onclick = function () { T.cloud.login(); };
+    if (!T.cloud.token()) { T.$('#loggedOut').hidden = false; T.$('#detail').innerHTML = '<p class="pencil">log in to see your campaigns</p>'; return; }
+    var me = T.cloud.me();
+    T.$('#whoBar').textContent = me ? 'signed in as ' + (me.name || 'you') : '';
+    T.$('#loggedIn').hidden = false;
+    drawJoinChars();
+    T.cloud.sync().then(drawJoinChars, function () {});
+    load().catch(function (e) { T.$('#detail').innerHTML = '<p>' + T.esc(err(e)) + '</p>'; });
+  });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magic | Story of Varandia</title>
+<meta name="description" content="Magic in Story of Varandia: Chaotic and Controlled magic, the Stamina it costs, and the eleven elements.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Magic | Story of Varandia">
+<meta property="og:description" content="Chaotic and Controlled magic, and the eleven elements.">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/magic/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" aria-current="true" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf">
+        <div class="kicker">Chapter IV</div>
+        <h1 id="title">Magic</h1>
+        <p style="font-size: 20px">Anyone can use magic, but it takes a toll on their <b class="sc">Stamina</b>.</p>
+
+        <p style="margin: 0">All magic falls under one of two umbrellas.</p>
+        <div class="inked" style="padding: 20px 22px">
+          <h3>Chaotic magic</h3>
+          <p style="margin-top: 6px">The wild, raw energy that gives Varandia its life, cast as it is, with no element. Pure, powerful and unpredictable. The higher your level, the easier it becomes to use.</p>
+          <p class="faded" style="margin: 6px 0 0; font-size: 15px">Spells like Counterspell, Teleport and Magic Missile. <a href="/varandia/spells/?el=chaotic">See them all</a>.</p>
+        </div>
+        <div class="inked" style="padding: 20px 22px">
+          <h3>Controlled magic</h3>
+          <p style="margin-top: 6px">Chaotic magic that has been trained into an element and harnessed into runes and magical artifacts: wands, staves, tomes, crystal balls and the like. Every element is Controlled magic, Evil included.</p>
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 8px">Learning spells</h2>
+          <p>You learn an elemental spell by harnessing Chaotic magic and training it into one element. That's where the standard spells come from: fireball and the rest.</p>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center">
+          <span class="seal" aria-hidden="true"></span>
+          <p style="margin: 0"><b class="sc">Fail a magic roll</b> and it costs you some health.</p>
+        </div>
+      </div>
+      <span class="folio">— 9 —</span>
+    </section>
+
+    <section class="page right" aria-labelledby="elements">
+      <div class="leaf">
+        <div class="kicker">Chapter V</div>
+        <h1 id="elements" style="font-size: 44px">The Eleven Elements</h1>
+        <p>Controlled magic comes in eleven elements.</p>
+        <ul id="els" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 26px"></ul>
+        <p style="font-size: 16px">Every spell, with what it costs and the roll it needs, is in <a href="/varandia/spells/">the Spellbook</a>.</p>
+        <div id="surge" class="inked" style="padding: 20px 22px">
+          <h2 style="margin-bottom: 6px">Chaos Surge</h2>
+          <p style="font-size: 16px">Chaotic spells start harder to cast (Need <span data-cb>12</span> + spell level) and get 1 easier every two levels (at levels 3, 5 and so on), down to the normal Need. Roll a natural <span data-so>3</span> or lower on one and it surges. Roll a d<span data-sn>12</span>:</p>
+          <ol id="surgeList" style="margin: 0; padding-left: 1.6em; display: flex; flex-direction: column; gap: 4px; font-size: 16px"></ol>
+        </div>
+      </div>
+      <span class="folio">— 10 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+Promise.all([Tome.data(), Tome.spells()]).then(function (r) {
+  var d = r[0], s = r[1], n = {};
+  s.all.forEach(function (x) { n[x.element] = (n[x.element] || 0) + 1; });
+  Tome.$('#els').innerHTML = d.elements.filter(function (e) { return e.kind === 'controlled'; }).map(function (e) {
+    return '<li id="' + e.key + '" style="padding:10px 0;border-bottom:1px dashed rgba(42,29,18,.35)">' +
+      '<a href="/varandia/spells/?el=' + e.key + '" style="display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:' + e.color + ';filter:url(#tome-rough)"></span>' +
+      '<span class="sc" style="font-size:21px;flex:1">' + Tome.esc(e.name) + '</span><span class="pencil" style="font-size:20px">' + (n[e.key] || 0) + ' spells</span></a>' +
+      (e.text ? '<p style="margin:4px 0 0;font-size:16px">' + Tome.esc(e.text) + '</p>' : '') + '</li>';
+  }).join('');
+  var ch = d.spells.chaotic;
+  Tome.$$('[data-cb]').forEach(function (e) { e.textContent = ch.needBase; });
+  Tome.$$('[data-so]').forEach(function (e) { e.textContent = ch.surgeOn; });
+  Tome.$$('[data-sn]').forEach(function (e) { e.textContent = ch.surge.length; });
+  Tome.$('#surgeList').innerHTML = ch.surge.map(function (t) { var i = t.indexOf(':'); return '<li><b class="sc">' + Tome.esc(t.slice(0, i)) + '.</b>' + Tome.esc(t.slice(i + 1)) + '</li>'; }).join('');
+  if (location.hash) { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+});
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

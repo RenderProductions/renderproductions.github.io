@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Armory | Story of Varandia</title>
+<meta name="description" content="Weapons, armor, healing, magic items, gear, the Relics of Ward and the Elemental Masks of Story of Varandia.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="The Armory | Story of Varandia">
+<meta property="og:description" content="Weapons, armor and gear, the Relics of Ward, and the Elemental Masks.">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/items/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .chips .chip { min-height: 38px; font-size: 16px; padding: 0 13px; }
+  .chip .n { font: 15px/1 var(--hand); color: var(--faded); }
+  .ilist { list-style: none; margin: 0; padding: 0 6px 0 0; max-height: 600px; overflow-y: auto; border-top: 1.5px solid rgba(42, 29, 18, 0.55); border-bottom: 1.5px solid rgba(42, 29, 18, 0.55); }
+  .ilist button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 4px 6px; background: transparent; border: 0; border-bottom: 1px dashed rgba(42, 29, 18, 0.3); text-align: left; }
+  .ilist button:hover { background: rgba(110, 31, 23, 0.07); }
+  .ilist button[aria-current="true"] { background: rgba(110, 31, 23, 0.13); }
+  .ilist .nm { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+  .ilist .nm b { font: 400 18px/1.2 var(--fell); }
+  .ilist .nm small { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .ilist .v { font: 22px/1 var(--hand); color: var(--red); white-space: nowrap; }
+  .facts2 { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 18px; font-size: 16px; }
+  .facts2 dt { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .facts2 dd { margin: 0 0 4px; }
+  .rules { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 8px; font-size: 17px; }
+  .credit { font-size: 13px; color: var(--faded); line-height: 1.4; }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/spells/" style="--rib:#3e3466">Spells</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf" style="gap: 20px">
+        <div class="kicker">Chapter VII</div>
+        <h1 id="title">The Armory</h1>
+        <p style="font-size: 16px; margin: 0">Attack with <b>d20 + half Strength</b> (melee) or <b>half Speed</b> (ranged; Finesse weapons use whichever is higher) against Defense. Damage is the weapon's dice. Armor adds to your <b>Defense</b>: one suit and one shield at a time.</p>
+        <div class="chips" id="groups" role="group" aria-label="Kind of item"></div>
+        <label class="field"><span>Search</span><input type="text" id="q" autocomplete="off" placeholder="longsword…"></label>
+        <ul class="ilist" id="list" aria-label="Items"></ul>
+        <p class="pencil" id="count" aria-live="polite" style="margin: 0"></p>
+      </div>
+      <span class="folio">— 13 —</span>
+    </section>
+
+    <section class="page right" aria-live="polite">
+      <div class="leaf" id="card" style="gap: 18px"><p class="pencil">pick something</p></div>
+      <span class="folio">— 14 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, D, X, params = new URLSearchParams(location.search);
+  var GROUPS = [['weapon', 'Weapons'], ['armor', 'Armor'], ['healing', 'Healing'], ['magic', 'Magic items'], ['gear', 'Gear'], ['relic', 'Relics of Ward'], ['mask', 'Elemental Masks']];
+  var state = { g: params.get('g') || 'weapon', q: '', pick: params.get('i') || '' };
+  if (state.pick && !params.get('g')) { /* set below once items load */ }
+
+  function value(i) {
+    if (i.group === 'weapon' || i.dice) return i.dice;
+    if (i.group === 'armor') return '+' + i.defense;
+    if (i.group === 'healing') return i.heal || i.stamina;
+    return '';
+  }
+  function sub(i) {
+    if (i.group === 'weapon') return i.kind + (i.ranged ? ' ranged' : ' melee');
+    if (i.group === 'armor') return i.kind === 'Shield' ? 'Shield' : i.kind + ' armor';
+    if (i.group === 'magic' || i.group === 'healing') return (i.kind || '') + (i.rarity ? ' · ' + i.rarity : '');
+    if (i.group === 'mask') { var e = D.elements.filter(function (x) { return x.key === i.element; })[0]; return e ? e.name : i.element; }
+    return i.kind || '';
+  }
+  function drawList() {
+    var list = X.all.filter(function (i) { return i.group === state.g && (!state.q || i.name.toLowerCase().indexOf(state.q) >= 0); });
+    T.$('#list').innerHTML = list.map(function (i) {
+      return '<li><button type="button" data-key="' + i.key + '"' + (i.key === state.pick ? ' aria-current="true"' : '') + '><span class="nm"><b>' + T.esc(i.name) + '</b><small>' + T.esc(sub(i)) + '</small></span><span class="v">' + T.esc(value(i)) + '</span></button></li>';
+    }).join('');
+    T.$('#count').textContent = list.length + (list.length === 1 ? ' entry' : ' entries');
+    T.$$('#groups .chip').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.g === state.g ? 'true' : 'false'); });
+  }
+  function para(t) { return T.esc(t).split(/\n+/).map(function (p) { return '<p style="margin:0 0 .6em;font-size:16px">' + p.trim().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>'; }).join(''); }
+  function drawCard() {
+    var i = X.byKey[state.pick];
+    if (!i) { T.$('#card').innerHTML = groupIntro(); return; }
+    var h = '<div style="font:14px/1 var(--sc);letter-spacing:.12em;color:var(--faded)">' + T.esc(sub(i)) + '</div><h2 style="font-style:normal;font-size:42px">' + T.esc(i.name) + '</h2>';
+    if (i.group === 'weapon') {
+      h += '<dl class="facts2"><div><dt>Damage</dt><dd>' + T.esc(i.dice + ' ' + i.type) + (i.twoHand ? ' (' + T.esc(i.twoHand) + ' two-handed)' : '') + '</dd></div>' +
+        '<div><dt>Attack</dt><dd>d20 + half ' + (i.props && i.props.indexOf('Finesse') >= 0 ? 'Strength or Speed' : i.ranged ? 'Speed' : 'Strength') + '</dd></div>' +
+        (i.range ? '<div><dt>Range</dt><dd>' + T.esc(i.range) + '</dd></div>' : '') +
+        (i.props ? '<div><dt>Properties</dt><dd>' + T.esc(i.props.join(', ')) + '</dd></div>' : '') + '</dl>';
+    } else if (i.group === 'armor') {
+      h += '<dl class="facts2"><div><dt>Defense</dt><dd>+' + i.defense + '</dd></div><div><dt>Kind</dt><dd>' + T.esc(i.kind) + '</dd></div>' +
+        (i.stealth ? '<div><dt>Stealth</dt><dd>Noisy: sneaking is harder</dd></div>' : '') + (i.heavy ? '<div><dt>Weight</dt><dd>Heavy: the GM may want some Strength</dd></div>' : '') + '</dl>';
+    } else if (i.group === 'healing') {
+      h += '<p style="font-style:italic;font-size:18px;margin:0">' + T.esc(i.text) + '</p><ul class="rules">' + i.rules.map(function (r) { return '<li>' + T.esc(r) + '</li>'; }).join('') + '</ul>' +
+        '<p class="pencil" style="margin:0">in your Satchel it gets a button that rolls it for you' + (i.srd ? '' : ' · Varandia\u2019s own') + '</p>';
+    } else if (i.group === 'magic') {
+      h += '<dl class="facts2"><div><dt>Rarity</dt><dd>' + T.esc(i.rarity) + '</dd></div><div><dt>Attunement</dt><dd>' + (i.attune ? 'Needed' : 'No') + '</dd></div></dl>' + '<div>' + para(i.text) + '</div>' +
+        '<div class="inked thin" style="padding:12px 16px"><p style="margin:0;font-size:15px"><b class="sc">Reading D&amp;D items.</b> Armor Class is your <b>Defense</b>; Hit Points are <b>Health</b>; spell slots are <b>Stamina</b>. A saving throw is d20 + half the matching stat (Dexterity is Speed, Constitution is Durability, Wisdom is Perception). Advantage: roll two d20s and keep the higher; Disadvantage, the lower. You can be attuned to three items at once.' +
+        (i.plusOf ? ' Write it in your Satchel as, say, <b>+' + i.plus + ' Longsword</b> and the sheet adds the bonus for you.' : '') + '</p></div>' +
+        '<p class="credit">' + T.esc(X.credit) + '</p>';
+      T.$('#card').innerHTML = h; return;
+    } else if (i.group === 'relic') {
+      h += '<p style="font-style:italic;font-size:18px;margin:0">' + T.esc(i.text) + '</p><ul class="rules">' + i.rules.map(function (r) { return '<li>' + T.esc(r) + '</li>'; }).join('') + '</ul>' +
+        '<p class="pencil" style="margin:0">a Relic of Ward: only the GM hands these out</p>';
+    } else if (i.group === 'mask') {
+      h += '<p style="font-size:18px;margin:0">' + T.esc(i.text) + '</p><p class="pencil" style="margin:0">an Elemental Mask, made when Varandia was. Each is bound to a Wielder. They belong to the story, and only the GM decides where they turn up.</p>';
+    }
+    if (i.text && (i.group === 'weapon' || i.group === 'armor' || i.group === 'gear')) h += '<div>' + para(i.text) + '</div>';
+    if (i.group === 'weapon' || i.group === 'armor' || i.group === 'gear') h += '<p class="credit">' + T.esc(X.credit) + '</p>';
+    T.$('#card').innerHTML = h;
+  }
+  function groupIntro() {
+    var t = {
+      weapon: ['Weapons', 'Every weapon rolls its own damage dice. On your sheet, put one in your Satchel and it gets its own attack button.'],
+      armor: ['Armor', 'Armor adds to your Defense: the number in red is the bonus. Wear one suit and one shield at a time, from your Satchel.'],
+      healing: ['Healing', 'Potions mend Health; tonics, brewed by Varandian alchemists, bring back Stamina. In your Satchel they get a button that rolls them for you.'],
+      magic: ['Magic items', 'Ordinary magic: enchanted blades, cloaks, rings and wands, common to rare. Rarer and stranger things are the Relics of Ward.'],
+      gear: ['Gear', 'Tools, packs and odds and ends for the road.'],
+      relic: ['Relics of Ward', 'Items of extraordinary power, each one a story of its own. Only the GM hands these out.'],
+      mask: ['Elemental Masks', 'The lifeblood of Varandia, made when the world was. Each mask is bound to a Wielder.']
+    }[state.g];
+    return '<h2 style="font-style:normal;font-size:42px">' + t[0] + '</h2><p style="font-size:18px">' + t[1] + '</p><p class="pencil">pick something from the list</p>';
+  }
+  function sync() {
+    var p = new URLSearchParams(); p.set('g', state.g); if (state.pick) p.set('i', state.pick);
+    history.replaceState(null, '', location.pathname + '?' + p.toString());
+  }
+  Promise.all([T.data(), T.items()]).then(function (r) {
+    D = r[0]; X = r[1];
+    if (state.pick && X.byKey[state.pick] && !params.get('g')) state.g = X.byKey[state.pick].group;
+    T.$('#groups').innerHTML = GROUPS.map(function (g) {
+      var n = X.all.filter(function (i) { return i.group === g[0]; }).length;
+      return '<button type="button" class="chip" data-g="' + g[0] + '">' + g[1] + ' <span class="n">' + n + '</span></button>';
+    }).join('');
+    T.$('#groups').addEventListener('click', function (e) { var b = e.target.closest('[data-g]'); if (!b) return; state.g = b.dataset.g; state.pick = ''; drawList(); drawCard(); sync(); });
+    T.$('#q').addEventListener('input', function () { state.q = this.value.trim().toLowerCase(); drawList(); });
+    T.$('#list').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-key]'); if (!b) return;
+      state.pick = b.dataset.key; drawList(); drawCard(); sync();
+      if (window.innerWidth < 1020) T.$('#card').scrollIntoView({ behavior: 'smooth' });
+    });
+    drawList(); drawCard();
+  }).catch(function () { T.$('#card').innerHTML = '<p>The pages are stuck together. Try reloading.</p>'; });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+{
+  "_about": "Story of Varandia rules data. The compendium, builder and character sheet all read this file. Edit numbers and text here; leave the keys alone. Empty strings show as 'not yet written'.",
+  "creation": {
+    "startingDie": 6,
+    "points": 20,
+    "statCap": null
+  },
+  "stats": [
+    {
+      "key": "str",
+      "short": "STR",
+      "name": "Strength",
+      "hint": "hitting, lifting",
+      "text": "How hard you can hit, how much you can lift, and so on."
+    },
+    {
+      "key": "dur",
+      "short": "DUR",
+      "name": "Durability",
+      "hint": "taking a hit",
+      "text": "How hard you can be hit."
+    },
+    {
+      "key": "spd",
+      "short": "SPD",
+      "name": "Speed",
+      "hint": "running",
+      "text": "How fast you can run."
+    },
+    {
+      "key": "cha",
+      "short": "CHA",
+      "name": "Charisma",
+      "hint": "smooth talking",
+      "text": "Smooth talking."
+    },
+    {
+      "key": "int",
+      "short": "INT",
+      "name": "Intelligence",
+      "hint": "smarts",
+      "text": "Smarts."
+    },
+    {
+      "key": "per",
+      "short": "PER",
+      "name": "Perception",
+      "hint": "seeing",
+      "text": "Can you see? Noticing things."
+    },
+    {
+      "key": "sta",
+      "short": "STA",
+      "name": "Stamina",
+      "hint": "fuel for magic",
+      "text": "What magic costs. Your Stamina pool is built from it."
+    }
+  ],
+  "races": [
+    {
+      "key": "human",
+      "name": "Human",
+      "color": "#5a4632",
+      "mods": {},
+      "height": "4′11″ – 6′3″",
+      "text": "Arrogant little runts. They adapt to anything that gets thrown their way, and they despise the other races.",
+      "ability": ""
+    },
+    {
+      "key": "emberkin",
+      "name": "Emberkin",
+      "color": "#9a3412",
+      "mods": {
+        "str": 3,
+        "dur": -2,
+        "spd": 1,
+        "per": -1
+      },
+      "height": "5′8″ – 6′4″",
+      "text": "Beings of fire and ash, destruction and pillaging. One of the greatest manufacturers in Varandia.",
+      "ability": ""
+    },
+    {
+      "key": "glacian",
+      "name": "Glacian",
+      "color": "#1d5f80",
+      "mods": {
+        "str": 2,
+        "dur": 3,
+        "spd": -3,
+        "sta": -2
+      },
+      "height": "4′11″ – 5′8″",
+      "text": "Frosty the Snowman was a jolly, happy soul. Seriously though, these rough-and-tumble fellows love a good snowball fight and are probably the friendliest race in Varandia. They do get a bit rough with their pals.",
+      "ability": ""
+    },
+    {
+      "key": "floralian",
+      "name": "Floralian",
+      "color": "#2f6b2f",
+      "mods": {
+        "dur": 2,
+        "int": -1,
+        "sta": 1
+      },
+      "height": "5′5″ – 5′8″",
+      "text": "The religious ones. They love using magic to spread propaganda for their god, the Tree of Wisdom.",
+      "ability": ""
+    },
+    {
+      "key": "stoneborn",
+      "name": "Stoneborn",
+      "color": "#6b4f2a",
+      "mods": {
+        "str": 3,
+        "dur": 3,
+        "cha": -3,
+        "int": -3
+      },
+      "height": "5′1″ – 6′5″",
+      "text": "Speak less, fight more. Dumb as rocks, but they hit like a bus!",
+      "ability": ""
+    }
+  ],
+  "derived": {
+    "_about": "Numbers worked out from stats. 'half' means half the stat, rounded down.",
+    "defense": {
+      "base": 10,
+      "halfOf": "dur"
+    },
+    "hp": {
+      "base": 10,
+      "plusStat": "dur",
+      "perLevel": 5,
+      "perLevelHalfOf": "dur"
+    },
+    "stamina": {
+      "base": 5,
+      "statTimes": 2,
+      "stat": "sta",
+      "perLevel": 2,
+      "perLevelHalfOf": "sta"
+    },
+    "initiative": {
+      "halfOf": "spd"
+    },
+    "movement": {
+      "baseFeet": 20,
+      "feetPerTwo": 5,
+      "stat": "spd"
+    },
+    "attack": {
+      "halfOf": "str"
+    }
+  },
+  "spells": {
+    "_about": "How a D&D spell level turns into Varandia costs. Cantrips are level 0.",
+    "stat": "int",
+    "cantripStamina": 1,
+    "staminaPerLevel": 2,
+    "needBase": 10,
+    "failCantrip": "1",
+    "failDie": "d4",
+    "chaotic": {
+      "_about": "Chaotic spells start harder (needBase + spell level) and get easierPerLevel easier every easierEvery character levels, down to the normal Need. A natural roll at or under surgeOn surges: roll the surge table.",
+      "needBase": 12,
+      "easierPerLevel": 1,
+      "surgeOn": 3,
+      "surge": [
+        "Backfire: the spell hits you instead, or turns its effect on you.",
+        "Wrong target: it strikes a random creature in range, friend or foe.",
+        "Echo: it goes off twice. Pay its Stamina again, or take that much damage.",
+        "Wild growth: its range and area double.",
+        "Sputter: it works at half strength, and you get the Stamina back.",
+        "Flip: the GM swaps it for a random spell of the same level.",
+        "Static: everyone within 10 ft, you included, takes 1d6.",
+        "Drain: you lose its Stamina cost a second time.",
+        "Blink: you teleport 1d4 × 10 ft in a random direction.",
+        "Bloom: a burst of harmless light and colour, and nothing else. It costs you nothing.",
+        "Overcharge: the spell does its most, but you take 1d4 per spell level.",
+        "Lingering chaos: your next spell surges too."
+      ],
+      "easierEvery": 2
+    }
+  },
+  "magicKinds": [
+    {
+      "key": "controlled",
+      "name": "Controlled magic",
+      "text": "Magic that has been trained into an element and harnessed into runes and magical artifacts: wands, staves, tomes, crystal balls and the like. Every element is Controlled magic, Evil included."
+    },
+    {
+      "key": "chaotic",
+      "name": "Chaotic magic",
+      "text": "The wild, raw energy that gives Varandia its life, cast as it is, with no element. Pure, powerful and unpredictable, and the higher your level, the easier it is to use."
+    }
+  ],
+  "elements": [
+    {
+      "key": "fire",
+      "name": "Fire",
+      "color": "#b4421a",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "water",
+      "name": "Water",
+      "color": "#1f5f9e",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "ice",
+      "name": "Ice",
+      "color": "#3d7f99",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "earth",
+      "name": "Earth",
+      "color": "#6b4f2a",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "air",
+      "name": "Air",
+      "color": "#5e6f80",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "lightning",
+      "name": "Lightning",
+      "color": "#8a6a10",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "nature",
+      "name": "Nature",
+      "color": "#2f6b2f",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "poison",
+      "name": "Poison",
+      "color": "#557a1c",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "light",
+      "name": "Light",
+      "color": "#9a7b25",
+      "text": "",
+      "kind": "controlled"
+    },
+    {
+      "key": "dark",
+      "name": "Dark",
+      "color": "#3e3466",
+      "text": "Shadow and obscuring magic: blinding, darkness, mists. Think Blindness or Dark Mist.",
+      "kind": "controlled"
+    },
+    {
+      "key": "evil",
+      "name": "Evil",
+      "color": "#7a1424",
+      "text": "Lethal, malicious magic aimed at ending life. Varandia's own: every Evil spell costs blood as well as Stamina.",
+      "kind": "controlled"
+    },
+    {
+      "key": "chaotic",
+      "name": "Chaotic",
+      "kind": "chaotic",
+      "color": "#7a3e8e",
+      "text": "Raw magic with no element: the wild energy itself, cast before it's been trained into anything. Powerful and unpredictable."
+    }
+  ],
+  "classes": [
+    {
+      "key": "barbarian",
+      "name": "Barbarian",
+      "hitDie": 12,
+      "hpPerLevel": 3,
+      "leans": [
+        "str"
+      ],
+      "caster": false,
+      "text": "A warrior fuelled by rage, who shrugs off blows that would fell anyone else."
+    },
+    {
+      "key": "bard",
+      "name": "Bard",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "cha"
+      ],
+      "caster": true,
+      "text": "A performer whose words and music carry real magic."
+    },
+    {
+      "key": "cleric",
+      "name": "Cleric",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "per"
+      ],
+      "caster": true,
+      "text": "A servant of the divine who heals, protects and smites."
+    },
+    {
+      "key": "druid",
+      "name": "Druid",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "per"
+      ],
+      "caster": true,
+      "text": "A keeper of the wild who draws on nature and can take the shape of beasts."
+    },
+    {
+      "key": "fighter",
+      "name": "Fighter",
+      "hitDie": 10,
+      "hpPerLevel": 2,
+      "leans": [
+        "str",
+        "spd"
+      ],
+      "caster": false,
+      "text": "A master of weapons and armor, trained for every kind of fight."
+    },
+    {
+      "key": "monk",
+      "name": "Monk",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "spd",
+        "per"
+      ],
+      "caster": false,
+      "text": "A disciplined martial artist who turns inner focus into speed and strikes."
+    },
+    {
+      "key": "paladin",
+      "name": "Paladin",
+      "hitDie": 10,
+      "hpPerLevel": 2,
+      "leans": [
+        "str",
+        "cha"
+      ],
+      "caster": true,
+      "text": "A holy warrior bound by an oath, mixing steel with divine magic."
+    },
+    {
+      "key": "ranger",
+      "name": "Ranger",
+      "hitDie": 10,
+      "hpPerLevel": 2,
+      "leans": [
+        "spd",
+        "per"
+      ],
+      "caster": true,
+      "text": "A hunter and tracker at home in the wilds, deadly at range."
+    },
+    {
+      "key": "rogue",
+      "name": "Rogue",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "spd"
+      ],
+      "caster": false,
+      "text": "A sneak and a specialist who strikes where it hurts most."
+    },
+    {
+      "key": "sorcerer",
+      "name": "Sorcerer",
+      "hitDie": 6,
+      "hpPerLevel": 0,
+      "leans": [
+        "cha"
+      ],
+      "caster": true,
+      "text": "Born with magic in the blood, shaping it by instinct rather than study."
+    },
+    {
+      "key": "warlock",
+      "name": "Warlock",
+      "hitDie": 8,
+      "hpPerLevel": 1,
+      "leans": [
+        "cha"
+      ],
+      "caster": true,
+      "text": "Someone who made a pact with a powerful being, and pays for the power."
+    },
+    {
+      "key": "wizard",
+      "name": "Wizard",
+      "hitDie": 6,
+      "hpPerLevel": 0,
+      "leans": [
+        "int"
+      ],
+      "caster": true,
+      "text": "A scholar of magic who learns spells from books and long study."
+    }
+  ],
+  "classRules": {
+    "_about": "Classes are the standard D&D classes. hpPerLevel is added to max Health at every level (d6 0, d8 1, d10 2, d12 3). Spells on your class's list are easier: their Need drops by classListNeed.",
+    "classListNeed": 1
+  },
+  "proficiency": {
+    "_about": "Proficiency bonus by character level, as in D&D. Add it to a roll for something you're proficient in (your Proficiencies). Not added to spells: they have their own costs.",
+    "byLevel": [
+      [
+        1,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        9,
+        4
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        17,
+        6
+      ]
+    ]
+  },
+  "leveling": {
+    "_about": "Milestone leveling: the GM says when you level up. Each level: pointsPerLevel to spend, and every stat with a training mark grows by 1 (marks then clear). A natural 20 on a stat roll marks it; the GM can also mark a stat after a hard roll.",
+    "milestones": true,
+    "maxLevel": 20,
+    "pointsPerLevel": 1,
+    "markGrowth": 1
+  },
+  "weapons": {
+    "_about": "Attacks: d20 + half the stat vs the target's Defense. Melee uses Strength, ranged uses Speed, Finesse weapons use whichever is higher. Damage is the weapon's dice, with no stat added. Armor adds its 'defense' to Defense (one armor and one shield at a time).",
+    "melee": "str",
+    "ranged": "spd",
+    "damageAddsStat": false
+  }
+}
