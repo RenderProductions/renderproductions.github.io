@@ -131,7 +131,10 @@
               <input type="file" id="pFile" accept="image/*" class="sr-only">
               <span class="pHint">portrait</span>
             </label>
-            <button type="button" class="linkish" id="pDel" hidden style="font-size: 14px; min-height: 0; color: var(--faded)">remove</button>
+            <span style="display: flex; gap: 12px; font-size: 14px">
+              <button type="button" class="linkish" id="pAdd" style="min-height: 0">add a portrait</button>
+              <button type="button" class="linkish" id="pDel" hidden style="min-height: 0; color: var(--faded)">remove</button>
+            </span>
           </div>
           <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0">
             <h1 id="name" style="overflow-wrap: anywhere">…</h1>
@@ -412,12 +415,14 @@
     if (src && img.getAttribute('src') !== src) img.src = src;
     img.alt = src ? 'Portrait of ' + c.name : '';
     T.$('.pHint').textContent = src ? 'change' : 'portrait';
+    T.$('#pAdd').textContent = src ? 'change' : 'add a portrait';
   }
   T.$('#pFile').onchange = function () {
     var f = this.files[0]; this.value = '';
     T.makePortrait(f).then(function (data) { c.portrait = data; c.pic = Date.now(); drawPortrait(); save(); },
       function (m) { T.$('#status').textContent = m; });
   };
+  T.$('#pAdd').onclick = function () { T.$('#pFile').click(); };
   T.$('#pDel').onclick = function () { delete c.portrait; c.pic = null; drawPortrait(); save(); };
   var camp = null;
   // what Discord gets: the line, plus what kind of roll it was so the post can look the part
