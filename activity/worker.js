@@ -433,7 +433,9 @@ async function varandia(req, env, path, out) {
     await vSetup(env);
     const p = await env.DB.prepare('SELECT img FROM v_pics WHERE id = ?').bind(pm[1]).first();
     if (!p) return new Response('not found', { status: 404 });
-    return new Response(p.img, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' } });
+    // D1 hands BLOBs back as a plain array of numbers, not bytes
+    const img = typeof p.img === 'string' ? Uint8Array.from(atob(p.img), (ch) => ch.charCodeAt(0)) : new Uint8Array(p.img);
+    return new Response(img, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' } });
   }
   const u = await user(req);
   if (!u) return out({ error: 'not logged in' }, 401);
