@@ -366,6 +366,7 @@ async function vSetup(env) {
     env.DB.prepare('CREATE INDEX IF NOT EXISTS v_camps_gm ON v_camps (gm)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS v_pics (id TEXT PRIMARY KEY, img BLOB NOT NULL, updated INTEGER NOT NULL)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS v_screens (camp TEXT PRIMARY KEY, data TEXT NOT NULL, updated INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS v_fights (camp TEXT PRIMARY KEY, data TEXT NOT NULL, updated INTEGER NOT NULL)'),
   ]);
   vReady = true;
 }
@@ -382,7 +383,12 @@ const vNum = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : Math
 function vHsl(h) { const S = 0.6, L = 0.55, a = S * Math.min(L, 1 - L), f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (L - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); }
 function vEmbed(i, line, campName, pic) {
   i = i && typeof i === 'object' ? i : {};
-  const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell', 'gm'].includes(i.kind) ? i.kind : 'note';
+  const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell', 'gm', 'turn'].includes(i.kind) ? i.kind : 'note';
+  if (kind === 'turn') {
+    // the initiative order, with whoever's up marked
+    const order = (Array.isArray(i.order) ? i.order : []).slice(0, 30).map((x) => (x && x.cur ? '▶ **' + vClean(x.name, 40) + '**' : '-# ' + vClean(x && x.name, 40)) + (vNum(x && x.init) != null ? ' · ' + vNum(x.init) : ''));
+    return { color: 0x5e6f80, title: '⏱️ ' + (vClean(i.title, 80) || 'Initiative'), description: (vClean(i.text, 200) ? vClean(i.text, 200) + '\n\n' : '') + order.join('\n'), footer: { text: campName }, timestamp: new Date().toISOString() };
+  }
   const el = kind === 'spell' ? (vClean(i.element, 12) in vIcon ? vClean(i.element, 12) : 'chaotic') : null;
   const die = vNum(i.die), bonus = vNum(i.bonus), total = vNum(i.total), nat20 = die === 20 && i.sides == null, nat1 = die === 1 && i.sides == null;
   let color = el ? (el === 'chaotic' ? vHsl(Math.floor(Math.random() * 360)) : vCol[el]) : vCol[kind];
@@ -524,7 +530,8 @@ async function varandia(req, env, path, out) {
     if (req.method === 'GET') {
       const chars = await env.DB.prepare('SELECT * FROM v_chars WHERE campaign = ? ORDER BY name LIMIT 50').bind(c.id).all();
       if (!isGm && !chars.results.some((r) => r.owner === u.id)) return out({ error: 'not found' }, 404);
-      return out({ camp: vCampOut(c, isGm), chars: chars.results.map(vCharOut) });
+      const f = await env.DB.prepare('SELECT data FROM v_fights WHERE camp = ?').bind(c.id).first();
+      return out({ camp: vCampOut(c, isGm), chars: chars.results.map(vCharOut), fight: f ? JSON.parse(f.data) : null });
     }
     if (!isGm) return out({ error: 'only the GM can do that' }, 403);
     if (req.method === 'PUT') {
@@ -592,10 +599,27 @@ async function varandia(req, env, path, out) {
     if (req.method === 'PUT') {
       const saved = (Array.isArray(body.saved) ? body.saved : []).slice(0, 40).map((x) => ({ who: String(x && x.who || '').slice(0, 60), what: String(x && x.what || '').slice(0, 60), dice: String(x && x.dice || '').slice(0, 40) })).filter((x) => x.dice);
       const n = (v) => (v === '' || v == null || !Number.isFinite(+v) ? null : Math.max(-9999, Math.min(99999, Math.round(+v))));
-      const npcs = (Array.isArray(body.npcs) ? body.npcs : []).slice(0, 40).map((x) => ({ name: String(x && x.name || '').slice(0, 60), hp: n(x && x.hp), maxHp: n(x && x.maxHp), sta: n(x && x.sta), maxSta: n(x && x.maxSta) })).filter((x) => x.name);
+      const npcs = (Array.isArray(body.npcs) ? body.npcs : []).slice(0, 40).map((x) => ({ name: String(x && x.name || '').slice(0, 60), hp: n(x && x.hp), maxHp: n(x && x.maxHp), sta: n(x && x.sta), maxSta: n(x && x.maxSta), ini: n(x && x.ini) })).filter((x) => x.name);
       await env.DB.prepare('INSERT INTO v_screens (camp, data, updated) VALUES (?, ?, ?) ON CONFLICT(camp) DO UPDATE SET data = excluded.data, updated = excluded.updated').bind(c.id, JSON.stringify({ saved, npcs }), Date.now()).run();
       return out({ saved, npcs });
     }
+  }
+  // ---- initiative: the GM keeps the order, everyone in the campaign can read it (with the campaign)
+  const fm = path.match(/^\/api\/v\/fight\/([a-z0-9]{4,32})$/);
+  if (fm && (req.method === 'PUT' || req.method === 'DELETE')) {
+    const c = await camp(fm[1]);
+    if (!c || c.gm !== u.id) return out({ error: 'not found' }, 404);
+    if (req.method === 'DELETE') { await env.DB.prepare('DELETE FROM v_fights WHERE camp = ?').bind(c.id).run(); return out({ fight: null }); }
+    const f = body.fight && typeof body.fight === 'object' ? body.fight : null;
+    const n = (v) => (v === '' || v == null || !Number.isFinite(+v) ? null : Math.max(-999, Math.min(999, Math.round(+v))));
+    if (!f) return out({ error: 'bad fight' }, 400);
+    const list = (Array.isArray(f.list) ? f.list : []).slice(0, 40).map((x) => ({
+      id: String(x && x.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 32), kind: ['pc', 'npc', 'extra'].includes(x && x.kind) ? x.kind : 'extra',
+      name: String(x && x.name || '').slice(0, 60), char: x && x.char ? String(x.char).replace(/[^a-z0-9]/gi, '').slice(0, 32) : undefined,
+      init: n(x && x.init), spd: n(x && x.spd), out: !!(x && x.out) })).filter((x) => x.id && x.name);
+    const fight = { round: Math.max(1, n(f.round) || 1), current: String(f.current || '').slice(0, 32), started: Number.isFinite(+f.started) && +f.started > 0 ? +f.started : Date.now(), list };
+    await env.DB.prepare('INSERT INTO v_fights (camp, data, updated) VALUES (?, ?, ?) ON CONFLICT(camp) DO UPDATE SET data = excluded.data, updated = excluded.updated').bind(c.id, JSON.stringify(fight), Date.now()).run();
+    return out({ fight });
   }
   if (path === '/api/v/gmroll' && req.method === 'POST') {
     const c = await camp(String(body.camp || ''));
@@ -605,7 +629,7 @@ async function varandia(req, env, path, out) {
     if (times.length >= 30) return out({ error: 'slow down' }, 429);
     times.push(now); vRolls.set(u.id, times);
     const line = String(body.line || '').replace(/[@`]/g, '').slice(0, 300);
-    const info = Object.assign({ hp: null, maxHp: null, sta: null, maxSta: null }, body.info && typeof body.info === 'object' ? body.info : {}, { kind: 'gm', exhaustion: null, taint: null });
+    const info = Object.assign({ hp: null, maxHp: null, sta: null, maxSta: null }, body.info && typeof body.info === 'object' ? body.info : {}, { kind: body.kind === 'turn' ? 'turn' : 'gm', exhaustion: null, taint: null });
     const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       username: vHookName(body.who, 'The GM'), allowed_mentions: { parse: [] }, embeds: [vEmbed(info, line, c.name.slice(0, 100))]
     }) });
