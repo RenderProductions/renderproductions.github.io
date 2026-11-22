@@ -37,19 +37,20 @@
         <h1 id="title">Magic</h1>
         <p style="font-size: 20px">Anyone can use magic, but it takes a toll on their <b class="sc">Stamina</b>.</p>
 
+        <p style="margin: 0">All magic falls under one of two umbrellas.</p>
         <div class="inked" style="padding: 20px 22px">
           <h3>Chaotic magic</h3>
-          <p style="margin-top: 6px">The wild, raw energy that gives Varandia its life. Pure, powerful, and unpredictable.</p>
+          <p style="margin-top: 6px">The wild, raw energy that gives Varandia its life, cast as it is, with no element. Pure, powerful and unpredictable. The higher your level, the easier it becomes to use.</p>
+          <p class="faded" style="margin: 6px 0 0; font-size: 15px">Spells like Counterspell, Teleport and Magic Missile. <a href="/varandia/spells/?el=chaotic">See them all</a>.</p>
         </div>
         <div class="inked" style="padding: 20px 22px">
           <h3>Controlled magic</h3>
-          <p style="margin-top: 6px">Magic harnessed into runes and magical artifacts: wands, staves, tomes, crystal balls and the like.</p>
+          <p style="margin-top: 6px">Chaotic magic that has been trained into an element and harnessed into runes and magical artifacts: wands, staves, tomes, crystal balls and the like. Every element is Controlled magic, Evil included.</p>
         </div>
 
         <div>
           <h2 style="margin-bottom: 8px">Learning spells</h2>
-          <p>You learn a spell by harnessing Chaotic magic and training it into a certain kind of Controlled magic. That's where the standard spells come from: fireball and the rest.</p>
-          <p>The higher your level, the easier Chaotic magic becomes to use.</p>
+          <p>You learn an elemental spell by harnessing Chaotic magic and training it into one element. That's where the standard spells come from: fireball and the rest.</p>
         </div>
         <div style="display: flex; gap: 16px; align-items: center">
           <span class="seal" aria-hidden="true"></span>
@@ -63,7 +64,7 @@
       <div class="leaf">
         <div class="kicker">Chapter IV</div>
         <h1 id="elements" style="font-size: 44px">The Eleven Elements</h1>
-        <p>Spells are sorted by element.</p>
+        <p>Controlled magic comes in eleven elements.</p>
         <ul id="els" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 26px"></ul>
         <p style="font-size: 16px">Every spell, with what it costs and the roll it needs, is in <a href="/varandia/spells/">the Spellbook</a>.</p>
       </div>
@@ -78,7 +79,7 @@
 Promise.all([Tome.data(), Tome.spells()]).then(function (r) {
   var d = r[0], s = r[1], n = {};
   s.all.forEach(function (x) { n[x.element] = (n[x.element] || 0) + 1; });
-  Tome.$('#els').innerHTML = d.elements.filter(function (e) { return e.key !== 'unaligned'; }).map(function (e) {
+  Tome.$('#els').innerHTML = d.elements.filter(function (e) { return e.kind === 'controlled'; }).map(function (e) {
     return '<li id="' + e.key + '" style="padding:10px 0;border-bottom:1px dashed rgba(42,29,18,.35)">' +
       '<a href="/varandia/spells/?el=' + e.key + '" style="display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:' + e.color + ';filter:url(#tome-rough)"></span>' +
       '<span class="sc" style="font-size:21px;flex:1">' + Tome.esc(e.name) + '</span><span class="pencil" style="font-size:20px">' + (n[e.key] || 0) + ' spells</span></a>' +

@@ -128,7 +128,7 @@
     }
     var c = cost(sp), el = D.elements.filter(function (e) { return e.key === sp.element; })[0];
     var html = '<div style="display:flex;align-items:center;gap:12px;font:14px/1 var(--sc);color:var(--faded);letter-spacing:.12em">' +
-      '<span style="width:12px;height:12px;border-radius:50%;background:' + (el ? el.color : '#5a4632') + '"></span>' + T.esc(el ? el.name : '') +
+      '<span style="width:12px;height:12px;border-radius:50%;background:' + (el ? el.color : '#5a4632') + '"></span>' + (el && el.kind === 'chaotic' ? 'Chaotic magic' : T.esc(el ? el.name : '') + ' · Controlled') +
       (sp.own ? ' · Varandia' : ' · ' + T.levelName(sp.level) + ' · ' + T.esc(sp.school)) + '</div>' +
       '<h2 style="font-style:normal;font-size:44px">' + T.esc(sp.name) + '</h2>' +
       '<div class="costs">' +
@@ -171,10 +171,12 @@
     D = r[0]; S = r[1];
     D.elements.forEach(function (e) { colorOf[e.key] = e.color; });
     var counts = {}; S.all.forEach(function (s) { counts[s.element] = (counts[s.element] || 0) + 1; });
+    var chip = function (e) { return '<button type="button" class="chip" data-key="' + e.key + '" style="--c:' + e.color + '"><span class="dot"></span>' + T.esc(e.name) + ' <span class="n">' + counts[e.key] + '</span></button>'; };
+    var label = function (t) { return '<span class="sc faded" style="width:100%;font-size:13px;letter-spacing:.14em;margin-top:4px">' + t + '</span>'; };
     T.$('#els').innerHTML = '<button type="button" class="chip" data-key="">All <span class="n">' + S.all.length + '</span></button>' +
-      D.elements.filter(function (e) { return counts[e.key]; }).map(function (e) {
-        return '<button type="button" class="chip" data-key="' + e.key + '" style="--c:' + e.color + '"><span class="dot"></span>' + T.esc(e.name) + ' <span class="n">' + counts[e.key] + '</span></button>';
-      }).join('');
+      D.elements.filter(function (e) { return e.kind === 'chaotic' && counts[e.key]; }).map(chip).join('') +
+      label('Controlled magic') +
+      D.elements.filter(function (e) { return e.kind === 'controlled' && counts[e.key]; }).map(chip).join('');
     var lv = T.$('#lv');
     for (var i = 0; i <= 9; i++) lv.insertAdjacentHTML('beforeend', '<option value="' + i + '">' + T.levelName(i) + '</option>');
     T.$('#els').addEventListener('click', function (e) {

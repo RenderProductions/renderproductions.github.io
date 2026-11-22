@@ -162,78 +162,102 @@
     "failCantrip": "1",
     "failDie": "d4"
   },
+  "magicKinds": [
+    {
+      "key": "controlled",
+      "name": "Controlled magic",
+      "text": "Magic that has been trained into an element and harnessed into runes and magical artifacts: wands, staves, tomes, crystal balls and the like. Every element is Controlled magic, Evil included."
+    },
+    {
+      "key": "chaotic",
+      "name": "Chaotic magic",
+      "text": "The wild, raw energy that gives Varandia its life, cast as it is, with no element. Pure, powerful and unpredictable, and the higher your level, the easier it is to use."
+    }
+  ],
   "elements": [
     {
       "key": "fire",
       "name": "Fire",
       "color": "#b4421a",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "water",
       "name": "Water",
       "color": "#1f5f9e",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "ice",
       "name": "Ice",
       "color": "#3d7f99",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "earth",
       "name": "Earth",
       "color": "#6b4f2a",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "air",
       "name": "Air",
       "color": "#5e6f80",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "lightning",
       "name": "Lightning",
       "color": "#8a6a10",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "nature",
       "name": "Nature",
       "color": "#2f6b2f",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "poison",
       "name": "Poison",
       "color": "#557a1c",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "light",
       "name": "Light",
       "color": "#9a7b25",
-      "text": ""
+      "text": "",
+      "kind": "controlled"
     },
     {
       "key": "dark",
       "name": "Dark",
       "color": "#3e3466",
-      "text": "Shadow and obscuring magic: blinding, darkness, mists. Think Blindness or Dark Mist."
+      "text": "Shadow and obscuring magic: blinding, darkness, mists. Think Blindness or Dark Mist.",
+      "kind": "controlled"
     },
     {
       "key": "evil",
       "name": "Evil",
       "color": "#7a1424",
-      "text": "Lethal, malicious magic aimed at ending life. Varandia's own: every Evil spell costs blood as well as Stamina."
+      "text": "Lethal, malicious magic aimed at ending life. Varandia's own: every Evil spell costs blood as well as Stamina.",
+      "kind": "controlled"
     },
     {
-      "key": "unaligned",
-      "name": "Unaligned",
-      "color": "#5a4632",
-      "text": "Spells that haven't been given an element yet."
+      "key": "chaotic",
+      "name": "Chaotic",
+      "kind": "chaotic",
+      "color": "#7a3e8e",
+      "text": "Raw magic with no element: the wild energy itself, cast before it's been trained into anything. Powerful and unpredictable."
     }
   ]
 }
