@@ -264,6 +264,26 @@
       });
     }
   };
+  /** Rolls a dice expression like "d20+4", "2d8 + 3" or "3d6-1". null if it can't be read. */
+  Tome.rollExpr = function (expr) {
+    var src = String(expr || '').toLowerCase().replace(/\s+/g, '');
+    if (!src || !/^[+-]?(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(src)) return null;
+    var total = 0, parts = [], dice = 0, mod = 0, single = null, re = /([+-]?)(?:(\d*)d(\d+)|(\d+))/g, m;
+    while ((m = re.exec(src))) {
+      var sign = m[1] === '-' ? -1 : 1;
+      if (m[3]) {
+        var n = Math.min(+(m[2] || 1), 50), sides = Math.min(+m[3], 1000), vals = [];
+        if (!(n > 0 && sides > 0)) return null;
+        for (var i = 0; i < n; i++) vals.push(1 + Math.floor(Math.random() * sides));
+        var sum = vals.reduce(function (a, b) { return a + b; }, 0);
+        total += sign * sum; dice += n;
+        parts.push((sign < 0 ? '− ' : parts.length ? '+ ' : '') + n + 'd' + sides + ' (' + vals.join(', ') + ')');
+        if (n === 1) single = { die: vals[0], sides: sides };
+      } else { total += sign * +m[4]; mod += sign * +m[4]; parts.push((sign < 0 ? '− ' : '+ ') + m[4]); }
+    }
+    var one = dice === 1 && single ? single : null;
+    return { total: total, text: parts.join(' '), die: one ? one.die : null, sides: one ? one.sides : null, bonus: mod };
+  };
   /** A character's portrait, from this browser or from the account. '' if none. */
   Tome.portrait = function (c) { return (c && (c.portrait || (c.pic ? RELAY + '/api/v/pic/' + encodeURIComponent(c.id) + '?v=' + c.pic : ''))) || ''; };
   /** Turns a picture file into a small portrait (240x300 JPEG, cropped to fill). */
