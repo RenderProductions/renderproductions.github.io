@@ -28,6 +28,8 @@ const item = (id: string, emoji: string, name: string, price: number | null, sto
 
 export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('coffee', '☕', 'Coffee', 100, 5, 'work', 'Resets your work cooldown.'),
+  // Refined Everything! (Kine's idea): restocks one item of your choice, for every server
+  item('rushorder', '📦', 'Rush Order', 1_500, 2, 'fun', 'Marquez restocks one item of your choice right now, for everyone: /use rush order <item>. Not for collectibles.'),
   item('overtime', '⏰', 'Overtime', 250, 3, 'work', 'Your next shift pays double.'),
   item('resume', '📄', 'Resume', 350, 2, 'work', 'Skips the 24-hour quit lock. Used automatically when you quit.', { passive: true }),
   item('stopwatch', '⏱️', 'Stopwatch', 150, 4, 'work', 'Your next 3 shifts get 10 extra seconds.'),

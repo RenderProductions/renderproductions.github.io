@@ -5,11 +5,11 @@ import { GameError } from '../core/errors';
 import { format, parseCount } from '../core/money';
 import * as sessions from '../core/sessions';
 import { embed } from '../discord/style';
-import { items as invItems, takeItem } from '../shop/inventory';
+import { count, items as invItems, takeItem } from '../shop/inventory';
 import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, SHELVES, anyItem, findItem, marquez, type Shelf } from '../shop/items';
 import { isHoliday } from '../holidays/holidays';
 import { SHOP_RULES, ShopError, buy, collectibleOfWeek, priceOf, restock, stockOf } from '../shop/shop';
-import { useItem } from '../shop/use';
+import { BULK_MAX, useItem, useMany } from '../shop/use';
 import { FISHING, isCatch } from '../fishing/fishing';
 import { isCropItem } from '../farming/farming';
 import { me } from './shared';
@@ -139,13 +139,30 @@ export const use: Command = {
   description: 'Use an item from your inventory',
   system: 'wallet',
   guildOnly: true,
-  options: [{ name: 'item', type: 'string', description: 'Item name, e.g. coffee', required: true }],
+  options: [
+    { name: 'item', type: 'string', description: 'Item name, e.g. coffee', required: true },
+    { name: 'amount', type: 'string', description: 'How many (up to 25, or "all"), or for a Rush Order: the item to restock' }
+  ],
   run(ctx, args) {
     const { guildId } = me(ctx);
-    const id = findItem(String(args.item ?? ''));
+    // "/use mystery 10", "/use mystery all", "/use rush order coffee"
+    let text = String(args.item ?? '').trim(), extra = String(args.amount ?? '').trim();
+    let id = findItem(text);
+    if (!id) {
+      const words = text.split(/\s+/);
+      for (let k = words.length - 1; k > 0 && !id; k--) { id = findItem(words.slice(0, k).join(' ')); if (id) extra = `${words.slice(k).join(' ')} ${extra}`.trim(); }
+    }
     if (!id) throw new GameError('use.unknown', 'That item does not exist.');
     const it = anyItem(id)!;
-    return { embeds: [embed('wallet', `${it.emoji} ${it.name}`, [`${itemE(it.id, it.emoji)} ${useItem(ctx, guildId, id)}`])] };
+    const head = `${itemE(it.id, it.emoji)} `;
+    if (id === 'rushorder') return { embeds: [embed('wallet', `${it.emoji} ${it.name}`, [head + useItem(ctx, guildId, id, extra)])] };
+    const n: number | 'all' = /^all$/i.test(extra) ? 'all' : /^\d+$/.test(extra) ? Math.max(1, Number(extra)) : 1;
+    const r = useMany(ctx, guildId, id, n);
+    const left = count(ctx.db, guildId, ctx.user.id, id);
+    return { embeds: [embed('wallet', r.used > 1 ? `${it.emoji} ${it.name} × ${r.used}` : `${it.emoji} ${it.name}`, [
+      ...r.lines.map((l) => head + l),
+      r.used > 1 || left ? `-# ${left ? `${left} left` : 'That was your last one'}.${n === 'all' && left ? ` (At most ${BULK_MAX} at a time.)` : ''}` : null
+    ])] };
   }
 };
 

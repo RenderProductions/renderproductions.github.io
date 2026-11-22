@@ -33,6 +33,8 @@ export interface Achievement { id: string; name: string; desc: string; cat: Cate
 
 const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['first_paycheck', 'First Paycheck', 'Work your first shift', 'start', 'common'],
+  ['spare_change', 'Spare Change?', 'Beg for the first time', 'start', 'common'],
+  ['rush_order', 'Rush Job', 'Get Marquez to restock something with a Rush Order', 'social', 'common'],
   ['day_one', 'Day One', 'Claim a daily', 'start', 'common'],
   ['shareholder', 'Shareholder', 'Buy your first share', 'start', 'common'],
   ['diversified', 'Diversified', 'Own shares in all five companies at once', 'start', 'rare'],
@@ -178,6 +180,7 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
 
   ['snitches_get_stitches', 'Snitches Get Stitches', 'Tip TODD off about someone who had it coming', 'secret', 'rare', true],
   ['condemned', 'Condemned', 'Let a property fall apart', 'secret', 'rare', true],
+  ['shameless', 'Shameless', 'Get caught begging 5 times', 'secret', 'rare', true],
   ['not_in_my_backyard', 'Not in My Backyard', 'Have someone build a Factory next to you', 'secret', 'common', true],
   ['rotten_luck', 'Rotten Luck', 'Harvest 10 Poor crops in a row', 'secret', 'common', true],
   ['weathered', 'Weathered', 'Lose 3 crops to a single storm', 'secret', 'rare', true],

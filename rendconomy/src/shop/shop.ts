@@ -34,6 +34,15 @@ export function restock(db: Db, rng: Rng, now = Date.now()): number {
   });
 }
 
+/** A Rush Order: one regular item back to its full stock, for everyone. Returns how many were added. */
+export function restockOne(db: Db, id: string): number {
+  const it = ITEMS[id];
+  if (!it || it.ready === false || id === 'rushorder') return 0;
+  const before = stockOf(db, id);
+  if (before >= it.stock) return 0;
+  setStock(db, id, it.stock);
+  return it.stock - before;
+}
 const setStock = (db: Db, id: string, n: number) => db.run('INSERT INTO shop_stock (item, stock) VALUES (?, ?) ON CONFLICT(item) DO UPDATE SET stock = excluded.stock', id, n);
 export const stockOf = (db: Db, id: string): number => db.get<{ stock: number }>('SELECT stock FROM shop_stock WHERE item = ?', id)?.stock ?? 0;
 

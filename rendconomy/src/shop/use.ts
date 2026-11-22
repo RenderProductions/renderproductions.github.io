@@ -6,8 +6,11 @@ import { GameError } from '../core/errors';
 import { RESERVE, balance, transfer, wallet } from '../core/ledger';
 import { format, polygons } from '../core/money';
 import { clearCooldown, discordTime, HOUR } from '../core/time';
-import { addEffect, addItem, startTimed, takeItem } from './inventory';
-import { anyItem } from './items';
+import { addEffect, addItem, count, startTimed, takeItem } from './inventory';
+import { ITEMS, anyItem, findItem, isCollectible } from './items';
+import { restockOne } from './shop';
+import { addMoment } from '../core/moments';
+import { award } from '../achievements/achievements';
 import { ownedBy } from '../companies/companies';
 import { PAINTS, unlockKit, unlockPaint } from '../profile/styles';
 
@@ -87,17 +90,63 @@ const USES: Record<string, Use> = {
   }
 };
 
+/** Items where using more than one at once does nothing more (or would just spam). */
+export const ONE_AT_A_TIME = new Set(['kit', 'coffee', 'megaphone', 'rushorder', ...Object.keys(PAINTS).map((id) => `paint_${id}`)]);
+export const BULK_MAX = 25;
+
+/**
+ * Uses several of an item in one go (Refined Everything!, Kine's idea): `/use mystery 10`. Returns one line per
+ * different outcome, with how many times it happened, and how many were used.
+ */
+export function useMany(ctx: Ctx, guildId: string, id: string, want: number | 'all'): { lines: string[]; used: number } {
+  const it = anyItem(id);
+  const have = count(ctx.db, guildId, ctx.user.id, id);
+  const n = Math.min(BULK_MAX, want === 'all' ? have : want);
+  if (n > 1 && ONE_AT_A_TIME.has(id)) throw new GameError('use.one', `${it?.name ?? 'That'} is used one at a time.`);
+  if (have > 0 && n > have) throw new GameError('use.short', `You have ${have} ${it?.name ?? id}.`);
+  if (n <= 1) return { lines: [useItem(ctx, guildId, id)], used: 1 };
+  return ctx.db.tx(() => {
+    const seen = new Map<string, number>();
+    let used = 0;
+    for (let i = 0; i < n; i++) {
+      // a different-looking message for the same result (amounts) still counts separately; that's fine
+      const line = useItem(ctx, guildId, id);
+      seen.set(line, (seen.get(line) ?? 0) + 1);
+      used++;
+    }
+    return { lines: [...seen].map(([l, k]) => (k > 1 ? `**×${k}** ${l}` : l)), used };
+  });
+}
+
 /** Uses one of an item. Returns what happened. */
-export function useItem(ctx: Ctx, guildId: string, id: string): string {
+export function useItem(ctx: Ctx, guildId: string, id: string, target?: string): string {
   const it = anyItem(id);
   if (!it) throw new GameError('use.unknown', 'That item does not exist.');
   if (id === 'fertilizer') throw new GameError('use.fertilizer', `Fertilizer goes on a growing crop: \`${ctx.config.prefix}fertilize\`.`);
   if (id.startsWith('seed_')) throw new GameError('use.seed', `Plant seeds with \`${ctx.config.prefix}plant ${id.slice(5)}\`.`);
   if (it.passive) throw new GameError('use.passive', `${it.name} works on its own while it is in your inventory.`);
+  if (id === 'rushorder') return rushOrder(ctx, guildId, target);
   const fn = USES[id];
   if (!fn) throw new GameError('use.none', `${it.name} has no use yet.`);
   return ctx.db.tx(() => {
     if (!takeItem(ctx.db, guildId, ctx.user.id, id)) throw new GameError('use.none', `You do not have a ${it.name}. Marquez sells them: \`${ctx.config.prefix}shop\`.`);
     return fn(ctx, guildId);
+  });
+}
+
+/** A Rush Order: Marquez restocks one item, for every server. */
+function rushOrder(ctx: Ctx, guildId: string, target?: string): string {
+  const P = ctx.config.prefix;
+  const id = findItem(String(target ?? ''));
+  if (!id) throw new GameError('use.rush', `Which item should Marquez restock? \`${P}use rush order <item>\`, like \`${P}use rush order coffee\`.`);
+  const it = anyItem(id)!;
+  if (isCollectible(id) || !ITEMS[id] || it.ready === false || id === 'rushorder') throw new GameError('use.rush', `Marquez can't rush ${it.name}. Rush Orders are for his regular shelves, not collectibles.`);
+  return ctx.db.tx(() => {
+    const added = restockOne(ctx.db, id);
+    if (!added) throw new GameError('use.rush', `${it.name} is already fully stocked. Your Rush Order is still in your inventory.`);
+    if (!takeItem(ctx.db, guildId, ctx.user.id, 'rushorder')) throw new GameError('use.none', `You do not have a Rush Order. Marquez sells them: \`${P}shop\`.`);
+    award(ctx.db, guildId, ctx.user.id, 'rush_order', ctx.now);
+    addMoment(`📦 Someone placed a Rush Order: Marquez just restocked ${it.name}`, ctx.now);
+    return `Marquez makes a phone call. Ten minutes later a truck pulls up: **${added} ${it.name}** back on the shelf, for everyone. *"Appreciate it, pal."*`;
   });
 }

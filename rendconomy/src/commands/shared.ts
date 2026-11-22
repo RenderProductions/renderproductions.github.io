@@ -75,6 +75,8 @@ export const REASONS: Record<string, string> = {
   'estate.bid': 'Bid placed',
   'estate.refund': 'Bid refunded',
   'estate.plowed': 'Old lot plowed down (refund)',
+  'beg': 'Begging',
+  'beg.fine': 'Fined for begging',
   'estate.build': 'Construction',
   'estate.upgrade': 'Upgrade',
   'estate.freight': 'Freight delivered',
