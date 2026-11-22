@@ -178,17 +178,82 @@
   function readAll() { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } }
   function writeAll(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); return true; } catch (e) { return false; } }
   Tome.chars = {
-    list: function () { return readAll().sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); }); },
+    list: function () { var me = Tome.cloud && Tome.cloud.me(); return readAll().filter(function (c) { return !c.foreign && !(c.owner && me && c.owner !== me.id); }).sort(function (a, b) { return (b.updated || 0) - (a.updated || 0); }); },
     get: function (id) { return readAll().filter(function (c) { return c.id === id; })[0] || null; },
     save: function (c) {
       var all = readAll().filter(function (x) { return x.id !== c.id; });
       c.updated = Date.now();
       all.push(c);
-      return writeAll(all);
+      var ok = writeAll(all);
+      if (Tome.cloud) Tome.cloud.push(c);
+      return ok;
     },
-    remove: function (id) { return writeAll(readAll().filter(function (c) { return c.id !== id; })); },
+    remove: function (id) {
+      if (Tome.cloud && Tome.cloud.token()) Tome.cloud.call('DELETE', 'chars/' + id).catch(function () {});
+      return writeAll(readAll().filter(function (c) { return c.id !== id; }));
+    },
     newId: function () { return 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   };
+
+  // ---------------------------------------------------------------- the cloud (characters on your Discord account)
+  // Uses the site's Discord login (rv.js: RV.me, RV.token, RV.login) and the Rend-Conomy Worker's /api/v/ routes.
+  var RELAY = 'https://rend-conomy.lowrendergaming.workers.dev';
+  var rvReady = new Promise(function (res) {
+    if (window.RV && window.RV.token) return res();
+    if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(res, 0);
+    document.addEventListener('DOMContentLoaded', function () { res(); });
+  });
+  var pushTimers = {};
+  Tome.cloud = {
+    ready: rvReady,
+    token: function () { return window.RV && RV.token ? RV.token() : null; },
+    me: function () { return window.RV && RV.me ? RV.me() : null; },
+    login: function () { if (window.RV && RV.login) RV.login(); },
+    call: function (method, path, body) {
+      var t = Tome.cloud.token();
+      if (!t) return Promise.reject({ status: 401, error: 'not logged in' });
+      return fetch(RELAY + '/api/v/' + path, {
+        method: method, headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined
+      }).then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { j.status = r.status; throw j; } return j; });
+      });
+    },
+    /** Sends a character up (a moment after the last change). Only when logged in. */
+    push: function (c, now) {
+      if (!Tome.cloud.token() || !c || !c.id) return;
+      clearTimeout(pushTimers[c.id]);
+      var go = function () {
+        var data = Object.assign({}, c); delete data.foreign;
+        Tome.cloud.call('PUT', 'chars/' + c.id, { data: data }).then(function (row) {
+          if (!c.foreign) { var l = Tome.chars.get(c.id); if (l) { l.owner = row.owner; l.synced = row.updated; writeOne(l); } }
+          document.dispatchEvent(new CustomEvent('tome-synced', { detail: row }));
+        }, function (e) { document.dispatchEvent(new CustomEvent('tome-sync-failed', { detail: e })); });
+      };
+      if (now) go(); else pushTimers[c.id] = setTimeout(go, 1500);
+    },
+    /** Brings this account's characters into the browser, and sends up the ones only this browser has. */
+    sync: function () {
+      if (!Tome.cloud.token()) return Promise.resolve(null);
+      return Tome.cloud.call('GET', 'chars').then(function (res) {
+        var me = Tome.cloud.me(), byId = {};
+        res.chars.forEach(function (r) {
+          byId[r.id] = r;
+          var local = Tome.chars.get(r.id);
+          if (!local || (r.updated > (local.synced || 0) && r.updated > (local.updated || 0) - 2000)) {
+            var d = r.data; d.id = r.id; d.owner = r.owner; d.synced = r.updated; d.updated = r.updated; writeOne(d);
+          }
+        });
+        readAll().forEach(function (c) {
+          if (c.foreign || byId[c.id]) return;
+          if (c.owner && me && c.owner !== me.id) return;   // someone else's, left from another login
+          Tome.cloud.push(c, true);
+        });
+        return res.chars;
+      });
+    }
+  };
+  function writeOne(c) { var all = readAll().filter(function (x) { return x.id !== c.id; }); all.push(c); writeAll(all); }
 
   /** Draws a body-count style tally (groups of five) into el. */
   Tome.tally = function (el, n) {

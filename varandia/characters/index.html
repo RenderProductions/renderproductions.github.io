@@ -58,10 +58,21 @@
           <p style="margin: 0">Roll a d6 for each stat, spend your points, pick a race, and the sheet fills itself in.</p>
           <a class="btn ink" href="/varandia/builder/">Make a character</a>
         </div>
-        <div>
+        <div id="acct">
           <h3 style="margin-bottom: 6px">Where they're kept</h3>
-          <p>For now your characters live in <b>this browser</b>, so they won't follow you to another device yet, and clearing your browsing data tears them out.</p>
-          <p class="margin-note" style="margin-top: 18px">coming: log in with Discord and keep them on your profile, and join a GM's campaign</p>
+          <div id="acctOut">
+            <p>Right now your characters live in <b>this browser</b> only. Log in with Discord to keep them on your account, so they follow you to any device and can join a GM's campaign.</p>
+            <button type="button" class="btn ink" id="login">Log in with Discord</button>
+          </div>
+          <div id="acctIn" hidden>
+            <p>Signed in as <b id="who"></b>. Your characters are kept on your account and follow you to any device.</p>
+            <p class="pencil" id="syncNote" aria-live="polite" style="margin: 0"></p>
+          </div>
+        </div>
+        <div class="inked thin" style="padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+          <h3>Campaigns</h3>
+          <p style="margin: 0; font-size: 17px">Run a game, or join one with your GM's code.</p>
+          <a class="btn" href="/varandia/campaigns/">Open the campaign book</a>
         </div>
       </div>
       <span class="folio">— 14 —</span>
@@ -72,7 +83,7 @@
 
 <script src="/varandia/tome.js"></script>
 <script>
-Tome.data().then(function (d) {
+function drawChars() { return Tome.data().then(function (d) {
   var T = Tome, list = T.chars.list();
   T.$('#empty').hidden = list.length > 0;
   T.$('#cards').innerHTML = list.map(function (c) {
@@ -83,6 +94,19 @@ Tome.data().then(function (d) {
       '<span>' + (r ? r.name : '') + (T.cls(d, c.cls) ? ' ' + T.cls(d, c.cls).name : '') + ' · Level ' + (c.level || 1) + '</span></span>' +
       '<span class="hp">' + (c.hp == null ? dv.hp : c.hp) + ' / ' + dv.hp + ' hp</span></a></li>';
   }).join('');
+}); }
+drawChars();
+Tome.cloud.ready.then(function () {
+  var T = Tome, me = T.cloud.me(), tok = T.cloud.token();
+  T.$('#login').onclick = function () { T.cloud.login(); };
+  if (!tok) { if (me) T.$('#acctOut p').textContent = 'Your Discord login has run out on this tab. Log in again to sync your characters.'; return; }
+  T.$('#acctOut').hidden = true; T.$('#acctIn').hidden = false;
+  T.$('#who').textContent = me ? me.username || me.name || 'you' : 'you';
+  T.$('#syncNote').textContent = 'syncing…';
+  T.cloud.sync().then(function (rows) {
+    T.$('#syncNote').textContent = rows ? 'all ' + T.chars.list().length + ' in sync' : '';
+    drawChars();
+  }, function (e) { T.$('#syncNote').textContent = 'couldn\u2019t reach your account (' + (e && e.error || 'offline') + '); they\u2019re still safe in this browser'; });
 });
 </script>
 <script src="/rv.js" defer></script>

@@ -14,6 +14,8 @@
 //      Marquez's shop, the farm, trades, odd jobs, the inbox and profile changes. Only the commands in
 //      SITE_COMMANDS are accepted from the site (and the bot checks every one again).
 //   6. Linked Roles: /linked-roles links a player, /bot/roles keeps their stats current on Discord.
+//   7. Story of Varandia: keeps players' characters and GMs' campaigns (/api/v/...), and posts rolls to a
+//      campaign's Discord webhook. Only the site may call it.
 //   5. Keeps the live feed: the bot pushes prices and the world event every 30 seconds (sent on to every open
 //      page through the Hub, and kept for /api/live), and profiles whenever they change (/api/profiles).
 //
@@ -300,6 +302,9 @@ async function api(req, env, path, cors, ctx) {
     return out({ status: row.status, result: row.result ? JSON.parse(row.result) : null });
   }
 
+  // ---- Story of Varandia ----
+  if (path.startsWith('/api/v/')) return await varandia(req, env, path, out);
+
   // ---- for the bot ----
   if (path.startsWith('/bot/')) {
     if (!env.BOT_SECRET || req.headers.get('X-Bot-Secret') !== env.BOT_SECRET) return out({ error: 'no' }, 403);
@@ -345,13 +350,161 @@ async function api(req, env, path, cors, ctx) {
   return out({ error: 'not found' }, 404);
 }
 
+
+// ---------------------------------------------------------------- Story of Varandia
+// Characters belong to whoever saved them first (their Discord id). A character can sit in one campaign;
+// that campaign's GM can read and edit it too. Campaigns are joined with a six-letter code. A campaign can
+// have a Discord webhook (kept here, never sent back to players): rolls from its characters are posted there.
+let vReady = false;
+async function vSetup(env) {
+  if (vReady) return;
+  await env.DB.batch([
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS v_chars (id TEXT PRIMARY KEY, owner TEXT NOT NULL, owner_name TEXT, name TEXT NOT NULL, campaign TEXT, data TEXT NOT NULL, updated INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS v_chars_owner ON v_chars (owner)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS v_chars_campaign ON v_chars (campaign)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS v_camps (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, gm TEXT NOT NULL, gm_name TEXT, name TEXT NOT NULL, intro TEXT, webhook TEXT, created INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS v_camps_gm ON v_camps (gm)'),
+  ]);
+  vReady = true;
+}
+const vId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+const vCharOut = (r) => ({ id: r.id, owner: r.owner, ownerName: r.owner_name, name: r.name, campaign: r.campaign, updated: r.updated, data: JSON.parse(r.data) });
+const vCampOut = (c, isGm) => ({ id: c.id, name: c.name, intro: c.intro || '', gm: c.gm, gmName: c.gm_name, isGm, code: isGm ? c.code : undefined, hasWebhook: !!c.webhook, webhook: isGm ? (c.webhook || '') : undefined, created: c.created });
+const vRolls = new Map();   // user id -> times of rolls posted in the last minute
+
+async function varandia(req, env, path, out) {
+  const u = await user(req);
+  if (!u) return out({ error: 'not logged in' }, 401);
+  await vSetup(env);
+  const body = req.method === 'GET' || req.method === 'DELETE' ? {} : await req.json().catch(() => ({}));
+  const m = path.match(/^\/api\/v\/(chars|camps)(?:\/([a-z0-9]{4,32}))?$/);
+  const camp = (id) => env.DB.prepare('SELECT * FROM v_camps WHERE id = ?').bind(id).first();
+  const charRow = (id) => env.DB.prepare('SELECT * FROM v_chars WHERE id = ?').bind(id).first();
+  async function canEdit(row) {
+    if (row.owner === u.id) return true;
+    if (!row.campaign) return false;
+    const c = await camp(row.campaign);
+    return !!c && c.gm === u.id;
+  }
+
+  // ---- characters
+  if (m && m[1] === 'chars' && !m[2] && req.method === 'GET') {
+    const rows = await env.DB.prepare('SELECT * FROM v_chars WHERE owner = ? ORDER BY updated DESC LIMIT 200').bind(u.id).all();
+    return out({ chars: rows.results.map(vCharOut) });
+  }
+  if (m && m[1] === 'chars' && m[2]) {
+    const row = await charRow(m[2]);
+    if (req.method === 'GET') {
+      if (!row || !(await canEdit(row))) return out({ error: 'not found' }, 404);
+      return out(vCharOut(row));
+    }
+    if (req.method === 'PUT') {
+      const data = body.data;
+      const text = JSON.stringify(data || null);
+      if (!data || typeof data !== 'object' || text.length > 200_000) return out({ error: 'bad character' }, 400);
+      const name = String(data.name || 'Unnamed').slice(0, 60);
+      if (!row) {
+        const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM v_chars WHERE owner = ?').bind(u.id).first();
+        if (n && n.n >= 200) return out({ error: 'too many characters' }, 400);
+        await env.DB.prepare('INSERT INTO v_chars (id, owner, owner_name, name, campaign, data, updated) VALUES (?, ?, ?, ?, NULL, ?, ?)').bind(m[2], u.id, u.username, name, text, Date.now()).run();
+      } else {
+        if (!(await canEdit(row))) return out({ error: 'not yours' }, 403);
+        await env.DB.prepare('UPDATE v_chars SET name = ?, data = ?, updated = ? WHERE id = ?').bind(name, text, Date.now(), m[2]).run();
+      }
+      return out(vCharOut(await charRow(m[2])));
+    }
+    if (req.method === 'DELETE') {
+      if (!row) return out({ ok: true });
+      if (row.owner !== u.id) return out({ error: 'not yours' }, 403);
+      await env.DB.prepare('DELETE FROM v_chars WHERE id = ?').bind(m[2]).run();
+      return out({ ok: true });
+    }
+  }
+
+  // ---- campaigns
+  if (m && m[1] === 'camps' && !m[2] && req.method === 'GET') {
+    const mine = await env.DB.prepare('SELECT * FROM v_camps WHERE gm = ? ORDER BY created DESC LIMIT 50').bind(u.id).all();
+    const joined = await env.DB.prepare('SELECT DISTINCT c.* FROM v_camps c JOIN v_chars ch ON ch.campaign = c.id WHERE ch.owner = ? AND c.gm != ? LIMIT 50').bind(u.id, u.id).all();
+    return out({ camps: mine.results.map((c) => vCampOut(c, true)).concat(joined.results.map((c) => vCampOut(c, false))) });
+  }
+  if (m && m[1] === 'camps' && !m[2] && req.method === 'POST') {
+    const name = String(body.name || '').trim().slice(0, 80);
+    if (!name) return out({ error: 'needs a name' }, 400);
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM v_camps WHERE gm = ?').bind(u.id).first();
+    if (n && n.n >= 20) return out({ error: 'too many campaigns' }, 400);
+    const id = vId(10), code = vId(6).toUpperCase();
+    await env.DB.prepare('INSERT INTO v_camps (id, code, gm, gm_name, name, intro, webhook, created) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)').bind(id, code, u.id, u.username, name, String(body.intro || '').slice(0, 8000), Date.now()).run();
+    return out(vCampOut(await camp(id), true));
+  }
+  if (m && m[1] === 'camps' && m[2]) {
+    const c = await camp(m[2]);
+    if (!c) return out({ error: 'not found' }, 404);
+    const isGm = c.gm === u.id;
+    if (req.method === 'GET') {
+      const chars = await env.DB.prepare('SELECT * FROM v_chars WHERE campaign = ? ORDER BY name LIMIT 50').bind(c.id).all();
+      if (!isGm && !chars.results.some((r) => r.owner === u.id)) return out({ error: 'not found' }, 404);
+      return out({ camp: vCampOut(c, isGm), chars: chars.results.map(vCharOut) });
+    }
+    if (!isGm) return out({ error: 'only the GM can do that' }, 403);
+    if (req.method === 'PUT') {
+      const hook = body.webhook == null ? c.webhook : String(body.webhook).trim();
+      if (hook && !/^https:\/\/(?:ptb\.|canary\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(hook)) return out({ error: 'that isn’t a Discord webhook link' }, 400);
+      await env.DB.prepare('UPDATE v_camps SET name = ?, intro = ?, webhook = ? WHERE id = ?')
+        .bind(String(body.name == null ? c.name : body.name).trim().slice(0, 80) || c.name, String(body.intro == null ? (c.intro || '') : body.intro).slice(0, 8000), hook || null, c.id).run();
+      return out(vCampOut(await camp(c.id), true));
+    }
+    if (req.method === 'DELETE') {
+      await env.DB.batch([env.DB.prepare('UPDATE v_chars SET campaign = NULL WHERE campaign = ?').bind(c.id), env.DB.prepare('DELETE FROM v_camps WHERE id = ?').bind(c.id)]);
+      return out({ ok: true });
+    }
+  }
+
+  // ---- joining and leaving
+  if (path === '/api/v/join' && req.method === 'POST') {
+    const c = await env.DB.prepare('SELECT * FROM v_camps WHERE code = ?').bind(String(body.code || '').trim().toUpperCase()).first();
+    if (!c) return out({ error: 'no campaign has that code' }, 404);
+    const row = await charRow(String(body.char || ''));
+    if (!row || row.owner !== u.id) return out({ error: 'save that character to your account first' }, 400);
+    await env.DB.prepare('UPDATE v_chars SET campaign = ? WHERE id = ?').bind(c.id, row.id).run();
+    return out({ camp: vCampOut(c, c.gm === u.id) });
+  }
+  if (path === '/api/v/leave' && req.method === 'POST') {
+    const row = await charRow(String(body.char || ''));
+    if (!row) return out({ ok: true });
+    const c = row.campaign && await camp(row.campaign);
+    if (row.owner !== u.id && !(c && c.gm === u.id)) return out({ error: 'not yours' }, 403);
+    await env.DB.prepare('UPDATE v_chars SET campaign = NULL WHERE id = ?').bind(row.id).run();
+    return out({ ok: true });
+  }
+
+  // ---- a roll, posted to the campaign's Discord channel
+  if (path === '/api/v/roll' && req.method === 'POST') {
+    const row = await charRow(String(body.char || ''));
+    if (!row || !(await canEdit(row))) return out({ error: 'not found' }, 404);
+    const c = row.campaign && await camp(row.campaign);
+    if (!c || !c.webhook) return out({ error: 'no channel for this campaign' }, 400);
+    const now = Date.now(), times = (vRolls.get(u.id) || []).filter((t) => t > now - 60_000);
+    if (times.length >= 20) return out({ error: 'slow down' }, 429);
+    times.push(now); vRolls.set(u.id, times); if (vRolls.size > 2000) vRolls.clear();
+    const line = String(body.line || '').replace(/[@`]/g, '').slice(0, 300);
+    if (!line) return out({ error: 'nothing to post' }, 400);
+    const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      username: row.name.slice(0, 80), allowed_mentions: { parse: [] },
+      embeds: [{ description: line, color: 0x6e1f17, footer: { text: c.name.slice(0, 100) + ' · Story of Varandia' } }]
+    }) });
+    if (!r.ok) return out({ error: 'Discord refused the post', detail: r.status }, 502);
+    return out({ ok: true });
+  }
+  return out({ error: 'not found' }, 404);
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
     // Discord's proxy may add /.proxy in front of paths
     const path = url.pathname.replace(/^\/\.proxy/, '') || '/';
-    const cors = req.headers.get('Origin') === SITE && (path === '/api/run' || path === '/api/result')
-      ? { 'Access-Control-Allow-Origin': SITE, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Vary': 'Origin' }
+    const cors = req.headers.get('Origin') === SITE && (path === '/api/run' || path === '/api/result' || path.startsWith('/api/v/'))
+      ? { 'Access-Control-Allow-Origin': SITE, 'Access-Control-Allow-Headers': 'Authorization, Content-Type', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Vary': 'Origin' }
       : {};
     if (req.method === 'OPTIONS') return new Response(null, { status: cors['Access-Control-Allow-Origin'] ? 204 : 403, headers: cors });
     try {

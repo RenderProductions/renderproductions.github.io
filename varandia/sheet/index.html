@@ -206,6 +206,10 @@
         </div>
 
         <div class="inked thin rolls" aria-live="polite"><span style="font: 14px/1.2 var(--sc); color: var(--faded)">Rolls</span><div class="last" data-last>no rolls yet</div><div data-log></div></div>
+        <div id="campBox" hidden style="display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: -10px">
+          <span class="pencil" id="campName" style="font-size: 18px"></span>
+          <button type="button" class="chip" id="postRolls" aria-pressed="false" hidden>post rolls to Discord</button>
+        </div>
       </div>
       <span class="folio">— 2 —</span>
     </section>
@@ -320,12 +324,25 @@
   var CONDS = ['Blinded', 'Charmed', 'Frightened', 'Grappled', 'Poisoned', 'Prone', 'Restrained', 'Stunned', 'Unconscious'];
   var PIPS_UP_TO = 40;
 
-  if (!c) {
-    T.$('#leftLeaf').innerHTML = '<div class="gone"><h1>A blank page</h1><p>This character isn’t in this browser’s book. They may have been torn out, or made on another device.</p><a class="btn ink" href="/varandia/characters/">Your characters</a></div>';
+  function blank() {
+    T.$('#leftLeaf').innerHTML = '<div class="gone"><h1>A blank page</h1><p>This character isn\u2019t in this browser\u2019s book. They may have been torn out, or made on another device: log in with Discord on <a href="/varandia/characters/">Your characters</a> to bring them over.</p><a class="btn ink" href="/varandia/characters/">Your characters</a></div>';
     T.$('#rightLeaf').innerHTML = '<div class="gone"><p class="pencil">nothing written here</p><a class="btn" href="/varandia/builder/">Make a character</a></div>';
     T.$('.tabs').hidden = true;
+  }
+  if (!c) {
+    T.cloud.ready.then(function () {
+      if (!T.cloud.token()) return blank();
+      T.cloud.call('GET', 'chars/' + encodeURIComponent(id)).then(function (row) {
+        var d = row.data, me = T.cloud.me(); d.id = row.id; d.owner = row.owner;
+        if (!me || row.owner !== me.id) d.foreign = true;
+        main(d);
+      }, blank);
+    });
     return;
   }
+  main(c);
+  function main(c0) {
+  c = c0;
   ['items', 'cardinal', 'log', 'known', 'levelLog'].forEach(function (k) { if (!Array.isArray(c[k])) c[k] = []; });
   ['marks', 'grow', 'conds'].forEach(function (k) { if (!c[k] || typeof c[k] !== 'object') c[k] = {}; });
   c.exhaustion = c.exhaustion || 0; c.taint = c.taint || 0;
@@ -372,7 +389,11 @@
     var b = r.bonus;
     return label + ': ' + r.die + (b ? (b < 0 ? ' − ' + Math.abs(b) : ' + ' + b) : '') + ' = ' + r.total;
   }
-  function logLine(line) { c.log.unshift(line); c.log = c.log.slice(0, 8); drawLog(); save(); }
+  var camp = null;
+  function logLine(line) {
+    c.log.unshift(line); c.log = c.log.slice(0, 8); drawLog(); save();
+    if (camp && camp.hasWebhook && c.postRolls) T.cloud.call('POST', 'roll', { char: c.id, line: line }).catch(function (e) { T.$('#status').textContent = 'Discord: ' + ((e && e.error) || 'couldn\u2019t post'); });
+  }
   function drawLog() {
     T.$$('[data-last]').forEach(function (e) { e.textContent = c.log[0] || 'no rolls yet'; });
     T.$$('[data-log]').forEach(function (e) { e.innerHTML = c.log.slice(1, 5).map(function (l) { return '<span>' + T.esc(l) + '</span>'; }).join(''); });
@@ -572,6 +593,24 @@
     drawSeven(); drawVitals(); drawConds(); drawKnown(); drawSpellCard(); drawLog();
     drawList('items'); drawList('cardinal');
     tab(location.hash.slice(1));
+    if (c.foreign) T.$('#status').textContent = 'you\u2019re editing as the GM';
+
+    // campaign: which one, and whether its rolls go to Discord
+    T.cloud.ready.then(function () {
+      if (!T.cloud.token()) return;
+      T.cloud.call('GET', 'chars/' + encodeURIComponent(c.id)).then(function (row) {
+        if (!row.campaign) return null;
+        return T.cloud.call('GET', 'camps/' + row.campaign);
+      }).then(function (r) {
+        if (!r) return;
+        camp = r.camp;
+        T.$('#campBox').hidden = false;
+        T.$('#campName').innerHTML = 'in <a href="/varandia/campaigns/?c=' + camp.id + '">' + T.esc(camp.name) + '</a>';
+        T.$('#postRolls').hidden = !camp.hasWebhook;
+        T.$('#postRolls').setAttribute('aria-pressed', String(!!c.postRolls));
+      }, function () {});
+    });
+    T.$('#postRolls').onclick = function () { c.postRolls = !c.postRolls; this.setAttribute('aria-pressed', String(c.postRolls)); save(); };
 
     // stats & marks
     T.$('#seven').addEventListener('click', function (e) {
@@ -712,6 +751,7 @@
       T.chars.remove(c.id); location.href = '/varandia/characters/';
     };
   }).catch(function (err) { T.$('#status').textContent = 'the pages are stuck together, try reloading'; if (window.console) console.error(err); });
+  }
 })();
 </script>
 <script src="/rv.js" defer></script>
