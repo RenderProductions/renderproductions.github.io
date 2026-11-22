@@ -17,6 +17,8 @@
   .card { display: flex; gap: 18px; align-items: center; padding: 16px 18px; color: var(--ink); text-decoration: none; }
   .card:hover { background: rgba(110, 31, 23, 0.07); }
   .card .ini { width: 58px; height: 58px; flex: none; display: grid; place-items: center; font: 28px/1 var(--sc); }
+  .card .ini { position: relative; }
+  .card .ini img { position: absolute; inset: 4px; width: calc(100% - 8px); height: calc(100% - 8px); border-radius: 50%; object-fit: cover; filter: sepia(0.25) contrast(1.05); mix-blend-mode: multiply; }
   .card .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .card .who b { font: 400 26px/1.1 var(--fell); overflow-wrap: anywhere; }
   .card .who i { color: var(--ink-soft); }
@@ -89,7 +91,7 @@ function drawChars() { return Tome.data().then(function (d) {
   T.$('#cards').innerHTML = list.map(function (c) {
     var r = T.race(d, c.race), dv = T.derive(c, d);
     return '<li><a class="card inked thin" href="/varandia/sheet/?id=' + encodeURIComponent(c.id) + '">' +
-      '<span class="ini inked round" style="color:' + (r ? r.color : 'inherit') + '">' + T.esc((c.name || '?').charAt(0)) + '</span>' +
+      (T.portrait(c) ? '<span class="ini inked round"><img src="' + T.esc(T.portrait(c)) + '" alt=""></span>' : '<span class="ini inked round" style="color:' + (r ? r.color : 'inherit') + '">' + T.esc((c.name || '?').charAt(0)) + '</span>') +
       '<span class="who"><b>' + T.esc(c.name) + '</b>' + (c.title ? '<i>' + T.esc(c.title) + '</i>' : '') +
       '<span>' + (r ? r.name : '') + (T.cls(d, c.cls) ? ' ' + T.cls(d, c.cls).name : '') + ' · Level ' + (c.level || 1) + '</span></span>' +
       '<span class="hp">' + (c.hp == null ? dv.hp : c.hp) + ' / ' + dv.hp + ' hp</span></a></li>';

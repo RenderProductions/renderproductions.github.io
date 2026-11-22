@@ -20,6 +20,9 @@
   .camps small { font: 14px/1 var(--sc); color: var(--faded); white-space: nowrap; }
   .party { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
   .pc { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .pc { position: relative; }
+  .pc:has(.pcpic) { padding-right: 84px; min-height: 100px; }
+  .pcpic { position: absolute; top: 14px; right: 14px; width: 56px; height: 70px; object-fit: cover; border: 1.6px solid var(--ink); filter: sepia(0.25) contrast(1.05); mix-blend-mode: multiply; }
   .pc b { font: 400 22px/1.1 var(--fell); }
   .pc .meta { font: 13px/1.3 var(--sc); color: var(--faded); }
   .pc .bar2 { position: relative; height: 12px; }
@@ -125,7 +128,8 @@
     var dv = T.derive(c, D), hp = c.hp == null ? dv.hp : c.hp, sta = c.sta == null ? dv.stamina : c.sta;
     var conds = Object.keys(c.conds || {}).concat(c.exhaustion ? ['Exhaustion ' + c.exhaustion] : []).concat(c.taint ? ['Taint ' + c.taint] : []);
     var k = T.cls(D, c.cls), mine = me && ch.owner === me.id;
-    return '<div class="inked pc"><b>' + T.esc(c.name) + '</b><span class="meta">' + T.esc([race(D, c.race) + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1)].join(' · ')) + '<br>played by ' + T.esc(ch.ownerName || '?') + '</span>' +
+    var pic = T.portrait(c);
+    return '<div class="inked pc">' + (pic ? '<img class="pcpic" src="' + T.esc(pic) + '" alt="">' : '') + '<b>' + T.esc(c.name) + '</b><span class="meta">' + T.esc([race(D, c.race) + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1)].join(' · ')) + '<br>played by ' + T.esc(ch.ownerName || '?') + '</span>' +
       '<div class="row"><span class="sc">Health</span><span>' + hp + ' / ' + dv.hp + '</span></div><div class="bar2"><i style="width:calc(' + (dv.hp ? hp / dv.hp * 100 : 0) + '% - 4px)"></i></div>' +
       '<div class="row"><span class="sc">Stamina</span><span>' + sta + ' / ' + dv.stamina + '</span></div><div class="bar2 sta"><i style="width:calc(' + (dv.stamina ? sta / dv.stamina * 100 : 0) + '% - 4px)"></i></div>' +
       '<div class="row"><span class="sc">Defense</span><span>' + dv.defense + '</span></div>' +

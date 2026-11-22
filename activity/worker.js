@@ -364,6 +364,7 @@ async function vSetup(env) {
     env.DB.prepare('CREATE INDEX IF NOT EXISTS v_chars_campaign ON v_chars (campaign)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS v_camps (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, gm TEXT NOT NULL, gm_name TEXT, name TEXT NOT NULL, intro TEXT, webhook TEXT, created INTEGER NOT NULL)'),
     env.DB.prepare('CREATE INDEX IF NOT EXISTS v_camps_gm ON v_camps (gm)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS v_pics (id TEXT PRIMARY KEY, img BLOB NOT NULL, updated INTEGER NOT NULL)'),
   ]);
   vReady = true;
 }
@@ -373,6 +374,14 @@ const vCampOut = (c, isGm) => ({ id: c.id, name: c.name, intro: c.intro || '', g
 const vRolls = new Map();   // user id -> times of rolls posted in the last minute
 
 async function varandia(req, env, path, out) {
+  // portraits are plain pictures anyone can load (Discord fetches them for the webhook's avatar)
+  const pm = path.match(/^\/api\/v\/pic\/([a-z0-9]{4,32})$/);
+  if (pm && req.method === 'GET') {
+    await vSetup(env);
+    const p = await env.DB.prepare('SELECT img FROM v_pics WHERE id = ?').bind(pm[1]).first();
+    if (!p) return new Response('not found', { status: 404 });
+    return new Response(p.img, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' } });
+  }
   const u = await user(req);
   if (!u) return out({ error: 'not logged in' }, 401);
   await vSetup(env);
@@ -385,6 +394,19 @@ async function varandia(req, env, path, out) {
     if (!row.campaign) return false;
     const c = await camp(row.campaign);
     return !!c && c.gm === u.id;
+  }
+
+  // ---- portraits (a small JPEG made in the browser)
+  if (pm && (req.method === 'PUT' || req.method === 'DELETE')) {
+    const row = await charRow(pm[1]);
+    if (!row || !(await canEdit(row))) return out({ error: 'not found' }, 404);
+    if (req.method === 'DELETE') { await env.DB.prepare('DELETE FROM v_pics WHERE id = ?').bind(pm[1]).run(); return out({ ok: true }); }
+    const mm = String(body.img || '').match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/);
+    if (!mm || mm[1].length > 200_000) return out({ error: 'bad picture' }, 400);
+    const bytes = Uint8Array.from(atob(mm[1]), (ch) => ch.charCodeAt(0));
+    if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return out({ error: 'bad picture' }, 400);
+    await env.DB.prepare('INSERT INTO v_pics (id, img, updated) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET img = excluded.img, updated = excluded.updated').bind(pm[1], bytes, Date.now()).run();
+    return out({ ok: true });
   }
 
   // ---- characters
@@ -416,7 +438,7 @@ async function varandia(req, env, path, out) {
     if (req.method === 'DELETE') {
       if (!row) return out({ ok: true });
       if (row.owner !== u.id) return out({ error: 'not yours' }, 403);
-      await env.DB.prepare('DELETE FROM v_chars WHERE id = ?').bind(m[2]).run();
+      await env.DB.batch([env.DB.prepare('DELETE FROM v_chars WHERE id = ?').bind(m[2]), env.DB.prepare('DELETE FROM v_pics WHERE id = ?').bind(m[2])]);
       return out({ ok: true });
     }
   }
@@ -488,8 +510,10 @@ async function varandia(req, env, path, out) {
     times.push(now); vRolls.set(u.id, times); if (vRolls.size > 2000) vRolls.clear();
     const line = String(body.line || '').replace(/[@`]/g, '').slice(0, 300);
     if (!line) return out({ error: 'nothing to post' }, 400);
+    const pic = JSON.parse(row.data).pic;
     const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       username: row.name.slice(0, 80), allowed_mentions: { parse: [] },
+      avatar_url: pic ? new URL(req.url).origin + '/api/v/pic/' + row.id + '?v=' + Number(pic) : undefined,
       embeds: [{ description: line, color: 0x6e1f17, footer: { text: c.name.slice(0, 100) + ' · Story of Varandia' } }]
     }) });
     if (!r.ok) return out({ error: 'Discord refused the post', detail: r.status }, 502);
