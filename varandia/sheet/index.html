@@ -695,7 +695,11 @@
 
     // rolls
     T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r), info('attack', 'Melee attack', w, { what: 'to hit' })); };
-    T.$('#init').onclick = function () { var w = rollWith('Initiative', dv.initiative, false); logLine(lineFor(w.label, w.r), info('init', 'Initiative', w)); };
+    T.$('#init').onclick = function () {
+      var w = rollWith('Initiative', dv.initiative, false);
+      c.initRoll = { total: w.r.total, at: Date.now() };   // the GM's initiative tracker picks this up
+      logLine(lineFor(w.label, w.r), info('init', 'Initiative', w));
+    };
     T.$('#d20').onclick = function () { var r1 = T.roll(0); logLine(lineFor('d20', r1), info('die', 'd20', { r: r1 })); };
     T.$('#d6').onclick = function () { var r2 = T.roll(0, 6); logLine(lineFor('d6', r2), info('die', 'd6', { r: r2 }, { sides: 6 })); };
     T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };

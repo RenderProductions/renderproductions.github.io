@@ -56,6 +56,29 @@
   .tome .npcs input { width: 2.8em !important; min-width: 0 !important; padding: 2px 2px !important; font: 18px/1.1 var(--hand) !important; text-align: center; background: transparent; border: 0; border-bottom: 1.4px solid var(--ink); -moz-appearance: textfield; }
   .npcs input::-webkit-inner-spin-button, .npcs input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .npcs .x { background: transparent; border: 0; color: var(--red); font-size: 18px; cursor: pointer; min-height: 36px; padding: 0 6px; }
+  .fightbox { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .fhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .fhead h3 { margin: 0; }
+  .fhead .fbtns { display: flex; gap: 14px; align-items: center; }
+  .yourturn { margin: 0; font: 26px/1.2 var(--hand); color: var(--red); }
+  .order { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .order li { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; padding: 6px 4px; border-bottom: 1px dashed rgba(42, 29, 18, 0.3); font-size: 18px; }
+  .order li.cur { background: rgba(110, 31, 23, 0.1); }
+  .order li.you .who { color: var(--red); }
+  .order li.out { opacity: 0.45; text-decoration: line-through; }
+  .order .mk { width: 1em; color: var(--red); }
+  .order .ini { min-width: 2.2em; text-align: center; font: 22px/1 var(--fell); }
+  .tome .order input { width: 2.6em !important; min-width: 0 !important; padding: 2px !important; font: 22px/1 var(--fell) !important; text-align: center; -moz-appearance: textfield; }
+  .order input::-webkit-inner-spin-button, .order input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .order .who { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+  .order .who small { font-size: 14px; }
+  .order .hp { font-size: 15px; color: var(--ink-soft); white-space: nowrap; }
+  .order .ctl { display: flex; gap: 2px; }
+  .order .ctl button { background: transparent; border: 0; min-width: 34px; min-height: 36px; font-size: 18px; cursor: pointer; color: var(--ink-soft); }
+  .order .ctl button:hover { color: var(--red); }
+  .fadd { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .fadd #fName { flex: 1 1 140px; }
+  .tome .fadd #fInit { width: 4em !important; min-width: 0 !important; }
   .gLast { font: 20px/1.3 var(--hand); color: var(--red); min-height: 26px; }
   .gLast b { font: 40px/1 var(--fell); color: var(--ink); margin-right: 8px; }
   .glog { list-style: none; margin: 6px 0 0; padding: 0; font-size: 15px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 2px; }
@@ -223,6 +246,7 @@
       return '<li><button type="button" class="nm" data-pick="' + i + '" title="Roll as ' + T.esc(x.name) + '">' + T.esc(x.name) + '</button>' +
         '<span class="pair">❤ ' + num(i, 'hp', x.hp, x.name + ' Health') + '/' + num(i, 'maxHp', x.maxHp, x.name + ' max Health') + '</span>' +
         '<span class="pair">◆ ' + num(i, 'sta', x.sta, x.name + ' Stamina') + '/' + num(i, 'maxSta', x.maxSta, x.name + ' max Stamina') + '</span>' +
+        '<span class="pair" title="Initiative bonus">⏱ +' + num(i, 'ini', x.ini, x.name + ' initiative bonus') + '</span>' +
         '<button type="button" class="x" data-untrack="' + i + '" aria-label="Stop tracking ' + T.esc(x.name) + '">×</button></li>';
     }).join('');
   }
@@ -297,6 +321,102 @@
   T.$('#gSecret').onclick = function () { setPub(false); };
   T.$('#gPublic').onclick = function () { setPub(true); };
 
+  // ---- initiative
+  var F = { camp: null, chars: [], fight: null };
+  function charOf(e) { return F.chars.filter(function (ch) { return ch.id === e.char; })[0]; }
+  function place(list, e) {   // put e where its number belongs, keeping any hand-made order around it
+    list = list.filter(function (x) { return x.id !== e.id; });
+    if (e.init == null) { list.push(e); return list; }
+    var at = list.findIndex(function (x) { return x.init == null || x.init < e.init || (x.init === e.init && (x.spd || 0) < (e.spd || 0)); });
+    if (at < 0) list.push(e); else list.splice(at, 0, e);
+    return list;
+  }
+  function saveFight() {
+    return T.cloud.call('PUT', 'fight/' + F.camp.id, { fight: F.fight }).then(function (r) { F.fight = r.fight; drawFight(); }, function (e) { T.$('#fNote') && (T.$('#fNote').textContent = err(e)); });
+  }
+  function pullInits() {   // players' initiative rolls from their sheets
+    var f = F.fight, changed = false;
+    f.list.slice().forEach(function (e) {
+      if (e.kind !== 'pc' || e.init != null) return;
+      var ch = charOf(e), ir = ch && ch.data.initRoll;
+      if (ir && ir.at >= f.started - 120000) { e.init = ir.total; f.list = place(f.list, e); changed = true; }
+    });
+    if (changed) { if (!f.list.some(function (x) { return x.id === f.current && x.init != null; })) f.current = (f.list.filter(function (x) { return x.init != null && !x.out; })[0] || {}).id || f.current; saveFight(); }
+  }
+  function postTurn(title, text) {
+    if (!(screen.pub && F.camp.hasWebhook)) return;
+    var f = F.fight;
+    T.cloud.call('POST', 'gmroll', { camp: F.camp.id, who: 'The GM', kind: 'turn', line: title, info: { title: title, text: text || '',
+      order: f.list.filter(function (x) { return !x.out; }).map(function (x) { return { name: x.name, init: x.init, cur: x.id === f.current }; }) } }).catch(function () {});
+  }
+  function hpOf(e) {
+    if (e.kind === 'pc') { var ch = charOf(e); if (!ch) return ''; var d = ch.data, dv = T.derive(d, D); return '❤ ' + (d.hp == null ? dv.hp : d.hp) + '/' + dv.hp; }
+    var n = npcOf(e.name); return n && n.maxHp != null ? '❤ ' + (n.hp == null ? n.maxHp : n.hp) + '/' + n.maxHp : '';
+  }
+  function drawFight() {
+    var box = T.$('#fight'); if (!box || !F.camp) return;
+    if (box.contains(document.activeElement) && document.activeElement.tagName === 'INPUT') return;   // mid-typing
+    var c = F.camp, f = F.fight, gm = c.isGm, me = T.cloud.me();
+    if (!f) { box.innerHTML = gm ? '<button type="button" class="btn ink" data-fight="start">⚔️ Roll initiative</button>' : ''; return; }
+    var cur = f.list.filter(function (x) { return x.id === f.current; })[0];
+    var mine = cur && cur.kind === 'pc' && charOf(cur) && me && charOf(cur).owner === me.id;
+    var h = '<div class="inked fightbox"><div class="fhead"><h3>Initiative <span class="faded">· Round ' + f.round + '</span></h3>' +
+      (gm ? '<span class="fbtns"><button type="button" class="btn ink small" data-fight="next">Next turn</button><button type="button" class="linkish" data-fight="end" style="color:var(--red)">End fight</button></span>' : '') + '</div>' +
+      (mine ? '<p class="yourturn">It\u2019s your turn, ' + T.esc(cur.name) + '!</p>' : cur ? '<p class="pencil" style="margin:0">' + T.esc(cur.name) + '\u2019s turn</p>' : '') +
+      '<ol class="order">' + f.list.map(function (e, i) {
+        var you = e.kind === 'pc' && charOf(e) && me && charOf(e).owner === me.id;
+        var num = gm ? '<input type="number" inputmode="numeric" data-fi="' + e.id + '" value="' + (e.init == null ? '' : e.init) + '" placeholder="…" aria-label="' + T.esc(e.name) + ' initiative">'
+                     : '<span class="ini">' + (e.init == null ? '…' : e.init) + '</span>';
+        return '<li class="' + (e.id === f.current ? 'cur ' : '') + (e.out ? 'out ' : '') + (you ? 'you' : '') + '"><span class="mk" aria-hidden="true">' + (e.id === f.current ? '▶' : '') + '</span>' + num +
+          '<span class="who">' + T.esc(e.name) + (you ? ' <small>(you)</small>' : '') + (e.init == null ? ' <small class="faded">waiting for a roll…</small>' : '') + '</span>' +
+          '<span class="hp">' + T.esc(hpOf(e)) + '</span>' +
+          (gm ? '<span class="ctl"><button type="button" data-up="' + i + '" aria-label="Move ' + T.esc(e.name) + ' up">↑</button><button type="button" data-down="' + i + '" aria-label="Move ' + T.esc(e.name) + ' down">↓</button><button type="button" data-out="' + e.id + '" aria-label="' + (e.out ? 'Bring back ' : 'Take out ') + T.esc(e.name) + '">' + (e.out ? '↺' : '✕') + '</button></span>' : '') + '</li>';
+      }).join('') + '</ol>' +
+      (gm ? '<form class="fadd" id="fAdd"><input id="fName" maxlength="60" autocomplete="off" placeholder="add someone…" aria-label="Name to add"><input id="fInit" type="number" inputmode="numeric" placeholder="d20" aria-label="Their initiative (blank rolls a d20)"><button type="submit" class="btn small">Add</button><span class="pencil" id="fNote" aria-live="polite"></span></form>' : '') + '</div>';
+    box.innerHTML = h;
+  }
+  function nextTurn() {
+    var f = F.fight, live = f.list.filter(function (x) { return !x.out; }); if (!live.length) return;
+    var i = live.findIndex(function (x) { return x.id === f.current; }), n = i + 1;
+    if (n >= live.length) { n = 0; f.round += 1; }
+    f.current = live[n].id; saveFight();
+    postTurn('Round ' + f.round + ' · ' + live[n].name + '\u2019s turn');
+  }
+  T.$('#detail').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-fight],[data-up],[data-down],[data-out]'); if (!b || !F.camp || !F.camp.isGm) return;
+    var f = F.fight;
+    if (b.dataset.fight === 'start') {
+      var list = [];
+      F.chars.forEach(function (ch) { list.push({ id: 'c' + ch.id, kind: 'pc', name: ch.data.name || ch.name, char: ch.id, init: null, spd: T.stat(ch.data, 'spd', D) }); });
+      screen.npcs.forEach(function (n, k) { list = place(list, { id: 'n' + k + Date.now().toString(36), kind: 'npc', name: n.name, init: T.roll(n.ini || 0).total, spd: 0 }); });
+      F.fight = { round: 1, started: Date.now(), list: list, current: '' };
+      F.fight.current = (list.filter(function (x) { return x.init != null; })[0] || list[0] || {}).id || '';
+      pullInits(); saveFight();
+      postTurn('Roll initiative!', 'Hit Initiative on your sheets.');
+    }
+    if (b.dataset.fight === 'next') nextTurn();
+    if (b.dataset.fight === 'end') { if (!confirm('End the fight?')) return; T.cloud.call('DELETE', 'fight/' + F.camp.id).then(function () { F.fight = null; drawFight(); }); }
+    if (b.dataset.up != null || b.dataset.down != null) {
+      var i = +(b.dataset.up != null ? b.dataset.up : b.dataset.down), j = b.dataset.up != null ? i - 1 : i + 1;
+      if (j < 0 || j >= f.list.length) return;
+      var t = f.list[i]; f.list[i] = f.list[j]; f.list[j] = t; saveFight();
+    }
+    if (b.dataset.out) { var x = f.list.filter(function (y) { return y.id === b.dataset.out; })[0]; x.out = !x.out; if (x.out && f.current === x.id) nextTurn(); else saveFight(); }
+  });
+  T.$('#detail').addEventListener('change', function (e) {
+    var t = e.target.closest('[data-fi]'); if (!t || !F.fight) return;
+    var x = F.fight.list.filter(function (y) { return y.id === t.dataset.fi; })[0]; if (!x) return;
+    x.init = t.value === '' ? null : Math.round(+t.value); F.fight.list = place(F.fight.list, x); t.blur(); saveFight();
+  });
+  T.$('#detail').addEventListener('submit', function (e) {
+    if (e.target.id !== 'fAdd') return;
+    e.preventDefault();
+    var name = T.$('#fName').value.trim(); if (!name) return;
+    var v = T.$('#fInit').value, n = npcOf(name);
+    var x = { id: 'x' + Date.now().toString(36), kind: n ? 'npc' : 'extra', name: n ? n.name : name, init: v === '' ? T.roll(n && n.ini || 0).total : Math.round(+v), spd: 0 };
+    F.fight.list = place(F.fight.list, x); T.$('#fName').value = ''; T.$('#fInit').value = ''; document.activeElement.blur(); saveFight();
+  });
+
   function show(id) {
     open = id; drawCamps();
     history.replaceState(null, '', location.pathname + '?c=' + id);
@@ -306,6 +426,7 @@
       if (c.isGm) {
         h += '<div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap"><span class="sc faded" style="font-size:15px">Join code</span><span class="code">' + T.esc(c.code) + '</span><span class="pencil" style="font-size:18px">hand this to your players</span></div>';
       } else h += '<p class="faded" style="margin:0">Run by ' + T.esc(c.gmName || '?') + '</p>';
+      h += '<div id="fight"></div>';
       h += c.isGm ? '<div><h3 id="introT" style="margin-bottom:2px">The story so far</h3><textarea class="lined" id="intro" rows="5" maxlength="8000" aria-labelledby="introT" placeholder="what your players read before the first session…">' + T.esc(c.intro) + '</textarea></div>'
                   : (c.intro ? '<div style="white-space:pre-wrap;font-size:17px">' + T.esc(c.intro) + '</div>' : '');
       h += '<div><h3 style="margin-bottom:10px">The party</h3>' + (r.chars.length ? '<div class="party">' + r.chars.map(function (ch) { return pcCard(ch, c.isGm, me); }).join('') + '</div>' : '<p class="pencil" style="margin:0">no one has joined yet</p>') + '</div>';
@@ -318,7 +439,11 @@
       var keep = document.activeElement && document.activeElement.id;
       if (c.isGm && T.$('#intro') && keep && (keep === 'intro' || keep === 'hook')) { /* don't redraw while the GM is typing */ }
       else T.$('#detail').innerHTML = h;
-      timer = setTimeout(function () { if (!document.hidden) show(id); else timer = setTimeout(function () { show(id); }, 15000); }, 15000);
+      F.camp = c; F.chars = r.chars; F.fight = r.fight;
+      if (c.isGm && F.fight) pullInits();
+      drawFight();
+      var wait = F.fight ? 6000 : 15000;
+      timer = setTimeout(function () { if (!document.hidden) show(id); else timer = setTimeout(function () { show(id); }, wait); }, wait);
     }, function (e) { T.$('#detail').innerHTML = '<p>' + T.esc(err(e)) + '</p>'; });
   }
 
