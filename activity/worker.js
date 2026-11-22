@@ -531,7 +531,13 @@ async function varandia(req, env, path, out) {
       const chars = await env.DB.prepare('SELECT * FROM v_chars WHERE campaign = ? ORDER BY name LIMIT 50').bind(c.id).all();
       if (!isGm && !chars.results.some((r) => r.owner === u.id)) return out({ error: 'not found' }, 404);
       const f = await env.DB.prepare('SELECT data FROM v_fights WHERE camp = ?').bind(c.id).first();
-      return out({ camp: vCampOut(c, isGm), chars: chars.results.map(vCharOut), fight: f ? JSON.parse(f.data) : null });
+      // players only see NPCs the GM has shown them, and only who they are, not their numbers
+      const list = chars.results.map(vCharOut).filter((ch) => isGm || !ch.data.npc || !ch.data.hidden).map((ch) => {
+        if (isGm || !ch.data.npc) return ch;
+        const d = ch.data;
+        return Object.assign({}, ch, { data: { npc: true, name: d.name, title: d.title, race: d.race, cls: d.cls, level: d.level, pic: d.pic, look: d.look } });
+      });
+      return out({ camp: vCampOut(c, isGm), chars: list, fight: f ? JSON.parse(f.data) : null });
     }
     if (!isGm) return out({ error: 'only the GM can do that' }, 403);
     if (req.method === 'PUT') {
@@ -549,8 +555,9 @@ async function varandia(req, env, path, out) {
 
   // ---- joining and leaving
   if (path === '/api/v/join' && req.method === 'POST') {
-    const c = await env.DB.prepare('SELECT * FROM v_camps WHERE code = ?').bind(String(body.code || '').trim().toUpperCase()).first();
-    if (!c) return out({ error: 'no campaign has that code' }, 404);
+    // players join with the code; the GM can add their own NPCs straight to a campaign they run
+    const c = body.camp ? await camp(String(body.camp)) : await env.DB.prepare('SELECT * FROM v_camps WHERE code = ?').bind(String(body.code || '').trim().toUpperCase()).first();
+    if (!c || (body.camp && c.gm !== u.id)) return out({ error: 'no campaign has that code' }, 404);
     const row = await charRow(String(body.char || ''));
     if (!row || row.owner !== u.id) return out({ error: 'save that character to your account first' }, 400);
     await env.DB.prepare('UPDATE v_chars SET campaign = ? WHERE id = ?').bind(c.id, row.id).run();

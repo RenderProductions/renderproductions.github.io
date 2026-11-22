@@ -69,6 +69,7 @@
             <label class="field"><span>Age</span><input type="text" id="f-age" maxlength="12" inputmode="numeric" autocomplete="off" placeholder="34"></label>
             <label class="field"><span>Height</span><input type="text" id="f-height" maxlength="12" autocomplete="off" placeholder="5′9″"></label>
           </div>
+          <label class="field" id="npcLv" hidden style="max-width: 140px"><span>Level</span><input type="number" id="f-level" min="1" max="20" inputmode="numeric"></label>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px">
@@ -88,14 +89,14 @@
             <h2 id="statsTitle">III. Roll &amp; spend</h2>
             <button type="button" class="btn small" id="rollAll">Roll every d6</button>
           </div>
-          <p class="faded" style="font-size: 16px; margin: 0">Roll here, or roll real dice and write the numbers in. Then spend your points: <span class="hand" id="left" style="font-size: 26px">20</span> left.</p>
+          <p class="faded" style="font-size: 16px; margin: 0"><span id="statsHelp">Roll here, or roll real dice and write the numbers in. Then spend your points: </span><span class="hand" id="left" style="font-size: 26px">20</span><span id="leftWord"> left.</span></p>
           <div class="bstats" id="stats" role="group" aria-label="Stats">
             <div class="brow head" aria-hidden="true"><span>Stat</span><span style="text-align:center">d6</span><span style="text-align:center">Points</span><span style="text-align:center">Race</span><span style="text-align:right">Total</span></div>
           </div>
         </div>
 
         <div>
-          <h3 style="margin-bottom: 8px">At level 1</h3>
+          <h3 style="margin-bottom: 8px" id="atLv">At level 1</h3>
           <div class="preview" aria-live="polite">
             <div><b id="p-def">—</b><span>Defense</span></div>
             <div><b id="p-hp">—</b><span>Health</span></div>
@@ -167,10 +168,14 @@
 (function () {
   var T = Tome, D = null, params = new URLSearchParams(location.search);
   var editing = params.get('id') ? T.chars.get(params.get('id')) : null;
+  var npcCamp = params.get('npc');   // the GM making an NPC for this campaign
   var c = editing || { id: T.chars.newId(), level: 1, race: params.get('race') || 'human', cls: params.get('cls') || '', d6: {}, pts: {}, created: Date.now() };
+  if (npcCamp && !editing) { c.npc = true; c.hidden = true; }
+  var npc = !!c.npc;   // NPCs: any level, any stats, class optional
+  var maxBase = npc ? 99 : null;
 
   function spent() { return D.stats.reduce(function (n, s) { return n + (c.pts[s.key] || 0); }, 0); }
-  function rolled() { return D.stats.every(function (s) { var v = c.d6[s.key]; return v >= 1 && v <= D.creation.startingDie; }); }
+  function rolled() { return D.stats.every(function (s) { var v = c.d6[s.key]; return v >= (npc ? 0 : 1) && v <= (maxBase || D.creation.startingDie); }); }
 
   function drawRaces() {
     T.$('#races').innerHTML = D.races.map(function (r) {
@@ -190,7 +195,7 @@
     D.stats.forEach(function (s) {
       var m = r.mods[s.key] || 0;
       html += '<div class="brow" data-key="' + s.key + '"><span class="nm">' + s.name + '</span>' +
-        '<input type="number" min="1" max="' + D.creation.startingDie + '" inputmode="numeric" aria-label="' + s.name + ' d6 roll" data-d6 value="' + (c.d6[s.key] || '') + '">' +
+        '<input type="number" min="' + (npc ? 0 : 1) + '" max="' + (maxBase || D.creation.startingDie) + '" inputmode="numeric" aria-label="' + s.name + (npc ? ' base' : ' d6 roll') + '" data-d6 value="' + (c.d6[s.key] == null ? '' : c.d6[s.key]) + '">' +
         '<span class="pts"><button type="button" data-step="-1" aria-label="Take a point from ' + s.name + '">−</button><span aria-label="' + s.name + ' points">' + (c.pts[s.key] || 0) + '</span><button type="button" data-step="1" aria-label="Put a point in ' + s.name + '">+</button></span>' +
         '<span class="rc" style="color:' + (m < 0 ? 'var(--red)' : m > 0 ? 'var(--ink)' : 'rgba(90,70,50,.5)') + '">' + T.modText(m) + '</span>' +
         '<span class="tot" data-tot></span></div>';
@@ -200,10 +205,10 @@
   }
 
   function update() {
-    var left = D.creation.points - spent();
-    T.$('#left').textContent = left;
+    var left = npc ? Infinity : D.creation.points - spent();
+    T.$('#left').textContent = npc ? spent() : left;
     T.$$('.brow:not(.head)').forEach(function (row) {
-      var k = row.dataset.key, has = c.d6[k] >= 1;
+      var k = row.dataset.key, has = c.d6[k] >= (npc ? 0 : 1);
       row.querySelector('[data-tot]').textContent = has ? T.stat(c, k, D) : '·';
       row.querySelector('.pts span').textContent = c.pts[k] || 0;
       row.querySelector('[data-step="-1"]').disabled = !(c.pts[k] > 0);
@@ -216,20 +221,21 @@
     T.$('#p-sta').textContent = dv ? dv.stamina : '—';
     T.$('#p-ini').textContent = dv ? T.sign(dv.initiative) : '—';
     T.$('#p-mov').textContent = dv ? dv.movement + ' ft' : '—';
-    var why = !T.$('#f-name').value.trim() ? 'needs a name' : !ok ? 'roll every d6 first' : left > 0 ? left + ' point' + (left === 1 ? '' : 's') + ' still to spend' : '';
+    var why = !T.$('#f-name').value.trim() ? 'needs a name' : !ok ? (npc ? 'fill in every stat' : 'roll every d6 first') : !npc && left > 0 ? left + ' point' + (left === 1 ? '' : 's') + ' still to spend' : '';
+    if (npc) { c.level = Math.max(1, Math.min(D.leveling.maxLevel, parseInt(T.$('#f-level').value, 10) || 1)); T.$('#atLv').textContent = 'At level ' + c.level; }
     T.$('#why').textContent = why;
     T.$('#next').disabled = !!why;
-    T.$('#why2').textContent = c.cls ? '' : 'pick a class';
-    T.$('#save').disabled = !!why || !c.cls;
+    T.$('#why2').textContent = c.cls || npc ? '' : 'pick a class';
+    T.$('#save').disabled = !!why || (!c.cls && !npc);
   }
 
   function drawClasses() {
-    T.$('#classes').innerHTML = D.classes.map(function (k) {
+    T.$('#classes').innerHTML = (npc ? '<button type="button" class="chip" role="radio" aria-checked="' + !c.cls + '" aria-pressed="' + !c.cls + '" data-key="">No class</button>' : '') + D.classes.map(function (k) {
       var on = k.key === c.cls;
       return '<button type="button" class="chip" role="radio" aria-checked="' + on + '" aria-pressed="' + on + '" data-key="' + k.key + '">' + T.esc(k.name) + '</button>';
     }).join('');
     var k = T.cls(D, c.cls);
-    T.$('#clsText').textContent = k ? k.text : 'Pick one. You can read about each in the Classes chapter.';
+    T.$('#clsText').textContent = k ? k.text : npc ? 'NPCs don\u2019t need a class. Pick one if they should have its Health and spell lists.' : 'Pick one. You can read about each in the Classes chapter.';
     T.$('#clsInfo').innerHTML = k ? '+' + k.hpPerLevel + ' Health every level · leans on ' + k.leans.map(function (x) { return D.stats.filter(function (s) { return s.key === x; })[0].name; }).join(' & ') +
       (k.caster ? ' · its spells are ' + D.classRules.classListNeed + ' easier' : '') + ' · <a href="/varandia/classes/#' + k.key + '" target="_blank" rel="noopener">features</a>' : '';
   }
@@ -247,6 +253,16 @@
     T.$('#f-age').value = c.age || '';
     T.$('#f-height').value = c.height || '';
     if (editing) { T.$('#title').textContent = 'Rewriting ' + c.name; T.$('#save').textContent = 'Save changes'; }
+    if (npc) {
+      document.title = 'Making an NPC | Story of Varandia';
+      if (!editing) { T.$('#title').textContent = 'Making an NPC'; T.$('#save').textContent = 'Write them into the campaign'; }
+      T.$('.kicker').textContent = 'For the GM';
+      T.$('#npcLv').hidden = false; T.$('#f-level').value = c.level || 1;
+      T.$('#rollAll').hidden = true;
+      T.$('#statsHelp').textContent = 'NPCs aren\u2019t bound by the d6 and 20 points: write in whatever base each stat should have, and add points on top if you like. Points used: ';
+      T.$('.brow.head span:nth-child(2)').textContent = 'Base'; T.$('#leftWord').textContent = '';
+      T.$('#f-level').addEventListener('input', update);
+    }
     drawRaces(); drawStats(); drawClasses();
     T.$('#profNow').textContent = T.sign(T.prof(D, c.level || 1));
     T.$('#f-bg').value = c.bgName || ''; T.$('#f-profs').value = c.profs || '';
@@ -271,7 +287,7 @@
     T.$('#stats').addEventListener('input', function (e) {
       if (!e.target.matches('[data-d6]')) return;
       var k = e.target.closest('.brow').dataset.key, v = parseInt(e.target.value, 10);
-      c.d6[k] = v >= 1 && v <= D.creation.startingDie ? v : 0;
+      c.d6[k] = v >= (npc ? 0 : 1) && v <= (maxBase || D.creation.startingDie) ? v : (npc && e.target.value === '' ? null : 0);
       update();
     });
     T.$('#rollAll').addEventListener('click', function () {
@@ -300,7 +316,17 @@
         c.hp = Math.min(c.hp == null ? dv.hp : c.hp, dv.hp); c.sta = Math.min(c.sta == null ? dv.stamina : c.sta, dv.stamina);
       }
       if (!T.chars.save(c)) { T.$('#why').textContent = 'this browser won’t let the book be saved (private mode?)'; return; }
-      location.href = '/varandia/sheet/?id=' + encodeURIComponent(c.id);
+      var go = function () { location.href = '/varandia/sheet/?id=' + encodeURIComponent(c.id); };
+      if (npcCamp && !editing) {
+        // put the NPC on the GM's account and into the campaign, then open their sheet
+        T.$('#why2').textContent = 'writing them in…';
+        var copy = Object.assign({}, c); delete copy.portrait;
+        T.cloud.ready.then(function () { return T.cloud.call('PUT', 'chars/' + c.id, { data: copy }); })
+          .then(function () { return T.cloud.call('POST', 'join', { camp: npcCamp, char: c.id }); })
+          .then(go, function (er) { T.$('#why2').textContent = (er && er.error) || 'couldn\u2019t reach the book: they\u2019re saved here, add them from the campaign page later'; });
+        return;
+      }
+      go();
     });
   }).catch(function () { T.$('#why').textContent = 'the pages are stuck together, try reloading'; });
 })();

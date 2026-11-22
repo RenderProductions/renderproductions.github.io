@@ -86,13 +86,13 @@
 <script src="/varandia/tome.js"></script>
 <script>
 function drawChars() { return Tome.data().then(function (d) {
-  var T = Tome, list = T.chars.list();
+  var T = Tome, list = T.chars.list().sort(function (a, b) { return (a.npc ? 1 : 0) - (b.npc ? 1 : 0); });
   T.$('#empty').hidden = list.length > 0;
   T.$('#cards').innerHTML = list.map(function (c) {
     var r = T.race(d, c.race), dv = T.derive(c, d);
     return '<li><a class="card inked thin" href="/varandia/sheet/?id=' + encodeURIComponent(c.id) + '">' +
       (T.portrait(c) ? '<span class="ini inked round"><img src="' + T.esc(T.portrait(c)) + '" alt=""></span>' : '<span class="ini inked round" style="color:' + (r ? r.color : 'inherit') + '">' + T.esc((c.name || '?').charAt(0)) + '</span>') +
-      '<span class="who"><b>' + T.esc(c.name) + '</b>' + (c.title ? '<i>' + T.esc(c.title) + '</i>' : '') +
+      '<span class="who"><b>' + T.esc(c.name) + (c.npc ? ' <small class="sc" style="font-size:12px;color:var(--red)">NPC</small>' : '') + '</b>' + (c.title ? '<i>' + T.esc(c.title) + '</i>' : '') +
       '<span>' + (r ? r.name : '') + (T.cls(d, c.cls) ? ' ' + T.cls(d, c.cls).name : '') + ' · Level ' + (c.level || 1) + '</span></span>' +
       '<span class="hp">' + (c.hp == null ? dv.hp : c.hp) + ' / ' + dv.hp + ' hp</span></a></li>';
   }).join('');

@@ -476,7 +476,7 @@
     T.$('#lvDown').disabled = (c.level || 1) <= 1;
     T.$('#lvUp').disabled = (c.level || 1) >= D.leveling.maxLevel;
     var r = T.race(D, c.race), k = T.cls(D, c.cls);
-    T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, c.bgName].filter(Boolean).join(' · ');
+    T.$('#cline').textContent = [c.npc ? 'NPC' : '', (r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, c.bgName].filter(Boolean).join(' · ');
     drawWeapons();
   }
   function amount(sel) { var v = parseInt(T.$(sel).value, 10); return v > 0 ? v : 0; }
@@ -654,7 +654,7 @@
         if (!r) return;
         camp = r.camp;
         T.$('#campBox').hidden = false;
-        T.$('#campName').innerHTML = 'in <a href="/varandia/campaigns/?c=' + camp.id + '">' + T.esc(camp.name) + '</a>';
+        T.$('#campName').innerHTML = (c.npc ? 'NPC ' + (c.hidden ? '(hidden from players) ' : '') : '') + 'in <a href="/varandia/campaigns/?c=' + camp.id + '">' + T.esc(camp.name) + '</a>';
         T.$('#postRolls').hidden = !camp.hasWebhook;
         T.$('#postRolls').setAttribute('aria-pressed', String(!!c.postRolls));
       }, function () {});
