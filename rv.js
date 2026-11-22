@@ -307,7 +307,7 @@
     });
   }
   RV.emojify = emojify;
-  var PIX_PAGES = /^\/(rend-conomy|play|profile|bot|patch-notes)(\/|$)/;
+  var PIX_PAGES = /^\/(rend-conomy|play|profile|bot|patch-notes|wiki)(\/|$)/;
   function pixelEmoji() {
     if (!PIX_PAGES.test(location.pathname) || document.documentElement.hasAttribute('data-noemoji')) return;
     try { if ((JSON.parse(localStorage.getItem('rp_prefs') || '{}')).emoji === false) return; } catch (e) {}   // Settings on the profile page

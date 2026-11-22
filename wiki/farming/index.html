@@ -36,38 +36,38 @@
 </div>
 </div>
 
-<h2 id="crops">Crops</h2>
+<h2 id="crops"><img class="hi" src="/bot/emojis/rc_carrot.png" alt="">Crops</h2>
 <p><code>r!plant carrot</code> fills every empty plot (or <code>r!plant corn 2</code> for just plot 2); then <code>r!water</code> and <code>r!harvest</code>. Tomatoes keep producing: after the first harvest they regrow twice, in half the time. Pumpkins are worth 25% more in October.</p>
 <div data-table="crops"></div>
 <div class="note tip"><b>TIP</b><span>Crows can eat a crop (a Scarecrow keeps them off), and Storm events can flatten crops outside a Greenhouse. Rain waters everything for free.</span></div>
 
-<h2 id="grades">Quality grades</h2>
+<h2 id="grades"><img class="hi" src="/bot/emojis/rc_rarity_rare.png" alt="">Quality grades</h2>
 <p>Every crop is graded the moment it's harvested. Its grade sets the range its price is rolled from when you sell it: each one is rolled separately, so a basket of the same crop sells for a little more or less every time.</p>
 <div data-table="grades"></div>
 <p>Harvest a Prime crop for <strong>Quality Control</strong>, and a Prime crop that's also Golden or Rainbow for <strong>Cream of the Crop</strong>.</p>
 
-<h2 id="prices">Daily prices</h2>
+<h2 id="prices"><img class="hi" src="/bot/emojis/rc_polygon.png" alt="">Daily prices</h2>
 <p>On top of grades, every crop's price moves each day, between <span data-v="farming.priceSwing.0" data-f="pct">80%</span> and <span data-v="farming.priceSwing.1" data-f="pct">120%</span> of normal, the same for everyone. <code>r!farm prices</code> shows today's. A <strong>Warehouse</strong> on the city map lets you sell at the best price of the last 3 days (5 at level 2, 7 at level 3).</p>
 
-<h2 id="mutations">Mutations</h2>
+<h2 id="mutations"><img class="hi" src="/bot/emojis/rc_golden_carrot.png" alt="">Mutations</h2>
 <p>Now and then a crop comes out special, and worth far more:</p>
 <div data-table="mutations"></div>
 
-<h2 id="selling">Selling</h2>
+<h2 id="selling"><img class="hi" src="/bot/emojis/rc_harvest.png" alt="">Selling</h2>
 <ul>
 <li><strong>To Marquez:</strong> <code>r!sellcrops</code> sells your whole basket.</li>
 <li><strong>At the farmers' market:</strong> <code>r!sellcrops TICK</code> sells to a player company for 10% more, and the company earns a cut (not your own company).</li>
 <li><strong>By freight:</strong> with a Station on the city map, ship the basket for 15% over market. See <a href="/wiki/city/#freight">freight</a>.</li>
 </ul>
 
-<h2 id="plots">More plots and the Barn</h2>
+<h2 id="plots"><img class="hi" src="/bot/emojis/rc_newplot.png" alt="">More plots and the Barn</h2>
 <p>Buy plots one at a time with <code>r!buyplot</code>. Past nine, you need a <strong>Barn</strong> on the <a href="/wiki/city/">city map</a>, which unlocks six more. The farm always shows three rows: three plots across, or five with a Barn.</p>
 <div data-table="plots"></div>
 
-<h2 id="fertilizer">Fertilizer</h2>
+<h2 id="fertilizer"><img class="hi" src="/bot/emojis/rc_fertilizer.png" alt="">Fertilizer</h2>
 <p>Fertilizer makes a crop grow 50% faster and come out Prime more often. <code>r!fertilize</code> works it into every growing crop at once, as far as your Fertilizer goes, or <code>r!fertilize 3</code> for one plot. Buy it from Marquez or make it from fishing junk with <code>r!compost</code>.</p>
 
-<h2 id="farmhand">The farmhand</h2>
+<h2 id="farmhand"><img class="hi" src="/bot/emojis/rc_farmhand.png" alt="">The farmhand</h2>
 <p>Hire him with <code>r!farmhand hire</code> for <span data-v="farming.wage">⬡150</span> a day. While you're away he waters everything, harvests each crop the moment it's ready, and replants from his seed shed (the same crop as before, or what he has most of). He never buys seeds: stock his shed with <code>r!farmhand give carrot 20</code>.</p>
 <ul>
 <li>Give him Fertilizer too (<code>r!farmhand give fertilizer 10</code>) and he works one into every crop he plants.</li>
@@ -81,5 +81,6 @@
 <footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
 </div>
 <script src="/wiki/wiki.js"></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

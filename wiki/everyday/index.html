@@ -27,35 +27,35 @@
 <div class="layout">
 <nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#daily">The daily allowance</a><a href="#chat">Chat pay and drop-ins</a><a href="#savings">Savings</a><a href="#loans">Loans</a><a href="#gifts">Gifts and trades</a><a href="#inbox">Your inbox</a><a href="#profile">Profile and leaderboards</a><a href="#site">Playing from the site</a><hr><div class="lbl">See also</div><a href="/wiki/first-day/">Your first day</a><a href="/wiki/reserve/">The Polygon Reserve</a><a href="/wiki/glossary/">Glossary</a></nav>
 <article>
-<h2 id="daily">The daily allowance</h2>
+<h2 id="daily"><img class="hi" src="/bot/emojis/rc_daily.png" alt="">The daily allowance</h2>
 <p><code>r!daily</code> pays <span data-v="economy.daily">⬡250</span> once per day; the day turns over at midnight Eastern. Claim it every day to build a streak.</p>
 
-<h2 id="chat">Chat pay and drop-ins</h2>
+<h2 id="chat"><img class="hi" src="/bot/emojis/rc_megaphone.png" alt="">Chat pay and drop-ins</h2>
 <p>Talking in the server pays <span data-v="chatter.min">⬡5</span> to <span data-v="chatter.max">⬡15</span> a message, once a minute, up to <span data-v="chatter.perDay">⬡300</span> a day. Very short messages don't count. Now and then <strong>TODD drops in</strong> with a question and a pot of Polygons for whoever answers first. A Mansion party, the Stadium landmark and the Gossip Hour event all raise chat pay.</p>
 
-<h2 id="savings">Savings</h2>
+<h2 id="savings"><img class="hi" src="/bot/emojis/rc_savings.png" alt="">Savings</h2>
 <p>Lock Polygons away and get them back with interest: <code>r!savings deposit 1000 7</code>. Up to <span data-v="savings.maxAccounts" data-f="raw">3</span> accounts and <span data-v="savings.maxTotal">⬡50,000</span> in all, from <span data-v="savings.min">⬡100</span> each. A Bank Branch on the city map adds 25% per level to your interest.</p>
 <div data-table="savings"></div>
 
-<h2 id="loans">Loans</h2>
+<h2 id="loans"><img class="hi" src="/bot/emojis/rc_loan.png" alt="">Loans</h2>
 <ul>
 <li><strong>From TODD:</strong> <code>r!bailout</code> when you're nearly broke: <span data-v="loans.toddLend">⬡500</span> now, <span data-v="loans.toddOwe">⬡600</span> owed. No gambling until it's paid (<code>r!repay</code>).</li>
 <li><strong>From another player:</strong> <code>r!loan @player 1000 5</code> asks for ⬡1,000 at 5% a day (up to 25%); they accept or decline. Loans are due in a week. Overdue, and half of what you earn from work, dailies and dividends goes to the lender until it's paid. <code>r!loans</code> lists yours; a lender can <code>r!forgive</code>.</li>
 </ul>
 
-<h2 id="gifts">Gifts and trades</h2>
+<h2 id="gifts"><img class="hi" src="/bot/emojis/rc_gift.png" alt="">Gifts and trades</h2>
 <ul>
 <li><strong>Gifts:</strong> <code>r!gift @player 500</code> sends Polygons with a 5% fee, up to ⬡5,000 a day.</li>
 <li><strong>Trades:</strong> offer Polygons and/or an item for someone else's (<code>r!trade @player 500 for rod</code>). What you offer is held safely until they answer; offers expire in a day (you get it back), and you can have three open.</li>
 </ul>
 
-<h2 id="inbox">Your inbox</h2>
+<h2 id="inbox"><img class="hi" src="/bot/emojis/rc_bell.png" alt="">Your inbox</h2>
 <p><code>r!inbox</code> collects what happened while you were away: receipts, price alerts, bids on your buildings, ready crops, trade offers. On the site, the bell in the top bar shows new ones. <code>r!receipts on</code> also sends receipts by DM.</p>
 
-<h2 id="profile">Profile and leaderboards</h2>
+<h2 id="profile"><img class="hi" src="/bot/emojis/rc_title.png" alt="">Profile and leaderboards</h2>
 <p><code>r!profile</code> shows your net worth, achievements and pinned showcase (<code>r!showcase</code>). Customize its color, theme, banner and frame, or edit it on <a href="/profile/">your profile page</a> on the site. <code>r!leaderboard</code> ranks the server by net worth, Polygons or shifts.</p>
 
-<h2 id="site">Playing from the site</h2>
+<h2 id="site"><img class="hi" src="/bot/emojis/rc_connector.png" alt="">Playing from the site</h2>
 <p>Log in with Discord on <a href="/play/">the Play hub</a> to work, farm, build, trade and read your inbox from a browser, and open <strong>the Trading Floor</strong> Activity right inside Discord.</p>
 
 <div class="pager"><a href="/wiki/underground/">← The Underground</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/commands/">Commands →</a></div>
@@ -64,5 +64,6 @@
 <footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
 </div>
 <script src="/wiki/wiki.js"></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

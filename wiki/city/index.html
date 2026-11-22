@@ -39,14 +39,14 @@
 </div>
 <div class="note tip"><b>TIP</b><span>A good first building: a Shack next to someone's Park. The Park adds 15% to its rent. See the live map on <a href="/rend-conomy/map/">the city page</a>.</span></div>
 
-<h2 id="building">Building and upgrading</h2>
+<h2 id="building"><img class="hi" src="/bot/emojis/rc_construction.png" alt="">Building and upgrading</h2>
 <p>Pick an empty tile and a building: <code>r!property build C4 shack</code> (or just <code>r!build C4 shack</code>). You pay the building's price plus the land, and construction takes real time; no rent until it's done. Most buildings can be upgraded twice (<code>r!property upgrade C4</code>): rent goes ×1.6, then ×2.4, and the building is fixed up to 100% along the way.</p>
 
-<h2 id="buildings">The twelve buildings <span class="auto">FROM THE BOT</span></h2>
+<h2 id="buildings"><img class="hi" src="/bot/emojis/rc_property.png" alt="">The twelve buildings <span class="auto">FROM THE BOT</span></h2>
 <div data-table="buildings"></div>
 <p>A Lighthouse has to go on the edge of the map, and one Barn is all a farm needs.</p>
 
-<h2 id="neighbors">Neighbors</h2>
+<h2 id="neighbors"><img class="hi" src="/bot/emojis/rc_tile.png" alt="">Neighbors</h2>
 <figure class="fig">
 <div class="mini" role="img" aria-label="A Shack in the middle of a 3 by 3 block, with a Park to its right, a Factory below it and a Station in the top-right corner">
 <div></div><div></div><div><img src="/bot/emojis/rc_prop_station.png" alt=""></div>
@@ -64,11 +64,11 @@
 <li><strong>Police Station next door:</strong> no squatters, and the Connector won't set up within a tile of it.</li>
 </ul>
 
-<h2 id="money">Rent, upkeep and tax</h2>
+<h2 id="money"><img class="hi" src="/bot/emojis/rc_polygon.png" alt="">Rent, upkeep and tax</h2>
 <p>Each building pays its rent once a day, scaled by its level, its condition and its neighbors, and charges its upkeep plus property tax on its value. Buildings lose about 2% condition a day (more in storms, next to a Factory, or when you can't pay); repair with <code>r!property repair all</code>. A Lighthouse halves storm damage to all your buildings.</p>
 <div data-table="tax"></div>
 
-<h2 id="perks">What each building does</h2>
+<h2 id="perks"><img class="hi" src="/bot/emojis/rc_promoted.png" alt="">What each building does</h2>
 <ul>
 <li><strong>Ballroom:</strong> a Mansion owner can throw a party once a day (<code>r!property party</code>): chat pay doubles for everyone in the server for an hour.</li>
 <li><strong>Storefront:</strong> pick a player company for your Corner Shop (<code>r!property storefront C4 TICK</code>); it earns 10% of the shop's rent, paid by the Reserve. Corner Shops also launder hot loot.</li>
@@ -78,14 +78,14 @@
 <li><strong>Cold Storage:</strong> a Warehouse sells your crops at the best price of the last few days.</li>
 </ul>
 
-<h2 id="freight">Freight and train robberies</h2>
+<h2 id="freight"><img class="hi" src="/bot/emojis/rc_freight.png" alt="">Freight and train robberies</h2>
 <p>Own a finished Station and you can ship your whole crop basket and your Goods by train, once every <span data-v="city.freight.gapHours" data-f="raw">6</span> hours: crops at <span data-v="city.freight.bonus" data-f="pct">15%</span> over market, Goods at <span data-v="city.freight.goods">⬡30</span> a crate. The train takes half an hour. While it's on the rails, any crew can rob it with <code>r!heist train</code> and take up to half of what it carries.</p>
 
-<h2 id="landmarks">Landmarks</h2>
+<h2 id="landmarks"><img class="hi" src="/bot/emojis/rc_landmark_statue.png" alt="">Landmarks</h2>
 <p><strong>Build It and They Will Come:</strong> the whole server funds landmarks together, one after another, with <code>r!landmark donate &lt;amount&gt;</code>. Donations go into the Reserve, and every finished landmark gives everyone here a perk. The top donor on each one gets <strong>Foreman</strong>.</p>
 <div data-table="landmarks"></div>
 
-<h2 id="trouble">Squatters, bids and condemnation</h2>
+<h2 id="trouble"><img class="hi" src="/bot/emojis/rc_squatter.png" alt="">Squatters, bids and condemnation</h2>
 <ul>
 <li><strong>Squatters:</strong> below 40%, squatters can move in. No rent until you evict them (<code>r!property evict C4</code>, three days of rent) or repair to 75%.</li>
 <li><strong>Condemned:</strong> at 0% the bank takes the place (paying you a tenth of its value) and auctions it for a day. If nobody bids, it's torn down.</li>
@@ -99,5 +99,6 @@
 <footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
 </div>
 <script src="/wiki/wiki.js"></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

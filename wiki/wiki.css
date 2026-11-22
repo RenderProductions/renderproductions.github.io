@@ -20,6 +20,8 @@ a:hover { color: #ffd27a; text-decoration: underline; text-underline-offset: 3px
 .wrap { max-width: 1120px; margin: 0 auto; }
 .wrap.narrow { max-width: 980px; }
 img.px { image-rendering: pixelated; }
+h2 img.hi { width: 1.15em; height: 1.15em; image-rendering: pixelated; margin-right: 0.25em; flex: none; }
+td .uni { display: inline-block; width: 26px; text-align: center; font-size: 18px; }
 code, kbd { font-family: var(--mono); font-size: 0.88em; color: var(--code); background: var(--code-bg); padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 h1, h2, h3 { color: var(--head); line-height: 1.2; }
 p { margin: 0 0 1em; }
@@ -92,7 +94,8 @@ article { flex: 999 1 560px; min-width: 0; }
 .ahead img { width: 72px; height: 72px; image-rendering: pixelated; }
 .ahead h1 { margin: 0; font-size: clamp(32px, 5vw, 44px); color: var(--accent); }
 .ahead .meta { font-size: 13px; color: var(--grey); }
-article h2 { font-size: 22px; font-weight: 600; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px; }
+article h2 { font-size: 22px; font-weight: 600; margin: 34px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+article h2 > span { margin-left: auto; }
 article h3 { font-size: 17px; font-weight: 600; margin: 22px 0 8px; scroll-margin-top: 16px; }
 article ul, article ol { padding-left: 22px; margin: 0 0 1em; }
 article li { margin: 0 0 6px; }

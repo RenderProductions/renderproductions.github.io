@@ -43,6 +43,45 @@ def topbar(current):
   </nav>
 </header>'''
 
+# A pixel emoji (the bot's own art, from bot/emojis) in front of each section heading: 'page#heading': 'name'.
+HEAD_ICONS = {
+    'achievements#rarity': 'rarity_legendary', 'achievements#all': 'achievement',
+    'characters#marquez': 'shop', 'characters#todd': 'todd', 'characters#connector': 'connector',
+    'city#building': 'construction', 'city#buildings': 'property', 'city#neighbors': 'tile', 'city#money': 'polygon', 'city#perks': 'promoted',
+    'city#freight': 'freight', 'city#landmarks': 'landmark_statue', 'city#trouble': 'squatter',
+    'commands#all': 'reference', 'emojis#all': 'rainbow_carrot',
+    'companies#founding': 'company', 'companies#levels': 'up', 'companies#public': 'stonks', 'companies#upkeep': 'tax', 'companies#takeovers': 'raid',
+    'events#world': 'event', 'events#december': 'holiday',
+    'everyday#daily': 'daily', 'everyday#chat': 'megaphone', 'everyday#savings': 'savings', 'everyday#loans': 'loan', 'everyday#gifts': 'gift',
+    'everyday#inbox': 'bell', 'everyday#profile': 'title', 'everyday#site': 'connector',
+    'farming#crops': 'carrot', 'farming#grades': 'rarity_rare', 'farming#prices': 'polygon', 'farming#mutations': 'golden_carrot', 'farming#selling': 'harvest',
+    'farming#plots': 'newplot', 'farming#fertilizer': 'fertilizer', 'farming#farmhand': 'farmhand',
+    'first-day#join': 'start', 'first-day#first-ten': 'daily', 'first-day#polygons': 'polygon', 'first-day#broke': 'down', 'first-day#next': 'resume',
+    'fishing#bait': 'lure', 'fishing#catches': 'fish_bass', 'fishing#perks': 'rod',
+    'glossary#terms': 'reference',
+    'heists#targets': 'heist', 'heists#roles': 'password', 'heists#trains': 'freight', 'heists#loot': 'hot_gem',
+    'market#hours': 'time', 'market#trading': 'stonks', 'market#news': 'megaphone', 'market#dividends': 'polygon', 'market#orders': 'receipt',
+    'market#brokers': 'broker', 'market#shorts': 'down',
+    'odds#casino': 'slots', 'odds#vip': 'vip', 'odds#heists': 'heist', 'odds#fishing': 'fishing', 'odds#crops': 'farm',
+    'paths#worker': 'work', 'paths#farmer': 'farm', 'paths#angler': 'fishing', 'paths#trader': 'stonks', 'paths#landlord': 'property',
+    'paths#gambler': 'slots', 'paths#crook': 'underground',
+    'rend-sino#games': 'slots', 'rend-sino#jackpot': 'jackpot', 'rend-sino#vip': 'vip', 'rend-sino#table': 'table', 'rend-sino#happy-hour': 'chip', 'rend-sino#rules': 'reference',
+    'reserve#shrink': 'reserve', 'reserve#helping': 'up', 'reserve#hurting': 'down',
+    'underground#where': 'underground', 'underground#passwords': 'password', 'underground#contraband': 'smoke_bomb', 'underground#loot': 'hot_gem',
+    'underground#smuggling': 'smuggle', 'underground#snitching': 'snitch', 'underground#heat': 'heat',
+    'work#jobs': 'work', 'work#shifts': 'time', 'work#reviews': 'promoted', 'work#gigs': 'gig', 'work#items': 'coffee',
+}
+
+def head_icons(p):
+    def add(m):
+        name = HEAD_ICONS.get(f"{p['slug']}#{m.group(1)}")
+        if not name:
+            return m.group(0)
+        if not os.path.exists(os.path.join(ROOT, 'bot', 'emojis', f'rc_{name}.png')):
+            raise SystemExit(f"{p['slug']}#{m.group(1)}: no emoji rc_{name}.png")
+        return f'{m.group(0)}<img class="hi" src="/bot/emojis/rc_{name}.png" alt="">'
+    return re.sub(r'<h2 id="([^"]+)"[^>]*>', add, p['body'])
+
 FOOT = '''<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>'''
 
 def head(p):
@@ -80,13 +119,14 @@ def article(p, pages):
 <div class="layout">
 <nav class="toc" aria-label="On this page"><div class="lbl">On this page</div>{toc}{'<hr><div class="lbl">See also</div>' + also if also else ''}</nav>
 <article>
-{p['body']}
+{head_icons(p)}
 {pager}
 </article>
 </div>
 {FOOT}
 </div>
 <script src="/wiki/wiki.js"></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>
 '''
@@ -97,6 +137,7 @@ def home(p):
 {FOOT}
 </div>
 <script src="/wiki/wiki.js"></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>
 '''

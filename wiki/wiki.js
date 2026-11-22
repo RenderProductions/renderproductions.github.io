@@ -91,7 +91,15 @@
     };
     var row = function (cells) { return '<tr>' + cells.join('') + '</tr>'; };
     var td = function (v, cls) { return '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + v + '</td>'; };
-    var name = function (icon, fb, label) { return td('<span class="ic">' + (icon ? img(icon, fb) : '') + esc(label) + '</span>', 'nm'); };
+    // The site's own pixel emojis wherever one exists for the thing (the same art the bot uses in Discord), and
+    // the plain emoji otherwise. `icon` can be a name or a list of names to try in order.
+    var have = {}; (D.emojis || []).forEach(function (n) { have[n] = true; });
+    var ico = function (icon, fb) {
+      var list = [].concat(icon || []).filter(function (n) { return have[n]; });
+      return list.length ? img(list[0], fb) : fb ? '<span class="uni" aria-hidden="true">' + esc(fb) + '</span>' : '';
+    };
+    var slug = function (s) { return String(s).toLowerCase().replace(/ set$/, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); };
+    var name = function (icon, fb, label, extra) { return td('<span class="ic">' + ico(icon, fb) + esc(label) + (extra || '') + '</span>', 'nm'); };
 
     var T = {
       buildings: function () {
@@ -110,7 +118,7 @@
         return table([['Crop'], ['Seed', 1], ['Grows in', 1], ['Harvests', 1], ['Worth', 1]], D.farming.crops.map(function (c) { return row([name(c.id, c.emoji, c.name), td(poly(c.seed), 'n'), td(dur(c.growHours), 'n'), td(c.harvests, 'n'), td(poly(c.value), 'n')]); }));
       },
       mutations: function () {
-        return table([['Mutation'], ['Chance', 1], ['Worth', 1]], D.farming.mutations.map(function (m) { return row([td(esc(m.emoji + ' ' + m.label) + (m.id === 'square' ? ' <span class="dim">(pumpkins only)</span>' : ''), 'nm'), td(pct(m.chance), 'n'), td(m.mult + '×', 'n')]); }));
+        return table([['Mutation'], ['Chance', 1], ['Worth', 1]], D.farming.mutations.map(function (m) { return row([name({ golden: 'golden_carrot', rainbow: 'rainbow_carrot', square: 'squarepumpkin' }[m.id], m.emoji, m.label, m.id === 'square' ? ' <span class="dim">(pumpkins only)</span>' : ''), td(pct(m.chance), 'n'), td(m.mult + '×', 'n')]); }));
       },
       grades: function () {
         return table([['Grade'], ['Chance', 1], ['Fertilized', 1], ['Sells for', 1]], D.farming.grades.map(function (g) { return row([td(esc(g.label), 'nm'), td(pct(g.chance), 'n'), td(pct(g.fertChance), 'n'), td(pct(g.band[0]) + '–' + pct(g.band[1]) + ' of its value', 'n')]); }));
@@ -134,42 +142,42 @@
         return table([['Company'], ['The job'], ['Ranks']], D.work.companies.map(function (c) { return row([td(esc(c.name) + ' <span class="dim">' + c.ticker + '</span>', 'nm'), td(esc(c.role), 'dim'), td(c.ranks.map(function (r, i) { return esc(r) + ' <span class="dim">' + D.work.rankPay[i] + '×</span>'; }).join(' → '))]); }));
       },
       games: function () {
-        return table([['Game'], ['Max bet', 1], ['Rules and return']], D.casino.games.map(function (g) { return row([td(esc(g.name), 'nm'), td(poly(g.maxBet), 'n'), td(md(g.odds))]); }));
+        return table([['Game'], ['Max bet', 1], ['Rules and return']], D.casino.games.map(function (g) { return row([name(g.id, '', g.name.replace(/^[^A-Za-z]+/, '')), td(poly(g.maxBet), 'n'), td(md(g.odds))]); }));
       },
       vip: function () {
-        return table([['Level'], ['Total bet', 1], ['Daily free spin', 1]], D.casino.vip.map(function (v) { return row([td(esc(v.emoji + ' ' + v.name), 'nm'), td(poly(v.at), 'n'), td(poly(v.spin), 'n')]); }));
+        return table([['Level'], ['Total bet', 1], ['Daily free spin', 1]], D.casino.vip.map(function (v) { return row([name(['vip_' + slug(v.name), 'vip'], v.emoji, v.name), td(poly(v.at), 'n'), td(poly(v.spin), 'n')]); }));
       },
       targets: function () {
-        return table([['Target'], ['Odds', 1], ['Stake each', 1], ['Haul', 1], ['Needs']], D.heists.targets.map(function (t) { return row([td(esc(t.emoji + ' ' + t.label.replace(/^a /, '').replace(/^./, function (c) { return c.toUpperCase(); })), 'nm'), td(pct(t.odds), 'n'), td(poly(t.stake), 'n'), td(poly(t.haul[0]) + '–' + poly(t.haul[1]).slice(1), 'n'), td(t.needs ? 'a ' + esc(t.needs.replace(/^./, function (c) { return c.toUpperCase(); })) : '—', 'dim')]); }));
+        return table([['Target'], ['Odds', 1], ['Stake each', 1], ['Haul', 1], ['Needs']], D.heists.targets.map(function (t) { return row([name({ vault: ['company'], stash: ['todd'], reserve: ['reserve'], train: ['freight'] }[t.id], t.emoji, t.label.replace(/^a /, '').replace(/^./, function (c) { return c.toUpperCase(); })), td(pct(t.odds), 'n'), td(poly(t.stake), 'n'), td(poly(t.haul[0]) + '–' + poly(t.haul[1]).slice(1), 'n'), td(t.needs ? 'a ' + esc(t.needs.replace(/^./, function (c) { return c.toUpperCase(); })) : '—', 'dim')]); }));
       },
       roles: function () {
         var what = { Hacker: 'needed for the Reserve', Driver: 'if it goes wrong, a chance to get away with no fine', Lookout: '', Muscle: 'a bigger haul' };
-        return table([['Role'], ['Odds', 1], ['Also']], D.heists.roles.map(function (r) { return row([td(esc(r.emoji + ' ' + r.label), 'nm'), td('+' + pct(r.odds), 'n'), td(esc((what[r.label] || '') + (r.haul ? ' (+' + pct(r.haul) + ')' : '')) || '—', 'dim')]); }));
+        return table([['Role'], ['Odds', 1], ['Also']], D.heists.roles.map(function (r) { return row([name({ Hacker: 'password', Driver: 'fuel', Lookout: 'heat_off', Muscle: 'heist' }[r.label], r.emoji, r.label), td('+' + pct(r.odds), 'n'), td(esc((what[r.label] || '') + (r.haul ? ' (+' + pct(r.haul) + ')' : '')) || '—', 'dim')]); }));
       },
       contraband: function () {
-        return table([['Contraband'], ['Price', 1], ['Heat', 1], ['What it does']], D.underground.contraband.map(function (c) { return row([td(esc(c.name), 'nm'), td(poly(c.price), 'n'), td('+' + c.heat, 'n'), td(esc(c.desc), 'dim')]); }));
+        return table([['Contraband'], ['Price', 1], ['Heat', 1], ['What it does']], D.underground.contraband.map(function (c) { return row([name(slug(c.name), '', c.name), td(poly(c.price), 'n'), td('+' + c.heat, 'n'), td(esc(c.desc), 'dim')]); }));
       },
       loot: function () {
-        return table([['Hot loot'], ['Worth', 1]], D.underground.loot.map(function (l) { return row([td(esc(l.emoji + ' ' + l.name), 'nm'), td(l.value[0] === l.value[1] ? poly(l.value[0]) : poly(l.value[0]) + '–' + poly(l.value[1]).slice(1), 'n')]); }));
+        return table([['Hot loot'], ['Worth', 1]], D.underground.loot.map(function (l) { return row([name(l.emoji, '', l.name.replace(/^a /, '').replace(/^./, function (c) { return c.toUpperCase(); })), td(l.value[0] === l.value[1] ? poly(l.value[0]) : poly(l.value[0]) + '–' + poly(l.value[1]).slice(1), 'n')]); }));
       },
       events: function () {
-        return table([['Event'], ['For an hour']], D.events.map(function (e) { return row([td(esc(e.emoji + ' ' + e.name), 'nm'), td(md(e.desc))]); }));
+        return table([['Event'], ['For an hour']], D.events.map(function (e) { return row([name({ snow_day: 'snowday', rain: 'rain', storm: 'storm', fish_frenzy: 'fishing', police_strike: 'heat_off', bear_rumors: 'down', chatty: 'megaphone', spotlight: 'stonks', fire_sale: 'sold', happy_hour: 'jackpot', labor_shortage: 'work' }[e.id], e.emoji, e.name), td(md(e.desc))]); }));
       },
       levels: function () {
         return table([['Level'], ['Upgrade cost', 1], ['Upkeep / day', 1], ['Pay', 1]], D.companies.levels.map(function (l, i) { return row([td((i + 1) + '. ' + esc(l.name), 'nm'), td(poly(l.cost), 'n'), td(poly(l.upkeep), 'n'), td(l.payMult + '×', 'n')]); }));
       },
       brokers: function () {
-        return table([['Broker'], ['Salary / day', 1], ['Cut of profits', 1], ['Style']], D.market.brokers.traits.map(function (t) { return row([td(esc(t.emoji + ' ' + t.label), 'nm'), td(poly(t.salary), 'n'), td(pct(t.cut), 'n'), td(esc(t.desc), 'dim')]); }));
+        return table([['Broker'], ['Salary / day', 1], ['Cut of profits', 1], ['Style']], D.market.brokers.traits.map(function (t) { return row([name('broker_' + slug(t.label), t.emoji, t.label), td(poly(t.salary), 'n'), td(pct(t.cut), 'n'), td(esc(t.desc), 'dim')]); }));
       },
       savings: function () {
         var pl = D.savings.plans;
         return table([['Locked for'], ['Interest at the end', 1]], Object.keys(pl).map(function (d) { return row([td(d + ' days'), td(pct(pl[d] / 10000), 'n')]); }));
       },
       rarity: function () {
-        return table([['Rarity'], ['Pays', 1], ['How many', 1]], Object.keys(D.rarity).map(function (k) { var r = D.rarity[k]; return row([td(esc(r.emoji + ' ' + r.label), 'nm'), td(poly(r.pay), 'n'), td(D.achievements.filter(function (a) { return a.rarity === k; }).length, 'n')]); }));
+        return table([['Rarity'], ['Pays', 1], ['How many', 1]], Object.keys(D.rarity).map(function (k) { var r = D.rarity[k]; return row([name('rarity_' + k, r.emoji, r.label), td(poly(r.pay), 'n'), td(D.achievements.filter(function (a) { return a.rarity === k; }).length, 'n')]); }));
       },
       items: function (el) { filtered(el, D.items.concat(D.collectibles.map(function (c) { c.collectible = true; return c; })), function (i) { return i.shelf; }, ['Item'], function (i) { return [name(i.id, i.emoji, i.name), td(i.price == null ? 'rolled each restock' : poly(i.price), 'n'), td(i.collectible ? 'limited' : i.stock, 'n'), td(esc(i.shelf), 'dim'), td(esc(i.desc) + (i.passive ? ' <span class="dim">(works on its own)</span>' : ''))]; }, [['Item'], ['Price', 1], ['Stock', 1], ['Shelf'], ['What it does']], function (i) { return i.name + ' ' + i.desc + ' ' + i.id; }); },
-      achievements: function (el) { filtered(el, D.achievements, function (a) { return a.category; }, null, function (a) { var r = D.rarity[a.rarity]; return [td(r.emoji, ''), td(esc(a.name), 'nm'), td(esc(a.desc)), td(esc(a.category), 'dim'), td(poly(r.pay), 'n')]; }, [['<span class="sr">Rarity</span>'], ['Achievement'], ['How'], ['Section'], ['Pays', 1]], function (a) { return a.name + ' ' + a.desc + ' ' + a.category; }); },
+      achievements: function (el) { filtered(el, D.achievements, function (a) { return a.category; }, null, function (a) { var r = D.rarity[a.rarity]; return [td(ico('rarity_' + a.rarity, r.emoji), ''), td(esc(a.name), 'nm'), td(esc(a.desc)), td(esc(a.category), 'dim'), td(poly(r.pay), 'n')]; }, [['<span class="sr">Rarity</span>'], ['Achievement'], ['How'], ['Section'], ['Pays', 1]], function (a) { return a.name + ' ' + a.desc + ' ' + a.category; }); },
       commands: function (el) {
         filtered(el, D.commands, function (c) { return (D.sections[c.section] || {}).label || c.section; }, null, function (c) {
           var opts = c.options.map(function (o) { return o.required ? '&lt;' + esc(o.name) + '&gt;' : '[' + esc(o.name) + ']'; }).join(' ');
