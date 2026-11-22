@@ -268,7 +268,7 @@
   Tome.rollExpr = function (expr) {
     var src = String(expr || '').toLowerCase().replace(/\s+/g, '');
     if (!src || !/^[+-]?(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(src)) return null;
-    var total = 0, parts = [], dice = 0, mod = 0, single = null, re = /([+-]?)(?:(\d*)d(\d+)|(\d+))/g, m;
+    var total = 0, parts = [], groups = [], dice = 0, mod = 0, single = null, re = /([+-]?)(?:(\d*)d(\d+)|(\d+))/g, m;
     while ((m = re.exec(src))) {
       var sign = m[1] === '-' ? -1 : 1;
       if (m[3]) {
@@ -278,11 +278,14 @@
         var sum = vals.reduce(function (a, b) { return a + b; }, 0);
         total += sign * sum; dice += n;
         parts.push((sign < 0 ? '− ' : parts.length ? '+ ' : '') + n + 'd' + sides + ' (' + vals.join(', ') + ')');
+        groups.push((sign < 0 ? '− ' : groups.length ? '+ ' : '') + (n > 1 ? n : '') + 'd' + sides + ' rolled ' + vals.join(', '));
         if (n === 1) single = { die: vals[0], sides: sides };
       } else { total += sign * +m[4]; mod += sign * +m[4]; parts.push((sign < 0 ? '− ' : '+ ') + m[4]); }
     }
     var one = dice === 1 && single ? single : null;
-    return { total: total, text: parts.join(' '), die: one ? one.die : null, sides: one ? one.sides : null, bonus: mod };
+    // the same shape as a player's roll: "d20 rolled 12 + 3"
+    var said = groups.join(' ') + (mod ? (mod < 0 ? ' − ' + Math.abs(mod) : ' + ' + mod) : '');
+    return { total: total, text: parts.join(' '), said: said || String(total), die: one ? one.die : null, sides: one ? one.sides : null, bonus: mod };
   };
   /** A character's portrait, from this browser or from the account. '' if none. */
   Tome.portrait = function (c) { return (c && (c.portrait || (c.pic ? RELAY + '/api/v/pic/' + encodeURIComponent(c.id) + '?v=' + c.pic : ''))) || ''; };

@@ -373,9 +373,9 @@ const vId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => 
 const vCharOut = (r) => ({ id: r.id, owner: r.owner, ownerName: r.owner_name, name: r.name, campaign: r.campaign, updated: r.updated, data: JSON.parse(r.data) });
 const vCampOut = (c, isGm) => ({ id: c.id, name: c.name, intro: c.intro || '', gm: c.gm, gmName: c.gm_name, isGm, code: isGm ? c.code : undefined, hasWebhook: !!c.webhook, webhook: isGm ? (c.webhook || '') : undefined, created: c.created });
 // ---- how a roll looks in Discord
-const vCol = { gm: 0x4a2c2a, stat: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
+const vCol = { gm: 0x8b6b4a, stat: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
   fire: 0xe8642c, water: 0x3b8fd9, ice: 0x9fdcf5, earth: 0x9c7442, air: 0xb4c6d4, lightning: 0xf2c92b, nature: 0x4caf50, poison: 0x8bc34a, light: 0xf7e8a6, dark: 0x5b3f9e, evil: 0x8b0a1a };
-const vIcon = { gm: '🎭', stat: '🎲', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
+const vIcon = { gm: '🎲', stat: '🎲', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
   fire: '🔥', water: '🌊', ice: '❄️', earth: '🪨', air: '🌪️', lightning: '⚡', nature: '🌿', poison: '☠️', light: '☀️', dark: '🌑', evil: '🩸', chaotic: '🌀' };
 const vClean = (v, n) => String(v == null ? '' : v).replace(/[@`*_~|#<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 const vNum = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : Math.round(+v));
