@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farming | Rend-Conomy Wiki</title>
+<meta name="description" content="Seeds, planting, watering and harvesting; crop grades and daily prices; mutations; more plots and the Barn; Fertilizer; and the farmhand.">
+<meta property="og:title" content="Farming">
+<meta property="og:description" content="Seeds, planting, watering and harvesting; crop grades and daily prices; mutations; more plots and the Barn; Fertilizer; and the farmhand.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/farming/">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/bot/emojis/rc_farm.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Farming</div>
+<header class="ahead"><img src="/bot/emojis/rc_farm.png" alt=""><div><h1>Farming</h1><div class="meta"><code>r!farm</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#crops">Crops</a><a href="#grades">Quality grades</a><a href="#prices">Daily prices</a><a href="#mutations">Mutations</a><a href="#selling">Selling</a><a href="#plots">More plots and the Barn</a><a href="#fertilizer">Fertilizer</a><a href="#farmhand">The farmhand</a><hr><div class="lbl">See also</div><a href="/wiki/city/">The City</a><a href="/wiki/items/">Items</a><a href="/wiki/events/">Events</a></nav>
+<article>
+<div class="lede">
+<p>Every server gives you a small farm. Buy seeds from Marquez, plant them, water them once per stage, and harvest when they're ready. Crops grow in real time, even while you're away. Sell your basket to Marquez, at the farmers' market, or by <a href="/wiki/city/#freight">freight</a>.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Plots</span><span><span data-v="farming.startPlots" data-f="raw">3</span> to start, up to 15</span></div>
+<div><span>Wilts after</span><span>12 thirsty hours</span></div>
+<div><span>Farmhand</span><span><span data-v="farming.wage">⬡150</span> a day</span></div>
+</div>
+</div>
+
+<h2 id="crops">Crops</h2>
+<p><code>r!plant carrot</code> fills every empty plot (or <code>r!plant corn 2</code> for just plot 2); then <code>r!water</code> and <code>r!harvest</code>. Tomatoes keep producing: after the first harvest they regrow twice, in half the time. Pumpkins are worth 25% more in October.</p>
+<div data-table="crops"></div>
+<div class="note tip"><b>TIP</b><span>Crows can eat a crop (a Scarecrow keeps them off), and Storm events can flatten crops outside a Greenhouse. Rain waters everything for free.</span></div>
+
+<h2 id="grades">Quality grades</h2>
+<p>Every crop is graded the moment it's harvested. Its grade sets the range its price is rolled from when you sell it: each one is rolled separately, so a basket of the same crop sells for a little more or less every time.</p>
+<div data-table="grades"></div>
+<p>Harvest a Prime crop for <strong>Quality Control</strong>, and a Prime crop that's also Golden or Rainbow for <strong>Cream of the Crop</strong>.</p>
+
+<h2 id="prices">Daily prices</h2>
+<p>On top of grades, every crop's price moves each day, between <span data-v="farming.priceSwing.0" data-f="pct">80%</span> and <span data-v="farming.priceSwing.1" data-f="pct">120%</span> of normal, the same for everyone. <code>r!farm prices</code> shows today's. A <strong>Warehouse</strong> on the city map lets you sell at the best price of the last 3 days (5 at level 2, 7 at level 3).</p>
+
+<h2 id="mutations">Mutations</h2>
+<p>Now and then a crop comes out special, and worth far more:</p>
+<div data-table="mutations"></div>
+
+<h2 id="selling">Selling</h2>
+<ul>
+<li><strong>To Marquez:</strong> <code>r!sellcrops</code> sells your whole basket.</li>
+<li><strong>At the farmers' market:</strong> <code>r!sellcrops TICK</code> sells to a player company for 10% more, and the company earns a cut (not your own company).</li>
+<li><strong>By freight:</strong> with a Station on the city map, ship the basket for 15% over market. See <a href="/wiki/city/#freight">freight</a>.</li>
+</ul>
+
+<h2 id="plots">More plots and the Barn</h2>
+<p>Buy plots one at a time with <code>r!buyplot</code>. Past nine, you need a <strong>Barn</strong> on the <a href="/wiki/city/">city map</a>, which unlocks six more. The farm always shows three rows: three plots across, or five with a Barn.</p>
+<div data-table="plots"></div>
+
+<h2 id="fertilizer">Fertilizer</h2>
+<p>Fertilizer makes a crop grow 50% faster and come out Prime more often. <code>r!fertilize</code> works it into every growing crop at once, as far as your Fertilizer goes, or <code>r!fertilize 3</code> for one plot. Buy it from Marquez or make it from fishing junk with <code>r!compost</code>.</p>
+
+<h2 id="farmhand">The farmhand</h2>
+<p>Hire him with <code>r!farmhand hire</code> for <span data-v="farming.wage">⬡150</span> a day. While you're away he waters everything, harvests each crop the moment it's ready, and replants from his seed shed (the same crop as before, or what he has most of). He never buys seeds: stock his shed with <code>r!farmhand give carrot 20</code>.</p>
+<ul>
+<li>Give him Fertilizer too (<code>r!farmhand give fertilizer 10</code>) and he works one into every crop he plants.</li>
+<li>When you open your farm, he tells you what he did while you were gone. He DMs you when he runs out of seeds (turn that off with <code>r!farmhand dms off</code>).</li>
+<li>If you can't pay him, he quits and leaves the shed with you. He doesn't sell your crops; that's still your call.</li>
+</ul>
+
+<div class="pager"><a href="/wiki/fishing/">← Fishing</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/city/">The City →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+</body>
+</html>

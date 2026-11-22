@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The City | Rend-Conomy Wiki</title>
+<meta name="description" content="Building on your server&#x27;s 8×8 map: the twelve buildings, levels, neighbors, tax, freight and train robberies, landmarks, squatters, bids and condemnation.">
+<meta property="og:title" content="The City">
+<meta property="og:description" content="Building on your server&#x27;s 8×8 map: the twelve buildings, levels, neighbors, tax, freight and train robberies, landmarks, squatters, bids and condemnation.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/city/">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/bot/emojis/rc_property.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / The City</div>
+<header class="ahead"><img src="/bot/emojis/rc_property.png" alt=""><div><h1>The City</h1><div class="meta">Added in Oh My God, 2 in 1! · <code>r!property</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#building">Building and upgrading</a><a href="#buildings">The twelve buildings</a><a href="#neighbors">Neighbors</a><a href="#money">Rent, upkeep and tax</a><a href="#perks">What each building does</a><a href="#freight">Freight and train robberies</a><a href="#landmarks">Landmarks</a><a href="#trouble">Squatters, bids and condemnation</a><hr><div class="lbl">See also</div><a href="/wiki/farming/">Farming</a><a href="/wiki/underground/">The Underground</a><a href="/wiki/heists/">Heists</a></nav>
+<article>
+<div class="lede">
+<p>Every server has one map: an 8×8 grid of open land, A1 to H8. Anyone can claim a tile and build on it. Buildings pay rent every day, cost upkeep, wear down, and change the tiles around them. Nobody is capped, but property tax climbs with every building you own, rivals can bid to buy you out, and a place you neglect gets squatters before it falls apart.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Map</span><span>8×8, per server</span></div>
+<div><span>Land</span><span><span data-v="city.land">⬡1,000</span> a tile</span></div>
+<div><span>Cheapest building</span><span>Shack, ⬡2,500</span></div>
+<div><span>Levels</span><span>up to 3</span></div>
+<div><span>Tax-free</span><span>1 to 3 buildings</span></div>
+</div>
+</div>
+<div class="note tip"><b>TIP</b><span>A good first building: a Shack next to someone's Park. The Park adds 15% to its rent. See the live map on <a href="/rend-conomy/map/">the city page</a>.</span></div>
+
+<h2 id="building">Building and upgrading</h2>
+<p>Pick an empty tile and a building: <code>r!property build C4 shack</code> (or just <code>r!build C4 shack</code>). You pay the building's price plus the land, and construction takes real time; no rent until it's done. Most buildings can be upgraded twice (<code>r!property upgrade C4</code>): rent goes ×1.6, then ×2.4, and the building is fixed up to 100% along the way.</p>
+
+<h2 id="buildings">The twelve buildings <span class="auto">FROM THE BOT</span></h2>
+<div data-table="buildings"></div>
+<p>A Lighthouse has to go on the edge of the map, and one Barn is all a farm needs.</p>
+
+<h2 id="neighbors">Neighbors</h2>
+<figure class="fig">
+<div class="mini" role="img" aria-label="A Shack in the middle of a 3 by 3 block, with a Park to its right, a Factory below it and a Station in the top-right corner">
+<div></div><div></div><div><img src="/bot/emojis/rc_prop_station.png" alt=""></div>
+<div></div><div class="me"><img src="/bot/emojis/rc_prop_shack.png" alt=""></div><div><img src="/bot/emojis/rc_prop_park.png" alt=""></div>
+<div></div><div><img src="/bot/emojis/rc_prop_factory.png" alt=""></div><div></div>
+</div>
+<figcaption>This Shack earns 100% + 15% (Park) − 15% (Factory) + 10% (Station) = 110% rent.</figcaption>
+</figure>
+<p>"Next door" means the eight tiles around a building, diagonals included.</p>
+<ul>
+<li><strong>Park next door:</strong> +15% rent (up to two Parks).</li>
+<li><strong>Factory next door:</strong> −15% rent and faster wear. Stations, Factories and Warehouses don't mind the smoke.</li>
+<li><strong>Station within two tiles:</strong> +10% rent.</li>
+<li><strong>Corner Shop:</strong> +5% for each home beside it (Shacks, Apartments, Mansions), up to four.</li>
+<li><strong>Police Station next door:</strong> no squatters, and the Connector won't set up within a tile of it.</li>
+</ul>
+
+<h2 id="money">Rent, upkeep and tax</h2>
+<p>Each building pays its rent once a day, scaled by its level, its condition and its neighbors, and charges its upkeep plus property tax on its value. Buildings lose about 2% condition a day (more in storms, next to a Factory, or when you can't pay); repair with <code>r!property repair all</code>. A Lighthouse halves storm damage to all your buildings.</p>
+<div data-table="tax"></div>
+
+<h2 id="perks">What each building does</h2>
+<ul>
+<li><strong>Ballroom:</strong> a Mansion owner can throw a party once a day (<code>r!property party</code>): chat pay doubles for everyone in the server for an hour.</li>
+<li><strong>Storefront:</strong> pick a player company for your Corner Shop (<code>r!property storefront C4 TICK</code>); it earns 10% of the shop's rent, paid by the Reserve. Corner Shops also launder hot loot.</li>
+<li><strong>Production:</strong> a Factory makes 24 crates of Goods a day per level. Sell them to Marquez (<code>r!property goods sell</code>) or ship them by freight for more.</li>
+<li><strong>More Land:</strong> a Barn unlocks six more farm plots.</li>
+<li><strong>Branch Manager:</strong> a Bank Branch adds 25% per level to the interest on your savings.</li>
+<li><strong>Cold Storage:</strong> a Warehouse sells your crops at the best price of the last few days.</li>
+</ul>
+
+<h2 id="freight">Freight and train robberies</h2>
+<p>Own a finished Station and you can ship your whole crop basket and your Goods by train, once every <span data-v="city.freight.gapHours" data-f="raw">6</span> hours: crops at <span data-v="city.freight.bonus" data-f="pct">15%</span> over market, Goods at <span data-v="city.freight.goods">⬡30</span> a crate. The train takes half an hour. While it's on the rails, any crew can rob it with <code>r!heist train</code> and take up to half of what it carries.</p>
+
+<h2 id="landmarks">Landmarks</h2>
+<p><strong>Build It and They Will Come:</strong> the whole server funds landmarks together, one after another, with <code>r!landmark donate &lt;amount&gt;</code>. Donations go into the Reserve, and every finished landmark gives everyone here a perk. The top donor on each one gets <strong>Foreman</strong>.</p>
+<div data-table="landmarks"></div>
+
+<h2 id="trouble">Squatters, bids and condemnation</h2>
+<ul>
+<li><strong>Squatters:</strong> below 40%, squatters can move in. No rent until you evict them (<code>r!property evict C4</code>, three days of rent) or repair to 75%.</li>
+<li><strong>Condemned:</strong> at 0% the bank takes the place (paying you a tenth of its value) and auctions it for a day. If nobody bids, it's torn down.</li>
+<li><strong>Buyout bids:</strong> anyone can bid at least 25% over a building's value (<code>r!property bid C4 &lt;amount&gt;</code>). The owner has a day to accept or refuse; refusing costs 15% of the bid and shields the building for a week. No answer, and it's sold.</li>
+<li><strong>Selling:</strong> the bank buys any building back for up to 80% of what went into it (less if it's run down) and tears it down.</li>
+</ul>
+
+<div class="pager"><a href="/wiki/farming/">← Farming</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/underground/">The Underground →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+</body>
+</html>

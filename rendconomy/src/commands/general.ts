@@ -1,5 +1,5 @@
 import { sectionE } from '../discord/icons';
-import { embed } from '../discord/style';
+import { SITE, embed } from '../discord/style';
 import { GameError } from '../core/errors';
 import * as sessions from '../core/sessions';
 import type { Button, Command, Ctx, ReplyObject, SessionReply, System } from './types';
@@ -13,7 +13,7 @@ export const ping: Command = {
   }
 };
 
-const SECTIONS: Record<System, { label: string; emoji: string }> = {
+export const SECTIONS: Record<System, { label: string; emoji: string }> = {
   wallet: { label: 'Wallet', emoji: '👛' }, social: { label: 'Players', emoji: '👥' }, work: { label: 'Work', emoji: '💼' },
   market: { label: 'Stock market', emoji: '📈' }, casino: { label: 'Rend-Sino', emoji: '🎰' }, reserve: { label: 'The Reserve', emoji: '🏦' },
   farm: { label: 'Farming', emoji: '🌾' }, property: { label: 'The city', emoji: '🏙️' }, underground: { label: 'The Underground', emoji: '🎩' }, general: { label: 'General', emoji: 'ℹ️' }, admin: { label: 'Moderators', emoji: '🛡️' }
@@ -42,7 +42,8 @@ function helpPage(ctx: Ctx, page: System | 'home', sessionId: string): ReplyObje
       '',
       ...systems.map((s) => `${sectionE(s, SECTIONS[s].emoji)} **${SECTIONS[s].label}**: ${((n) => `${n} ${n === 1 ? "command" : "commands"}`)(cmds.filter((c) => c.system === s).length)}`),
       '',
-      `Every command works as \`/command\` or with the \`${p}\` prefix, for example \`${p}daily\`.`
+      `Every command works as \`/command\` or with the \`${p}\` prefix, for example \`${p}daily\`.`,
+      `📖 How everything works, with every number: [the Rend-Conomy Wiki](${SITE}/wiki/)`
     ];
   } else {
     lines = [`${sectionE(page, SECTIONS[page].emoji)} **${SECTIONS[page].label}**`, ...cmds.filter((c) => c.system === page).map((c) => line(c, p))];

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heists | Rend-Conomy Wiki</title>
+<meta name="description" content="Plan a heist with a crew of three to five: targets, roles and their odds, stakes, hauls, fines, and robbing freight trains.">
+<meta property="og:title" content="Heists">
+<meta property="og:description" content="Plan a heist with a crew of three to five: targets, roles and their odds, stakes, hauls, fines, and robbing freight trains.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/heists/">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/bot/emojis/rc_heist.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Heists</div>
+<header class="ahead"><img src="/bot/emojis/rc_heist.png" alt=""><div><h1>Heists</h1><div class="meta"><code>r!heist</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#targets">Targets</a><a href="#roles">Roles</a><a href="#trains">Robbing a train</a><a href="#loot">Hot loot</a><hr><div class="lbl">See also</div><a href="/wiki/underground/">The Underground</a><a href="/wiki/city/">The City</a><a href="/wiki/reserve/">The Polygon Reserve</a></nav>
+<article>
+<div class="lede">
+<p>Someone plans a heist in a channel, others join with a role, and when the leader starts it everyone pays a stake. Then it plays out. A clean job splits the haul evenly; a failed one loses the stakes, and if TODD catches the crew, there's a fine on top.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Crew</span><span><span data-v="heists.rules.minCrew" data-f="raw">3</span> to <span data-v="heists.rules.maxCrew" data-f="raw">5</span></span></div>
+<div><span>Per player</span><span>one every <span data-v="heists.rules.playerGapHours" data-f="raw">6</span> hours</span></div>
+<div><span>Per server</span><span>one an hour</span></div>
+</div>
+</div>
+
+<h2 id="targets">Targets</h2>
+<p><code>r!heist vault</code>, <code>stash</code>, <code>reserve</code> or <code>train</code>. Hauls come out of the Reserve, so robbing it really does hurt everyone.</p>
+<div data-table="targets"></div>
+
+<h2 id="roles">Roles</h2>
+<p>Pick a role when you join. Each one adds to the crew's odds:</p>
+<div data-table="roles"></div>
+
+<h2 id="trains">Robbing a train</h2>
+<p>When a Station owner ships freight on the <a href="/wiki/city/#freight">city map</a>, the train spends half an hour on open track. A crew can rob it in that window and take up to half of what it carries. The owner still gets the rest when it arrives. You can't rob your own train.</p>
+
+<h2 id="loot">Hot loot</h2>
+<p>A clean heist sometimes drops <strong>hot loot</strong> for each crew member: a ring, a painting, a gem or a crate. It's worth a lot, but holding it draws Heat. Fence it or launder it through <a href="/wiki/underground/#loot">the Underground</a>.</p>
+<div class="note tip"><b>TIP</b><span>A Lockpick Set adds 15% to your next heist, and the <strong>Police Strike</strong> event adds 15% for everyone for an hour.</span></div>
+
+<div class="pager"><a href="/wiki/rend-sino/">← The Rend-Sino</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/fishing/">Fishing →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!--{"title": "The Market", "section": "Systems", "icon": "stonks", "summary": "Shares in the five house companies: buying and selling, dividends, limit and stop orders, brokers and short selling.", "prev": "work", "next": "companies", "also": ["companies", "work", "events"], "command": "r!market"}-->
+<div class="lede">
+<p>Five house companies trade on the Rend-Conomy market, and their prices move all day on their own. Buy shares, hold them for dividends, sell them higher, or bet against them. Prices are the same in every server; your shares belong to the server you bought them in.</p>
+<div class="glance"><div class="lbl">Starting prices</div>
+<div><span>RRM · Render Room</span><span data-v="economy.startingPrices.RRM">⬡167</span></div>
+<div><span>NACH · De Nacho</span><span data-v="economy.startingPrices.NACH">⬡120</span></div>
+<div><span>BNW · Business Numbers Working</span><span data-v="economy.startingPrices.BNW">⬡80</span></div>
+<div><span>BSTG · Bastardly Glory</span><span data-v="economy.startingPrices.BSTG">⬡75</span></div>
+<div><span>BLU · Builder's League United</span><span data-v="economy.startingPrices.BLU">⬡47</span></div>
+</div>
+</div>
+
+<h2 id="trading">Buying and selling</h2>
+<p><code>r!market</code> shows every price; <code>r!chart RRM</code> draws the last day; <code>r!compare</code> puts them side by side. Buy with <code>r!buy RRM 10</code> (or an amount of Polygons) and sell with <code>r!sell RRM all</code>. Big trades move the price against you a little. The live prices are also on <a href="/rend-conomy/market/">the market page</a>.</p>
+<p>Bastardly Glory is the wild one: it can soar, and it can crash.</p>
+
+<h2 id="dividends">Dividends</h2>
+<p>Companies pay dividends per share as they do well. Every share you hold earns its part while you hold it; collect what's built up with <code>r!dividends</code>.</p>
+
+<h2 id="orders">Limit and stop orders</h2>
+<p>Orders fill on their own while you're away (<code>r!order</code>):</p>
+<ul>
+<li><strong>Limit buy:</strong> buy a number of shares once the price falls to your limit. The money is set aside until it fills.</li>
+<li><strong>Limit sell:</strong> sell once the price rises to your target.</li>
+<li><strong>Stop:</strong> sell once the price falls to your stop, to cut a loss.</li>
+</ul>
+<p>Up to <span data-v="market.orders.max" data-f="raw">10</span> open at once; they expire after <span data-v="market.orders.expireDays" data-f="raw">7</span> days.</p>
+
+<h2 id="brokers">Brokers</h2>
+<p>A broker trades for you by rules you set (<code>r!broker</code>), for a daily salary and a cut of the profit. Each has a style:</p>
+<div data-table="brokers"></div>
+
+<h2 id="shorts">Short selling</h2>
+<p>Think a stock will fall? <code>r!short BSTG 20</code> bets on it: you profit by however much it drops, and lose by however much it rises. Opening one holds half its value as margin, plus a 1% fee, and you can short up to 100 shares of a company. If your loss reaches 90% of the margin, the short is closed for you. <code>r!cover</code> closes one. If a company goes bankrupt, every short on it pays out in full.</p>
+<div class="note tip"><b>TIP</b><span>The <strong>Bear Rumors</strong> and <strong>Fire Sale</strong> <a href="/wiki/events/">events</a> make shorts free to open for an hour.</span></div>

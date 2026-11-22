@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Player companies | Rend-Conomy Wiki</title>
+<meta name="description" content="Found your own company, grow it level by level, take it public on the exchange, pay yourself, and defend it from hostile takeovers.">
+<meta property="og:title" content="Player companies">
+<meta property="og:description" content="Found your own company, grow it level by level, take it public on the exchange, pay yourself, and defend it from hostile takeovers.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/companies/">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/bot/emojis/rc_company.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Player companies</div>
+<header class="ahead"><img src="/bot/emojis/rc_company.png" alt=""><div><h1>Player companies</h1><div class="meta"><code>r!found</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#founding">Founding one</a><a href="#levels">Levels</a><a href="#public">Going public</a><a href="#takeovers">Takeovers and mergers</a><hr><div class="lbl">See also</div><a href="/wiki/market/">The Market</a><a href="/wiki/city/">The City</a></nav>
+<article>
+<div class="lede">
+<p>Any player can found a company. It has a treasury, levels up as you invest, and at level <span data-v="companies.ipoLevel" data-f="raw">3</span> it can go public: other players can buy its shares, and it gets its own page on <a href="/rend-conomy/exchange/">the exchange</a>.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Founding</span><span>⬡2,500, approved by mods</span></div>
+<div><span>Go public at</span><span>level 3</span></div>
+<div><span>Listing fee</span><span data-v="companies.listingFee">⬡2,000</span></div>
+<div><span>Shares</span><span><span data-v="companies.totalShares" data-f="num">1,000</span> (<span data-v="companies.float" data-f="num">400</span> for sale)</span></div>
+</div>
+</div>
+
+<h2 id="founding">Founding one</h2>
+<p><code>r!found TICK Your Company Name</code> sends it to the server's moderators for approval. Once approved, put money into its treasury with <code>r!invest</code> and see it with <code>r!company</code>.</p>
+
+<h2 id="levels">Levels</h2>
+<p>Upgrades are paid from the treasury (<code>r!upgrade</code>). Every level costs upkeep each day, and raises what the company can pay.</p>
+<div data-table="levels"></div>
+
+<h2 id="public">Going public</h2>
+<p>At level 3, <code>r!ipo</code> lists the company. Its price then moves with trading, and its treasury earns from revenue: farmers' market sales, a Corner Shop's Storefront on the city map, and more. You can pay yourself a salary of up to 10% of the treasury a day (<code>r!salary</code>).</p>
+
+<h2 id="takeovers">Takeovers and mergers</h2>
+<ul>
+<li><strong>Hostile takeover:</strong> a player who holds at least half of the shares for sale can bid for your company with <code>r!takeover</code>, putting up a premium of a quarter of its worth. You have a day to answer; no answer and it goes through.</li>
+<li><strong>Poison pill:</strong> defend for a tenth of the company's worth (<code>r!takeover defend</code>). The bidder gets their premium back minus a 20% break fee, which goes to you, and your company is shielded from takeovers for 7 days.</li>
+<li><strong>Merger:</strong> two owners can agree to merge with <code>r!merge</code>.</li>
+</ul>
+
+<div class="pager"><a href="/wiki/market/">← The Market</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/rend-sino/">The Rend-Sino →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+</body>
+</html>

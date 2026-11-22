@@ -1,0 +1,4868 @@
+{
+ "economy": {
+  "startingCash": 500,
+  "daily": 250,
+  "reserve": 25000000,
+  "shrinkBelow": 0.25,
+  "minFactor": 0.1,
+  "startingPrices": {
+   "RRM": 167,
+   "NACH": 120,
+   "BNW": 80,
+   "BSTG": 75,
+   "BLU": 47
+  }
+ },
+ "sections": {
+  "wallet": {
+   "label": "Wallet",
+   "emoji": "👛",
+   "count": 11
+  },
+  "social": {
+   "label": "Players",
+   "emoji": "👥",
+   "count": 15
+  },
+  "work": {
+   "label": "Work",
+   "emoji": "💼",
+   "count": 6
+  },
+  "market": {
+   "label": "Stock market",
+   "emoji": "📈",
+   "count": 20
+  },
+  "casino": {
+   "label": "Rend-Sino",
+   "emoji": "🎰",
+   "count": 16
+  },
+  "reserve": {
+   "label": "The Reserve",
+   "emoji": "🏦",
+   "count": 1
+  },
+  "farm": {
+   "label": "Farming",
+   "emoji": "🌾",
+   "count": 9
+  },
+  "property": {
+   "label": "The city",
+   "emoji": "🏙️",
+   "count": 2
+  },
+  "underground": {
+   "label": "The Underground",
+   "emoji": "🎩",
+   "count": 1
+  },
+  "general": {
+   "label": "General",
+   "emoji": "ℹ️",
+   "count": 6
+  },
+  "admin": {
+   "label": "Moderators",
+   "emoji": "🛡️",
+   "count": 16
+  }
+ },
+ "commands": [
+  {
+   "name": "daily",
+   "aliases": [
+    "d"
+   ],
+   "description": "Collect your daily allowance (resets at 12 AM Eastern)",
+   "section": "wallet",
+   "slash": "/daily",
+   "options": []
+  },
+  {
+   "name": "balance",
+   "aliases": [
+    "bal",
+    "portfolio",
+    "pf",
+    "wallet"
+   ],
+   "description": "Your Polygons, savings, shares and net worth, or another player's",
+   "section": "wallet",
+   "slash": "/balance",
+   "options": [
+    {
+     "name": "player",
+     "description": "Whose to show (default: yours)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "history",
+   "aliases": [
+    "transactions",
+    "tx"
+   ],
+   "description": "Your last 10 transactions: where your Polygons came from and went",
+   "section": "wallet",
+   "slash": "/history",
+   "options": []
+  },
+  {
+   "name": "profile",
+   "aliases": [
+    "p",
+    "me",
+    "card"
+   ],
+   "description": "Your profile (or another player's), and customizing it",
+   "section": "social",
+   "slash": "/profile",
+   "options": [
+    {
+     "name": "action",
+     "description": "@player to view, or: color, theme, banner, frame, pin, reset, private on|off",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "bailout",
+   "aliases": [
+    "todd"
+   ],
+   "description": "Borrow ⬡500 from TODD when you're broke (you owe ⬡600)",
+   "section": "social",
+   "slash": "/bailout",
+   "options": []
+  },
+  {
+   "name": "repay",
+   "aliases": [
+    "payoff"
+   ],
+   "description": "Pay TODD back",
+   "section": "social",
+   "slash": "/repay",
+   "options": [
+    {
+     "name": "amount",
+     "description": "How much, or \"all\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "loan",
+   "aliases": [
+    "borrow"
+   ],
+   "description": "Ask another player for a loan (they accept or decline)",
+   "section": "social",
+   "slash": "/loan",
+   "options": [
+    {
+     "name": "lender",
+     "description": "Who you are asking",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How much",
+     "required": true
+    },
+    {
+     "name": "rate",
+     "description": "Interest per day, 0 to 25% (default 5)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "loans",
+   "aliases": [
+    "debts"
+   ],
+   "description": "Your loans: what you owe and what you are owed",
+   "section": "social",
+   "slash": "/loans",
+   "options": []
+  },
+  {
+   "name": "payback",
+   "aliases": [],
+   "description": "Repay a loan from another player",
+   "section": "social",
+   "slash": "/payback",
+   "options": [
+    {
+     "name": "lender",
+     "description": "Who you owe",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How much, or \"all\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "forgive",
+   "aliases": [],
+   "description": "Cancel what a borrower owes you",
+   "section": "social",
+   "slash": "/forgive",
+   "options": [
+    {
+     "name": "borrower",
+     "description": "Who owes you",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "shop",
+   "aliases": [
+    "store",
+    "marquez"
+   ],
+   "description": "Marquez's shop: items, shelves and this week's collectible",
+   "section": "wallet",
+   "slash": "/shop",
+   "options": [
+    {
+     "name": "shelf",
+     "description": "work, market, casino, fun, rare...",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "purchase",
+   "aliases": [
+    "buyitem"
+   ],
+   "description": "Buy an item from Marquez by name",
+   "section": "wallet",
+   "slash": "/purchase",
+   "options": [
+    {
+     "name": "item",
+     "description": "Item name, e.g. coffee or \"rocket fuel\"",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How many (default 1)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "inventory",
+   "aliases": [
+    "inv",
+    "items",
+    "bag"
+   ],
+   "description": "The items you own in this server",
+   "section": "wallet",
+   "slash": "/inventory",
+   "options": []
+  },
+  {
+   "name": "use",
+   "aliases": [
+    "open"
+   ],
+   "description": "Use an item from your inventory",
+   "section": "wallet",
+   "slash": "/use",
+   "options": [
+    {
+     "name": "item",
+     "description": "Item name, e.g. coffee",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "settitle",
+   "aliases": [
+    "title"
+   ],
+   "description": "Set your profile title (uses a Title item)",
+   "section": "wallet",
+   "slash": "/settitle",
+   "options": [
+    {
+     "name": "title",
+     "description": "Up to 32 characters",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "fish",
+   "aliases": [
+    "cast",
+    "fishing"
+   ],
+   "description": "Cast a line (needs a Fishing Rod; optionally use a fish as bait)",
+   "section": "wallet",
+   "slash": "/fish",
+   "options": [
+    {
+     "name": "bait",
+     "description": "A fish to use as bait (e.g. minnow), \"bag\" to see your catch, or \"sell\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "sellfish",
+   "aliases": [
+    "sellcatch"
+   ],
+   "description": "Sell your whole catch to Marquez",
+   "section": "wallet",
+   "slash": "/sellfish",
+   "options": []
+  },
+  {
+   "name": "farm",
+   "aliases": [
+    "field",
+    "garden",
+    "plots",
+    "crops"
+   ],
+   "description": "Your farm: what is growing, what is ready, and your basket",
+   "section": "farm",
+   "slash": "/farm",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to look, or: plant <crop>, water, harvest, sell, buy, remind on|off",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "plant",
+   "aliases": [
+    "sow"
+   ],
+   "description": "Plant seeds in your empty plots (or one plot)",
+   "section": "farm",
+   "slash": "/plant",
+   "options": [
+    {
+     "name": "crop",
+     "description": "carrot, corn, tomato, pumpkin or polygon fruit",
+     "required": true
+    },
+    {
+     "name": "plot",
+     "description": "A plot number (default: every empty plot)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "water",
+   "aliases": [
+    "wet",
+    "sprinkle"
+   ],
+   "description": "Water every crop that needs it",
+   "section": "farm",
+   "slash": "/water",
+   "options": []
+  },
+  {
+   "name": "harvest",
+   "aliases": [
+    "reap",
+    "pick"
+   ],
+   "description": "Harvest every ready crop (and clear wilted ones)",
+   "section": "farm",
+   "slash": "/harvest",
+   "options": []
+  },
+  {
+   "name": "sellcrops",
+   "aliases": [
+    "sellharvest",
+    "sellcrop",
+    "sellbasket"
+   ],
+   "description": "Sell your whole harvest to Marquez, or to a player company at the farmers' market",
+   "section": "farm",
+   "slash": "/sellcrops",
+   "options": [
+    {
+     "name": "company",
+     "description": "A player company's ticker: it pays 10% more and earns from the sale",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "fertilize",
+   "aliases": [
+    "fertilise",
+    "fert"
+   ],
+   "description": "Put Fertilizer on every growing crop (or one plot): they grow 50% faster and come out Prime more often",
+   "section": "farm",
+   "slash": "/fertilize",
+   "options": [
+    {
+     "name": "plot",
+     "description": "A plot number (default: every growing crop, as far as your Fertilizer goes)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "compost",
+   "aliases": [],
+   "description": "Turn fishing junk into Fertilizer (a Soggy Boot makes 1; other junk, 2 for 1)",
+   "section": "farm",
+   "slash": "/compost",
+   "options": []
+  },
+  {
+   "name": "buyplot",
+   "aliases": [
+    "newplot",
+    "moreland"
+   ],
+   "description": "Buy another plot of land (up to 9, or 15 with a Barn)",
+   "section": "farm",
+   "slash": "/buyplot",
+   "options": []
+  },
+  {
+   "name": "farmhand",
+   "aliases": [
+    "hand",
+    "farmhelp"
+   ],
+   "description": "Hire a Farmhand (⬡150.00 a day): he waters, harvests and replants from a seed shed you stock",
+   "section": "farm",
+   "slash": "/farmhand",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to see, or: hire, fire, give <crop> [amount], take <crop> [amount], dms on|off",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "advent",
+   "aliases": [
+    "calendar",
+    "door"
+   ],
+   "description": "Open today's door of the advent calendar (December)",
+   "section": "social",
+   "slash": "/advent",
+   "options": []
+  },
+  {
+   "name": "santa",
+   "aliases": [
+    "secretsanta",
+    "ss"
+   ],
+   "description": "Secret Santa: sign up, see who you're shopping for, and wrap a gift (December)",
+   "section": "social",
+   "slash": "/santa",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank for your status, or: join, leave, gift",
+     "required": false
+    },
+    {
+     "name": "amount",
+     "description": "For gift: Polygons to give (no fee)",
+     "required": false
+    },
+    {
+     "name": "item",
+     "description": "For gift: an item from your inventory, then \"| a note\" if you like",
+     "required": false
+    },
+    {
+     "name": "note",
+     "description": "For gift: a note, read on Christmas morning",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "inbox",
+   "aliases": [
+    "notifications",
+    "notifs",
+    "bell"
+   ],
+   "description": "Your latest notifications: receipts, market reports, bids, crops and trade offers",
+   "section": "general",
+   "slash": "/inbox",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to read them, or \"count\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "showcase",
+   "aliases": [
+    "pinach",
+    "feature"
+   ],
+   "description": "Pin up to 3 of your achievements to your profile",
+   "section": "social",
+   "slash": "/showcase",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"add <achievement>\", \"remove <achievement>\", \"clear\", or blank to see it",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "trade",
+   "aliases": [
+    "offer",
+    "swap"
+   ],
+   "description": "Offer another player a trade (Polygons and/or an item for theirs), or answer one",
+   "section": "social",
+   "slash": "/trade",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"@player <you give> for <you want>\", \"accept <#>\", \"decline <#>\", \"cancel <#>\", or blank to list",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "oddjob",
+   "aliases": [
+    "odd",
+    "chore"
+   ],
+   "description": "A quick odd job for a little pay (up to 10 a day)",
+   "section": "work",
+   "slash": "/oddjob",
+   "options": [
+    {
+     "name": "answer",
+     "description": "Your answer to the current job (you can also just type it in the channel)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "8ball",
+   "aliases": [
+    "eightball",
+    "ask"
+   ],
+   "description": "Ask the magic 8-ball a yes-or-no question",
+   "section": "general",
+   "slash": "/8ball",
+   "options": [
+    {
+     "name": "question",
+     "description": "Your question",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "rate",
+   "aliases": [],
+   "description": "TODD rates anything out of 10 (badly)",
+   "section": "general",
+   "slash": "/rate",
+   "options": [
+    {
+     "name": "thing",
+     "description": "What should TODD rate?",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "fortune",
+   "aliases": [
+    "cookie"
+   ],
+   "description": "Crack open a fortune cookie from the counter at Marquez's",
+   "section": "general",
+   "slash": "/fortune",
+   "options": []
+  },
+  {
+   "name": "property",
+   "aliases": [
+    "estate",
+    "realestate",
+    "prop",
+    "properties",
+    "lots",
+    "city",
+    "build"
+   ],
+   "description": "The city: your buildings, the map, building and upgrading, freight, bids, auctions and landmarks",
+   "section": "property",
+   "slash": "/property",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank for yours, or: map, buildings, build, upgrade, sell, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info",
+     "required": false
+    },
+    {
+     "name": "lot",
+     "description": "A tile like C4 (or \"all\" for repair)",
+     "required": false
+    },
+    {
+     "name": "amount",
+     "description": "For build: the building. For bid or donate: Polygons. For storefront: a company ticker",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "landmark",
+   "aliases": [
+    "landmarks",
+    "monument"
+   ],
+   "description": "Build It and They Will Come: the landmarks this server builds together",
+   "section": "property",
+   "slash": "/landmark",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to look, or: donate <amount>",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "underground",
+   "aliases": [
+    "ug",
+    "connector",
+    "blackmarket",
+    "bm",
+    "nqa"
+   ],
+   "description": "No Questions Asked: the Connector's black market (10 PM to 4 AM Eastern)",
+   "section": "underground",
+   "slash": "/underground",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to look, a password, or: buy, fence, launder, smuggle, snitch, heat",
+     "required": false
+    },
+    {
+     "name": "target",
+     "description": "An item, a loot #, an amount, or a player",
+     "required": false
+    },
+    {
+     "name": "extra",
+     "description": "More for the item (a ticker, up/down, a lot)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "achievements",
+   "aliases": [
+    "ach",
+    "badges"
+   ],
+   "description": "Your achievements (they follow you across servers)",
+   "section": "social",
+   "slash": "/achievements",
+   "options": [
+    {
+     "name": "player",
+     "description": "Whose achievements to show (default: yours)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "gift",
+   "aliases": [
+    "send",
+    "tip"
+   ],
+   "description": "Send Polygons to another player (5% fee, up to ⬡5,000 a day)",
+   "section": "social",
+   "slash": "/gift",
+   "options": [
+    {
+     "name": "player",
+     "description": "Who receives it",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How much they receive",
+     "required": true
+    },
+    {
+     "name": "note",
+     "description": "A message to go with it",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "leaderboard",
+   "aliases": [
+    "lb",
+    "top",
+    "rich"
+   ],
+   "description": "The top 10 in this server: net worth, Polygons or shifts",
+   "section": "social",
+   "slash": "/leaderboard",
+   "options": [
+    {
+     "name": "board",
+     "description": "worth, cash or shifts",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "savings",
+   "aliases": [
+    "save",
+    "bank",
+    "piggybank"
+   ],
+   "description": "Lock Polygons away for 3, 7 or 14 days and get them back with interest",
+   "section": "social",
+   "slash": "/savings",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"deposit <amount> <3|7|14>\" or \"withdraw <#>\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "work",
+   "aliases": [
+    "w"
+   ],
+   "description": "Work a shift at your job (every 15 minutes)",
+   "section": "work",
+   "slash": "/work",
+   "options": []
+  },
+  {
+   "name": "gig",
+   "aliases": [
+    "sidehustle",
+    "freelance",
+    "hustle"
+   ],
+   "description": "A quick paid task, no job needed (every 10 minutes)",
+   "section": "work",
+   "slash": "/gig",
+   "options": []
+  },
+  {
+   "name": "apply",
+   "aliases": [
+    "hire"
+   ],
+   "description": "Apply for a job at a company",
+   "section": "work",
+   "slash": "/apply",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Company to work for, e.g. NACH",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "quit",
+   "aliases": [
+    "resign"
+   ],
+   "description": "Leave your job (24 hours after being hired; your rank is kept)",
+   "section": "work",
+   "slash": "/quit",
+   "options": []
+  },
+  {
+   "name": "job",
+   "aliases": [
+    "career"
+   ],
+   "description": "Your job: rank, next review, accuracy, earnings and next shift (or \"remind on|off\")",
+   "section": "work",
+   "slash": "/job",
+   "options": [
+    {
+     "name": "remind",
+     "description": "\"remind on\" or \"remind off\": a DM when your next shift is ready",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "market",
+   "aliases": [
+    "stocks",
+    "m"
+   ],
+   "description": "Current stock prices and market status",
+   "section": "market",
+   "slash": "/market",
+   "options": []
+  },
+  {
+   "name": "chart",
+   "aliases": [
+    "graph"
+   ],
+   "description": "A price chart for a company (last 24 hours)",
+   "section": "market",
+   "slash": "/chart",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Company ticker, e.g. RRM",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "compare",
+   "aliases": [
+    "vs"
+   ],
+   "description": "Compare companies side by side",
+   "section": "market",
+   "slash": "/compare",
+   "options": []
+  },
+  {
+   "name": "buy",
+   "aliases": [],
+   "description": "Buy shares in a company",
+   "section": "market",
+   "slash": "/buy",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Company ticker, e.g. RRM",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "Number of shares, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "sell",
+   "aliases": [],
+   "description": "Sell shares you hold",
+   "section": "market",
+   "slash": "/sell",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Company ticker, e.g. RRM",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "Number of shares, or \"all\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "dividends",
+   "aliases": [
+    "div",
+    "divs"
+   ],
+   "description": "Collect what your shares have earned",
+   "section": "market",
+   "slash": "/dividends",
+   "options": []
+  },
+  {
+   "name": "order",
+   "aliases": [
+    "orders",
+    "limit"
+   ],
+   "description": "Limit and stop orders that fill on their own",
+   "section": "market",
+   "slash": "/order",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"buy RRM 10 at 150\", \"sell BNW all at 90\", \"sell BLU all below 30\", \"cancel <#>\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "broker",
+   "aliases": [
+    "brokers"
+   ],
+   "description": "Hire a broker to trade for you by your rules",
+   "section": "market",
+   "slash": "/broker",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"hire\", \"buy RRM until 150\", \"sell RRM at 200\", \"stop RRM at 120\", \"clear RRM\", \"fire\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "short",
+   "aliases": [
+    "shortsell"
+   ],
+   "description": "Short a stock: profit if it falls",
+   "section": "market",
+   "slash": "/short",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Company ticker",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "Shares to short",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "cover",
+   "aliases": [
+    "shorts",
+    "closeshort"
+   ],
+   "description": "Close a short (or list your shorts)",
+   "section": "market",
+   "slash": "/cover",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Which short to close (leave out to list them)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "found",
+   "aliases": [
+    "startup"
+   ],
+   "description": "Found a player company (⬡2,500; approved by moderators)",
+   "section": "market",
+   "slash": "/found",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "2 to 5 letters, e.g. MEOW",
+     "required": true
+    },
+    {
+     "name": "name",
+     "description": "The company name",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "company",
+   "aliases": [
+    "co"
+   ],
+   "description": "A player company (yours if you leave it out)",
+   "section": "market",
+   "slash": "/company",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Ticker",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "exchange",
+   "aliases": [
+    "companies",
+    "ex"
+   ],
+   "description": "Every player company",
+   "section": "market",
+   "slash": "/exchange",
+   "options": []
+  },
+  {
+   "name": "invest",
+   "aliases": [
+    "fund"
+   ],
+   "description": "Put your own Polygons into your company's treasury",
+   "section": "market",
+   "slash": "/invest",
+   "options": [
+    {
+     "name": "amount",
+     "description": "How much",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "upgrade",
+   "aliases": [
+    "expand"
+   ],
+   "description": "Level your company up (paid from its treasury)",
+   "section": "market",
+   "slash": "/upgrade",
+   "options": []
+  },
+  {
+   "name": "ipo",
+   "aliases": [],
+   "description": "Take your company public",
+   "section": "market",
+   "slash": "/ipo",
+   "options": []
+  },
+  {
+   "name": "salary",
+   "aliases": [
+    "wage"
+   ],
+   "description": "Pay yourself from your company (up to 10% of the treasury a day)",
+   "section": "market",
+   "slash": "/salary",
+   "options": [
+    {
+     "name": "amount",
+     "description": "How much, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "takeover",
+   "aliases": [
+    "hostiletakeover",
+    "raid"
+   ],
+   "description": "Hostile takeovers: bid, defend (poison pill), or accept a bid on your company",
+   "section": "market",
+   "slash": "/takeover",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"bid <TICKER>\", \"defend\", or \"accept\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "merge",
+   "aliases": [
+    "merger"
+   ],
+   "description": "Propose or accept a merger with another company",
+   "section": "market",
+   "slash": "/merge",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "The other company",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "event",
+   "aliases": [
+    "events",
+    "worldevent"
+   ],
+   "description": "The world event running now (bot owner: start or end one)",
+   "section": "market",
+   "slash": "/event",
+   "options": [
+    {
+     "name": "action",
+     "description": "Bot owner: \"start <id> [ticker]\" or \"end\"",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "slots",
+   "aliases": [
+    "slot"
+   ],
+   "description": "Spin the Rend-Sino slot machine",
+   "section": "casino",
+   "slash": "/slots",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡1,000.00, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "coinflip",
+   "aliases": [
+    "cf",
+    "flip"
+   ],
+   "description": "Call heads or tails for 1.95x",
+   "section": "casino",
+   "slash": "/coinflip",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    },
+    {
+     "name": "side",
+     "description": "heads or tails (default heads)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "dice",
+   "aliases": [
+    "roll"
+   ],
+   "description": "Roll 1-100: bet it lands over or under your number",
+   "section": "casino",
+   "slash": "/dice",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    },
+    {
+     "name": "call",
+     "description": "over or under, then 5-95, e.g. \"over 70\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "roulette",
+   "aliases": [
+    "rl",
+    "wheel"
+   ],
+   "description": "Bet on red, black, odd, even, low, high, a dozen, or a number",
+   "section": "casino",
+   "slash": "/roulette",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    },
+    {
+     "name": "on",
+     "description": "red, black, odd, even, low, high, 1st, 2nd, 3rd, or 0-36",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "blackjack",
+   "aliases": [
+    "bj",
+    "21"
+   ],
+   "description": "Blackjack against TODD: hit, stand or double",
+   "section": "casino",
+   "slash": "/blackjack",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "hilo",
+   "aliases": [
+    "higherlower",
+    "hl"
+   ],
+   "description": "Higher or Lower: build a streak, cash out before you miss",
+   "section": "casino",
+   "slash": "/hilo",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "mines",
+   "aliases": [
+    "minesweeper",
+    "ms"
+   ],
+   "description": "Minesweeper: dodge the bombs, cash out before you hit one",
+   "section": "casino",
+   "slash": "/mines",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    },
+    {
+     "name": "bombs",
+     "description": "Bombs on the 4x4 field, 1 to 12 (default 3)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "rocket",
+   "aliases": [
+    "moon",
+    "crashgame"
+   ],
+   "description": "Rocket: cash out before it crashes",
+   "section": "casino",
+   "slash": "/rocket",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "vip",
+   "aliases": [
+    "viplounge",
+    "freespin",
+    "jackpot"
+   ],
+   "description": "Your VIP level, the progressive jackpot, and your daily free spin",
+   "section": "casino",
+   "slash": "/vip",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to look, or: spin",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "table",
+   "aliases": [
+    "bjtable",
+    "blackjacktable",
+    "tables"
+   ],
+   "description": "Open a blackjack table: up to 5 players against TODD",
+   "section": "casino",
+   "slash": "/table",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "bus",
+   "aliases": [
+    "ridethebus",
+    "rtb"
+   ],
+   "description": "Ride the Bus: four guesses, cash out any time after the first",
+   "section": "casino",
+   "slash": "/bus",
+   "options": [
+    {
+     "name": "amount",
+     "description": "Your bet, ⬡10.00 to ⬡2,500.00, or \"max\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "derby",
+   "aliases": [
+    "race",
+    "horses"
+   ],
+   "description": "The Polygon Derby: start a race or bet on a horse",
+   "section": "casino",
+   "slash": "/derby",
+   "options": [
+    {
+     "name": "horse",
+     "description": "A horse (name, number or ticker) to bet on; leave out to start a race",
+     "required": false
+    },
+    {
+     "name": "amount",
+     "description": "Your bet",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "lottery",
+   "aliases": [
+    "lotto"
+   ],
+   "description": "The weekly lottery: tickets ⬡50, drawn Sunday 8 PM Eastern",
+   "section": "casino",
+   "slash": "/lottery",
+   "options": [
+    {
+     "name": "tickets",
+     "description": "How many tickets to buy (leave out to see the pot)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "gambling",
+   "aliases": [
+    "casinostats",
+    "casino",
+    "gamblestats"
+   ],
+   "description": "Your Rend-Sino record, game by game",
+   "section": "casino",
+   "slash": "/gambling",
+   "options": []
+  },
+  {
+   "name": "heist",
+   "aliases": [
+    "heists",
+    "rob"
+   ],
+   "description": "Plan a heist: vault, stash, or the Reserve (crew of 3 to 5)",
+   "section": "casino",
+   "slash": "/heist",
+   "options": [
+    {
+     "name": "target",
+     "description": "vault, stash, reserve, or train (leave out for recent heists)",
+     "required": false
+    },
+    {
+     "name": "role",
+     "description": "Your role: hacker, driver, lookout, muscle (default hacker)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "odds",
+   "aliases": [
+    "payouts"
+   ],
+   "description": "The real odds and house edge of every Rend-Sino game",
+   "section": "casino",
+   "slash": "/odds",
+   "options": []
+  },
+  {
+   "name": "reserve",
+   "aliases": [
+    "vault"
+   ],
+   "description": "The Polygon Reserve: what the house has left to pay out. \"donate <amount>\" to give to it",
+   "section": "reserve",
+   "slash": "/reserve",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"donate <amount>\" to give Polygons to the Reserve",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "receipts",
+   "aliases": [
+    "receipt"
+   ],
+   "description": "DM receipts for trades, purchases, gifts, loans and company money: on or off",
+   "section": "wallet",
+   "slash": "/receipts",
+   "options": [
+    {
+     "name": "setting",
+     "description": "on or off",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "ping",
+   "aliases": [
+    "latency"
+   ],
+   "description": "Check that the bot is responding",
+   "section": "general",
+   "slash": "/ping",
+   "options": []
+  },
+  {
+   "name": "give",
+   "aliases": [],
+   "description": "Moderators: give a player Polygons from the Reserve",
+   "section": "admin",
+   "slash": "/mod give",
+   "options": [
+    {
+     "name": "player",
+     "description": "Who receives it",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How much",
+     "required": true
+    },
+    {
+     "name": "reason",
+     "description": "Why (recorded)",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "take",
+   "aliases": [],
+   "description": "Moderators: take Polygons from a player back to the Reserve",
+   "section": "admin",
+   "slash": "/mod take",
+   "options": [
+    {
+     "name": "player",
+     "description": "Who loses it",
+     "required": true
+    },
+    {
+     "name": "amount",
+     "description": "How much, or \"all\"",
+     "required": true
+    },
+    {
+     "name": "reason",
+     "description": "Why (recorded)",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "giveitem",
+   "aliases": [
+    "additem"
+   ],
+   "description": "Bot owner: put items in a player's inventory, fish bag or basket",
+   "section": "admin",
+   "slash": "/mod giveitem",
+   "options": [
+    {
+     "name": "player",
+     "description": "Which player",
+     "required": true
+    },
+    {
+     "name": "item",
+     "description": "The item, with an optional amount: \"3 coffee\", \"golden pumpkin x2\", \"white whale\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "takeitem",
+   "aliases": [
+    "removeitem"
+   ],
+   "description": "Bot owner: take items from a player's inventory, fish bag or basket",
+   "section": "admin",
+   "slash": "/mod takeitem",
+   "options": [
+    {
+     "name": "player",
+     "description": "Which player",
+     "required": true
+    },
+    {
+     "name": "item",
+     "description": "The item, with an optional amount: \"3 coffee\", \"golden pumpkin x2\", \"white whale\"",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "freeze",
+   "aliases": [],
+   "description": "Moderators: freeze a player (no commands that use their account)",
+   "section": "admin",
+   "slash": "/mod freeze",
+   "options": [
+    {
+     "name": "player",
+     "description": "Which player",
+     "required": true
+    },
+    {
+     "name": "reason",
+     "description": "Why (recorded)",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "unfreeze",
+   "aliases": [],
+   "description": "Moderators: unfreeze a player",
+   "section": "admin",
+   "slash": "/mod unfreeze",
+   "options": [
+    {
+     "name": "player",
+     "description": "Which player",
+     "required": true
+    },
+    {
+     "name": "reason",
+     "description": "Why (recorded)",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "wipe",
+   "aliases": [],
+   "description": "Bot owner: erase one player's data, or the whole server's (backup first, asks to confirm)",
+   "section": "admin",
+   "slash": "/mod wipe",
+   "options": [
+    {
+     "name": "scope",
+     "description": "\"player\" or \"server\"",
+     "required": true
+    },
+    {
+     "name": "player",
+     "description": "Which player (for scope: player)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "importachievements",
+   "aliases": [],
+   "description": "Bot owner: copy achievements from the old bot's database (for the reset)",
+   "section": "admin",
+   "slash": "/mod importachievements",
+   "options": [
+    {
+     "name": "file",
+     "description": "Path to the old database (default: OLD_DB_FILE or engine/data/rend-conomy.db)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "cleartitle",
+   "aliases": [],
+   "description": "Moderators: remove a player's title",
+   "section": "admin",
+   "slash": "/mod cleartitle",
+   "options": [
+    {
+     "name": "player",
+     "description": "Whose title",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "crash",
+   "aliases": [],
+   "description": "Bot owner: start, end or cancel a market crash",
+   "section": "admin",
+   "slash": "/mod crash",
+   "options": [
+    {
+     "name": "action",
+     "description": "start [mild|normal|brutal] [warning] [crash] [recovery] | end | cancel",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "boost",
+   "aliases": [],
+   "description": "Bot owner: start or stop a market boom",
+   "section": "admin",
+   "slash": "/mod boost",
+   "options": [
+    {
+     "name": "action",
+     "description": "start [small|normal|big] [hours] [tickers] | stop",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "dropin",
+   "aliases": [
+    "dropins",
+    "chatpay"
+   ],
+   "description": "Moderators: TODD drop-ins on, off, only here, or anywhere",
+   "section": "admin",
+   "slash": "/mod dropin",
+   "options": [
+    {
+     "name": "setting",
+     "description": "on, off, here, or anywhere",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "review",
+   "aliases": [],
+   "description": "Approvers: companies awaiting approval",
+   "section": "admin",
+   "slash": "/mod review",
+   "options": []
+  },
+  {
+   "name": "approve",
+   "aliases": [],
+   "description": "Approvers: approve a company",
+   "section": "admin",
+   "slash": "/mod approve",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Ticker",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "reject",
+   "aliases": [],
+   "description": "Approvers: reject a company (refunded in full)",
+   "section": "admin",
+   "slash": "/mod reject",
+   "options": [
+    {
+     "name": "ticker",
+     "description": "Ticker",
+     "required": true
+    },
+    {
+     "name": "reason",
+     "description": "Why",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "announce",
+   "aliases": [],
+   "description": "Bot owner: preview or post a patch notes entry (\"post\", then a name for an older one)",
+   "section": "admin",
+   "slash": "/mod announce",
+   "options": [
+    {
+     "name": "action",
+     "description": "\"post\" to post, then optionally an entry name, e.g. \"post animation\"; leave out to preview",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "help",
+   "aliases": [
+    "h",
+    "commands"
+   ],
+   "description": "List every command, by section, or look up one",
+   "section": "general",
+   "slash": "/help",
+   "options": [
+    {
+     "name": "command",
+     "description": "A command, alias or section to look up",
+     "required": false
+    }
+   ]
+  }
+ ],
+ "items": [
+  {
+   "id": "coffee",
+   "emoji": "☕",
+   "name": "Coffee",
+   "price": 100,
+   "stock": 5,
+   "shelf": "Work",
+   "desc": "Resets your work cooldown.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "overtime",
+   "emoji": "⏰",
+   "name": "Overtime",
+   "price": 250,
+   "stock": 3,
+   "shelf": "Work",
+   "desc": "Your next shift pays double.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "resume",
+   "emoji": "📄",
+   "name": "Resume",
+   "price": 350,
+   "stock": 2,
+   "shelf": "Work",
+   "desc": "Skips the 24-hour quit lock. Used automatically when you quit.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "stopwatch",
+   "emoji": "⏱️",
+   "name": "Stopwatch",
+   "price": 150,
+   "stock": 4,
+   "shelf": "Work",
+   "desc": "Your next 3 shifts get 10 extra seconds.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "hardhat",
+   "emoji": "🪖",
+   "name": "Hard Hat",
+   "price": 300,
+   "stock": 3,
+   "shelf": "Work",
+   "desc": "Keeps your job through one layoff. Works on its own.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "reference",
+   "emoji": "✉️",
+   "name": "Reference Letter",
+   "price": 250,
+   "stock": 3,
+   "shelf": "Work",
+   "desc": "Cancels one demotion at a bad review. Works on its own.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "booster",
+   "emoji": "📈",
+   "name": "Dividend Booster",
+   "price": 400,
+   "stock": 2,
+   "shelf": "Market",
+   "desc": "+50% on dividends you collect for 24 hours.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "insurance",
+   "emoji": "🛡️",
+   "name": "Insurance Policy",
+   "price": 750,
+   "stock": 2,
+   "shelf": "Market",
+   "desc": "Saves your shares in one company from a bankruptcy wipe. Works on its own.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "times",
+   "emoji": "📰",
+   "name": "The Rend Times",
+   "price": 200,
+   "stock": 3,
+   "shelf": "Market",
+   "desc": "A vague tip about one company's hidden mood.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "chip",
+   "emoji": "💿",
+   "name": "Platinum Chip",
+   "price": 600,
+   "stock": 3,
+   "shelf": "Rend-Sino",
+   "desc": "Your next 5 Rend-Sino games pay 4% more: no house edge.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "fuel",
+   "emoji": "⛽",
+   "name": "Rocket Fuel",
+   "price": 500,
+   "stock": 2,
+   "shelf": "Rend-Sino",
+   "desc": "Your next Rocket flies 20% higher before it crashes.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "mystery",
+   "emoji": "🎁",
+   "name": "Mystery",
+   "price": null,
+   "stock": 5,
+   "shelf": "Rend-Sino",
+   "desc": "Random Polygons or an Overtime pass. Small jackpot chance. The price changes every restock.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "floppy",
+   "emoji": "💾",
+   "name": "TODD's Floppy Disk",
+   "price": 150,
+   "stock": 3,
+   "shelf": "Odds & Ends",
+   "desc": "Does... something. TODD won't say what.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "wrap",
+   "emoji": "🎀",
+   "name": "Gift Wrap",
+   "price": 75,
+   "stock": 5,
+   "shelf": "Odds & Ends",
+   "desc": "Your next gift has no fee.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "megaphone",
+   "emoji": "📣",
+   "name": "Megaphone",
+   "price": 1000,
+   "stock": 1,
+   "shelf": "Odds & Ends",
+   "desc": "An ad for your player company in the market news feed.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "title",
+   "emoji": "🏷️",
+   "name": "Title",
+   "price": 5000,
+   "stock": 1,
+   "shelf": "Odds & Ends",
+   "desc": "A custom title on your profile. Set it with /settitle.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "rod",
+   "emoji": "🎣",
+   "name": "Fishing Rod",
+   "price": 300,
+   "stock": 5,
+   "shelf": "Bait & Tackle",
+   "desc": "Lets you fish. Yours for good. Each cast costs ⬡5 of bait.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "lure",
+   "emoji": "🪝",
+   "name": "Lure",
+   "price": 300,
+   "stock": 4,
+   "shelf": "Bait & Tackle",
+   "desc": "No bait needed for 25 casts, and bigger fish bite more often.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "seed_carrot",
+   "emoji": "🥕",
+   "name": "Carrot Seeds",
+   "price": 10,
+   "stock": 40,
+   "shelf": "Garden",
+   "desc": "Plant with /plant carrot. Ready in 30 minutes.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "seed_corn",
+   "emoji": "🌽",
+   "name": "Corn Seeds",
+   "price": 25,
+   "stock": 30,
+   "shelf": "Garden",
+   "desc": "Plant with /plant corn. Ready in 2 hours.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "seed_tomato",
+   "emoji": "🍅",
+   "name": "Tomato Seeds",
+   "price": 40,
+   "stock": 20,
+   "shelf": "Garden",
+   "desc": "Plant with /plant tomato. Ready in 4 hours, and it gives 3 harvests.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "seed_pumpkin",
+   "emoji": "🎃",
+   "name": "Pumpkin Seeds",
+   "price": 60,
+   "stock": 15,
+   "shelf": "Garden",
+   "desc": "Plant with /plant pumpkin. Ready in 12 hours.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "seed_polyfruit",
+   "emoji": "✨",
+   "name": "Polygon Fruit Seeds",
+   "price": 400,
+   "stock": 2,
+   "shelf": "Garden",
+   "desc": "Plant with /plant polyfruit. Ready in 24 hours.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "fertilizer",
+   "emoji": "🧪",
+   "name": "Fertilizer",
+   "price": 60,
+   "stock": 10,
+   "shelf": "Garden",
+   "desc": "Crops grow 50% faster and come out Prime more often. /fertilize does every growing crop; your farmhand can use it too.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "scarecrow",
+   "emoji": "🧑‍🌾",
+   "name": "Scarecrow",
+   "price": 400,
+   "stock": 3,
+   "shelf": "Garden",
+   "desc": "Chases crows off your whole farm. Works on its own.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "greenhouse",
+   "emoji": "🏡",
+   "name": "Greenhouse",
+   "price": 4000,
+   "stock": 1,
+   "shelf": "Garden",
+   "desc": "Storms can't touch your crops. Works on its own.",
+   "passive": true,
+   "unlock": false
+  },
+  {
+   "id": "kit",
+   "emoji": "🎨",
+   "name": "Profile Customizer Kit",
+   "price": 1500,
+   "stock": 3,
+   "shelf": "Profile",
+   "desc": "Unlocks customizing your profile, for good.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "paint_holo",
+   "emoji": "🌈",
+   "name": "Holographic Paint",
+   "price": 5000,
+   "stock": 2,
+   "shelf": "Profile",
+   "desc": "Shifts through every color. A profile theme, yours forever.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "paint_terminal",
+   "emoji": "🖥️",
+   "name": "TODD Terminal Paint",
+   "price": 3000,
+   "stock": 2,
+   "shelf": "Profile",
+   "desc": "Green on black, like TODD sees the world.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "paint_sunset",
+   "emoji": "🌇",
+   "name": "Sunset Paint",
+   "price": 3000,
+   "stock": 2,
+   "shelf": "Profile",
+   "desc": "Warm orange and pink.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "paint_void",
+   "emoji": "🕳️",
+   "name": "Void Paint",
+   "price": 3000,
+   "stock": 2,
+   "shelf": "Profile",
+   "desc": "Black and white. Nothing else.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "paint_goldrush",
+   "emoji": "🪙",
+   "name": "Gold Rush Paint",
+   "price": 4000,
+   "stock": 2,
+   "shelf": "Profile",
+   "desc": "Shimmering gold, for the rich (or the hopeful).",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "chess_gambit",
+   "emoji": "👑",
+   "name": "Iso-Chess: The Gambit",
+   "price": 1500,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Unlocks the Gambit opening: a Queen up front, First Blood and extra energy.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "chess_fortress",
+   "emoji": "🏰",
+   "name": "Iso-Chess: The Fortress",
+   "price": 1500,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Unlocks the Fortress opening: two Rooks that pawns can't touch.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "chess_cavalry",
+   "emoji": "🐎",
+   "name": "Iso-Chess: The Cavalry",
+   "price": 2000,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Unlocks the Cavalry opening: three Knights and a King who rides like one.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "skin_obsidian",
+   "emoji": "⚫",
+   "name": "Iso-Chess: Obsidian Pieces",
+   "price": 800,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Black pieces with gold edges, for your Iso-Chess army.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "skin_jade",
+   "emoji": "🟢",
+   "name": "Iso-Chess: Jade Pieces",
+   "price": 800,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Green jade pieces for your Iso-Chess army.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "skin_crimson",
+   "emoji": "🔴",
+   "name": "Iso-Chess: Crimson Pieces",
+   "price": 800,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Red pieces for your Iso-Chess army.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "skin_frost",
+   "emoji": "🔵",
+   "name": "Iso-Chess: Frost Pieces",
+   "price": 800,
+   "stock": 3,
+   "shelf": "Iso-Chess",
+   "desc": "Ice-blue pieces for your Iso-Chess army.",
+   "passive": true,
+   "unlock": true
+  },
+  {
+   "id": "paint_candycane",
+   "emoji": "🍬",
+   "name": "Candy Cane Paint",
+   "price": 3000,
+   "stock": 2,
+   "shelf": "Holiday",
+   "desc": "Red and white stripes. Only in December.",
+   "passive": false,
+   "unlock": false
+  },
+  {
+   "id": "paint_frost",
+   "emoji": "❄️",
+   "name": "Frost Paint",
+   "price": 3000,
+   "stock": 2,
+   "shelf": "Holiday",
+   "desc": "Ice blue, with snow on the banner. Only in December.",
+   "passive": false,
+   "unlock": false
+  }
+ ],
+ "collectibles": [
+  {
+   "id": "col_nacho",
+   "emoji": "🧀",
+   "name": "The Golden Nacho",
+   "price": 2500,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "De Nacho's first nacho, dipped in gold. Do not eat."
+  },
+  {
+   "id": "col_todd",
+   "emoji": "🖥️",
+   "name": "TODD Bobblehead",
+   "price": 2500,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "Nods at everything you say. Like TODD, but nicer."
+  },
+  {
+   "id": "col_cart",
+   "emoji": "👾",
+   "name": "Signed BSTG Cartridge",
+   "price": 3000,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "Signed by the whole Bastardly Glory dev team. It still has bugs."
+  },
+  {
+   "id": "col_polygon",
+   "emoji": "🔶",
+   "name": "The First Polygon",
+   "price": 5000,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "Minted on day one. Probably."
+  },
+  {
+   "id": "col_gavel",
+   "emoji": "🔨",
+   "name": "Render Room Mod Gavel",
+   "price": 2500,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "Used in the first ever ban. Still warm."
+  },
+  {
+   "id": "col_brick",
+   "emoji": "🧱",
+   "name": "The BLU Gold Brick",
+   "price": 3000,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "The cornerstone of the first BLU build."
+  },
+  {
+   "id": "col_abacus",
+   "emoji": "🧮",
+   "name": "The BNW Abacus",
+   "price": 2500,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "BNW's original computer. Faster than the new one."
+  },
+  {
+   "id": "col_coin",
+   "emoji": "🪙",
+   "name": "Marquez's Lucky Coin",
+   "price": 4000,
+   "stock": 3,
+   "shelf": "Collectible",
+   "desc": "Marquez swears it's lucky. Marquez also swears it's not for sale."
+  },
+  {
+   "id": "col_ornament",
+   "emoji": "🔴",
+   "name": "Polygon Ornament",
+   "price": 500,
+   "stock": 5,
+   "shelf": "Holiday",
+   "desc": "A glass Polygon for the tree. Handle with care."
+  },
+  {
+   "id": "col_gingerbread",
+   "emoji": "🍪",
+   "name": "Gingerbread TODD",
+   "price": 800,
+   "stock": 5,
+   "shelf": "Holiday",
+   "desc": "TODD, in gingerbread. He looks smug about it."
+  },
+  {
+   "id": "col_snowglobe",
+   "emoji": "🔮",
+   "name": "Snow Globe",
+   "price": 1500,
+   "stock": 4,
+   "shelf": "Holiday",
+   "desc": "A tiny Render Room, snowing forever."
+  },
+  {
+   "id": "col_nutcracker",
+   "emoji": "💂",
+   "name": "Nutcracker",
+   "price": 2000,
+   "stock": 3,
+   "shelf": "Holiday",
+   "desc": "Stands guard over your Polygons."
+  },
+  {
+   "id": "col_startopper",
+   "emoji": "⭐",
+   "name": "Star Topper",
+   "price": 0,
+   "stock": 0,
+   "shelf": "Holiday",
+   "desc": "Only behind the last door of the advent calendar."
+  }
+ ],
+ "shop": {
+  "restockHours": 1,
+  "mystery": [
+   75,
+   100
+  ]
+ },
+ "rarity": {
+  "common": {
+   "label": "Common",
+   "emoji": "⚪",
+   "pay": 250
+  },
+  "rare": {
+   "label": "Rare",
+   "emoji": "🔵",
+   "pay": 1000
+  },
+  "epic": {
+   "label": "Epic",
+   "emoji": "🟣",
+   "pay": 2500
+  },
+  "legendary": {
+   "label": "Legendary",
+   "emoji": "🟡",
+   "pay": 7500
+  },
+  "mythic": {
+   "label": "Mythic",
+   "emoji": "🌈",
+   "pay": 250000
+  }
+ },
+ "achievements": [
+  {
+   "id": "first_paycheck",
+   "name": "First Paycheck",
+   "desc": "Work your first shift",
+   "category": "Getting started",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "day_one",
+   "name": "Day One",
+   "desc": "Claim a daily",
+   "category": "Getting started",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "shareholder",
+   "name": "Shareholder",
+   "desc": "Buy your first share",
+   "category": "Getting started",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "diversified",
+   "name": "Diversified",
+   "desc": "Own shares in all five companies at once",
+   "category": "Getting started",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "buy_the_dip",
+   "name": "Buy the Dip",
+   "desc": "Buy shares during a market crash",
+   "category": "Market",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "diamond_hands",
+   "name": "Diamond Hands",
+   "desc": "Hold shares from before a crash until its recovery is over",
+   "category": "Market",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "paper_hands",
+   "name": "Paper Hands",
+   "desc": "Sell shares for half of what you paid, or less",
+   "category": "Market",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "time_well_spent",
+   "name": "Time Well Spent",
+   "desc": "Hold shares for a week, then sell them for more than you paid",
+   "category": "Market",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "wiped_out",
+   "name": "Wiped Out",
+   "desc": "Lose shares to a bankruptcy",
+   "category": "Market",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "dividend_collector",
+   "name": "Dividend Collector",
+   "desc": "Collect ⬡1,000 in dividends",
+   "category": "Market",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "millionaire",
+   "name": "Millionaire",
+   "desc": "Reach a net worth of ⬡1,000,000",
+   "category": "Market",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "bear",
+   "name": "Bear",
+   "desc": "Open a short",
+   "category": "Market",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "big_short",
+   "name": "The Big Short",
+   "desc": "Make ⬡1,000 on one short",
+   "category": "Market",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "margin_call",
+   "name": "Margin Call",
+   "desc": "Get a short covered for you",
+   "category": "Market",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "nest_egg",
+   "name": "Nest Egg",
+   "desc": "Let a savings account run to the end",
+   "category": "Market",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "hired_help",
+   "name": "Hired Help",
+   "desc": "Hire a broker",
+   "category": "Market",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "set_and_forget",
+   "name": "Set It and Forget It",
+   "desc": "Have a limit order fill",
+   "category": "Market",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "youre_fired",
+   "name": "You're Fired",
+   "desc": "Have a broker quit because you couldn't pay them",
+   "category": "Market",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "promoted",
+   "name": "Promoted",
+   "desc": "Get promoted at a performance review",
+   "category": "Jobs",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "top_of_the_ladder",
+   "name": "Top of the Ladder",
+   "desc": "Reach the top rank at a company",
+   "category": "Jobs",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "perfect_review",
+   "name": "Perfect Review",
+   "desc": "Score 10/10 at a performance review",
+   "category": "Jobs",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "rush_hour",
+   "name": "Rush Hour",
+   "desc": "Clear 5 rush rounds in a row",
+   "category": "Jobs",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "team_player",
+   "name": "Team Player",
+   "desc": "Work 10 team shifts",
+   "category": "Jobs",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "solidarity",
+   "name": "Solidarity",
+   "desc": "Join a strike",
+   "category": "Jobs",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "scab",
+   "name": "Scab",
+   "desc": "Cross a picket line",
+   "category": "Jobs",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "pink_slip",
+   "name": "Pink Slip",
+   "desc": "Get laid off",
+   "category": "Jobs",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "jack_of_all_trades",
+   "name": "Jack of All Trades",
+   "desc": "Work at all five companies",
+   "category": "Jobs",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "gig_economy",
+   "name": "Gig Economy",
+   "desc": "Do 25 gigs",
+   "category": "Jobs",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "beginners_luck",
+   "name": "Beginner's Luck",
+   "desc": "Win your first casino game",
+   "category": "Rend-Sino",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "high_roller",
+   "name": "High Roller",
+   "desc": "Place a maximum bet",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "natural",
+   "name": "Natural",
+   "desc": "Get a blackjack",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "bus_driver",
+   "name": "Bus Driver",
+   "desc": "Ride the Bus all four rounds",
+   "category": "Rend-Sino",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "field_cleared",
+   "name": "Field Cleared",
+   "desc": "Clear a whole Minesweeper field",
+   "category": "Rend-Sino",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "straight_up",
+   "name": "Straight Up",
+   "desc": "Win a roulette bet on a single number",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "escorted_out",
+   "name": "Escorted Out",
+   "desc": "Win so many games in a row that TODD throws you out of the Rend-Sino",
+   "category": "Rend-Sino",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "moon_shot",
+   "name": "Moon Shot",
+   "desc": "Cash out a Rocket at 10x or more",
+   "category": "Rend-Sino",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "photo_finish",
+   "name": "Photo Finish",
+   "desc": "Win a Polygon Derby bet",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "jackpot",
+   "name": "Jackpot",
+   "desc": "Win the lottery",
+   "category": "Rend-Sino",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "down_bad",
+   "name": "Down Bad",
+   "desc": "Lose 10 casino games in a row",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "first_catch",
+   "name": "Gone Fishin'",
+   "desc": "Catch your first fish",
+   "category": "Fishing",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "moby_dick",
+   "name": "Moby Dick",
+   "desc": "Catch a whale",
+   "category": "Fishing",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "bigger_fish",
+   "name": "There's Always a Bigger Fish",
+   "desc": "Use a fish as bait and catch a bigger one",
+   "category": "Fishing",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "fish_in_the_sea",
+   "name": "Plenty of Fish in the Sea",
+   "desc": "Catch 200 fish",
+   "category": "Fishing",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "crew_up",
+   "name": "Crew Up",
+   "desc": "Pull off a heist",
+   "category": "Heists & Schemes",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "red_handed",
+   "name": "Red-Handed",
+   "desc": "Get caught in a heist",
+   "category": "Heists & Schemes",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "dream_team",
+   "name": "Dream Team",
+   "desc": "Pull off a heist with a full crew of 5 and every role",
+   "category": "Heists & Schemes",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "inside_job",
+   "name": "Inside Job",
+   "desc": "Rob the Polygon Reserve",
+   "category": "Heists & Schemes",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "hostile",
+   "name": "Hostile Takeover",
+   "desc": "Take over a player company",
+   "category": "Heists & Schemes",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "poison_pill",
+   "name": "Poison Pill",
+   "desc": "Fight off a takeover of your company",
+   "category": "Heists & Schemes",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "merger",
+   "name": "Better Together",
+   "desc": "Merge two companies",
+   "category": "Heists & Schemes",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "generous",
+   "name": "Generous",
+   "desc": "Gift ⬡1,000 in total",
+   "category": "Social",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "patron",
+   "name": "Patron",
+   "desc": "Donate ⬡1,000 to the Polygon Reserve in total",
+   "category": "Social",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "pillar_of_the_economy",
+   "name": "Pillar of the Economy",
+   "desc": "Donate ⬡25,000 to the Polygon Reserve in total",
+   "category": "Social",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "loan_shark",
+   "name": "Loan Shark",
+   "desc": "Lend Polygons at 25% a day",
+   "category": "Social",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "debt_free",
+   "name": "Debt Free",
+   "desc": "Pay TODD back in full",
+   "category": "Social",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "merciful",
+   "name": "Merciful",
+   "desc": "Forgive a loan",
+   "category": "Social",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "quick_draw",
+   "name": "Quick Draw",
+   "desc": "Win a TODD drop-in",
+   "category": "Social",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "chatterbox",
+   "name": "Chatterbox",
+   "desc": "Earn ⬡2,500 from chat pay",
+   "category": "Social",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "founder",
+   "name": "Founder",
+   "desc": "Found a company",
+   "category": "Companies",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "going_public",
+   "name": "Going Public",
+   "desc": "Take your company public",
+   "category": "Companies",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "conglomerate",
+   "name": "Conglomerate",
+   "desc": "Grow your company into a Conglomerate",
+   "category": "Companies",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "green_thumb",
+   "name": "Green Thumb",
+   "desc": "Harvest your first crop",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "great_pumpkin",
+   "name": "The Great Pumpkin",
+   "desc": "Harvest 25 pumpkins",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "whats_up_doc",
+   "name": "What's Up, Doc?",
+   "desc": "Harvest 100 carrots",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "ketchup",
+   "name": "Ketchup",
+   "desc": "Get all 3 harvests from one tomato plant",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "early_bird",
+   "name": "Early Bird",
+   "desc": "Harvest a crop within a minute of it being ready",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "patience",
+   "name": "Patience Is a Virtue",
+   "desc": "Grow a Polygon Fruit without it ever going thirsty",
+   "category": "Farming",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "something_for_everyone",
+   "name": "Something for Everyone",
+   "desc": "Have every crop growing at once",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "midas_touch",
+   "name": "Midas Touch",
+   "desc": "Harvest a golden crop",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "look_at_spookly",
+   "name": "Look at Spookly!",
+   "desc": "Harvest a square pumpkin",
+   "category": "Farming",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "lucky_harvest",
+   "name": "Lucky Harvest",
+   "desc": "Harvest 2 mutated crops at once",
+   "category": "Farming",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "taste_the_rainbow",
+   "name": "Taste the Rainbow",
+   "desc": "Harvest a rainbow version of every crop",
+   "category": "Farming",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "brown_thumb",
+   "name": "Brown Thumb",
+   "desc": "Let a crop wilt",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "bird_brain",
+   "name": "Bird Brain",
+   "desc": "Lose a crop to crows",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "scarecrow_season",
+   "name": "Scarecrow Season",
+   "desc": "Have your Scarecrow chase off 25 crows",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "full_acreage",
+   "name": "Honest Fields",
+   "desc": "Own 9 plots",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "fifteen_acres",
+   "name": "Fifteen Acres",
+   "desc": "Own all 15 plots (with a Barn)",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "farmhand_of_the_year",
+   "name": "Farmhand of the Year",
+   "desc": "Have your farmhand harvest 500 crops",
+   "category": "Farming",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "quality_control",
+   "name": "Quality Control",
+   "desc": "Harvest a Prime crop",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "cream_of_the_crop",
+   "name": "Cream of the Crop",
+   "desc": "Harvest a crop that is Prime and Golden or Rainbow",
+   "category": "Farming",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "buy_low_sell_high",
+   "name": "Buy Low, Sell High",
+   "desc": "Sell a crop for 50% over its value with Cold Storage",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "farm_to_table",
+   "name": "Farm to Table",
+   "desc": "Harvest, fish and work a shift in one day",
+   "category": "Farming",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "one_mans_trash",
+   "name": "One Man's Trash",
+   "desc": "Compost a Soggy Boot",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "full_circle",
+   "name": "Full Circle",
+   "desc": "Catch a fish using a carrot as bait",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "bumper_crop",
+   "name": "Bumper Crop",
+   "desc": "Harvest 500 crops",
+   "category": "Farming",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "cash_crop",
+   "name": "Cash Crop",
+   "desc": "Earn ⬡100,000 selling crops",
+   "category": "Farming",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "forbidden_fruit",
+   "name": "Forbidden Fruit",
+   "desc": "Harvest a Polygon Fruit",
+   "category": "Farming",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "secret_santa",
+   "name": "Secret Santa",
+   "desc": "Give your Secret Santa gift",
+   "category": "Polygon Holidays",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "every_door",
+   "name": "Every Door",
+   "desc": "Open all 25 doors of the advent calendar",
+   "category": "Polygon Holidays",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "regift",
+   "name": "Regift",
+   "desc": "Give a holiday collectible as your Secret Santa gift",
+   "category": "Polygon Holidays",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "dealmaker",
+   "name": "Dealmaker",
+   "desc": "Complete a trade with another player",
+   "category": "Social",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "odd_one_out",
+   "name": "Odd One Out",
+   "desc": "Finish 50 odd jobs",
+   "category": "Jobs",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "gentleman_farmer",
+   "name": "Gentleman Farmer",
+   "desc": "Hire a Farmhand",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "redemption_arc",
+   "name": "Redemption Arc",
+   "desc": "Win back a lost slots bet with Redeem yourself",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "first_home",
+   "name": "First Home",
+   "desc": "Build your first property",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "eminent_domain",
+   "name": "Eminent Domain",
+   "desc": "Have your old lot plowed down (and refunded) for the new city",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "groundbreaking",
+   "name": "Groundbreaking",
+   "desc": "Finish your first building",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "landlord",
+   "name": "Landlord",
+   "desc": "Own 3 buildings at once",
+   "category": "Real estate",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "lord_of_the_manor",
+   "name": "Lord of the Manor",
+   "desc": "Finish a Mansion",
+   "category": "Real estate",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "fixer_upper",
+   "name": "Fixer-Upper",
+   "desc": "Repair a property from under 25% to 100% in one go",
+   "category": "Real estate",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "full_house",
+   "name": "Full House",
+   "desc": "Own three of the same building in a row",
+   "category": "Real estate",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "good_neighbors",
+   "name": "Good Neighbors",
+   "desc": "Own every tile around one of your buildings",
+   "category": "Real estate",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "urban_sprawl",
+   "name": "Urban Sprawl",
+   "desc": "Own 10 buildings",
+   "category": "Real estate",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "skyline",
+   "name": "Skyline",
+   "desc": "Upgrade a building to the top level",
+   "category": "Real estate",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "mogul",
+   "name": "Mogul",
+   "desc": "Own one of every building at once",
+   "category": "Real estate",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "green_space",
+   "name": "Green Space",
+   "desc": "Build a Park",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "monopoly",
+   "name": "Monopoly, Baby!",
+   "desc": "Own 16 tiles of the map",
+   "category": "Real estate",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "all_aboard",
+   "name": "All Aboard!",
+   "desc": "Build your first Station",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "transcontinental",
+   "name": "Transcontinental",
+   "desc": "Have 8 of your buildings within reach of your Stations",
+   "category": "Real estate",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "special_delivery",
+   "name": "Special Delivery",
+   "desc": "Ship a freight train",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "great_train_robbery",
+   "name": "The Great Train Robbery",
+   "desc": "Rob a freight train",
+   "category": "Heists & Schemes",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "smokestack",
+   "name": "Smokestack",
+   "desc": "Build a Factory",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "industrial_revolution",
+   "name": "Industrial Revolution",
+   "desc": "Make 1,000 Goods",
+   "category": "Real estate",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "old_macdonald",
+   "name": "Old MacDonald",
+   "desc": "Build a Barn",
+   "category": "Farming",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "law_and_order",
+   "name": "Law and Order",
+   "desc": "Build a Police Station",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "not_on_my_watch",
+   "name": "Not on My Watch",
+   "desc": "Keep the Connector off your block for 7 nights",
+   "category": "No Questions Asked",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "brick_by_brick",
+   "name": "Brick by Brick",
+   "desc": "Donate to a landmark",
+   "category": "Real estate",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "ribbon_cutting",
+   "name": "Ribbon Cutting",
+   "desc": "Help finish a landmark",
+   "category": "Real estate",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "foreman",
+   "name": "Foreman",
+   "desc": "Be the top donor on a finished landmark",
+   "category": "Real estate",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "we_have_liftoff",
+   "name": "We Have Liftoff",
+   "desc": "Help finish the Rocket",
+   "category": "Real estate",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "progressive",
+   "name": "Progressive",
+   "desc": "Win the progressive jackpot",
+   "category": "Rend-Sino",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "high_society",
+   "name": "High Society",
+   "desc": "Reach Diamond VIP",
+   "category": "Rend-Sino",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "house_party",
+   "name": "House Party",
+   "desc": "Win a hand at a blackjack table with 3 or more players",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "fun_again",
+   "name": "Fun Again",
+   "desc": "Play every Rend-Sino game in one day",
+   "category": "Rend-Sino",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "password_please",
+   "name": "Password, Please",
+   "desc": "Get into the Underground on a password night",
+   "category": "No Questions Asked",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "busted",
+   "name": "Busted!",
+   "desc": "Get raided by TODD",
+   "category": "No Questions Asked",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "fence_sitter",
+   "name": "Fence Sitter",
+   "desc": "Fence 5 pieces of hot loot",
+   "category": "No Questions Asked",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "most_wanted",
+   "name": "Most Wanted",
+   "desc": "Reach five stars of Heat",
+   "category": "No Questions Asked",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "smugglers_run",
+   "name": "Smuggler's Run",
+   "desc": "Land 10 smuggling runs",
+   "category": "No Questions Asked",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "clean_hands",
+   "name": "Clean Hands",
+   "desc": "Spend ⬡50,000 in the Underground without ever being raided",
+   "category": "No Questions Asked",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "secret-130",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "secret-131",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "secret-132",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "common",
+   "secret": true
+  },
+  {
+   "id": "secret-133",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "common",
+   "secret": true
+  },
+  {
+   "id": "secret-134",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "secret-135",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "epic",
+   "secret": true
+  },
+  {
+   "id": "secret-136",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "secret-137",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "legendary",
+   "secret": true
+  },
+  {
+   "id": "completionist",
+   "name": "Completionist",
+   "desc": "Unlock every other achievement",
+   "category": "Mastery",
+   "rarity": "mythic",
+   "secret": false
+  }
+ ],
+ "work": {
+  "companies": [
+   {
+    "ticker": "RRM",
+    "name": "Render Room",
+    "role": "moderation duty",
+    "ranks": [
+     "Trial Mod",
+     "Moderator",
+     "Senior Mod",
+     "Admin"
+    ]
+   },
+   {
+    "ticker": "NACH",
+    "name": "De Nacho",
+    "role": "the nacho line",
+    "ranks": [
+     "Dishwasher",
+     "Line Cook",
+     "Sous Chef",
+     "Head Chef"
+    ]
+   },
+   {
+    "ticker": "BLU",
+    "name": "Builder's League United",
+    "role": "the build crew",
+    "ranks": [
+     "Apprentice",
+     "Builder",
+     "Foreman",
+     "Architect"
+    ]
+   },
+   {
+    "ticker": "BNW",
+    "name": "Business Numbers Working",
+    "role": "number crunching",
+    "ranks": [
+     "Intern",
+     "Analyst",
+     "Accountant",
+     "CFO"
+    ]
+   },
+   {
+    "ticker": "BSTG",
+    "name": "Bastardly Glory",
+    "role": "playtesting",
+    "ranks": [
+     "Playtester",
+     "Bug Hunter",
+     "QA Lead",
+     "Game Director"
+    ]
+   }
+  ],
+  "rankPay": [
+   1,
+   1.25,
+   1.5,
+   2
+  ],
+  "basePay": 35,
+  "workMinutes": 15,
+  "gigMinutes": 10,
+  "gigShare": 0.4,
+  "review": {
+   "every": 10,
+   "promote": 8,
+   "demote": 4,
+   "topBonusShifts": 5
+  },
+  "team": {
+   "each": 0.15,
+   "max": 3
+  },
+  "rushChance": 0.2,
+  "maxRush": 5,
+  "tipMax": 0.5,
+  "missShare": 0.4,
+  "quitLockHours": 24
+ },
+ "chatter": {
+  "min": 5,
+  "max": 15,
+  "perDay": 300,
+  "dropChance": 0.03
+ },
+ "savings": {
+  "plans": {
+   "3": 200,
+   "7": 600,
+   "14": 1500
+  },
+  "min": 100,
+  "maxTotal": 50000,
+  "maxAccounts": 3
+ },
+ "loans": {
+  "toddLend": 500,
+  "toddOwe": 600,
+  "toddBelow": 100,
+  "maxRate": 25,
+  "termDays": 7,
+  "garnish": 0.5
+ },
+ "market": {
+  "orders": {
+   "max": 10,
+   "expireDays": 7
+  },
+  "shorts": {
+   "maxShares": 100,
+   "margin": 0.5,
+   "fee": 0.01,
+   "call": 0.9
+  },
+  "brokers": {
+   "cap": 25,
+   "traits": [
+    {
+     "label": "Steady",
+     "emoji": "😐",
+     "salary": 100,
+     "cut": 0.1,
+     "desc": "Does exactly what you say. No surprises."
+    },
+    {
+     "label": "Cautious",
+     "emoji": "🐢",
+     "salary": 75,
+     "cut": 0.08,
+     "desc": "Cheaper, but only acts every other tick, so trades land a little late."
+    },
+    {
+     "label": "Aggressive",
+     "emoji": "🐺",
+     "salary": 150,
+     "cut": 0.15,
+     "desc": "Buys fast and big. Takes a bigger cut for the trouble."
+    },
+    {
+     "label": "Gambler",
+     "emoji": "🎲",
+     "salary": 60,
+     "cut": 0.1,
+     "desc": "The cheapest. Every so often makes a trade you never asked for."
+    }
+   ]
+  }
+ },
+ "companies": {
+  "levels": [
+   {
+    "name": "Startup",
+    "cost": 2500,
+    "upkeep": 25,
+    "payMult": 1
+   },
+   {
+    "name": "Small Business",
+    "cost": 5000,
+    "upkeep": 50,
+    "payMult": 1.1
+   },
+   {
+    "name": "Firm",
+    "cost": 12000,
+    "upkeep": 100,
+    "payMult": 1.2
+   },
+   {
+    "name": "Corporation",
+    "cost": 30000,
+    "upkeep": 200,
+    "payMult": 1.35
+   },
+   {
+    "name": "Conglomerate",
+    "cost": 75000,
+    "upkeep": 400,
+    "payMult": 1.5
+   }
+  ],
+  "ipoLevel": 3,
+  "listingFee": 2000,
+  "totalShares": 1000,
+  "float": 400,
+  "takeover": {
+   "stake": 0.5,
+   "premium": 0.25,
+   "poisonPill": 0.1,
+   "bidMs": 86400000,
+   "mergeMs": 86400000,
+   "shieldMs": 604800000,
+   "breakFee": 0.2
+  }
+ },
+ "casino": {
+  "games": [
+   {
+    "id": "slots",
+    "name": "🎰 Slots",
+    "odds": "Three of a kind: 🍒 3x · 🍋 5x · 🔔 8x · 🔺 10x · 💎 25x. Any pair returns the bet. Three 💎 also win the **progressive jackpot** (all of it at the max bet, a share of it below). Lose, and **Redeem yourself** spins 15 reels: 7 of a kind (about 9%) wins the bet back. Expected return: 93.2% before the jackpot.",
+    "maxBet": 1000
+   },
+   {
+    "id": "coinflip",
+    "name": "🪙 Coinflip",
+    "odds": "A correct call pays 1.95x. Expected return: 97.5%.",
+    "maxBet": 2500
+   },
+   {
+    "id": "dice",
+    "name": "🎲 Dice",
+    "odds": "Pays 96% of the fair odds for the chosen range. Expected return: 96%.",
+    "maxBet": 2500
+   },
+   {
+    "id": "roulette",
+    "name": "🎡 Roulette",
+    "odds": "Red/black, odd/even, low/high pay 2x; dozens pay 3x; a single number pays 36x. The green 0 is the edge. Expected return: 97.3%.",
+    "maxBet": 2500
+   },
+   {
+    "id": "blackjack",
+    "name": "🃏 Blackjack",
+    "odds": "A win pays 2x, a blackjack 2.5x, a tie returns the bet. TODD stands on 17. Expected return: about 99% with good play.",
+    "maxBet": 2500
+   },
+   {
+    "id": "hilo",
+    "name": "🔼 Higher or Lower",
+    "odds": "Each correct guess multiplies by 96% of its fair odds (capped at 100x). Expected return: 96% per guess.",
+    "maxBet": 2500
+   },
+   {
+    "id": "mines",
+    "name": "💣 Minesweeper",
+    "odds": "Each safe tile multiplies by 96% of its fair odds. Expected return: 96%.",
+    "maxBet": 2500
+   },
+   {
+    "id": "rocket",
+    "name": "🚀 Rocket",
+    "odds": "The chance of reaching a multiplier x is 96% ÷ x (capped at 50x, or 100x in a server that built the Rocket). Expected return: 96%.",
+    "maxBet": 2500
+   }
+  ],
+  "minBet": 10,
+  "hotStreak": 10,
+  "banHours": 3,
+  "jackpot": {
+   "seed": 10000,
+   "cut": 0.01,
+   "happyCut": 0.03
+  },
+  "vip": [
+   {
+    "name": "Bronze",
+    "emoji": "🥉",
+    "at": 25000,
+    "spin": 50
+   },
+   {
+    "name": "Silver",
+    "emoji": "🥈",
+    "at": 100000,
+    "spin": 100
+   },
+   {
+    "name": "Gold",
+    "emoji": "🥇",
+    "at": 500000,
+    "spin": 250
+   },
+   {
+    "name": "Platinum",
+    "emoji": "💿",
+    "at": 2000000,
+    "spin": 500
+   },
+   {
+    "name": "Diamond",
+    "emoji": "💎",
+    "at": 10000000,
+    "spin": 1000
+   }
+  ]
+ },
+ "heists": {
+  "roles": [
+   {
+    "label": "Hacker",
+    "emoji": "💻",
+    "odds": 0.1,
+    "haul": 0
+   },
+   {
+    "label": "Driver",
+    "emoji": "🚗",
+    "odds": 0.03,
+    "haul": 0
+   },
+   {
+    "label": "Lookout",
+    "emoji": "👀",
+    "odds": 0.08,
+    "haul": 0
+   },
+   {
+    "label": "Muscle",
+    "emoji": "💪",
+    "odds": 0.05,
+    "haul": 0.2
+   }
+  ],
+  "targets": [
+   {
+    "id": "vault",
+    "label": "a company vault",
+    "emoji": "🏦",
+    "odds": 0.45,
+    "stake": 250,
+    "haul": [
+     3000,
+     6000
+    ],
+    "needs": null
+   },
+   {
+    "id": "stash",
+    "label": "TODD's stash",
+    "emoji": "🖥️",
+    "odds": 0.4,
+    "stake": 400,
+    "haul": [
+     4000,
+     9000
+    ],
+    "needs": null
+   },
+   {
+    "id": "reserve",
+    "label": "the Polygon Reserve",
+    "emoji": "🔶",
+    "odds": 0.25,
+    "stake": 750,
+    "haul": [
+     15000,
+     30000
+    ],
+    "needs": "hacker"
+   },
+   {
+    "id": "train",
+    "label": "a freight train",
+    "emoji": "🚂",
+    "odds": 0.5,
+    "stake": 300,
+    "haul": [
+     2000,
+     8000
+    ],
+    "needs": null
+   }
+  ],
+  "rules": {
+   "minCrew": 3,
+   "maxCrew": 5,
+   "playerGapHours": 6,
+   "serverGapHours": 1,
+   "fine": 2,
+   "getaway": 0.5
+  }
+ },
+ "fishing": {
+  "cooldownMinutes": 3,
+  "bait": 5,
+  "lureCasts": 25,
+  "bagMax": 50,
+  "sizes": [
+   "Junk",
+   "Small",
+   "Medium",
+   "Large",
+   "Legendary"
+  ],
+  "catch": [
+   {
+    "id": "boot",
+    "emoji": "🥾",
+    "name": "Soggy Boot",
+    "size": "Junk",
+    "value": 2
+   },
+   {
+    "id": "can",
+    "emoji": "🥫",
+    "name": "Rusty Can",
+    "size": "Junk",
+    "value": 1
+   },
+   {
+    "id": "tire",
+    "emoji": "🛞",
+    "name": "Old Tire",
+    "size": "Junk",
+    "value": 4
+   },
+   {
+    "id": "controller",
+    "emoji": "🎮",
+    "name": "Waterlogged Controller",
+    "size": "Junk",
+    "value": 8
+   },
+   {
+    "id": "minnow",
+    "emoji": "🐟",
+    "name": "Minnow",
+    "size": "Small",
+    "value": 6
+   },
+   {
+    "id": "bluegill",
+    "emoji": "🐟",
+    "name": "Bluegill",
+    "size": "Small",
+    "value": 9
+   },
+   {
+    "id": "perch",
+    "emoji": "🐟",
+    "name": "Perch",
+    "size": "Small",
+    "value": 12
+   },
+   {
+    "id": "bass",
+    "emoji": "🐠",
+    "name": "Largemouth Bass",
+    "size": "Medium",
+    "value": 25
+   },
+   {
+    "id": "trout",
+    "emoji": "🐠",
+    "name": "Rainbow Trout",
+    "size": "Medium",
+    "value": 30
+   },
+   {
+    "id": "catfish",
+    "emoji": "🐠",
+    "name": "Catfish",
+    "size": "Medium",
+    "value": 40
+   },
+   {
+    "id": "pike",
+    "emoji": "🦈",
+    "name": "Northern Pike",
+    "size": "Large",
+    "value": 80
+   },
+   {
+    "id": "salmon",
+    "emoji": "🦈",
+    "name": "King Salmon",
+    "size": "Large",
+    "value": 110
+   },
+   {
+    "id": "sturgeon",
+    "emoji": "🦈",
+    "name": "Lake Sturgeon",
+    "size": "Large",
+    "value": 160
+   },
+   {
+    "id": "koi",
+    "emoji": "✨",
+    "name": "Golden Polygon Koi",
+    "size": "Legendary",
+    "value": 1000
+   },
+   {
+    "id": "whale",
+    "emoji": "🐋",
+    "name": "White Whale",
+    "size": "Legendary",
+    "value": 1500
+   }
+  ],
+  "tables": {
+   "1": {
+    "1": 15,
+    "2": 25,
+    "3": 6.5,
+    "4": 0.5,
+    "nothing": 30,
+    "snag": 12,
+    "junk": 10,
+    "wallet": 1
+   },
+   "2": {
+    "1": 8,
+    "2": 20,
+    "3": 16,
+    "4": 1,
+    "nothing": 32,
+    "snag": 14,
+    "junk": 8,
+    "wallet": 1
+   },
+   "3": {
+    "1": 0,
+    "2": 6,
+    "3": 40,
+    "4": 4,
+    "nothing": 30,
+    "snag": 15,
+    "junk": 5,
+    "wallet": 0
+   },
+   "bait": {
+    "1": 26,
+    "2": 11,
+    "3": 2.8,
+    "4": 0.2,
+    "nothing": 24,
+    "snag": 10,
+    "junk": 22,
+    "wallet": 4
+   },
+   "lure": {
+    "1": 26,
+    "2": 17,
+    "3": 6.5,
+    "4": 0.5,
+    "nothing": 20,
+    "snag": 10,
+    "junk": 16,
+    "wallet": 4
+   }
+  }
+ },
+ "farming": {
+  "startPlots": 3,
+  "maxPlots": 9,
+  "barnPlots": 6,
+  "plotPrices": [
+   1000,
+   1500,
+   2500,
+   3500,
+   5000,
+   7500,
+   10000,
+   12500,
+   15000,
+   20000,
+   25000,
+   30000
+  ],
+  "wage": 150,
+  "crops": [
+   {
+    "id": "carrot",
+    "name": "Carrot",
+    "emoji": "🥕",
+    "seed": 10,
+    "value": 22,
+    "growHours": 0.5,
+    "harvests": 1
+   },
+   {
+    "id": "corn",
+    "name": "Corn",
+    "emoji": "🌽",
+    "seed": 25,
+    "value": 70,
+    "growHours": 2,
+    "harvests": 1
+   },
+   {
+    "id": "tomato",
+    "name": "Tomato",
+    "emoji": "🍅",
+    "seed": 40,
+    "value": 35,
+    "growHours": 4,
+    "harvests": 3
+   },
+   {
+    "id": "pumpkin",
+    "name": "Pumpkin",
+    "emoji": "🎃",
+    "seed": 60,
+    "value": 220,
+    "growHours": 12,
+    "harvests": 1
+   },
+   {
+    "id": "polyfruit",
+    "name": "Polygon Fruit",
+    "emoji": "✨",
+    "seed": 400,
+    "value": 1000,
+    "growHours": 24,
+    "harvests": 1
+   }
+  ],
+  "mutations": [
+   {
+    "id": "golden",
+    "label": "Golden",
+    "emoji": "✨",
+    "mult": 5,
+    "chance": 0.04
+   },
+   {
+    "id": "rainbow",
+    "label": "Rainbow",
+    "emoji": "🌈",
+    "mult": 12,
+    "chance": 0.01
+   },
+   {
+    "id": "square",
+    "label": "Square",
+    "emoji": "🟧",
+    "mult": 5,
+    "chance": 0.02
+   }
+  ],
+  "grades": [
+   {
+    "id": "poor",
+    "label": "Poor",
+    "band": [
+     0.7,
+     0.85
+    ],
+    "chance": 0.25,
+    "fertChance": 0.15
+   },
+   {
+    "id": "fine",
+    "label": "Fine",
+    "band": [
+     0.85,
+     1.15
+    ],
+    "chance": 0.55,
+    "fertChance": 0.5
+   },
+   {
+    "id": "prime",
+    "label": "Prime",
+    "band": [
+     1.15,
+     1.3
+    ],
+    "chance": 0.2,
+    "fertChance": 0.35
+   }
+  ],
+  "priceSwing": [
+   0.8,
+   1.2
+  ],
+  "octoberPumpkins": 1.25,
+  "farmersMarket": 1.1
+ },
+ "city": {
+  "size": 8,
+  "land": 1000,
+  "levelRent": [
+   1,
+   1.6,
+   2.4
+  ],
+  "levelCost": [
+   0,
+   0.75,
+   1.25
+  ],
+  "tax": [
+   {
+    "from": 1,
+    "rate": 0
+   },
+   {
+    "from": 4,
+    "rate": 0.005
+   },
+   {
+    "from": 9,
+    "rate": 0.01
+   },
+   {
+    "from": 17,
+    "rate": 0.015
+   }
+  ],
+  "buildings": [
+   {
+    "id": "shack",
+    "name": "Shack",
+    "emoji": "🛖",
+    "price": 2500,
+    "rent": 60,
+    "upkeep": 15,
+    "hours": 1,
+    "maxLevel": 3,
+    "perk": "Bait Shed",
+    "perkText": "free bait when you fish"
+   },
+   {
+    "id": "apartment",
+    "name": "Apartment",
+    "emoji": "🏢",
+    "price": 8000,
+    "rent": 200,
+    "upkeep": 50,
+    "hours": 3,
+    "maxLevel": 3,
+    "perk": "Extra Unit",
+    "perkText": "+25% rent while it's kept above 75%"
+   },
+   {
+    "id": "shop",
+    "name": "Corner Shop",
+    "emoji": "🏪",
+    "price": 20000,
+    "rent": 450,
+    "upkeep": 120,
+    "hours": 6,
+    "maxLevel": 3,
+    "perk": "Storefront",
+    "perkText": "a company you pick earns 10% of its rent; +5% rent for each home next door; launders hot loot"
+   },
+   {
+    "id": "mansion",
+    "name": "Mansion",
+    "emoji": "🏛️",
+    "price": 120000,
+    "rent": 1800,
+    "upkeep": 700,
+    "hours": 12,
+    "maxLevel": 3,
+    "perk": "Ballroom",
+    "perkText": "throw a party once a day: chat pay doubles for everyone here for an hour"
+   },
+   {
+    "id": "lighthouse",
+    "name": "Lighthouse",
+    "emoji": "🗼",
+    "price": 45000,
+    "rent": 800,
+    "upkeep": 250,
+    "hours": 8,
+    "maxLevel": 3,
+    "perk": "Beacon",
+    "perkText": "rarer fish on plain bait, half storm damage to all your buildings, safer smuggling. Built on the edge of the map"
+   },
+   {
+    "id": "station",
+    "name": "Station",
+    "emoji": "🚉",
+    "price": 15000,
+    "rent": 150,
+    "upkeep": 60,
+    "hours": 4,
+    "maxLevel": 3,
+    "perk": "Freight Line",
+    "perkText": "buildings within 2 tiles earn +10% rent; ship your crops and goods by freight for more"
+   },
+   {
+    "id": "factory",
+    "name": "Factory",
+    "emoji": "🏭",
+    "price": 35000,
+    "rent": 0,
+    "upkeep": 200,
+    "hours": 6,
+    "maxLevel": 3,
+    "perk": "Production",
+    "perkText": "makes 24 crates of Goods a day per level. Pollutes: −15% rent and faster wear next door"
+   },
+   {
+    "id": "warehouse",
+    "name": "Warehouse",
+    "emoji": "📦",
+    "price": 18000,
+    "rent": 100,
+    "upkeep": 60,
+    "hours": 4,
+    "maxLevel": 3,
+    "perk": "Cold Storage",
+    "perkText": "sell crops at the best price of the last 3 days (5 at level 2, 7 at level 3)"
+   },
+   {
+    "id": "barn",
+    "name": "Barn",
+    "emoji": "🐄",
+    "price": 12000,
+    "rent": 0,
+    "upkeep": 40,
+    "hours": 4,
+    "maxLevel": 1,
+    "perk": "More Land",
+    "perkText": "unlocks 6 more farm plots (up to 15, in 3 rows of 5)"
+   },
+   {
+    "id": "bank",
+    "name": "Bank Branch",
+    "emoji": "🏦",
+    "price": 60000,
+    "rent": 600,
+    "upkeep": 200,
+    "hours": 8,
+    "maxLevel": 3,
+    "perk": "Branch Manager",
+    "perkText": "your savings earn 25% more interest per level"
+   },
+   {
+    "id": "park",
+    "name": "Park",
+    "emoji": "🌳",
+    "price": 5000,
+    "rent": 0,
+    "upkeep": 10,
+    "hours": 1,
+    "maxLevel": 1,
+    "perk": "Green Space",
+    "perkText": "no rent, but +15% rent for every building next to it"
+   },
+   {
+    "id": "police",
+    "name": "Police Station",
+    "emoji": "🚓",
+    "price": 25000,
+    "rent": 100,
+    "upkeep": 100,
+    "hours": 6,
+    "maxLevel": 1,
+    "perk": "Neighborhood Watch",
+    "perkText": "the Connector can't set up within 1 tile, and no squatters within 1 tile"
+   }
+  ],
+  "landmarks": [
+   {
+    "id": "statue",
+    "name": "The TODD Statue",
+    "emoji": "🗿",
+    "cost": 250000,
+    "perk": "+5% rent on every building in the server"
+   },
+   {
+    "id": "stadium",
+    "name": "The Stadium",
+    "emoji": "🏟️",
+    "cost": 1000000,
+    "perk": "chat pay ×1.25 for everyone in the server"
+   },
+   {
+    "id": "rocket",
+    "name": "The Rocket",
+    "emoji": "🚀",
+    "cost": 5000000,
+    "perk": "the Rend-Sino's Rocket can fly to 100x (instead of 50x)"
+   }
+  ],
+  "freight": {
+   "bonus": 0.15,
+   "goods": 30,
+   "marquezGoods": 20,
+   "gapHours": 6,
+   "minutes": 30
+  }
+ },
+ "underground": {
+  "contraband": [
+   {
+    "name": "Loaded Dice",
+    "price": 1500,
+    "heat": 15,
+    "desc": "Better odds for your next 5 casino games. TODD might spot them."
+   },
+   {
+    "name": "Fake ID",
+    "price": 2000,
+    "heat": 10,
+    "desc": "Skip a casino ban (now, or the next time TODD throws you out)."
+   },
+   {
+    "name": "Lockpick Set",
+    "price": 1200,
+    "heat": 10,
+    "desc": "+15% success on your next heist."
+   },
+   {
+    "name": "Insider Tip",
+    "price": 2500,
+    "heat": 5,
+    "desc": "Where a stock is heading in the next hour. Usually right."
+   },
+   {
+    "name": "Rumor Mill",
+    "price": 5000,
+    "heat": 20,
+    "desc": "Nudge a company's price 3% up or down. Once per company a day here."
+   },
+   {
+    "name": "Smoke Bomb",
+    "price": 3000,
+    "heat": 10,
+    "desc": "Refuse your next buyout bid without paying the fee."
+   },
+   {
+    "name": "Squatter Crew",
+    "price": 4000,
+    "heat": 25,
+    "desc": "Squatters into someone else's place (under 75%). One a day."
+   }
+  ],
+  "loot": [
+   {
+    "name": "a stolen ring",
+    "emoji": "hot_ring",
+    "value": [
+     8,
+     8
+    ]
+   },
+   {
+    "name": "a stolen painting",
+    "emoji": "hot_art",
+    "value": [
+     15,
+     15
+    ]
+   },
+   {
+    "name": "a stolen gem",
+    "emoji": "hot_gem",
+    "value": [
+     30,
+     30
+    ]
+   },
+   {
+    "name": "a crate of something",
+    "emoji": "hot_crate",
+    "value": [
+     5,
+     40
+    ]
+   }
+  ],
+  "smuggle": [
+   500,
+   10000
+  ],
+  "snitchCost": 250
+ },
+ "events": [
+  {
+   "id": "labor_shortage",
+   "emoji": "👷",
+   "name": "Labor Shortage",
+   "desc": "Nobody wants to work. Shifts and gigs pay **1.5x**."
+  },
+  {
+   "id": "snow_day",
+   "emoji": "❄️",
+   "name": "Snow Day",
+   "desc": "The roads are closed. **No work today**, but chat pay is **doubled**. Go build a snowman."
+  },
+  {
+   "id": "rain",
+   "emoji": "🌧️",
+   "name": "Rain",
+   "desc": "Rain over every farm. Crops are **watered for free** while it lasts."
+  },
+  {
+   "id": "storm",
+   "emoji": "⛈️",
+   "name": "Storm",
+   "desc": "A storm rolls in. Crops outside a **Greenhouse** can be flattened."
+  },
+  {
+   "id": "fish_frenzy",
+   "emoji": "🎣",
+   "name": "Fish Frenzy",
+   "desc": "The fish are biting. Cast every **90 seconds**, and plain bait works like a lure."
+  },
+  {
+   "id": "police_strike",
+   "emoji": "🚔",
+   "name": "Police Strike",
+   "desc": "TODD's security team walked out. Heists get **+15%** odds."
+  },
+  {
+   "id": "bear_rumors",
+   "emoji": "🐻",
+   "name": "Bear Rumors",
+   "desc": "Everyone smells a drop. Shorts open with **no fee**."
+  },
+  {
+   "id": "chatty",
+   "emoji": "💬",
+   "name": "Gossip Hour",
+   "desc": "Chat pay is **doubled**, and so is the daily cap."
+  },
+  {
+   "id": "spotlight",
+   "emoji": "🔦",
+   "name": "Hiring Spree",
+   "desc": "**a company** is hiring heavily. Its shifts pay **2x**."
+  },
+  {
+   "id": "fire_sale",
+   "emoji": "🔥",
+   "name": "Fire Sale",
+   "desc": "**a company** is sliding. Shorts on it open with **no fee**."
+  },
+  {
+   "id": "happy_hour",
+   "emoji": "🥂",
+   "name": "Happy Hour",
+   "desc": "The Rend-Sino is buzzing. The progressive jackpot grows **3x** as fast, VIPs get a **second free spin**, and TODD looks the other way on hot streaks."
+  }
+ ],
+ "emojis": [
+  "achievement",
+  "admin",
+  "advent",
+  "advent_open",
+  "auction",
+  "bell",
+  "bid",
+  "blackjack",
+  "booster",
+  "brick",
+  "broker",
+  "c10c",
+  "c10d",
+  "c10h",
+  "c10s",
+  "c2c",
+  "c2d",
+  "c2h",
+  "c2s",
+  "c3c",
+  "c3d",
+  "c3h",
+  "c3s",
+  "c4c",
+  "c4d",
+  "c4h",
+  "c4s",
+  "c5c",
+  "c5d",
+  "c5h",
+  "c5s",
+  "c6c",
+  "c6d",
+  "c6h",
+  "c6s",
+  "c7c",
+  "c7d",
+  "c7h",
+  "c7s",
+  "c8c",
+  "c8d",
+  "c8h",
+  "c8s",
+  "c9c",
+  "c9d",
+  "c9h",
+  "c9s",
+  "cac",
+  "cad",
+  "cah",
+  "candycane",
+  "cardback",
+  "carrot",
+  "cas",
+  "changed",
+  "cherry",
+  "chip",
+  "cjc",
+  "cjd",
+  "cjh",
+  "cjs",
+  "ckc",
+  "ckd",
+  "ckh",
+  "cks",
+  "cocoa",
+  "coffee",
+  "coinflip",
+  "col_abacus",
+  "col_brick",
+  "col_cart",
+  "col_coin",
+  "col_gavel",
+  "col_gingerbread",
+  "col_nacho",
+  "col_nutcracker",
+  "col_ornament",
+  "col_polygon",
+  "col_snowglobe",
+  "col_startopper",
+  "col_todd",
+  "company",
+  "compost",
+  "connector",
+  "construction",
+  "corn",
+  "cqc",
+  "cqd",
+  "cqh",
+  "cqs",
+  "crash",
+  "crow",
+  "daily",
+  "diamond",
+  "dice",
+  "down",
+  "event",
+  "evict",
+  "fake_id",
+  "farm",
+  "farmhand",
+  "fertilizer",
+  "fish_bass",
+  "fish_bluegill",
+  "fish_boot",
+  "fish_can",
+  "fish_catfish",
+  "fish_controller",
+  "fish_koi",
+  "fish_minnow",
+  "fish_perch",
+  "fish_pike",
+  "fish_salmon",
+  "fish_sturgeon",
+  "fish_tire",
+  "fish_trout",
+  "fish_whale",
+  "fishing",
+  "fixed",
+  "floppy",
+  "freight",
+  "fuel",
+  "fullset",
+  "general",
+  "gift",
+  "gig",
+  "golden_carrot",
+  "golden_corn",
+  "golden_polyfruit",
+  "golden_pumpkin",
+  "golden_tomato",
+  "goods",
+  "greenhouse",
+  "hardhat",
+  "harvest",
+  "heat",
+  "heat_off",
+  "heist",
+  "hilo",
+  "holiday",
+  "hot_art",
+  "hot_crate",
+  "hot_gem",
+  "hot_ring",
+  "hotfix",
+  "insider_tip",
+  "insurance",
+  "jackpot",
+  "key",
+  "kit",
+  "landmark_rocket",
+  "landmark_stadium",
+  "landmark_statue",
+  "launder",
+  "leaderboard",
+  "lemon",
+  "loaded_dice",
+  "loan",
+  "locked",
+  "lockpick",
+  "lot_condemned",
+  "lot_forsale",
+  "lottery",
+  "lure",
+  "mastery",
+  "megaphone",
+  "mines",
+  "mystery",
+  "n0",
+  "n1",
+  "n2",
+  "n3",
+  "n4",
+  "n5",
+  "n6",
+  "n7",
+  "n8",
+  "n9",
+  "ndot",
+  "new",
+  "newplot",
+  "nk",
+  "nm",
+  "nminus",
+  "no",
+  "npct",
+  "nplus",
+  "nx",
+  "overtime",
+  "paint_candycane",
+  "paint_frost",
+  "paint_goldrush",
+  "paint_holo",
+  "paint_sunset",
+  "paint_terminal",
+  "paint_void",
+  "password",
+  "plot_carrot",
+  "plot_corn",
+  "plot_empty",
+  "plot_empty_wet",
+  "plot_growing",
+  "plot_growing_wet",
+  "plot_locked",
+  "plot_polyfruit",
+  "plot_pumpkin",
+  "plot_sprout",
+  "plot_sprout_wet",
+  "plot_tomato",
+  "plot_wilted",
+  "polyfruit",
+  "polygon",
+  "present",
+  "promoted",
+  "prop_apartment",
+  "prop_bank",
+  "prop_barn",
+  "prop_factory",
+  "prop_lighthouse",
+  "prop_mansion",
+  "prop_park",
+  "prop_police",
+  "prop_shack",
+  "prop_shop",
+  "prop_station",
+  "prop_warehouse",
+  "property",
+  "pumpkin",
+  "quickadd",
+  "r0",
+  "r1",
+  "r10",
+  "r11",
+  "r12",
+  "r13",
+  "r14",
+  "r15",
+  "r16",
+  "r17",
+  "r18",
+  "r19",
+  "r2",
+  "r20",
+  "r21",
+  "r22",
+  "r23",
+  "r24",
+  "r25",
+  "r26",
+  "r27",
+  "r28",
+  "r29",
+  "r3",
+  "r30",
+  "r31",
+  "r32",
+  "r33",
+  "r34",
+  "r35",
+  "r36",
+  "r4",
+  "r5",
+  "r6",
+  "r7",
+  "r8",
+  "r9",
+  "raid",
+  "rain",
+  "rainbow_carrot",
+  "rainbow_corn",
+  "rainbow_polyfruit",
+  "rainbow_pumpkin",
+  "rainbow_tomato",
+  "rarity_common",
+  "rarity_epic",
+  "rarity_legendary",
+  "rarity_mythic",
+  "rarity_rare",
+  "receipt",
+  "reference",
+  "removed",
+  "repair",
+  "reserve",
+  "resume",
+  "rocket",
+  "rod",
+  "roulette",
+  "rumor_mill",
+  "santa",
+  "savings",
+  "scarecrow",
+  "secret",
+  "secretsanta",
+  "seed_carrot",
+  "seed_corn",
+  "seed_polyfruit",
+  "seed_pumpkin",
+  "seed_tomato",
+  "shop",
+  "slots",
+  "smoke_bomb",
+  "smuggle",
+  "snitch",
+  "snowday",
+  "snowflake",
+  "snowman",
+  "social",
+  "sold",
+  "squarepumpkin",
+  "squatter",
+  "squatter_crew",
+  "start",
+  "stocking",
+  "stonks",
+  "stopwatch",
+  "storm",
+  "table",
+  "tax",
+  "tile",
+  "tile_empty",
+  "time",
+  "times",
+  "title",
+  "todd",
+  "tomato",
+  "triangle",
+  "underground",
+  "up",
+  "vip",
+  "wateringcan",
+  "work",
+  "wrap",
+  "yes"
+ ]
+}

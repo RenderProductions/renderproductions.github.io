@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Rend-Sino | Rend-Conomy Wiki</title>
+<meta name="description" content="Every Rend-Sino game, the progressive jackpot, VIP levels and free spins, the multiplayer blackjack table, Happy Hour and TODD&#x27;s hot-streak rule.">
+<meta property="og:title" content="The Rend-Sino">
+<meta property="og:description" content="Every Rend-Sino game, the progressive jackpot, VIP levels and free spins, the multiplayer blackjack table, Happy Hour and TODD&#x27;s hot-streak rule.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/rend-sino/">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/bot/emojis/rc_slots.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / The Rend-Sino</div>
+<header class="ahead"><img src="/bot/emojis/rc_slots.png" alt=""><div><h1>The Rend-Sino</h1><div class="meta"><code>r!slots</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#games">The games</a><a href="#jackpot">The progressive jackpot</a><a href="#vip">VIP and free spins</a><a href="#table">The blackjack table</a><a href="#happy-hour">Happy Hour</a><a href="#rules">TODD's rules</a><hr><div class="lbl">See also</div><a href="/wiki/odds/">The odds</a><a href="/wiki/underground/">The Underground</a><a href="/wiki/events/">Events</a></nav>
+<article>
+<div class="lede">
+<p>TODD's casino. Every game's odds are published and match the code exactly (<a href="/wiki/odds/">the odds</a>), the house keeps a small, honest edge, and wins are paid from the <a href="/wiki/reserve/">Reserve</a>. Bets start at <span data-v="casino.minBet">⬡10</span>.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Minimum bet</span><span data-v="casino.minBet">⬡10</span></div>
+<div><span>Jackpot starts at</span><span data-v="casino.jackpot.seed">⬡10,000</span></div>
+<div><span>Hot-streak limit</span><span><span data-v="casino.hotStreak" data-f="raw">10</span> wins</span></div>
+<div><span>VIP levels</span><span>5</span></div>
+</div>
+</div>
+
+<h2 id="games">The games</h2>
+<div data-table="games"></div>
+<p>Plus three that work differently:</p>
+<ul>
+<li><strong>Ride the Bus</strong> (<code>r!bus</code>): four card guesses in a row, cash out any time after the first.</li>
+<li><strong>The Polygon Derby</strong> (<code>r!derby</code>): start a race, everyone in the channel bets on a horse, and it runs live.</li>
+<li><strong>The lottery</strong> (<code>r!lottery</code>): tickets are ⬡50 (up to 20 a week), and the pot is drawn every Sunday at 8 PM Eastern.</li>
+</ul>
+<p>Lose a spin on Slots and you get <strong>Redeem yourself</strong>: one free spin of 15 reels, and seven of a kind wins your bet back.</p>
+
+<h2 id="jackpot">The progressive jackpot</h2>
+<p>Every bet in the server adds <span data-v="casino.jackpot.cut" data-f="pct">1%</span> to the jackpot (<span data-v="casino.jackpot.happyCut" data-f="pct">3%</span> during Happy Hour). Three 💎 on Slots win it: all of it at the maximum Slots bet, a share of it below (bet half the max, win half the jackpot). Then it starts over from <span data-v="casino.jackpot.seed">⬡10,000</span>. <code>r!jackpot</code> shows how big it is.</p>
+
+<h2 id="vip">VIP and free spins</h2>
+<p>VIP levels come from everything you've ever bet in the server. Each level comes with a free Slots spin every day (<code>r!vip spin</code>): win and it's paid, lose and it cost nothing. Free spins can hit the jackpot too.</p>
+<div data-table="vip"></div>
+
+<h2 id="table">The blackjack table</h2>
+<p><code>r!table 100</code> opens a table in the channel. Up to five players press <strong>Sit down</strong>, the host presses <strong>Deal</strong>, and everyone pays the stake. Hands are played in turn with Hit, Stand and Double; each player has 45 seconds before TODD stands for them. Then TODD plays his hand and every seat is paid like solo blackjack. Win at a table of three or more for <strong>House Party</strong>.</p>
+
+<h2 id="happy-hour">Happy Hour</h2>
+<p>A <a href="/wiki/events/">world event</a> that comes around now and then: the jackpot grows three times as fast, VIPs get a second free spin, and TODD looks the other way on hot streaks.</p>
+
+<h2 id="rules">TODD's rules</h2>
+<ul>
+<li><strong>Hot streaks:</strong> win <span data-v="casino.hotStreak" data-f="raw">10</span> games in a row and TODD has you escorted out for <span data-v="casino.banHours" data-f="raw">3</span> hours. A Fake ID from the Connector gets you back in.</li>
+<li><strong>No gambling while you owe TODD</strong> for a bailout.</li>
+<li>A game left unfinished for two minutes is forfeited. One moment between games.</li>
+</ul>
+<div class="note warn"><b>LOADED DICE</b><span>The Connector sells Loaded Dice that improve your odds for a few games. TODD sometimes notices. See <a href="/wiki/underground/">the Underground</a>.</span></div>
+
+<div class="pager"><a href="/wiki/companies/">← Player companies</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/heists/">Heists →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work | Rend-Conomy Wiki</title>
+<meta name="description" content="Jobs at the five house companies: shifts every 15 minutes, rush tasks, reviews and promotions, gigs and odd jobs.">
+<meta property="og:title" content="Work">
+<meta property="og:description" content="Jobs at the five house companies: shifts every 15 minutes, rush tasks, reviews and promotions, gigs and odd jobs.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/work/">
+<meta name="theme-color" content="#16181d">
+<link rel="icon" href="/bot/emojis/rc_work.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Work</div>
+<header class="ahead"><img src="/bot/emojis/rc_work.png" alt=""><div><h1>Work</h1><div class="meta"><code>r!work</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#jobs">The jobs</a><a href="#shifts">Shifts and tasks</a><a href="#reviews">Reviews and promotions</a><a href="#gigs">Gigs and odd jobs</a><a href="#items">Items that help</a><hr><div class="lbl">See also</div><a href="/wiki/market/">The Market</a><a href="/wiki/items/">Items</a><a href="/wiki/events/">Events</a></nav>
+<article>
+<div class="lede">
+<p>Every house company on the <a href="/wiki/market/">market</a> is also an employer. Get hired, work a shift every 15 minutes, answer the task it gives you, and climb from the bottom rank to the top. Your pay follows your company's share price, so a booming company pays better.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Shift</span><span>every <span data-v="work.workMinutes" data-f="raw">15</span> min</span></div>
+<div><span>Gig</span><span>every <span data-v="work.gigMinutes" data-f="raw">10</span> min</span></div>
+<div><span>Base pay</span><span data-v="work.basePay">⬡35</span></div>
+<div><span>Ranks</span><span>4 per company</span></div>
+</div>
+</div>
+
+<h2 id="jobs">The jobs</h2>
+<p>Apply with <code>r!apply &lt;ticker&gt;</code>. Each company has its own kind of task and its own four ranks; the multiplier after each rank is how much more it pays than the first.</p>
+<div data-table="jobs"></div>
+
+<h2 id="shifts">Shifts and tasks</h2>
+<p><code>r!work</code> hands you a task: sort a mod queue, build a nacho order, put building steps in order, crunch numbers, spot a bug. Type the answer in the channel. You have about 20 seconds.</p>
+<ul>
+<li><strong>Right and fast:</strong> full pay, plus a tip of up to <span data-v="work.tipMax" data-f="pct">50%</span> for speed.</li>
+<li><strong>Wrong or too slow:</strong> you still get <span data-v="work.missShare" data-f="pct">40%</span>.</li>
+<li><strong>Rush:</strong> after a right answer there's a <span data-v="work.rushChance" data-f="pct">20%</span> chance another task comes in (up to <span data-v="work.maxRush" data-f="raw">5</span> in a row). Rush tasks pay only if they're right.</li>
+<li><strong>Coworkers:</strong> people working in the same channel within two minutes add <span data-v="work.team.each" data-f="pct">15%</span> each (up to <span data-v="work.team.max" data-f="raw">3</span>).</li>
+<li><strong>Pay:</strong> <span data-v="work.basePay">⬡35</span> × the company's price compared to where it started × your rank. Bastardly Glory's swings are capped so its pay stays sane.</li>
+</ul>
+<p><code>r!job</code> shows your rank, accuracy, next review and next shift; <code>r!job remind on</code> pings you when a shift is ready.</p>
+
+<h2 id="reviews">Reviews and promotions</h2>
+<p>Every <span data-v="work.review.every" data-f="raw">10</span> shifts you get a review. Get <span data-v="work.review.promote" data-f="raw">8</span> or more right and you're promoted; <span data-v="work.review.demote" data-f="raw">4</span> or fewer and you're demoted. A great review at the top rank pays a bonus instead. You can quit 24 hours after being hired (<code>r!quit</code>), and you keep your rank if you come back.</p>
+<div class="note warn"><b>LAYOFFS</b><span>If your company goes bankrupt, you're laid off with a few shifts' pay. A Hard Hat from Marquez keeps your job through one layoff.</span></div>
+
+<h2 id="gigs">Gigs and odd jobs</h2>
+<ul>
+<li><strong>Gigs</strong> (<code>r!gig</code>): no job needed, every 10 minutes, pays <span data-v="work.gigShare" data-f="pct">40%</span> of a first-rank shift.</li>
+<li><strong>Odd jobs</strong> (<code>r!oddjob</code>): a math problem, an unscramble, a count or a reverse. Answer in the channel within 90 seconds; up to 10 a day.</li>
+</ul>
+
+<h2 id="items">Items that help</h2>
+<ul>
+<li><strong>Coffee</strong> resets your work cooldown.</li>
+<li><strong>Overtime</strong> makes your next shift pay double.</li>
+<li><strong>Hard Hat</strong> keeps your job through one layoff.</li>
+</ul>
+<p>Look out for the <strong>Labor Shortage</strong> and <strong>Hiring Spree</strong> <a href="/wiki/events/">world events</a>, which raise pay for an hour.</p>
+
+<div class="pager"><a href="/wiki/paths/">← Picking a path</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/market/">The Market →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+</body>
+</html>

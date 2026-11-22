@@ -12,7 +12,8 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "start": "tsc && node --no-warnings=ExperimentalWarning dist/src/index.js",
-    "test": "tsc && node --no-warnings=ExperimentalWarning --test \"dist/test/**/*.test.js\""
+    "test": "tsc && node --no-warnings=ExperimentalWarning --test \"dist/test/**/*.test.js\"",
+    "wiki": "tsc && node --no-warnings=ExperimentalWarning -e \"console.log('wrote', require('./dist/src/site/wiki.js').writeWikiData())\""
   },
   "dependencies": {
     "discord.js": "^14.28.1"

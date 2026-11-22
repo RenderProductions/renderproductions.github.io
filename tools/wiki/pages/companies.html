@@ -1,0 +1,27 @@
+<!--{"title": "Player companies", "section": "Systems", "icon": "company", "summary": "Found your own company, grow it level by level, take it public on the exchange, pay yourself, and defend it from hostile takeovers.", "prev": "market", "next": "rend-sino", "also": ["market", "city"], "command": "r!found"}-->
+<div class="lede">
+<p>Any player can found a company. It has a treasury, levels up as you invest, and at level <span data-v="companies.ipoLevel" data-f="raw">3</span> it can go public: other players can buy its shares, and it gets its own page on <a href="/rend-conomy/exchange/">the exchange</a>.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Founding</span><span>⬡2,500, approved by mods</span></div>
+<div><span>Go public at</span><span>level 3</span></div>
+<div><span>Listing fee</span><span data-v="companies.listingFee">⬡2,000</span></div>
+<div><span>Shares</span><span><span data-v="companies.totalShares" data-f="num">1,000</span> (<span data-v="companies.float" data-f="num">400</span> for sale)</span></div>
+</div>
+</div>
+
+<h2 id="founding">Founding one</h2>
+<p><code>r!found TICK Your Company Name</code> sends it to the server's moderators for approval. Once approved, put money into its treasury with <code>r!invest</code> and see it with <code>r!company</code>.</p>
+
+<h2 id="levels">Levels</h2>
+<p>Upgrades are paid from the treasury (<code>r!upgrade</code>). Every level costs upkeep each day, and raises what the company can pay.</p>
+<div data-table="levels"></div>
+
+<h2 id="public">Going public</h2>
+<p>At level 3, <code>r!ipo</code> lists the company. Its price then moves with trading, and its treasury earns from revenue: farmers' market sales, a Corner Shop's Storefront on the city map, and more. You can pay yourself a salary of up to 10% of the treasury a day (<code>r!salary</code>).</p>
+
+<h2 id="takeovers">Takeovers and mergers</h2>
+<ul>
+<li><strong>Hostile takeover:</strong> a player who holds at least half of the shares for sale can bid for your company with <code>r!takeover</code>, putting up a premium of a quarter of its worth. You have a day to answer; no answer and it goes through.</li>
+<li><strong>Poison pill:</strong> defend for a tenth of the company's worth (<code>r!takeover defend</code>). The bidder gets their premium back minus a 20% break fee, which goes to you, and your company is shielded from takeovers for 7 days.</li>
+<li><strong>Merger:</strong> two owners can agree to merge with <code>r!merge</code>.</li>
+</ul>
