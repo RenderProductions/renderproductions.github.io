@@ -113,6 +113,28 @@
     for (var i = 0; i < n; i++) t += 1 + Math.floor(Math.random() * sides);
     return t;
   };
+  var itemsP = null;
+  /** Items: { weapons, armor, gear, relics, masks, all, byKey, byName }. */
+  Tome.items = function () {
+    if (!itemsP) itemsP = fetch('/varandia/items.json').then(function (r) {
+      if (!r.ok) throw new Error('items.json: ' + r.status);
+      return r.json();
+    }).then(function (x) {
+      x.relics.forEach(function (r) { r.group = 'relic'; if (r.weapon) { r.dice = r.weapon.dice; r.type = r.weapon.type; } });
+      x.masks.forEach(function (m) { m.group = 'mask'; });
+      x.all = [].concat(x.weapons, x.armor, x.gear, x.relics, x.masks);
+      x.byKey = {}; x.byName = {};
+      x.all.forEach(function (i) { x.byKey[i.key] = i; x.byName[i.name.toLowerCase()] = i; });
+      return x;
+    });
+    return itemsP;
+  };
+  /** The attack bonus for a weapon: half Strength (melee), half Speed (ranged), the better of the two for Finesse. */
+  Tome.weaponBonus = function (c, d, w) {
+    var str = Tome.half(Tome.stat(c, d.weapons.melee, d)), spd = Tome.half(Tome.stat(c, d.weapons.ranged, d));
+    if (w.props && w.props.indexOf('Finesse') >= 0) return Math.max(str, spd);
+    return w.ranged ? spd : str;
+  };
   Tome.levelName = function (lv) { return lv === 0 ? 'Cantrip' : 'Level ' + lv; };
 
   Tome.race = function (d, key) { return d.races.filter(function (r) { return r.key === key; })[0] || null; };
@@ -125,7 +147,7 @@
   Tome.derive = function (c, d) {
     var r = d.derived, s = function (k) { return Tome.stat(c, k, d); }, lv = Math.max(1, c.level || 1), h = Tome.half;
     return {
-      defense: r.defense.base + h(s(r.defense.halfOf)),
+      defense: r.defense.base + h(s(r.defense.halfOf)) + (c.worn || []).reduce(function (n, w) { return n + (w.defense || 0); }, 0),
       hp: Math.max(1, r.hp.base + s(r.hp.plusStat) + (lv - 1) * (r.hp.perLevel + h(s(r.hp.perLevelHalfOf))) + lv * ((Tome.cls(d, c.cls) || {}).hpPerLevel || 0)),
       stamina: Math.max(0, r.stamina.base + s(r.stamina.stat) * r.stamina.statTimes + (lv - 1) * (r.stamina.perLevel + h(s(r.stamina.perLevelHalfOf)))),
       initiative: h(s(r.initiative.halfOf)),

@@ -73,6 +73,12 @@
   .known .cost { font: 20px/1 var(--hand); color: var(--red); white-space: nowrap; }
   .spelltext p { margin: 0 0 0.6em; font-size: 16px; }
 
+  .satchel li .tag { font: 13px/1 var(--sc); color: var(--faded); white-space: nowrap; }
+  .satchel li .btn.small { min-height: 34px; font-size: 14px; padding: 0 10px; }
+  .weapons { display: flex; flex-direction: column; gap: 6px; }
+  .weapons button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 44px; padding: 4px 10px; background: transparent; border: 0; border-bottom: 1px dashed rgba(42, 29, 18, 0.35); text-align: left; font-size: 18px; }
+  .weapons button:hover { background: rgba(110, 31, 23, 0.08); }
+  .weapons button span:last-child { font: 22px/1 var(--hand); color: var(--red); }
   .gone { text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center; padding-top: 120px; }
   @media (max-width: 1020px) {
     .book.sheet { margin-right: auto; margin-top: 64px; }
@@ -156,6 +162,7 @@
             <div><b id="def">—</b><span>Defense</span></div>
           </div>
           <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+            <p class="pencil" id="defNote" style="margin: -6px 0 0; font-size: 17px"></p>
             <div class="pool">
               <div class="top"><span class="sc" style="font-size: 19px">Health</span><span class="hand" id="hpText" style="font-size: 24px"></span></div>
               <div id="hpShow"></div>
@@ -181,6 +188,11 @@
           <button type="button" class="btn" id="d20">d20</button>
           <button type="button" class="btn" id="d6">d6</button>
           <button type="button" class="chip" id="profNext" aria-pressed="false">+ proficiency next roll</button>
+        </div>
+
+        <div id="weaponsBox" hidden>
+          <h3 style="margin-bottom: 6px">Weapons</h3>
+          <div class="weapons" id="weapons"></div>
         </div>
 
         <div>
@@ -232,8 +244,8 @@
       <div class="leaf" style="gap: 18px">
         <h1 id="saT" style="font-size: 44px">The Satchel</h1>
         <ul class="satchel" id="items"></ul>
-        <form class="adder" data-list="items"><label class="sr" for="addItem">Add to the satchel</label><input id="addItem" maxlength="60" placeholder="add something…" autocomplete="off"><button class="btn small" type="submit">Add</button></form>
-        <p class="pencil" style="margin: 0">weapons and armor will roll their own damage and add to Defense once items are written</p>
+        <form class="adder" data-list="items"><label class="sr" for="addItem">Add to the satchel</label><input id="addItem" list="itemNames" maxlength="60" placeholder="add something…" autocomplete="off"><datalist id="itemNames"></datalist><button class="btn small" type="submit">Add</button></form>
+        <p class="pencil" style="margin: 0">anything from <a href="/varandia/items/">the Armory</a> comes alive here: weapons get an attack button on The Fight, armor can be worn</p>
       </div>
       <span class="folio">— 5 —</span>
     </section>
@@ -400,6 +412,7 @@
     T.$('#lvUp').disabled = (c.level || 1) >= D.leveling.maxLevel;
     var r = T.race(D, c.race), k = T.cls(D, c.cls);
     T.$('#cline').textContent = [(r ? r.name : '') + (k ? ' ' + k.name : ''), 'Level ' + (c.level || 1), c.height, c.bgName].filter(Boolean).join(' · ');
+    drawWeapons();
   }
   function amount(sel) { var v = parseInt(T.$(sel).value, 10); return v > 0 ? v : 0; }
 
@@ -515,15 +528,34 @@
   }
 
   // ---------------------------------------------------------------- lists
+  var X = null;
+  function itemFor(name) { return X && X.byName[String(name).trim().toLowerCase()] || null; }
+  function isWorn(it) { return (c.worn || []).some(function (w) { return w.key === it.key; }); }
   function drawList(key) {
     T.$('#' + key).innerHTML = c[key].map(function (t, i) {
-      return '<li><span>' + T.esc(t) + '</span><button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
+      var it = itemFor(t), extra = '';
+      if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + it.key + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
+      else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + '</span>';
+      var label = it ? '<a href="/varandia/items/?i=' + it.key + '" style="color:var(--ink);text-decoration:none">' + T.esc(t) + '</a>' : T.esc(t);
+      return '<li><span>' + label + '</span>' + extra + '<button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
     }).join('');
+    if (key === 'items') drawWeapons();
+  }
+  function drawWeapons() {
+    if (!X || !D) return;
+    var ws = c.items.map(itemFor).filter(function (it) { return it && it.dice; });
+    T.$('#weaponsBox').hidden = !ws.length;
+    T.$('#weapons').innerHTML = ws.map(function (w) {
+      return '<button type="button" data-attack="' + w.key + '"><span>' + T.esc(w.name) + '</span><span>' + T.sign(T.weaponBonus(c, D, w)) + ' · ' + T.esc(w.dice) + '</span></button>';
+    }).join('');
+    var worn = (c.worn || []).map(function (w) { return w.name; });
+    T.$('#defNote').textContent = worn.length ? 'wearing ' + worn.join(' & ') : '';
   }
 
   // ---------------------------------------------------------------- start
-  Promise.all([T.data(), T.spells()]).then(function (res) {
-    D = res[0]; S = res[1];
+  Promise.all([T.data(), T.spells(), T.items()]).then(function (res) {
+    D = res[0]; S = res[1]; X = res[2];
+    if (!Array.isArray(c.worn)) c.worn = [];
     var r = T.race(D, c.race);
     document.title = c.name + ' | Story of Varandia';
     T.$('#initial').textContent = c.name.charAt(0);
@@ -533,6 +565,7 @@
     T.$('#cls').textContent = (T.cls(D, c.cls) || {}).name || '—';
     T.$('#race').textContent = r ? r.name : '—';
     T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+    T.$('#itemNames').innerHTML = X.all.filter(function (i) { return i.group !== 'mask'; }).map(function (i) { return '<option value="' + T.esc(i.name) + '"></option>'; }).join('');
     T.$('#spellNames').innerHTML = S.all.map(function (x) { return '<option value="' + T.esc(x.name) + '"></option>'; }).join('');
 
     drawSeven(); drawVitals(); drawConds(); drawKnown(); drawSpellCard(); drawLog();
@@ -610,9 +643,29 @@
     // satchel
     ['items', 'cardinal'].forEach(function (k) {
       T.$('#' + k).addEventListener('click', function (e) {
+        var wb = e.target.closest('[data-wear]');
+        if (wb) {
+          var it = X.byKey[wb.dataset.wear];
+          if (isWorn(it)) c.worn = c.worn.filter(function (w) { return w.key !== it.key; });
+          else {
+            var shield = it.kind === 'Shield';
+            c.worn = c.worn.filter(function (w) { return (w.kind === 'Shield') !== shield; });
+            c.worn.push({ key: it.key, name: it.name, kind: it.kind, defense: it.defense });
+          }
+          drawList(k); drawVitals(); save(); return;
+        }
         var b = e.target.closest('[data-rm]'); if (!b) return;
-        c[k].splice(+b.dataset.rm, 1); drawList(k); save();
+        var gone = itemFor(c[k][+b.dataset.rm]);
+        c[k].splice(+b.dataset.rm, 1);
+        if (gone && isWorn(gone) && !c[k].some(function (t) { return itemFor(t) === gone; })) c.worn = c.worn.filter(function (w) { return w.key !== gone.key; });
+        drawList(k); drawVitals(); save();
       });
+    });
+    T.$('#weapons').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-attack]'); if (!b) return;
+      var w = X.byKey[b.dataset.attack], a = rollWith(w.name, T.weaponBonus(c, D, w), true);
+      var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0);
+      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage');
     });
     T.$$('form.adder[data-list]').forEach(function (f) {
       f.addEventListener('submit', function (e) {

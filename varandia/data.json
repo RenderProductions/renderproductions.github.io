@@ -454,5 +454,11 @@
     "maxLevel": 20,
     "pointsPerLevel": 1,
     "markGrowth": 1
+  },
+  "weapons": {
+    "_about": "Attacks: d20 + half the stat vs the target's Defense. Melee uses Strength, ranged uses Speed, Finesse weapons use whichever is higher. Damage is the weapon's dice, with no stat added. Armor adds its 'defense' to Defense (one armor and one shield at a time).",
+    "melee": "str",
+    "ranged": "spd",
+    "damageAddsStat": false
   }
 }
