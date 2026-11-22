@@ -35,6 +35,22 @@
   .pc .acts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 15px; }
   .code { font: 34px/1 var(--sc); letter-spacing: 0.25em; }
   .tome select { font: 20px/1 var(--hand); }
+  #more summary { cursor: pointer; font: 22px/1.3 var(--fell); min-height: 44px; display: flex; align-items: center; }
+  #more summary { list-style: none; }
+  #more summary::-webkit-details-marker { display: none; }
+  #more summary::before { content: '▸'; color: var(--red); margin-right: 10px; }
+  #more[open] summary::before { content: '▾'; }
+  .quick { display: flex; flex-wrap: wrap; gap: 8px; }
+  .quick button { min-width: 52px; min-height: 44px; padding: 4px 10px; font: 20px/1 var(--sc); background: transparent; border: 1.6px solid var(--ink); border-radius: 50% 46% 52% 44%; cursor: pointer; }
+  .quick button:hover { background: rgba(110, 31, 23, 0.08); }
+  .saved { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .saved li { display: flex; align-items: center; border: 1.4px dashed rgba(42, 29, 18, 0.55); }
+  .saved button { background: transparent; border: 0; min-height: 40px; padding: 4px 10px; font-size: 16px; cursor: pointer; text-align: left; }
+  .saved button small { display: block; font: 12px/1.2 var(--sc); color: var(--faded); }
+  .saved button.x { color: var(--red); padding: 4px 8px; font-size: 18px; }
+  .gLast { font: 20px/1.3 var(--hand); color: var(--red); min-height: 26px; }
+  .gLast b { font: 40px/1 var(--fell); color: var(--ink); margin-right: 8px; }
+  .glog { list-style: none; margin: 6px 0 0; padding: 0; font-size: 15px; color: var(--ink-soft); display: flex; flex-direction: column; gap: 2px; }
 </style>
 </head>
 <body class="tome">
@@ -72,6 +88,37 @@
             <p class="pencil" id="none" hidden style="margin: 4px 0 0">none yet: start one, or join with a code</p>
           </div>
 
+          <section class="inked thin" id="screen" hidden aria-labelledby="screenT" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap">
+              <h2 id="screenT" style="margin: 0">GM screen</h2>
+              <span class="pencil" style="font-size: 17px">only you see this</span>
+            </div>
+            <form id="gForm" style="display: flex; flex-direction: column; gap: 10px">
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px">
+                <label class="field"><span>Who</span><input id="gWho" maxlength="60" autocomplete="off" placeholder="The GM"></label>
+                <label class="field"><span>Doing what</span><input id="gWhat" maxlength="60" autocomplete="off" placeholder="attacks, sneaks…"></label>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap">
+                <label class="field" style="flex: 1 1 120px"><span>Dice</span><input id="gDice" maxlength="40" autocomplete="off" placeholder="d20+4" value="d20"></label>
+                <button type="submit" class="btn ink small">Roll</button>
+                <button type="button" class="btn small" id="gSave" title="Keep this roll for later">Save</button>
+              </div>
+            </form>
+            <div class="quick" id="gQuick" role="group" aria-label="Quick dice">
+              <button type="button" data-q="d20">d20</button><button type="button" data-q="d12">d12</button><button type="button" data-q="d10">d10</button><button type="button" data-q="d8">d8</button><button type="button" data-q="d6">d6</button><button type="button" data-q="d4">d4</button>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap" role="group" aria-label="Where rolls go">
+              <button type="button" class="chip" id="gSecret" aria-pressed="true">🔒 secret</button>
+              <button type="button" class="chip" id="gPublic" aria-pressed="false">to Discord</button>
+              <span class="pencil" id="gNote" style="font-size: 16px" aria-live="polite"></span>
+            </div>
+            <div id="gSavedBox" hidden><span class="sc faded" style="font-size: 13px">Saved</span><ul class="saved" id="gSaved"></ul></div>
+            <div aria-live="polite"><div class="gLast" id="gLast"></div><ul class="glog" id="gLog"></ul></div>
+          </section>
+
+          <details id="more">
+            <summary>Join or start a campaign</summary>
+            <div style="display: flex; flex-direction: column; gap: 18px; margin-top: 14px">
           <form class="inked thin" id="joinForm" style="padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
             <h3>Join with a code</h3>
             <div style="display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 14px">
@@ -86,6 +133,8 @@
             <label class="field"><span>Name</span><input type="text" id="nName" maxlength="80" autocomplete="off" placeholder="Varandia – Reborn"></label>
             <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap"><button type="submit" class="btn small">Start it</button><span class="pencil" id="nNote" aria-live="polite"></span></div>
           </form>
+            </div>
+          </details>
         </div>
       </div>
       <span class="folio">— 19 —</span>
@@ -111,6 +160,7 @@
 
   function drawCamps() {
     T.$('#none').hidden = camps.length > 0;
+    if (!camps.length) T.$('#more').open = true;
     T.$('#camps').innerHTML = camps.map(function (c) {
       return '<li><button type="button" data-id="' + c.id + '"' + (c.id === open ? ' aria-current="true"' : '') + '><span>' + T.esc(c.name) + '</span><small>' + (c.isGm ? 'you’re the GM' : 'GM: ' + T.esc(c.gmName || '?')) + '</small></button></li>';
     }).join('');
@@ -139,6 +189,71 @@
       (isGm || mine ? '<button type="button" class="linkish" data-leave="' + ch.id + '" style="color:var(--red);min-height:0">' + (mine ? 'leave' : 'remove') + '</button>' : '') + '</span></div>';
   }
 
+  // ---- the GM screen
+  var screen = { camp: null, saved: [], log: [], pub: false };
+  try { screen.pub = localStorage.getItem('varandia_gm_public') === '1'; } catch (e) {}
+  function drawScreen(c) {
+    var isGm = c && c.isGm;
+    T.$('#screen').hidden = !isGm;
+    if (!isGm) return;
+    if (screen.camp !== c.id) {
+      screen.camp = c.id; screen.saved = []; screen.log = [];
+      try { screen.log = JSON.parse(sessionStorage.getItem('varandia_gm_log_' + c.id) || '[]'); } catch (e) {}
+      T.cloud.call('GET', 'screen/' + c.id).then(function (r) { screen.saved = r.saved || []; drawSaved(); }, function () {});
+    }
+    screen.hook = c.hasWebhook;
+    drawMode(); drawSaved(); drawGLog();
+  }
+  function drawMode() {
+    var pub = screen.pub && screen.hook;
+    T.$('#gSecret').setAttribute('aria-pressed', String(!pub));
+    T.$('#gPublic').setAttribute('aria-pressed', String(pub));
+    T.$('#gPublic').disabled = !screen.hook;
+    T.$('#gNote').textContent = screen.hook ? '' : 'add a webhook below to post';
+  }
+  function drawSaved() {
+    T.$('#gSavedBox').hidden = !screen.saved.length;
+    T.$('#gSaved').innerHTML = screen.saved.map(function (x, i) {
+      return '<li><button type="button" data-roll="' + i + '">' + T.esc(x.who || 'The GM') + (x.what ? ' · ' + T.esc(x.what) : '') + '<small>' + T.esc(x.dice) + '</small></button><button type="button" class="x" data-unsave="' + i + '" aria-label="Forget this roll">×</button></li>';
+    }).join('');
+  }
+  function drawGLog() {
+    var l = screen.log;
+    T.$('#gLast').innerHTML = l[0] ? '<b>' + l[0].total + '</b>' + T.esc(l[0].label) + (l[0].secret ? ' 🔒' : '') : '';
+    T.$('#gLog').innerHTML = l.slice(1, 6).map(function (x) { return '<li>' + x.total + ' · ' + T.esc(x.label) + (x.secret ? ' 🔒' : '') + '</li>'; }).join('');
+  }
+  function gmRoll(who, what, dice) {
+    var r = T.rollExpr(dice);
+    if (!r) { T.$('#gNote').textContent = 'can\u2019t read \u201c' + dice + '\u201d (try d20+4 or 2d8+3)'; return; }
+    who = (who || '').trim(); what = (what || '').trim();
+    var label = (who || 'The GM') + (what ? ' ' + what : '') + ': ' + dice.replace(/\s+/g, '') + ' → ' + r.text;
+    var pub = screen.pub && screen.hook;
+    screen.log.unshift({ total: r.total, label: label, secret: !pub }); screen.log = screen.log.slice(0, 20);
+    try { sessionStorage.setItem('varandia_gm_log_' + screen.camp, JSON.stringify(screen.log)); } catch (e) {}
+    drawGLog();
+    if (!pub) return;
+    T.$('#gNote').textContent = 'sending…';
+    T.cloud.call('POST', 'gmroll', { camp: screen.camp, who: who || 'The GM', line: label + ' = ' + r.total,
+      info: { title: what ? (who || 'The GM') + ' ' + what : (who || 'The GM') + ' rolls', total: r.total, die: r.sides === 20 ? r.die : null, bonus: r.bonus, rolled: dice.replace(/\s+/g, '') + ': ' + r.text } })
+      .then(function () { T.$('#gNote').textContent = 'posted'; }, function (e) { T.$('#gNote').textContent = err(e); });
+  }
+  function saveScreen() { return T.cloud.call('PUT', 'screen/' + screen.camp, { saved: screen.saved }).then(function (r) { screen.saved = r.saved; drawSaved(); }, function (e) { T.$('#gNote').textContent = err(e); }); }
+  T.$('#gForm').addEventListener('submit', function (e) { e.preventDefault(); gmRoll(T.$('#gWho').value, T.$('#gWhat').value, T.$('#gDice').value || 'd20'); });
+  T.$('#gQuick').addEventListener('click', function (e) { var b = e.target.closest('[data-q]'); if (b) gmRoll(T.$('#gWho').value, T.$('#gWhat').value, b.dataset.q); });
+  T.$('#gSave').onclick = function () {
+    var x = { who: T.$('#gWho').value.trim(), what: T.$('#gWhat').value.trim(), dice: T.$('#gDice').value.trim() || 'd20' };
+    if (!T.rollExpr(x.dice)) { T.$('#gNote').textContent = 'those dice don\u2019t read right'; return; }
+    screen.saved.push(x); drawSaved(); saveScreen();
+  };
+  T.$('#gSaved').addEventListener('click', function (e) {
+    var rb = e.target.closest('[data-roll]'), ub = e.target.closest('[data-unsave]');
+    if (rb) { var x = screen.saved[+rb.dataset.roll]; gmRoll(x.who, x.what, x.dice); }
+    if (ub) { screen.saved.splice(+ub.dataset.unsave, 1); drawSaved(); saveScreen(); }
+  });
+  function setPub(v) { screen.pub = v; try { localStorage.setItem('varandia_gm_public', v ? '1' : '0'); } catch (e) {} drawMode(); }
+  T.$('#gSecret').onclick = function () { setPub(false); };
+  T.$('#gPublic').onclick = function () { setPub(true); };
+
   function show(id) {
     open = id; drawCamps();
     history.replaceState(null, '', location.pathname + '?c=' + id);
@@ -156,6 +271,7 @@
         '<label class="field"><span>Webhook link</span><input type="text" id="hook" autocomplete="off" value="' + T.esc(c.webhook) + '" placeholder="https://discord.com/api/webhooks/…" style="font-size:16px !important"></label>' +
         '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><button type="button" class="btn small" id="saveCamp">Save</button><button type="button" class="linkish" id="delCamp" style="color:var(--red)">End this campaign</button><span class="pencil" id="cNote" aria-live="polite"></span></div></div>';
       else if (c.hasWebhook) h += '<p class="pencil" style="margin:0">this campaign has a Discord channel: switch on "post rolls" on your sheet</p>';
+      drawScreen(c);
       var keep = document.activeElement && document.activeElement.id;
       if (c.isGm && T.$('#intro') && keep && (keep === 'intro' || keep === 'hook')) { /* don't redraw while the GM is typing */ }
       else T.$('#detail').innerHTML = h;
@@ -167,7 +283,7 @@
     if (e.target.id === 'saveCamp') {
       T.$('#cNote').textContent = 'saving…';
       T.cloud.call('PUT', 'camps/' + open, { intro: T.$('#intro').value, webhook: T.$('#hook').value }).then(function (c) {
-        camps = camps.map(function (x) { return x.id === c.id ? c : x; }); T.$('#cNote').textContent = 'saved';
+        camps = camps.map(function (x) { return x.id === c.id ? c : x; }); T.$('#cNote').textContent = 'saved'; screen.hook = c.hasWebhook; drawMode();
       }, function (er) { T.$('#cNote').textContent = err(er); });
     }
     if (e.target.id === 'delCamp') {

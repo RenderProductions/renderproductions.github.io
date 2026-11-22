@@ -365,6 +365,7 @@ async function vSetup(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS v_camps (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, gm TEXT NOT NULL, gm_name TEXT, name TEXT NOT NULL, intro TEXT, webhook TEXT, created INTEGER NOT NULL)'),
     env.DB.prepare('CREATE INDEX IF NOT EXISTS v_camps_gm ON v_camps (gm)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS v_pics (id TEXT PRIMARY KEY, img BLOB NOT NULL, updated INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS v_screens (camp TEXT PRIMARY KEY, data TEXT NOT NULL, updated INTEGER NOT NULL)'),
   ]);
   vReady = true;
 }
@@ -372,16 +373,16 @@ const vId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => 
 const vCharOut = (r) => ({ id: r.id, owner: r.owner, ownerName: r.owner_name, name: r.name, campaign: r.campaign, updated: r.updated, data: JSON.parse(r.data) });
 const vCampOut = (c, isGm) => ({ id: c.id, name: c.name, intro: c.intro || '', gm: c.gm, gmName: c.gm_name, isGm, code: isGm ? c.code : undefined, hasWebhook: !!c.webhook, webhook: isGm ? (c.webhook || '') : undefined, created: c.created });
 // ---- how a roll looks in Discord
-const vCol = { stat: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
+const vCol = { gm: 0x4a2c2a, stat: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
   fire: 0xe8642c, water: 0x3b8fd9, ice: 0x9fdcf5, earth: 0x9c7442, air: 0xb4c6d4, lightning: 0xf2c92b, nature: 0x4caf50, poison: 0x8bc34a, light: 0xf7e8a6, dark: 0x5b3f9e, evil: 0x8b0a1a };
-const vIcon = { stat: '🎲', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
+const vIcon = { gm: '🎭', stat: '🎲', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
   fire: '🔥', water: '🌊', ice: '❄️', earth: '🪨', air: '🌪️', lightning: '⚡', nature: '🌿', poison: '☠️', light: '☀️', dark: '🌑', evil: '🩸', chaotic: '🌀' };
 const vClean = (v, n) => String(v == null ? '' : v).replace(/[@`*_~|#<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
-const vNum = (v) => (Number.isFinite(+v) ? Math.round(+v) : null);
+const vNum = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : Math.round(+v));
 function vHsl(h) { const S = 0.6, L = 0.55, a = S * Math.min(L, 1 - L), f = (n) => { const k = (n + h / 30) % 12; return Math.round(255 * (L - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); }; return (f(0) << 16) | (f(8) << 8) | f(4); }
 function vEmbed(i, line, campName, pic) {
   i = i && typeof i === 'object' ? i : {};
-  const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell'].includes(i.kind) ? i.kind : 'note';
+  const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell', 'gm'].includes(i.kind) ? i.kind : 'note';
   const el = kind === 'spell' ? (vClean(i.element, 12) in vIcon ? vClean(i.element, 12) : 'chaotic') : null;
   const die = vNum(i.die), bonus = vNum(i.bonus), total = vNum(i.total), nat20 = die === 20 && i.sides == null, nat1 = die === 1 && i.sides == null;
   let color = el ? (el === 'chaotic' ? vHsl(Math.floor(Math.random() * 360)) : vCol[el]) : vCol[kind];
@@ -399,7 +400,8 @@ function vEmbed(i, line, campName, pic) {
   if (total != null && kind !== 'heal' && kind !== 'tonic') {
     const what = kind === 'spell' ? 'vs Need ' + (vNum(i.need) ?? '?') : vClean(i.what, 20);
     lines.push('# ' + total + (what ? ' ' + what : ''));
-    if (die != null) lines.push('-# ' + (i.sides ? 'd' + vNum(i.sides) : 'd20') + ' rolled ' + die + (bonus ? (bonus < 0 ? ' − ' + Math.abs(bonus) : ' + ' + bonus) : '') + (i.notes ? ' · ' + vClean(i.notes, 60) : ''));
+    if (i.rolled) lines.push('-# ' + vClean(i.rolled, 120));
+    else if (die != null) lines.push('-# ' + (i.sides ? 'd' + vNum(i.sides) : 'd20') + ' rolled ' + die + (bonus ? (bonus < 0 ? ' − ' + Math.abs(bonus) : ' + ' + bonus) : '') + (i.notes ? ' · ' + vClean(i.notes, 60) : ''));
   }
   if (kind === 'heal' || kind === 'tonic') { lines.push('# +' + (total ?? '?') + ' ' + vClean(i.what, 20)); if (i.dice) lines.push('-# rolled ' + vClean(i.dice, 30)); }
   if (kind === 'level' || kind === 'rest' || kind === 'note') lines.push(vClean(i.text || (kind === 'note' ? line : ''), 300));
@@ -424,6 +426,8 @@ function vEmbed(i, line, campName, pic) {
   e.footer = { text: st.join(' · ').slice(0, 200) };
   return e;
 }
+// Discord won't take a webhook name with these words in it
+const vHookName = (n, fallback) => String(n || '').replace(/discord|clyde/gi, '').replace(/[@#:`]/g, '').trim().slice(0, 80) || fallback;
 const vRolls = new Map();   // user id -> times of rolls posted in the last minute
 
 async function varandia(req, env, path, out) {
@@ -568,8 +572,39 @@ async function varandia(req, env, path, out) {
     const pic = JSON.parse(row.data).pic;
     const picUrl = pic ? new URL(req.url).origin + '/api/v/pic/' + row.id + '?v=' + Number(pic) : undefined;
     const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      username: row.name.slice(0, 80), allowed_mentions: { parse: [] }, avatar_url: picUrl,
+      username: vHookName(row.name, 'A traveller'), allowed_mentions: { parse: [] }, avatar_url: picUrl,
       embeds: [vEmbed(body.info, line, c.name.slice(0, 100), picUrl)]
+    }) });
+    if (!r.ok) return out({ error: 'Discord refused the post', detail: r.status }, 502);
+    return out({ ok: true });
+  }
+
+  // ---- the GM screen: rolls as anyone, and a few saved ones per campaign
+  const sm = path.match(/^\/api\/v\/screen\/([a-z0-9]{4,32})$/);
+  if (sm) {
+    const c = await camp(sm[1]);
+    if (!c || c.gm !== u.id) return out({ error: 'not found' }, 404);
+    if (req.method === 'GET') {
+      const r = await env.DB.prepare('SELECT data FROM v_screens WHERE camp = ?').bind(c.id).first();
+      return out({ saved: r ? JSON.parse(r.data) : [] });
+    }
+    if (req.method === 'PUT') {
+      const saved = (Array.isArray(body.saved) ? body.saved : []).slice(0, 40).map((x) => ({ who: String(x && x.who || '').slice(0, 60), what: String(x && x.what || '').slice(0, 60), dice: String(x && x.dice || '').slice(0, 40) })).filter((x) => x.dice);
+      await env.DB.prepare('INSERT INTO v_screens (camp, data, updated) VALUES (?, ?, ?) ON CONFLICT(camp) DO UPDATE SET data = excluded.data, updated = excluded.updated').bind(c.id, JSON.stringify(saved), Date.now()).run();
+      return out({ saved });
+    }
+  }
+  if (path === '/api/v/gmroll' && req.method === 'POST') {
+    const c = await camp(String(body.camp || ''));
+    if (!c || c.gm !== u.id) return out({ error: 'not found' }, 404);
+    if (!c.webhook) return out({ error: 'no channel for this campaign' }, 400);
+    const now = Date.now(), times = (vRolls.get(u.id) || []).filter((t) => t > now - 60_000);
+    if (times.length >= 30) return out({ error: 'slow down' }, 429);
+    times.push(now); vRolls.set(u.id, times);
+    const line = String(body.line || '').replace(/[@`]/g, '').slice(0, 300);
+    const info = Object.assign({}, body.info && typeof body.info === 'object' ? body.info : {}, { kind: 'gm', hp: null, maxHp: null, sta: null, maxSta: null, exhaustion: null, taint: null });
+    const r = await fetch(c.webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      username: vHookName(body.who, 'The GM'), allowed_mentions: { parse: [] }, embeds: [vEmbed(info, line, c.name.slice(0, 100))]
     }) });
     if (!r.ok) return out({ error: 'Discord refused the post', detail: r.status }, 502);
     return out({ ok: true });
