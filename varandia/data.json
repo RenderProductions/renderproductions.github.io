@@ -1,0 +1,224 @@
+{
+  "_about": "Story of Varandia rules data. The compendium, builder and character sheet all read this file. Edit numbers and text here; leave the keys alone. Empty strings show as 'not yet written'.",
+  "creation": {
+    "startingDie": 6,
+    "points": 20,
+    "statCap": null
+  },
+  "stats": [
+    {
+      "key": "str",
+      "short": "STR",
+      "name": "Strength",
+      "hint": "hitting, lifting",
+      "text": "How hard you can hit, how much you can lift, and so on."
+    },
+    {
+      "key": "dur",
+      "short": "DUR",
+      "name": "Durability",
+      "hint": "taking a hit",
+      "text": "How hard you can be hit."
+    },
+    {
+      "key": "spd",
+      "short": "SPD",
+      "name": "Speed",
+      "hint": "running",
+      "text": "How fast you can run."
+    },
+    {
+      "key": "cha",
+      "short": "CHA",
+      "name": "Charisma",
+      "hint": "smooth talking",
+      "text": "Smooth talking."
+    },
+    {
+      "key": "int",
+      "short": "INT",
+      "name": "Intelligence",
+      "hint": "smarts",
+      "text": "Smarts."
+    },
+    {
+      "key": "per",
+      "short": "PER",
+      "name": "Perception",
+      "hint": "seeing",
+      "text": "Can you see? Noticing things."
+    },
+    {
+      "key": "sta",
+      "short": "STA",
+      "name": "Stamina",
+      "hint": "fuel for magic",
+      "text": "What magic costs. Your Stamina pool is built from it."
+    }
+  ],
+  "races": [
+    {
+      "key": "human",
+      "name": "Human",
+      "color": "#5a4632",
+      "mods": {},
+      "height": "4′11″ – 6′3″",
+      "text": "Arrogant little runts. They adapt to anything that gets thrown their way, and they despise the other races.",
+      "ability": ""
+    },
+    {
+      "key": "emberkin",
+      "name": "Emberkin",
+      "color": "#9a3412",
+      "mods": {
+        "str": 3,
+        "dur": -2,
+        "spd": 1,
+        "per": -1
+      },
+      "height": "5′8″ – 6′4″",
+      "text": "Beings of fire and ash, destruction and pillaging. One of the greatest manufacturers in Varandia.",
+      "ability": ""
+    },
+    {
+      "key": "glacian",
+      "name": "Glacian",
+      "color": "#1d5f80",
+      "mods": {
+        "str": 2,
+        "dur": 3,
+        "spd": -3,
+        "sta": -2
+      },
+      "height": "4′11″ – 5′8″",
+      "text": "Frosty the Snowman was a jolly, happy soul. Seriously though, these rough-and-tumble fellows love a good snowball fight and are probably the friendliest race in Varandia. They do get a bit rough with their pals.",
+      "ability": ""
+    },
+    {
+      "key": "floralian",
+      "name": "Floralian",
+      "color": "#2f6b2f",
+      "mods": {
+        "dur": 2,
+        "int": -1,
+        "sta": 1
+      },
+      "height": "5′5″ – 5′8″",
+      "text": "The religious ones. They love using magic to spread propaganda for their god, the Tre of Wisdom.",
+      "ability": ""
+    },
+    {
+      "key": "stoneborn",
+      "name": "Stoneborn",
+      "color": "#6b4f2a",
+      "mods": {
+        "str": 3,
+        "dur": 3,
+        "cha": -3,
+        "int": -3
+      },
+      "height": "5′1″ – 6′5″",
+      "text": "Speak less, fight more. Dumb as rocks, but they hit like a bus!",
+      "ability": ""
+    }
+  ],
+  "derived": {
+    "_about": "Numbers worked out from stats. 'half' means half the stat, rounded down.",
+    "defense": {
+      "base": 10,
+      "halfOf": "dur"
+    },
+    "hp": {
+      "base": 10,
+      "plusStat": "dur",
+      "perLevel": 5,
+      "perLevelHalfOf": "dur"
+    },
+    "stamina": {
+      "base": 5,
+      "statTimes": 2,
+      "stat": "sta",
+      "perLevel": 2,
+      "perLevelHalfOf": "sta"
+    },
+    "initiative": {
+      "halfOf": "spd"
+    },
+    "movement": {
+      "baseFeet": 20,
+      "feetPerTwo": 5,
+      "stat": "spd"
+    },
+    "attack": {
+      "halfOf": "str"
+    }
+  },
+  "elements": [
+    {
+      "key": "fire",
+      "name": "Fire",
+      "color": "#b4421a",
+      "text": ""
+    },
+    {
+      "key": "water",
+      "name": "Water",
+      "color": "#1f5f9e",
+      "text": ""
+    },
+    {
+      "key": "ice",
+      "name": "Ice",
+      "color": "#3d7f99",
+      "text": ""
+    },
+    {
+      "key": "earth",
+      "name": "Earth",
+      "color": "#6b4f2a",
+      "text": ""
+    },
+    {
+      "key": "air",
+      "name": "Air",
+      "color": "#5e6f80",
+      "text": ""
+    },
+    {
+      "key": "lightning",
+      "name": "Lightning",
+      "color": "#8a6a10",
+      "text": ""
+    },
+    {
+      "key": "nature",
+      "name": "Nature",
+      "color": "#2f6b2f",
+      "text": ""
+    },
+    {
+      "key": "poison",
+      "name": "Poison",
+      "color": "#557a1c",
+      "text": ""
+    },
+    {
+      "key": "light",
+      "name": "Light",
+      "color": "#9a7b25",
+      "text": ""
+    },
+    {
+      "key": "dark",
+      "name": "Dark",
+      "color": "#3e3466",
+      "text": "Shadow and obscuring magic: blinding, darkness, mists. Think Blindness or Dark Mist."
+    },
+    {
+      "key": "evil",
+      "name": "Evil",
+      "color": "#7a1424",
+      "text": "Lethal, malicious magic aimed at ending life. Think Power Word Kill."
+    }
+  ]
+}

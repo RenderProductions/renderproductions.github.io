@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character Sheet | Story of Varandia</title>
+<meta name="description" content="A Story of Varandia character sheet: roll from your stats, track health and Stamina, keep your satchel.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .facts { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1.5px solid rgba(42, 29, 18, 0.55); border-bottom: 1.5px solid rgba(42, 29, 18, 0.55); }
+  .facts > div { padding: 10px 6px; text-align: center; }
+  .facts > div + div { border-left: 1px solid rgba(42, 29, 18, 0.3); }
+  .facts dt { font: 13px/1.2 var(--sc); color: var(--faded); }
+  .facts dd { margin: 0; font-size: 22px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .step { width: 32px; height: 32px; padding: 0; background: transparent; border: 0; position: relative; font: 19px/1 var(--fell); }
+  .step::before { content: ""; position: absolute; inset: 2px; border: 1.6px solid var(--ink); border-radius: 50%; filter: url(#tome-rough); }
+  .shield { position: relative; width: 104px; height: 120px; flex: none; }
+  .shield svg { position: absolute; inset: 0; filter: url(#tome-rough); }
+  .shield div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 8px; }
+  .shield b { font-weight: 400; font-size: 34px; line-height: 1; }
+  .shield span { font: 12px/1.2 var(--sc); color: var(--faded); }
+  .satchel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 20px; }
+  .satchel li { display: flex; gap: 12px; align-items: center; min-height: 36px; }
+  .satchel li::before { content: "✦"; color: var(--red); font-size: 15px; }
+  .satchel li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .satchel li button { width: 36px; height: 36px; background: transparent; border: 0; color: var(--faded); font-size: 20px; }
+  .satchel li button:hover { color: var(--red); }
+  .adder { display: flex; gap: 10px; align-items: center; }
+  .adder input { flex: 1; min-width: 0; font-size: 21px !important; }
+  .log span { display: block; font: 19px/1.25 var(--hand); color: var(--pencil); text-decoration: line-through; text-decoration-color: rgba(90, 70, 50, 0.5); }
+  .gone { text-align: center; display: flex; flex-direction: column; gap: 18px; align-items: center; padding-top: 120px; }
+  @media (max-width: 560px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts > div:nth-child(3) { border-left: 0; } }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <a href="/varandia/characters/">Your characters</a>
+  <span class="beta">saved in this browser</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/characters/" aria-current="true" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread" id="spread">
+
+    <section class="page left" aria-labelledby="name">
+      <div class="leaf" id="leftLeaf">
+        <div class="kicker">Folio of</div>
+        <div style="display: flex; gap: 24px; align-items: center; flex-wrap: wrap">
+          <div class="inked round" style="width: 120px; height: 150px; flex: none; display: grid; place-items: center">
+            <span id="initial" style="font: 64px/1 var(--sc); color: var(--faded)"></span>
+          </div>
+          <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+            <h1 id="name" style="overflow-wrap: anywhere">…</h1>
+            <span id="ctitle" style="font-style: italic; font-size: 24px; color: var(--ink-soft)"></span>
+            <span id="cline" class="sc faded" style="margin-top: 8px; font-size: 16px"></span>
+          </div>
+        </div>
+
+        <dl class="facts">
+          <div><dt>Age</dt><dd id="age">—</dd></div>
+          <div><dt>Height</dt><dd id="height">—</dd></div>
+          <div><dt>Race</dt><dd id="race">—</dd></div>
+          <div><dt>Level</dt><dd><button type="button" class="step" id="lvDown" aria-label="Level down">−</button><span id="level">1</span><button type="button" class="step" id="lvUp" aria-label="Level up">+</button></dd></div>
+        </dl>
+
+        <div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px">
+            <h2>The Seven</h2>
+            <span class="hand" style="font-size: 22px">tap one to roll →</span>
+          </div>
+          <div class="statrow" id="seven"></div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 12px">
+          <button type="button" class="btn ink" id="attack">Melee attack</button>
+          <button type="button" class="btn" id="d20">Plain d20</button>
+          <button type="button" class="btn" id="d6">d6</button>
+        </div>
+      </div>
+      <span class="folio" id="folioL">— 17 —</span>
+    </section>
+
+    <section class="page right" aria-label="Health, satchel and story">
+      <div class="leaf" id="rightLeaf">
+        <div style="display: flex; gap: 22px; align-items: center; flex-wrap: wrap">
+          <div class="shield">
+            <svg width="104" height="120" viewBox="0 0 104 120" aria-hidden="true" fill="none" stroke="#2a1d12" stroke-width="2.5"><path d="M52 6 L96 20 C96 62 82 96 52 114 C22 96 8 62 8 20 Z"/><path d="M52 16 L86 27 C86 60 75 88 52 103 C29 88 18 60 18 27 Z" stroke-width="1"/></svg>
+            <div><b id="def">—</b><span>Defense</span></div>
+          </div>
+          <div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 12px; min-width: 0">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline"><span class="sc" style="font-size: 18px">Health</span><span class="hand" id="hpText" style="font-size: 22px"></span></div>
+              <div class="pips" id="hpPips" role="group" aria-label="Health"></div>
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline"><span class="sc" style="font-size: 18px">Stamina</span><span class="hand" id="staText" style="font-size: 22px"></span></div>
+              <div class="pips diamond" id="staPips" role="group" aria-label="Stamina"></div>
+            </div>
+            <div style="display: flex; gap: 22px; flex-wrap: wrap; font-size: 17px">
+              <button type="button" class="linkish" id="init"><span class="sc">Initiative</span> <span id="iniVal"></span></button>
+              <span style="align-self: center"><span class="sc">Movement</span> <span id="move"></span></span>
+              <button type="button" class="linkish" id="rest">Rest (refill both)</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <h2>The Satchel</h2>
+          <ul class="satchel" id="items"></ul>
+          <form class="adder" data-list="items"><label class="sr" for="addItem">Add to the satchel</label><input id="addItem" maxlength="60" placeholder="add something…" autocomplete="off"><button class="btn small" type="submit">Add</button></form>
+          <div class="inked thin" style="margin-top: 8px; padding: 14px 18px 14px 74px; position: relative">
+            <span class="seal" aria-hidden="true" style="position: absolute; left: 14px; top: 16px"></span>
+            <div class="sc faded" style="font-size: 14px">Cardinal Items</div>
+            <ul class="satchel" id="cardinal"></ul>
+            <form class="adder" data-list="cardinal"><label class="sr" for="addCard">Add a cardinal item</label><input id="addCard" maxlength="60" placeholder="add one…" autocomplete="off"><button class="btn small" type="submit">Add</button></form>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px">
+          <label class="field"><span>Proficiencies</span><input id="profs" maxlength="120" autocomplete="off" placeholder="Sniper"></label>
+          <label class="field"><span>Spells</span><input id="spells" maxlength="120" autocomplete="off" placeholder="none trained yet"></label>
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 2px" id="storyTitle">Their Story</h2>
+          <textarea class="lined" id="story" aria-labelledby="storyTitle" rows="4" maxlength="4000" placeholder="Where they come from, what they want…"></textarea>
+        </div>
+
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span class="sc faded" style="font-size: 15px">Body count</span>
+            <div style="display: flex; align-items: center; gap: 12px">
+              <button type="button" class="step" id="bDown" aria-label="One less">−</button>
+              <div class="tally" id="tally" role="img"></div>
+              <button type="button" class="step" id="bUp" aria-label="One more">+</button>
+            </div>
+          </div>
+          <div style="max-width: 290px; transform: rotate(-3deg); text-align: right">
+            <div class="hand" id="last" aria-live="polite" style="font-size: 30px">no rolls yet</div>
+            <div class="log" id="log"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px 22px; padding-top: 6px; border-top: 1px dashed rgba(42,29,18,.35); font-size: 16px">
+          <a id="edit" href="/varandia/builder/">Rewrite stats or details</a>
+          <button type="button" class="linkish" id="export" style="color: var(--red)">Copy as text</button>
+          <button type="button" class="linkish" id="del" style="color: var(--red)">Tear out this page</button>
+          <span class="pencil" id="status" aria-live="polite"></span>
+        </div>
+      </div>
+      <span class="folio">— 18 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, id = new URLSearchParams(location.search).get('id'), c = id && T.chars.get(id), D = null, dv = null;
+
+  if (!c) {
+    T.$('#leftLeaf').innerHTML = '<div class="gone"><h1>A blank page</h1><p>This character isn’t in this browser’s book. They may have been torn out, or made on another device.</p><a class="btn ink" href="/varandia/characters/">Your characters</a></div>';
+    T.$('#rightLeaf').innerHTML = '<div class="gone"><p class="pencil">nothing written here</p><a class="btn" href="/varandia/builder/">Make a character</a></div>';
+    return;
+  }
+  ['items', 'cardinal', 'log'].forEach(function (k) { if (!Array.isArray(c[k])) c[k] = []; });
+
+  var saveT = null;
+  function save(now) {
+    clearTimeout(saveT);
+    var go = function () { T.$('#status').textContent = T.chars.save(c) ? '' : 'couldn’t save in this browser'; };
+    if (now) go(); else saveT = setTimeout(go, 400);
+  }
+
+  function writeRoll(label, r) {
+    var b = r.bonus, line = label + ': ' + r.die + (b ? (b < 0 ? ' − ' + Math.abs(b) : ' + ' + b) : '') + ' = ' + r.total;
+    if (r.die === 20 && label.indexOf('d6') < 0) line += '!';
+    c.log.unshift(line); c.log = c.log.slice(0, 6);
+    drawLog(); save();
+  }
+  function drawLog() {
+    T.$('#last').textContent = c.log[0] || 'no rolls yet';
+    T.$('#log').innerHTML = c.log.slice(1, 4).map(function (l) { return '<span>' + T.esc(l) + '</span>'; }).join('');
+  }
+
+  function pips(el, n, max, word, key) {
+    var html = '';
+    for (var i = 0; i < max; i++) html += '<button type="button" class="pip' + (i < n ? ' on' : '') + '" data-i="' + i + '" aria-label="' + word + ' ' + (i + 1) + ' of ' + max + '" aria-pressed="' + (i < n) + '"></button>';
+    el.innerHTML = html;
+    el.onclick = function (e) {
+      var b = e.target.closest('.pip'); if (!b) return;
+      var i = +b.dataset.i; c[key] = c[key] === i + 1 ? i : i + 1;
+      drawVitals(); save();
+      var again = el.querySelector('[data-i="' + i + '"]'); if (again) again.focus();
+    };
+  }
+  function drawVitals() {
+    dv = T.derive(c, D);
+    c.hp = Math.max(0, Math.min(c.hp == null ? dv.hp : c.hp, dv.hp));
+    c.sta = Math.max(0, Math.min(c.sta == null ? dv.stamina : c.sta, dv.stamina));
+    T.$('#def').textContent = dv.defense;
+    T.$('#hpText').textContent = c.hp + ' of ' + dv.hp;
+    T.$('#staText').textContent = c.sta + ' of ' + dv.stamina;
+    pips(T.$('#hpPips'), c.hp, dv.hp, 'Health', 'hp');
+    pips(T.$('#staPips'), c.sta, dv.stamina, 'Stamina', 'sta');
+    T.$('#iniVal').textContent = T.sign(dv.initiative);
+    T.$('#move').textContent = dv.movement + ' ft';
+    T.$('#attack').textContent = 'Melee attack (' + T.sign(dv.attack) + ')';
+    T.$('#level').textContent = c.level || 1;
+    T.$('#lvDown').disabled = (c.level || 1) <= 1;
+    var r = T.race(D, c.race);
+    T.$('#cline').textContent = (r ? r.name : '') + ' · Level ' + (c.level || 1);
+  }
+  function drawList(key) {
+    T.$('#' + key).innerHTML = c[key].map(function (t, i) {
+      return '<li><span>' + T.esc(t) + '</span><button type="button" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
+    }).join('');
+  }
+
+  T.data().then(function (d) {
+    D = d;
+    var r = T.race(D, c.race);
+    document.title = c.name + ' | Story of Varandia';
+    T.$('#initial').textContent = c.name.charAt(0);
+    T.$('#name').textContent = c.name;
+    T.$('#ctitle').textContent = c.title || '';
+    T.$('#age').textContent = c.age || '—';
+    T.$('#height').textContent = c.height || '—';
+    T.$('#race').textContent = r ? r.name : '—';
+    T.$('#edit').href = '/varandia/builder/?id=' + encodeURIComponent(c.id);
+
+    T.$('#seven').innerHTML = D.stats.map(function (s) {
+      var v = T.stat(c, s.key, D);
+      return '<button type="button" class="stat" data-key="' + s.key + '"><span class="num">' + v + '</span><span class="what"><b>' + s.name + '</b><i>' + T.esc(s.hint) + '</i></span><span class="bonus">' + T.sign(T.half(v)) + '</span></button>';
+    }).join('');
+    T.$('#seven').addEventListener('click', function (e) {
+      var b = e.target.closest('.stat'); if (!b) return;
+      var s = D.stats.filter(function (x) { return x.key === b.dataset.key; })[0];
+      T.$$('#seven .stat').forEach(function (x) { x.classList.toggle('hot', x === b); });
+      writeRoll(s.name, T.roll(T.half(T.stat(c, s.key, D))));
+    });
+    T.$('#attack').onclick = function () { writeRoll('Melee attack', T.roll(dv.attack)); };
+    T.$('#init').onclick = function () { writeRoll('Initiative', T.roll(dv.initiative)); };
+    T.$('#d20').onclick = function () { writeRoll('d20', T.roll(0)); };
+    T.$('#d6').onclick = function () { writeRoll('d6', T.roll(0, 6)); };
+    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; drawVitals(); save(); };
+    T.$('#lvUp').onclick = function () { var before = T.derive(c, D); c.level = (c.level || 1) + 1; var after = T.derive(c, D); c.hp += after.hp - before.hp; c.sta += after.stamina - before.stamina; drawVitals(); save(); };
+    T.$('#lvDown').onclick = function () { if ((c.level || 1) > 1) { c.level -= 1; drawVitals(); save(); } };
+
+    drawVitals(); drawList('items'); drawList('cardinal'); drawLog();
+    ['items', 'cardinal'].forEach(function (k) {
+      T.$('#' + k).addEventListener('click', function (e) {
+        var b = e.target.closest('[data-rm]'); if (!b) return;
+        c[k].splice(+b.dataset.rm, 1); drawList(k); save();
+      });
+    });
+    T.$$('form.adder').forEach(function (f) {
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
+        c[f.dataset.list].push(v); inp.value = ''; drawList(f.dataset.list); save();
+      });
+    });
+    [['profs', 'profs'], ['spells', 'spells'], ['story', 'story']].forEach(function (p) {
+      var el = T.$('#' + p[0]); el.value = c[p[1]] || '';
+      el.addEventListener('input', function () { c[p[1]] = el.value; save(); });
+    });
+    var tally = function () { T.tally(T.$('#tally'), c.bodies || 0); T.$('#tally').setAttribute('aria-label', 'Body count: ' + (c.bodies || 0)); };
+    tally();
+    T.$('#bUp').onclick = function () { c.bodies = (c.bodies || 0) + 1; tally(); save(); };
+    T.$('#bDown').onclick = function () { c.bodies = Math.max(0, (c.bodies || 0) - 1); tally(); save(); };
+
+    T.$('#export').onclick = function () {
+      var lines = [c.name + (c.title ? ', ' + c.title : ''), (r ? r.name : '') + ' · Level ' + (c.level || 1) + (c.age ? ' · Age ' + c.age : '') + (c.height ? ' · ' + c.height : ''), ''];
+      D.stats.forEach(function (s) { var v = T.stat(c, s.key, D); lines.push(s.name + ': ' + v + ' (' + T.sign(T.half(v)) + ')'); });
+      lines.push('', 'Defense ' + dv.defense + ' · Health ' + c.hp + '/' + dv.hp + ' · Stamina ' + c.sta + '/' + dv.stamina + ' · Initiative ' + T.sign(dv.initiative) + ' · Move ' + dv.movement + ' ft');
+      if (c.items.length) lines.push('Satchel: ' + c.items.join(', '));
+      if (c.cardinal.length) lines.push('Cardinal Items: ' + c.cardinal.join(', '));
+      var text = lines.join('\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { T.$('#status').textContent = 'copied'; }, function () { T.$('#status').textContent = 'couldn’t copy'; });
+    };
+    T.$('#del').onclick = function () {
+      if (!confirm('Tear ' + c.name + ' out of the book? This can’t be undone.')) return;
+      T.chars.remove(c.id); location.href = '/varandia/characters/';
+    };
+  }).catch(function () { T.$('#status').textContent = 'the pages are stuck together, try reloading'; });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

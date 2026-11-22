@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a Character | Story of Varandia</title>
+<meta name="description" content="Make a Story of Varandia character: roll a d6 for each stat, spend 20 points, pick your race.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Make a Character | Story of Varandia">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/builder/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+<style>
+  .bstats { display: flex; flex-direction: column; }
+  .brow { display: grid; grid-template-columns: minmax(0, 1fr) 64px 132px 46px 54px; align-items: center; gap: 6px; min-height: 56px; border-bottom: 1px dashed rgba(42, 29, 18, 0.4); }
+  .brow.head { min-height: 0; padding-bottom: 6px; border-bottom: 2px solid rgba(42, 29, 18, 0.7); font: 14px/1.2 var(--sc); color: var(--faded); }
+  .brow .nm { font: 19px/1.2 var(--sc); }
+  .brow input { width: 100%; text-align: center; }
+  .brow .pts { display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .brow .pts span { min-width: 30px; text-align: center; font: 26px/1 var(--hand); }
+  .brow .pts button { width: 38px; height: 38px; padding: 0; background: transparent; border: 0; position: relative; font: 22px/1 var(--fell); }
+  .brow .pts button::before { content: ""; position: absolute; inset: 2px; border: 1.8px solid var(--ink); border-radius: 50%; filter: url(#tome-rough); }
+  .brow .pts button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .brow .rc { text-align: center; font: 22px/1 var(--hand); }
+  .brow .tot { position: relative; width: 46px; height: 46px; justify-self: end; display: grid; place-items: center; font-size: 22px; }
+  .brow .tot::before { content: ""; position: absolute; inset: 0; border: 2px solid var(--ink); border-radius: 50%; filter: url(#tome-rough); }
+  .preview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); text-align: center; border-top: 1.5px solid rgba(42, 29, 18, 0.55); border-bottom: 1.5px solid rgba(42, 29, 18, 0.55); }
+  .preview div { padding: 10px 4px; }
+  .preview div + div { border-left: 1px solid rgba(42, 29, 18, 0.3); }
+  .preview b { display: block; font-weight: 400; font-size: 26px; }
+  .preview span { font: 13px/1.2 var(--sc); color: var(--faded); }
+  @media (max-width: 560px) {
+    .brow { grid-template-columns: minmax(0, 1fr) 50px 118px 36px 46px; }
+    .brow .nm { font-size: 16px; }
+    .preview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <form class="spread" id="form" novalidate>
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf">
+        <div class="kicker">Chapter VI</div>
+        <h1 id="title">Making a Character</h1>
+
+        <div style="display: flex; flex-direction: column; gap: 16px">
+          <h2>I. Who are they?</h2>
+          <label class="field"><span>Name</span><input type="text" id="f-name" maxlength="40" autocomplete="off" required placeholder="Will"></label>
+          <label class="field"><span>Title (optional)</span><input type="text" id="f-title" maxlength="50" autocomplete="off" placeholder="the Weapon Merchant"></label>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+            <label class="field"><span>Age</span><input type="text" id="f-age" maxlength="12" inputmode="numeric" autocomplete="off" placeholder="34"></label>
+            <label class="field"><span>Height</span><input type="text" id="f-height" maxlength="12" autocomplete="off" placeholder="5′9″"></label>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <h2>II. What are they?</h2>
+          <div class="chips" id="races" role="radiogroup" aria-label="Race"></div>
+          <p id="raceText" style="font-style: italic; margin: 0"></p>
+          <p id="raceInfo" class="faded" style="font-size: 16px; margin: 0"></p>
+        </div>
+      </div>
+      <span class="folio">— 15 —</span>
+    </section>
+
+    <section class="page right" aria-labelledby="statsTitle">
+      <div class="leaf">
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+            <h2 id="statsTitle">III. Roll &amp; spend</h2>
+            <button type="button" class="btn small" id="rollAll">Roll every d6</button>
+          </div>
+          <p class="faded" style="font-size: 16px; margin: 0">Roll here, or roll real dice and write the numbers in. Then spend your points: <span class="hand" id="left" style="font-size: 26px">20</span> left.</p>
+          <div class="bstats" id="stats" role="group" aria-label="Stats">
+            <div class="brow head" aria-hidden="true"><span>Stat</span><span style="text-align:center">d6</span><span style="text-align:center">Points</span><span style="text-align:center">Race</span><span style="text-align:right">Total</span></div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin-bottom: 8px">At level 1</h3>
+          <div class="preview" aria-live="polite">
+            <div><b id="p-def">—</b><span>Defense</span></div>
+            <div><b id="p-hp">—</b><span>Health</span></div>
+            <div><b id="p-sta">—</b><span>Stamina</span></div>
+            <div><b id="p-ini">—</b><span>Initiative</span></div>
+            <div><b id="p-mov">—</b><span>Move</span></div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center">
+          <button type="submit" class="btn ink" id="save">Ink it into the book</button>
+          <span class="pencil" id="why" aria-live="polite"></span>
+        </div>
+      </div>
+      <span class="folio">— 16 —</span>
+    </section>
+
+  </form>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+(function () {
+  var T = Tome, D = null, params = new URLSearchParams(location.search);
+  var editing = params.get('id') ? T.chars.get(params.get('id')) : null;
+  var c = editing || { id: T.chars.newId(), level: 1, race: params.get('race') || 'human', d6: {}, pts: {}, created: Date.now() };
+
+  function spent() { return D.stats.reduce(function (n, s) { return n + (c.pts[s.key] || 0); }, 0); }
+  function rolled() { return D.stats.every(function (s) { var v = c.d6[s.key]; return v >= 1 && v <= D.creation.startingDie; }); }
+
+  function drawRaces() {
+    T.$('#races').innerHTML = D.races.map(function (r) {
+      var on = r.key === c.race;
+      return '<button type="button" class="chip" role="radio" aria-checked="' + on + '" aria-pressed="' + on + '" data-key="' + r.key + '" style="--c:' + r.color + '"><span class="dot"></span>' + T.esc(r.name) + '</button>';
+    }).join('');
+    var r = T.race(D, c.race);
+    T.$('#raceText').textContent = r.text || '';
+    var mods = D.stats.filter(function (s) { return r.mods[s.key]; }).map(function (s) { return T.modText(r.mods[s.key]) + ' ' + s.short; });
+    T.$('#raceInfo').textContent = (mods.length ? mods.join(', ') : 'No stat changes') + ' · usually ' + r.height + ' tall';
+  }
+
+  function drawStats() {
+    var box = T.$('#stats');
+    T.$$('.brow:not(.head)', box).forEach(function (e) { e.remove(); });
+    var r = T.race(D, c.race), html = '';
+    D.stats.forEach(function (s) {
+      var m = r.mods[s.key] || 0;
+      html += '<div class="brow" data-key="' + s.key + '"><span class="nm">' + s.name + '</span>' +
+        '<input type="number" min="1" max="' + D.creation.startingDie + '" inputmode="numeric" aria-label="' + s.name + ' d6 roll" data-d6 value="' + (c.d6[s.key] || '') + '">' +
+        '<span class="pts"><button type="button" data-step="-1" aria-label="Take a point from ' + s.name + '">−</button><span aria-label="' + s.name + ' points">' + (c.pts[s.key] || 0) + '</span><button type="button" data-step="1" aria-label="Put a point in ' + s.name + '">+</button></span>' +
+        '<span class="rc" style="color:' + (m < 0 ? 'var(--red)' : m > 0 ? 'var(--ink)' : 'rgba(90,70,50,.5)') + '">' + T.modText(m) + '</span>' +
+        '<span class="tot" data-tot></span></div>';
+    });
+    box.insertAdjacentHTML('beforeend', html);
+    update();
+  }
+
+  function update() {
+    var left = D.creation.points - spent();
+    T.$('#left').textContent = left;
+    T.$$('.brow:not(.head)').forEach(function (row) {
+      var k = row.dataset.key, has = c.d6[k] >= 1;
+      row.querySelector('[data-tot]').textContent = has ? T.stat(c, k, D) : '·';
+      row.querySelector('.pts span').textContent = c.pts[k] || 0;
+      row.querySelector('[data-step="-1"]').disabled = !(c.pts[k] > 0);
+      row.querySelector('[data-step="1"]').disabled = left <= 0;
+    });
+    var ok = rolled();
+    var dv = ok ? T.derive(c, D) : null;
+    T.$('#p-def').textContent = dv ? dv.defense : '—';
+    T.$('#p-hp').textContent = dv ? dv.hp : '—';
+    T.$('#p-sta').textContent = dv ? dv.stamina : '—';
+    T.$('#p-ini').textContent = dv ? T.sign(dv.initiative) : '—';
+    T.$('#p-mov').textContent = dv ? dv.movement + ' ft' : '—';
+    var why = !T.$('#f-name').value.trim() ? 'needs a name' : !ok ? 'roll every d6 first' : left > 0 ? left + ' point' + (left === 1 ? '' : 's') + ' still to spend' : '';
+    T.$('#why').textContent = why;
+    T.$('#save').disabled = !!why;
+  }
+
+  T.data().then(function (d) {
+    D = d;
+    if (!T.race(D, c.race)) c.race = D.races[0].key;
+    T.$('#f-name').value = c.name || '';
+    T.$('#f-title').value = c.title || '';
+    T.$('#f-age').value = c.age || '';
+    T.$('#f-height').value = c.height || '';
+    if (editing) { T.$('#title').textContent = 'Rewriting ' + c.name; T.$('#save').textContent = 'Save changes'; }
+    drawRaces(); drawStats();
+
+    T.$('#races').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-key]'); if (!b) return;
+      c.race = b.dataset.key; drawRaces(); drawStats();
+      T.$('#races [aria-checked="true"]').focus();
+    });
+    T.$('#stats').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-step]'); if (!b) return;
+      var k = b.closest('.brow').dataset.key, step = +b.dataset.step;
+      c.pts[k] = Math.max(0, (c.pts[k] || 0) + step);
+      if (spent() > D.creation.points) c.pts[k] -= step;
+      update();
+    });
+    T.$('#stats').addEventListener('input', function (e) {
+      if (!e.target.matches('[data-d6]')) return;
+      var k = e.target.closest('.brow').dataset.key, v = parseInt(e.target.value, 10);
+      c.d6[k] = v >= 1 && v <= D.creation.startingDie ? v : 0;
+      update();
+    });
+    T.$('#rollAll').addEventListener('click', function () {
+      if (rolled() && !confirm('Reroll every d6? Your current rolls will be lost.')) return;
+      D.stats.forEach(function (s) { c.d6[s.key] = T.roll(0, D.creation.startingDie).die; });
+      T.$$('[data-d6]').forEach(function (inp) { inp.value = c.d6[inp.closest('.brow').dataset.key]; });
+      update();
+    });
+    T.$('#f-name').addEventListener('input', update);
+
+    T.$('#form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      update();
+      if (T.$('#save').disabled) return;
+      c.name = T.$('#f-name').value.trim();
+      c.title = T.$('#f-title').value.trim();
+      c.age = T.$('#f-age').value.trim();
+      c.height = T.$('#f-height').value.trim();
+      var dv = T.derive(c, D);
+      if (!editing) {
+        c.hp = dv.hp; c.sta = dv.stamina;
+        c.items = []; c.cardinal = []; c.profs = ''; c.spells = ''; c.story = ''; c.bodies = 0; c.log = [];
+      } else {
+        c.hp = Math.min(c.hp == null ? dv.hp : c.hp, dv.hp); c.sta = Math.min(c.sta == null ? dv.stamina : c.sta, dv.stamina);
+      }
+      if (!T.chars.save(c)) { T.$('#why').textContent = 'this browser won’t let the book be saved (private mode?)'; return; }
+      location.href = '/varandia/sheet/?id=' + encodeURIComponent(c.id);
+    });
+  }).catch(function () { T.$('#why').textContent = 'the pages are stuck together, try reloading'; });
+})();
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

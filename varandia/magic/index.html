@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magic | Story of Varandia</title>
+<meta name="description" content="Magic in Story of Varandia: Chaotic and Controlled magic, the Stamina it costs, and the eleven elements.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="Magic | Story of Varandia">
+<meta property="og:description" content="Chaotic and Controlled magic, and the eleven elements.">
+<meta property="og:url" content="https://renderproductions.github.io/varandia/magic/">
+<meta name="theme-color" content="#3a2214">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="stylesheet" href="/varandia/tome.css">
+</head>
+<body class="tome">
+
+<div class="desk-bar">
+  <a href="/">← Render Productions</a>
+  <a href="/varandia/">Story of Varandia</a>
+  <span class="beta">beta: the rules are still being written</span>
+</div>
+
+<main class="book">
+  <nav class="ribbons" aria-label="Bookmarks">
+    <a href="/varandia/" style="--rib:#6e1f17">Contents</a>
+    <a href="/varandia/races/" style="--rib:#2f4a3a">Races</a>
+    <a href="/varandia/characters/" style="--rib:#8a6a2a">Characters</a>
+  </nav>
+  <div class="spread">
+
+    <section class="page left" aria-labelledby="title">
+      <div class="leaf">
+        <div class="kicker">Chapter III</div>
+        <h1 id="title">Magic</h1>
+        <p style="font-size: 20px">Anyone can use magic, but it takes a toll on their <b class="sc">Stamina</b>.</p>
+
+        <div class="inked" style="padding: 20px 22px">
+          <h3>Chaotic magic</h3>
+          <p style="margin-top: 6px">The wild, raw energy that gives Varandia its life. Pure, powerful, and unpredictable.</p>
+        </div>
+        <div class="inked" style="padding: 20px 22px">
+          <h3>Controlled magic</h3>
+          <p style="margin-top: 6px">Magic harnessed into runes and magical artifacts: wands, staves, tomes, crystal balls and the like.</p>
+        </div>
+
+        <div>
+          <h2 style="margin-bottom: 8px">Learning spells</h2>
+          <p>You learn a spell by harnessing Chaotic magic and training it into a certain kind of Controlled magic. That's where the standard spells come from: fireball and the rest.</p>
+          <p>The higher your level, the easier Chaotic magic becomes to use.</p>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center">
+          <span class="seal" aria-hidden="true"></span>
+          <p style="margin: 0"><b class="sc">Fail a magic roll</b> and it costs you some health.</p>
+        </div>
+      </div>
+      <span class="folio">— 9 —</span>
+    </section>
+
+    <section class="page right" aria-labelledby="elements">
+      <div class="leaf">
+        <div class="kicker">Chapter IV</div>
+        <h1 id="elements" style="font-size: 44px">The Eleven Elements</h1>
+        <p>Spells are sorted by element.</p>
+        <ul id="els" style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 26px"></ul>
+        <p class="pencil">spell lists, Stamina costs and how much a failed roll hurts are still being written: they'll depend on each spell</p>
+      </div>
+      <span class="folio">— 10 —</span>
+    </section>
+
+  </div>
+</main>
+
+<script src="/varandia/tome.js"></script>
+<script>
+Tome.data().then(function (d) {
+  Tome.$('#els').innerHTML = d.elements.map(function (e) {
+    return '<li id="' + e.key + '" style="padding:10px 0;border-bottom:1px dashed rgba(42,29,18,.35)">' +
+      '<div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="width:14px;height:14px;border-radius:50%;background:' + e.color + ';filter:url(#tome-rough)"></span>' +
+      '<span class="sc" style="font-size:21px">' + Tome.esc(e.name) + '</span></div>' +
+      (e.text ? '<p style="margin:4px 0 0;font-size:16px">' + Tome.esc(e.text) + '</p>' : '<p class="unwritten" style="margin:2px 0 0;font-size:15px">No spells written yet.</p>') + '</li>';
+  }).join('');
+  if (location.hash) { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+});
+</script>
+<script src="/rv.js" defer></script>
+</body>
+</html>
