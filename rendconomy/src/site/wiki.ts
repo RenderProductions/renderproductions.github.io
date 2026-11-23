@@ -23,6 +23,8 @@ import { SELL_BACK, SHOP_RULES } from '../shop/shop';
 import { BULK_MAX, MYSTERY } from '../shop/use';
 import { BEG } from '../commands/beg';
 import { COLLECT } from '../loans/collect';
+import { CITY } from '../city/city';
+import { WORKERS } from '../companies/workers';
 import { WHOLESALE } from '../estate/wholesale';
 import { CHATTER } from '../social/chatter';
 import { SAVINGS } from '../social/savings';
@@ -55,6 +57,13 @@ export function wikiData(): Record<string, unknown> {
       mystery: { jackpotChance: MYSTERY.jackpotChance, jackpot: p(MYSTERY.jackpot), overtimeChance: MYSTERY.overtimeChance, cash: MYSTERY.cash },
       collect: { graceDays: COLLECT.graceMs / 86_400_000, fee: COLLECT.fee },
       wholesale: WHOLESALE,
+      city: {
+        activeDays: CITY.run.activeDays, accountAgeDays: CITY.run.accountAgeMs / 86_400_000, maxConsecutive: CITY.run.maxConsecutive,
+        freezes: CITY.freeze.perTerm, fines: CITY.fine.perTerm, fineShare: CITY.fine.share, fineMax: p(CITY.fine.max), investigateDays: CITY.investigateMs / 86_400_000,
+        taxMax: CITY.taxMax, collectFee: CITY.collect.fee, graceDays: CITY.collect.graceDays, impeachMin: CITY.impeach.min,
+        works: Object.fromEntries(Object.entries(CITY.works).map(([k, w]) => [k, { min: w.min, max: w.max, rate: p(w.rate), label: w.label, unit: w.unit }])), workDays: CITY.workDays
+      },
+      workers: { cap: WORKERS.cap, hireFee: p(WORKERS.hireFee), rate: p(WORKERS.rate), minWage: p(WORKERS.minWage), maxWage: p(WORKERS.maxWage), revenue: p(WORKERS.revenue), strikeBelow: WORKERS.strikeBelow },
       payPrice: PAY_PRICE, sellBack: SELL_BACK, bulkMax: BULK_MAX, closeFee: CLOSE.fee, refoundDays: CLOSE.refoundMs / 86_400_000, salvage: ESTATE.salvage, sellBackEstate: ESTATE.sellBack,
       beg: { coins: BEG.coins, coinChance: BEG.chances.coins, trinketChance: BEG.chances.trinket, caught: BEG.caught.map((c) => ({ above: p(c.above), chance: c.chance })), fineShare: BEG.fineShare, fineMax: p(BEG.fineMax), cooldownMinutes: BEG.cooldownMs / 60_000 }
     },

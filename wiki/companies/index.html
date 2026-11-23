@@ -25,7 +25,7 @@
 <div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Player companies</div>
 <header class="ahead"><img src="/bot/emojis/rc_company.png" alt=""><div><h1>Player companies</h1><div class="meta"><code>r!found</code></div></div></header>
 <div class="layout">
-<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#founding">Founding one</a><a href="#levels">Levels</a><a href="#public">Going public</a><a href="#upkeep">Upkeep and closing</a><a href="#takeovers">Takeovers and mergers</a><hr><div class="lbl">See also</div><a href="/wiki/market/">The Market</a><a href="/wiki/city/">The City</a></nav>
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#founding">Founding one</a><a href="#levels">Levels</a><a href="#public">Going public</a><a href="#upkeep">Upkeep and closing</a><a href="#staff">NPC workers</a><a href="#takeovers">Takeovers and mergers</a><hr><div class="lbl">See also</div><a href="/wiki/market/">The Market</a><a href="/wiki/city/">The City</a></nav>
 <article>
 <div class="lede">
 <p>Any player can found a company. It has a treasury, levels up as you invest, and at level <span data-v="companies.ipoLevel" data-f="raw">3</span> it can go public: other players can buy its shares, and it gets its own page on <a href="/rend-conomy/exchange/">the exchange</a>.</p>
@@ -55,7 +55,18 @@
 <h3>Selling it</h3>
 <p><code>r!sellcompany @player &lt;price&gt;</code> offers the whole company (treasury, level and staff) to another player in your server. They have a day to answer with <code>r!sellcompany accept</code> or <code>decline</code>; <code>r!sellcompany cancel</code> takes it back. The buyer can't already run a company, and has to sell any shares they hold in it first. No sale while a takeover bid is open.</p>
 
+<h2 id="staff">NPC workers</h2>
+<p>A company can hire staff who earn for its treasury every day, even when nobody's playing. <code>r!company staff</code> lists them; <code>r!company hire</code> hires one for <span data-v="refined.workers.hireFee">?</span> from the treasury.</p>
+<ul>
+<li><strong>How many:</strong> <span data-v="refined.workers.cap.0" data-f="raw">?</span> at Startup, <span data-v="refined.workers.cap.1" data-f="raw">?</span> at Small Business, <span data-v="refined.workers.cap.2" data-f="raw">?</span> at Firm, <span data-v="refined.workers.cap.3" data-f="raw">?</span> at Corporation and up.</li>
+<li><strong>Wages:</strong> paid from the treasury every day. The going rate is <span data-v="refined.workers.rate">?</span>; you can set anything from <span data-v="refined.workers.minWage">?</span> to <span data-v="refined.workers.maxWage">?</span> with <code>r!company wage &lt;name|all&gt; &lt;amount&gt;</code>.</li>
+<li><strong>What they earn:</strong> about <span data-v="refined.workers.revenue">?</span> a day each, times the company's level bonus, and more when they're happy (half as much at their unhappiest, half again at their happiest).</li>
+<li><strong>Moods:</strong> pay at least the going rate and moods hold or rise (well above it, they rise fast). Underpay them, or let the treasury run dry, and moods fall. Under <span data-v="refined.workers.strikeBelow" data-f="num">?</span> they may go on strike for a day (no work, no pay). At 0 they quit, and they tell you why.</li>
+<li><code>r!company fire &lt;name&gt;</code> lets one go.</li>
+</ul>
+
 <h2 id="takeovers"><img class="hi" src="/bot/emojis/rc_raid.png" alt="">Takeovers and mergers</h2>
+<p>If someone is crashing your company to take it over cheap, go to <a href="/wiki/city-hall/#powers">City Hall</a>: the mayor can block the bid, freeze trading, and fine or investigate whoever is behind it.</p>
 <ul>
 <li><strong>Hostile takeover:</strong> a player who holds at least half of the shares for sale can bid for your company with <code>r!takeover</code>, putting up a premium of a quarter of its worth. You have a day to answer; no answer and it goes through.</li>
 <li><strong>Poison pill:</strong> defend for a tenth of the company's worth (<code>r!takeover defend</code>). The bidder gets their premium back minus a 20% break fee, which goes to you, and your company is shielded from takeovers for 7 days.</li>

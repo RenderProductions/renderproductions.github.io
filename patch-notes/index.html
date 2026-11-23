@@ -64,32 +64,45 @@
     <span class="tag">CHANGED</span>, <span class="tag fix">FIXED</span>.
   -->
 
-  <article class="log release" id="collect-call" aria-labelledby="r-collect-call">
-    <div class="label"><span class="tag live">LATEST</span><span class="tag quick">QUICK ADD</span><span>November 2026</span><a href="#collect-call">#</a></div>
-    <h2 id="r-collect-call">Collect Call</h2>
-    <p>Two of your ideas: lenders can finally collect on loans nobody's paying back (NachoBellGrande1065's), and Warehouses can order seeds wholesale so nobody has to fight over Polygon Fruit (KorbedOut's).</p>
+  <article class="log release" id="under-new-management" aria-labelledby="r-under-new-management">
+    <div class="label"><span class="tag live">LATEST</span><span>November 2026</span><a href="#under-new-management">#</a></div>
+    <h2 id="r-under-new-management">Under New Management</h2>
+    <p>Every server elects a mayor now, with real power over its economy. Companies can hire staff. Lenders can finally collect, and Warehouses can order seeds wholesale. Under New Management and collections were NachoBellGrande1065's ideas, Wholesale was KorbedOut's, and you all asked for workers.</p>
 
-    <h3>COLLECTIONS</h3>
+    <h3>ELECT A MAYOR</h3>
     <ul>
-      <li><img class="emoji" data-emoji="loan" src="/bot/emojis/rc_loan.png" alt="" width="22" height="22"><span><strong><code>r!collect @borrower</code>:</strong> three days after an overdue loan's due date, TODD collects it from what the borrower owns. First their wallet, then their savings, their shares at the market price, then their shop items at Marquez's buy-back price, until the loan is covered.</span></li>
-      <li><img class="emoji" data-emoji="todd" src="/bot/emojis/rc_todd.png" alt="" width="22" height="22"><span><strong>Never their buildings, company or collectibles.</strong> The lender gets exactly what they're owed, and TODD keeps a 10% collection fee for the trouble, paid by the borrower.</span></li>
-      <li><img class="emoji" data-emoji="bell" src="/bot/emojis/rc_bell.png" alt="" width="22" height="22"><span><strong>No surprises:</strong> borrowers get a DM when their loan goes overdue, and both sides get one when it can be collected. Pay it with <code>r!payback</code> before then to keep your things. New achievement: <strong>Repo Man</strong>.</span></li>
+      <li><img class="emoji" data-emoji="ballot" src="/bot/emojis/rc_ballot.png" alt="" width="22" height="22"><span><strong>Weekly elections, in every server.</strong> Run Monday to Thursday with <code>r!mayor run [slogan]</code>; vote Friday to Sunday with <code>r!vote @player</code>. Results come in Sunday at 9 PM Eastern. Anyone can vote. To run, you need to have played on 3 of the last 7 days, with an account at least a week old, and you can serve 2 terms in a row before sitting one out.</span></li>
+      <li><img class="emoji" data-emoji="city_hall" src="/bot/emojis/rc_city_hall.png" alt="" width="22" height="22"><span><strong>The mayor's powers</strong> (<code>r!mayor help</code>): block a takeover or merger, freeze a company's trading for a day, investigate a player's trades, fine a company or a player, and bail out a company being crashed. Set taxes on Marquez's shop (up to 15%), property (up to 3%) and casino winnings (up to 15%). Design public works (a rent boost, chat pay, shift pay, crop prices, or Happy Hour). Issue decrees, and appoint a Treasurer and a Police Chief.</span></li>
+      <li><img class="emoji" data-emoji="todd" src="/bot/emojis/rc_todd.png" alt="" width="22" height="22"><span><strong>The limits:</strong> the mayor can never pay themselves from the city treasury, can't use business powers where they have a stake, and everything goes on the public record (<code>r!mayor log</code>). Don't like your mayor? <code>r!impeach</code> opens a 24-hour vote.</span></li>
+      <li><span class="tag new">NEW</span><span>A <strong>City Hall</strong> achievement section: I Voted, Elected!, Four More Years, Landslide, Trustbuster, Public Works, and a secret one.</span></li>
+    </ul>
+
+    <h3>NPC WORKERS</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="worker" src="/bot/emojis/rc_worker.png" alt="" width="22" height="22"><span><strong>Hire staff for your company:</strong> <code>r!company hire</code>. They earn for your treasury every day, even when nobody's playing. Up to 2 at Startup and 8 at the top.</span></li>
+      <li><img class="emoji" data-emoji="company" src="/bot/emojis/rc_company.png" alt="" width="22" height="22"><span><strong>Treat them right.</strong> Each worker has a name and a mood. Pay the going rate or better and they work harder; underpay them and they strike, then quit, and they'll tell you why. <code>r!company staff</code>, <code>r!company wage</code>, <code>r!company fire</code>.</span></li>
+    </ul>
+
+    <h3>COLLECT CALL</h3>
+    <ul>
+      <li><img class="emoji" data-emoji="loan" src="/bot/emojis/rc_loan.png" alt="" width="22" height="22"><span><strong><code>r!collect @borrower</code>:</strong> a few days after an overdue loan's due date, the lender can make the borrower pay from what they own: their wallet, then savings, shares, and shop items. Never their buildings, company or collectibles. The lender gets exactly what they're owed, and a collection fee goes to the city. The mayor sets the fee (5–20%, 10% to start) and the grace period (1–5 days, 3 to start).</span></li>
+      <li><img class="emoji" data-emoji="bell" src="/bot/emojis/rc_bell.png" alt="" width="22" height="22"><span>Borrowers get a DM when a loan goes overdue, and both sides get one when it can be collected. New achievement: <strong>Repo Man</strong>.</span></li>
     </ul>
 
     <h3>WHOLESALE SEEDS</h3>
     <ul>
-      <li><img class="emoji" data-emoji="prop_warehouse" src="/bot/emojis/rc_prop_warehouse.png" alt="" width="22" height="22"><span><strong>Own a Warehouse? Order seeds straight from the supplier:</strong> <code>r!property wholesale polyfruit 3</code>. It never touches Marquez's shelf, so you're not racing anyone for it.</span></li>
-      <li><img class="emoji" data-emoji="seed_polyfruit" src="/bot/emojis/rc_seed_polyfruit.png" alt="" width="22" height="22"><span><strong>Your own daily allowance</strong> of every seed: 10, 25 or 50 a day by Warehouse level (Polygon Fruit: 3, 6 or 10). It costs 10% more than Marquez, and resets at midnight Eastern. <code>r!property wholesale</code> shows what's left today.</span></li>
+      <li><img class="emoji" data-emoji="prop_warehouse" src="/bot/emojis/rc_prop_warehouse.png" alt="" width="22" height="22"><span><strong>Own a Warehouse? Order seeds from the supplier:</strong> <code>r!property wholesale polyfruit 3</code>. It never touches Marquez's shelf, so there's no racing anyone. Your own daily allowance of every seed (10, 25 or 50 by Warehouse level; Polygon Fruit 3, 6 or 10), at 10% over Marquez's price.</span></li>
+    </ul>
+
+    <h3>THE SITE</h3>
+    <ul>
+      <li><span class="tag new">NEW</span><span><a href="/wiki/city-hall/">City Hall</a> in the wiki, plus workers, collections and Wholesale.</span></li>
+      <li><span class="tag">CHANGED</span><span><a href="/wiki/">The wiki</a> looked like an office handbook. It's back in the site's own colors: navy and gold, terminal type, bracketed panels and the CRT scanlines, just turned down a little for long reading.</span></li>
     </ul>
 
     <h3>FIXES</h3>
     <ul>
       <li><span class="tag fix">FIXED</span><span>The Balance line under a payslip showed a stray <code>-#</code>.</span></li>
-    </ul>
-
-    <h3>THE SITE</h3>
-    <ul>
-      <li><span class="tag">CHANGED</span><span><a href="/wiki/">The wiki</a> looked like an office handbook. It's back in the site's own colors: navy and gold, terminal type, bracketed panels and the CRT scanlines, just turned down a little for long reading.</span></li>
     </ul>
   </article>
 

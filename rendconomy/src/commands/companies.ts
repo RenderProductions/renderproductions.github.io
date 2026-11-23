@@ -1,4 +1,4 @@
-import { emoji } from '../discord/emoji';
+import { emoji, emojiOr } from '../discord/emoji';
 import { nameOf, receipt } from '../social/receipts';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
@@ -70,7 +70,7 @@ function staff(ctx: Ctx, word: string, rest: string): ReplyObject {
   return ctx.db.tx(() => {
     if (word === 'hire') {
       const w = hire(ctx.db, c, () => ctx.rng.next(), ctx.now);
-      return { embeds: [embed('market', `${emoji('company')} Hired: ${w.name}`, [
+      return { embeds: [embed('market', `${emojiOr('worker', '👷')} Hired: ${w.name}`, [
         `**${w.name}** joins ${c.name} at the going rate, **${format(w.wage)}** a day from the treasury (hiring cost ${format(WORKERS.hireFee)}).`,
         `Every day they earn the company about **${format(dayRevenue(c, w.mood))}**, more when they're happy. Pay them well: underpaid workers strike, and eventually quit.`,
         `-# ${staffOf(ctx.db, c.ticker).length} of ${capOf(c)} workers · \`${P}company staff\``
@@ -92,7 +92,7 @@ function staff(ctx: Ctx, word: string, rest: string): ReplyObject {
     }
     const list = staffOf(ctx.db, c.ticker);
     return { embeds: [embed('market', `${c.name}'s staff`, [
-      list.length ? list.map((w) => `${moodEmoji(w.mood)} **${w.name}** · ${moodWord(w.mood)} (${w.mood}) · ${format(w.wage)}/day · earns ~${format(dayRevenue(c, w.mood))}/day${w.strike_until > ctx.now ? ' · **on strike**' : ''}`).join('\n') : 'No staff yet.',
+      list.length ? list.map((w) => `${emojiOr('worker', '👷')} ${moodEmoji(w.mood)} **${w.name}** · ${moodWord(w.mood)} (${w.mood}) · ${format(w.wage)}/day · earns ~${format(dayRevenue(c, w.mood))}/day${w.strike_until > ctx.now ? ' · **on strike**' : ''}`).join('\n') : 'No staff yet.',
       '',
       `**${list.length} of ${capOf(c)}** · payroll ${format(payroll(ctx.db, c.ticker))} a day · going rate ${format(WORKERS.rate)}`,
       `-# \`${P}company hire\` (${format(WORKERS.hireFee)}) · \`${P}company wage <name|all> <amount>\` · \`${P}company fire <name>\`. Wages are paid from the treasury daily; unpaid or underpaid workers get unhappy, strike below ${WORKERS.strikeBelow} mood, and quit at 0.`

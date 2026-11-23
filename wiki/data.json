@@ -3795,6 +3795,86 @@
     10
    ]
   },
+  "city": {
+   "activeDays": 3,
+   "accountAgeDays": 7,
+   "maxConsecutive": 2,
+   "freezes": 2,
+   "fines": 3,
+   "fineShare": 0.15,
+   "fineMax": 20000,
+   "investigateDays": 7,
+   "taxMax": {
+    "shop": 0.15,
+    "property": 0.03,
+    "casino": 0.15
+   },
+   "collectFee": [
+    0.05,
+    0.2
+   ],
+   "graceDays": [
+    1,
+    5
+   ],
+   "impeachMin": 5,
+   "works": {
+    "rent": {
+     "min": 0.05,
+     "max": 0.2,
+     "rate": 50,
+     "label": "rent",
+     "unit": "%"
+    },
+    "chat": {
+     "min": 0.25,
+     "max": 1,
+     "rate": 20,
+     "label": "chat pay",
+     "unit": "%"
+    },
+    "shifts": {
+     "min": 0.05,
+     "max": 0.15,
+     "rate": 60,
+     "label": "shift pay",
+     "unit": "%"
+    },
+    "crops": {
+     "min": 0.05,
+     "max": 0.2,
+     "rate": 30,
+     "label": "crop prices",
+     "unit": "%"
+    },
+    "happyhour": {
+     "min": 1,
+     "max": 6,
+     "rate": 300,
+     "label": "Happy Hour",
+     "unit": "h"
+    }
+   },
+   "workDays": [
+    1,
+    7
+   ]
+  },
+  "workers": {
+   "cap": [
+    2,
+    4,
+    6,
+    8,
+    8
+   ],
+   "hireFee": 250,
+   "rate": 60,
+   "minWage": 20,
+   "maxWage": 300,
+   "revenue": 120,
+   "strikeBelow": 30
+  },
   "payPrice": {
    "min": 0.25,
    "max": 3
@@ -4876,6 +4956,7 @@
   "advent",
   "advent_open",
   "auction",
+  "ballot",
   "bell",
   "bid",
   "blackjack",
@@ -4928,6 +5009,7 @@
   "changed",
   "cherry",
   "chip",
+  "city_hall",
   "cjc",
   "cjd",
   "cjh",
@@ -5202,6 +5284,7 @@
   "vip",
   "wateringcan",
   "work",
+  "worker",
   "wrap",
   "yes"
  ]

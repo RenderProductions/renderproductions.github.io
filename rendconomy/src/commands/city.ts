@@ -36,7 +36,7 @@ function overview(ctx: Ctx, g: string): ReplyObject {
     imp?.open ? `⚠️ **Impeachment vote open:** ${imp.yes} of ${imp.need} needed, until ${discordTime(imp.until, 'R')}. \`${P}impeach\` to add yours.` : null,
     '',
     phase === 'voting'
-      ? `🗳️ **Voting is open** until ${discordTime(closesAt(week))}: ${race.length ? race.map((c) => `<@${c.user_id}> (${c.votes})`).join(', ') : 'nobody is running'}. \`${P}vote @player\``
+      ? `${emojiOr('ballot', '🗳️')} **Voting is open** until ${discordTime(closesAt(week))}: ${race.length ? race.map((c) => `<@${c.user_id}> (${c.votes})`).join(', ') : 'nobody is running'}. \`${P}vote @player\``
       : `📝 **Nominations are open** until ${discordTime(votingOpensAt(week))}${race.length ? `: ${race.map((c) => `<@${c.user_id}>`).join(', ')}` : ''}. Active players can run: \`${P}mayor run [slogan]\``,
     '',
     ...recentLog(ctx.db, g, 5).map((r) => `-# ${discordTime(r.at, 'R')} · ${r.detail}`),
@@ -174,7 +174,7 @@ export const vote: Command = {
     const who = String(args.candidate ?? '');
     const r = castVote(ctx.db, g, ctx.user.id, who, ctx.now);
     award(ctx.db, g, ctx.user.id, 'i_voted', ctx.now);
-    return { embeds: [embed('property', '🗳️ Vote cast', [`${r.changed ? 'You changed your vote to' : 'You voted for'} <@${who}>. You can change it until ${discordTime(closesAt(r.week))}.`])], ephemeral: true };
+    return { embeds: [embed('property', `${emojiOr('ballot', '🗳️')} Vote cast`, [`${r.changed ? 'You changed your vote to' : 'You voted for'} <@${who}>. You can change it until ${discordTime(closesAt(r.week))}.`])], ephemeral: true };
   }
 };
 
