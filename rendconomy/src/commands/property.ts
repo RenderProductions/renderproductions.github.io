@@ -17,7 +17,8 @@ import {
   tileName, trainsOf, upgradeCost, upgradeMs, upkeepAt, value, type EstateNews, type Kind, type Lot
 } from '../estate/estate';
 import { LANDMARKS, MIN_DONATION, current, donate, donors, finished, isBuilt, STATUE_RENT } from '../estate/landmarks';
-import { rollSale } from '../farming/farming';
+import { CROPS, rollSale } from '../farming/farming';
+import { WHOLESALE, allowance, boughtToday, buyWholesale, findCrop, wholesalePrice } from '../estate/wholesale';
 import { count, takeItem } from '../shop/inventory';
 import { addInbox } from '../social/inbox';
 import { useCharge } from '../underground/underground';
@@ -305,7 +306,7 @@ export const property: Command = {
   name: 'property', aliases: ['estate', 'realestate', 'prop', 'properties', 'lots', 'city', 'build'], system: 'property', guildOnly: true,
   description: 'The city: your buildings, the map, building and upgrading, freight, bids, auctions and landmarks',
   options: [
-    { name: 'action', type: 'string', description: 'Blank for yours, or: map, buildings, build, upgrade, sell, teardown, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info' },
+    { name: 'action', type: 'string', description: 'Blank for yours, or: map, buildings, build, upgrade, sell, teardown, repair, wholesale, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info' },
     { name: 'lot', type: 'string', description: 'A tile like C4 (or "all" for repair)' },
     { name: 'amount', type: 'string', description: 'For build or teardown: the building. For bid or donate: Polygons. For storefront: a company ticker' }
   ],
@@ -546,6 +547,31 @@ export const property: Command = {
           `Your freight train pulls out with ${[n ? `**${n}** ${n === 1 ? 'crop' : 'crops'} (${format(cropCents)}, ${ESTATE.freightBonus * 100}% over market)` : null, goods ? `**${goods}** Goods (${format(goodsCents)})` : null].filter(Boolean).join(' and ')}.`,
           `It arrives ${discordTime(f.arrives_at)} and pays **${format(f.cents)}**. Until then it's on open track, and trains do get robbed.`,
           `-# One train every ${ESTATE.freightGapMs / HOUR} hours.`
+        ]);
+      }
+
+      // Refined Everything follow-up (KorbedOut's idea): Wholesale seeds from your Warehouse
+      if (action === 'wholesale' || action === 'seeds' || action === 'supplier') {
+        const lv = perkLevel(ctx.db, guildId, ctx.user.id, 'warehouse', ctx.now);
+        const words = [String(args.lot ?? ''), String(args.amount ?? '')].join(' ').trim();
+        const m = /^(.*?)\s*(\d+)?$/.exec(words)!;
+        const c = m[1] ? findCrop(m[1]) : null;
+        if (!c) {
+          return done(`${emojiOr('prop_warehouse', '📦')} Wholesale seeds`, [
+            lv ? `Your level ${lv} Warehouse orders seeds straight from the supplier: your own daily allowance, no waiting on Marquez's shelf. ${WHOLESALE.markup * 100}% over his price.` : `Own a finished **Warehouse** and you can order seeds wholesale: your own daily allowance, no waiting on Marquez's shelf. \`${P}property build <tile> warehouse\`.`,
+            '',
+            ...Object.values(CROPS).map((x) => `${emojiOr(`seed_${x.id}`, x.emoji)} **${x.name}**: ${format(wholesalePrice(x))} each · ${lv ? `${allowance(x, lv) - boughtToday(ctx.db, guildId, ctx.user.id, x, ctx.now)} of ${allowance(x, lv)} left today` : `${WHOLESALE.perDay.map((_, i) => allowance(x, i + 1)).join(' / ')} a day by level`}`),
+            '',
+            `-# Order with \`${P}property wholesale <seed> <amount>\`, like \`${P}property wholesale polyfruit 3\`. Allowances reset at midnight Eastern.`
+          ]);
+        }
+        if (!lv) throw new GameError('wholesale.none', `Wholesale needs a finished Warehouse. Build one with \`${P}property build <tile> warehouse\`.`);
+        const want = m[2] ? Number(m[2]) : allowance(c, lv) - boughtToday(ctx.db, guildId, ctx.user.id, c, ctx.now);
+        if (!(want > 0)) throw new GameError('wholesale.limit', `You've ordered your ${allowance(c, lv)} ${c.name} seeds for today. The supplier restocks you at midnight Eastern.`);
+        const r = buyWholesale(ctx.db, guildId, ctx.user.id, c, want, lv, ctx.now);
+        return done(`${emojiOr('prop_warehouse', '📦')} Wholesale order`, [
+          `A truck backs up to your Warehouse: **${r.qty} ${c.name} Seeds** ${emojiOr(`seed_${c.id}`, c.emoji)} for **${format(r.cost)}**. They're in your inventory.`,
+          `-# ${r.left} more ${c.name} seeds today. Plant them with \`${P}farm plant\`.`
         ]);
       }
 

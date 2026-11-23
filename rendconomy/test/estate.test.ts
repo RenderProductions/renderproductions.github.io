@@ -406,3 +406,27 @@ test('Refined Everything!: selling and tearing down are two different things', a
   assert.equal(at('C4'), undefined);
   assert.ok(audit(db).ok);
 });
+
+test('Wholesale: a Warehouse orders seeds with its own daily allowance, apart from Marquez\'s shelf', async () => {
+  const { count } = await import('../src/shop/inventory.js');
+  const { stockOf } = await import('../src/shop/shop.js');
+  const { db, run, fund, later } = setup();
+  fund(A, 60_000);
+  assert.match(text(await run('wholesale', 'polyfruit')), /needs a finished Warehouse/);
+  await run('build', 'C4', 'warehouse');
+  later(5 * HOUR);
+  assert.match(text(await run('wholesale')), /Polygon Fruit[\s\S]*3 of 3 left today/);
+  const shelf = stockOf(db, 'seed_polyfruit');
+  const b0 = balance(db, wallet(G, A));
+  assert.match(text(await run('wholesale', 'polygon fruit', '2')), /2 Polygon Fruit Seeds[\s\S]*1 more/);
+  assert.equal(b0 - balance(db, wallet(G, A)), polygons(880), '⬡400 + 10%, twice');
+  assert.equal(count(db, G, A, 'seed_polyfruit'), 2);
+  assert.equal(stockOf(db, 'seed_polyfruit'), shelf, 'Marquez\'s shelf is untouched');
+  assert.match(text(await run('wholesale', 'polyfruit', '5')), /can order 1 more/);
+  await run('wholesale', 'polyfruit');
+  assert.match(text(await run('wholesale', 'polyfruit')), /ordered your 3 Polygon Fruit seeds for today/);
+  assert.match(text(await run('wholesale', 'carrot seeds', '10')), /10 Carrot Seeds/);
+  later(DAY);
+  assert.match(text(await run('wholesale')), /3 of 3 left today/);
+  assert.ok(audit(db).ok);
+});

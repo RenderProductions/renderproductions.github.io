@@ -12,6 +12,8 @@ import { netWorth } from '../social/worth';
 import { player as ensurePlayer } from '../core/economy';
 import { economy } from '../config';
 import { me } from './shared';
+import { COLLECT, collect as collectLoan, collectableAt } from '../loans/collect';
+import { emojiOr } from '../discord/emoji';
 import type { Command, Ctx, SessionReply } from './types';
 
 const userArg = (v: unknown, what = 'a player'): string => {
@@ -153,5 +155,31 @@ export const forgive: Command = {
     receipt(ctx.db, guildId, borrower, `${ctx.user.name} forgave your loan`, [['Forgiven', format(l.owed)], ['You owe them', 'Nothing']]);
     awardHere('merciful');
     return { embeds: [embed('social', 'Loan forgiven', [`<@${borrower}> no longer owes you ${format(l.owed)}.`])] };
+  }
+};
+
+// Collections (NachoBellGrande1065's idea): three days after an overdue loan's due date, the lender takes it from
+// what the borrower owns.
+export const collect: Command = {
+  name: 'collect', aliases: ['seize', 'repo'], description: 'Make an overdue borrower pay from what they own (3 days after the due date)', system: 'social', guildOnly: true,
+  options: [{ name: 'borrower', type: 'user', description: 'Who owes you', required: true }],
+  run(ctx, args) {
+    const { guildId } = me(ctx);
+    const borrower = userArg(args.borrower, 'the borrower');
+    const l = activeLoans(ctx.db, guildId, { borrower, lender: ctx.user.id }, ctx.now)[0];
+    if (!l) throw new GameError('loan.none', 'That player has no active loan from you.');
+    if (!overdue(l, ctx.now)) throw new GameError('collect.early', `Their loan isn't due until ${discordTime(l.due_at)}. If they don't pay by then, you can collect ${discordTime(collectableAt(l))}.`);
+    if (ctx.now < collectableAt(l)) throw new GameError('collect.grace', `Their loan is overdue, and half of what they earn already goes to you. They get until ${discordTime(collectableAt(l))} to pay before you can collect.`);
+    const m = loadMarket(ctx.db);
+    const r = collectLoan(ctx.db, m, l, ctx.now);
+    if (r.toLender <= 0) return { embeds: [embed('social', `${emojiOr('todd', '🖥️')} Nothing to collect`, [`TODD went through everything <@${borrower}> owns that he's allowed to take. There's nothing there. They still owe you **${format(l.owed)}**, and half of anything they earn still goes to you.`])] };
+    receipt(ctx.db, guildId, ctx.user.id, `Collected from ${nameOf(ctx.db, borrower)}`, [['Paid to you', format(r.toLender), '+'], ['Still owed', r.left > 0 ? format(r.left) : 'Nothing: paid in full']]);
+    receipt(ctx.db, guildId, borrower, `${ctx.user.name} collected on your overdue loan`, [['To them', format(r.toLender), '-'], ['Collection fee', format(r.fee), '-'], ['Taken', r.took.join(', ').slice(0, 1000) || 'Cash'], ['Still owed', r.left > 0 ? format(r.left) : 'Nothing']]);
+    awardHere('repo_man');
+    return { embeds: [embed('social', `${emojiOr('todd', '🖥️')} Collected`, [
+      `TODD shows up at <@${borrower}>'s door with a clipboard. He takes **${r.took.join(', ')}**.`,
+      `You get **${format(r.toLender)}**. TODD keeps his ${COLLECT.fee * 100}% collection fee (**${format(r.fee)}**).`,
+      r.left > 0 ? `They still owe you **${format(r.left)}**. Buildings, companies and collectibles are off-limits, so that's all there was. Half of whatever they earn still goes to you.` : 'The loan is **paid in full**.'
+    ])] };
   }
 };
