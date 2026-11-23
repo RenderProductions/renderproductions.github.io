@@ -7,7 +7,8 @@ import { award, bump, getProgress, setProgress } from '../achievements/achieveme
 import { isEvent } from '../events/world';
 import type { Ctx } from '../commands/types';
 import { GameError } from '../core/errors';
-import { RESERVE, balance, transfer, wallet } from '../core/ledger';
+import { RESERVE, balance, transfer, wallet, ensureAccount } from '../core/ledger';
+import { casinoTax, cityAccount, happyHourHere } from '../city/state';
 import { format, parseAmount, polygons, type Cents } from '../core/money';
 import * as sessions from '../core/sessions';
 import { HOUR, MINUTE, dayKey, discordTime, takeCooldown } from '../core/time';
@@ -59,7 +60,8 @@ export function bannedUntil(ctx: Ctx, guildId: string): number {
 /** The progressive jackpot: every bet in the server feeds it; three diamonds on Slots win it. */
 export const JACKPOT = { seed: polygons(10_000), cut: 0.01, happyCut: 0.03 };
 export const jackpotOf = (db: Db, guildId: string): Cents => Number(db.meta(`casino.jackpot:${guildId}`) ?? JACKPOT.seed);
-export const happyHour = (db: Db, now: number): boolean => isEvent(db, 'happy_hour', undefined, now);
+/** Happy Hour: the world event, or (in one server) a mayor's decree or public work. */
+export const happyHour = (db: Db, now: number, guildId?: string | null): boolean => isEvent(db, 'happy_hour', undefined, now) || (!!guildId && happyHourHere(db, guildId, now));
 /** Pays the jackpot (a share of it below the max Slots bet) and starts it again from the seed. */
 export function winJackpot(ctx: Ctx, guildId: string, bet: Cents): Cents {
   const pot = jackpotOf(ctx.db, guildId);
@@ -94,7 +96,7 @@ export function freeSpinsLeft(db: Db, guildId: string, userId: string, now: numb
   if (vipOf(db, guildId, userId).level < 0) return 0;
   const r = db.get<{ free_day: string | null; free_used: number }>('SELECT free_day, free_used FROM casino WHERE guild_id = ? AND user_id = ?', guildId, userId);
   const used = r?.free_day === dayKey(now) ? r.free_used : 0;
-  return Math.max(0, (happyHour(db, now) ? 2 : 1) - used);
+  return Math.max(0, (happyHour(db, now, guildId) ? 2 : 1) - used);
 }
 export function useFreeSpin(db: Db, guildId: string, userId: string, now: number): void {
   db.run('INSERT OR IGNORE INTO casino (guild_id, user_id) VALUES (?, ?)', guildId, userId);
@@ -152,7 +154,7 @@ export function afterBet(ctx: Ctx, guildId: string, game: Game, bet: Cents): voi
     ctx.notes.push(`${after.tier.emoji} **VIP: ${after.tier.name}!** You've bet ${format(after.tier.at)} here. Your daily free spin is worth ${format(after.tier.spin)}: \`${ctx.config.prefix}vip spin\``);
     if (after.level === VIP.length - 1) award(ctx.db, guildId, ctx.user.id, 'high_society', ctx.now);
   }
-  const cut = Math.floor(bet * (happyHour(ctx.db, ctx.now) ? JACKPOT.happyCut : JACKPOT.cut));
+  const cut = Math.floor(bet * (happyHour(ctx.db, ctx.now, guildId) ? JACKPOT.happyCut : JACKPOT.cut));
   if (cut > 0) ctx.db.setMeta(`casino.jackpot:${guildId}`, String(jackpotOf(ctx.db, guildId) + cut));
   const today = Number(dayKey(ctx.now).replace(/-/g, ''));
   setProgress(ctx.db, ctx.user.id, `played_${game}`, today);
@@ -181,6 +183,13 @@ export function settle(ctx: Ctx, guildId: string, game: Game, bet: Cents, payout
   let paid = Math.max(0, Math.round(payout));
   if (paid > 0 && useEffect(ctx.db, guildId, ctx.user.id, 'chip')) { paid = Math.round(paid * 1.04); lines.push('Platinum Chip: +4%.'); }
   if (paid > 0) transfer(ctx.db, { from: RESERVE, to: wallet(guildId, ctx.user.id), cents: paid, reason: 'casino.win', guildId, actorId: ctx.user.id, now: ctx.now, note: { game } });
+  // Under New Management: the mayor's tax on winnings (what came back over the bet)
+  const winTax = paid > bet ? Math.floor((paid - bet) * casinoTax(ctx.db, guildId, ctx.now)) : 0;
+  if (winTax > 0) {
+    ensureAccount(ctx.db, cityAccount(guildId), 'city', guildId, null, ctx.now);
+    transfer(ctx.db, { from: wallet(guildId, ctx.user.id), to: cityAccount(guildId), cents: winTax, reason: 'city.tax.casino', guildId, actorId: ctx.user.id, now: ctx.now, note: { game } });
+    lines.push(`🏛️ City tax on winnings: ${format(winTax)}.`);
+  }
   stat(ctx, guildId, game, { paid, biggest: paid });
 
   const result = payout > bet ? 'win' : payout === bet ? 'push' : 'loss';
@@ -197,7 +206,7 @@ export function settle(ctx: Ctx, guildId: string, game: Game, bet: Cents, payout
       ctx.db.run('UPDATE casino SET win_streak = win_streak + 1 WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id);
       const n = ctx.db.get<{ win_streak: number }>('SELECT win_streak FROM casino WHERE guild_id = ? AND user_id = ?', guildId, ctx.user.id)!.win_streak;
       // Happy Hour: TODD looks the other way
-      if (n >= CASINO.hotStreak && !happyHour(ctx.db, ctx.now)) {
+      if (n >= CASINO.hotStreak && !happyHour(ctx.db, ctx.now, guildId)) {
         const until = ctx.now + CASINO.banMs;
         ctx.db.run('UPDATE casino SET win_streak = 0, ban_until = ? WHERE guild_id = ? AND user_id = ?', until, guildId, ctx.user.id);
         award(ctx.db, guildId, ctx.user.id, 'escorted_out', ctx.now);

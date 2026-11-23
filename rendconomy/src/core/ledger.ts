@@ -18,7 +18,7 @@ export function ensureEscrow(db: Db, guildId: string, userId: string, now = Date
   return id;
 }
 
-export type AccountKind = 'reserve' | 'wallet' | 'savings' | 'escrow' | 'company';
+export type AccountKind = 'reserve' | 'wallet' | 'savings' | 'escrow' | 'company' | 'city';
 
 export interface Account {
   id: string;

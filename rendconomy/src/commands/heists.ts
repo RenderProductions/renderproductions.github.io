@@ -14,6 +14,7 @@ import { HEIST, ROLES, TARGETS, heistOdds, playerCooldown, recentHeists, runHeis
 import { heistBonus } from '../events/world';
 import { me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
+import { decreeOn } from '../city/state';
 
 interface Lobby { target: Target; members: Member[] }
 
@@ -43,6 +44,7 @@ export const heist: Command = {
         { footer: { text: `${ctx.config.prefix}heist vault|stash|reserve [role]` } })] };
     }
     if (!TARGETS[t]) throw new GameError('heist.target', 'Choose a target: vault, stash, reserve, or train.');
+    if (decreeOn(ctx.db, guildId, 'noheist', ctx.now)) throw new GameError('heist.decree', `🏛️ By order of the mayor, no heists here until ${discordTime(Number(ctx.db.meta(`city.decree:${guildId}:noheist`)))}.`);
     if (t === 'train' && !trainsOf(ctx.db, guildId, ctx.now).some((f) => f.user_id !== ctx.user.id)) throw new GameError('heist.notrain', 'No freight train is on the rails right now (none of yours count). Stations ship them; watch for one leaving.');
     let role = (String(args.role ?? 'hacker').trim().toLowerCase() || 'hacker') as Role;
     if (!ROLES[role] && /^[a-z]{2,5}$/.test(role) && !['hack', 'look', 'drive'].includes(role)) role = 'hacker'; // the old "r!heist vault <ticker>"

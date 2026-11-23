@@ -3,10 +3,11 @@
 // What gets taken, in order, until the debt and the collection fee are covered: the wallet, savings (closed early,
 // no interest), house shares at the market price, player-company shares, then shop items at Marquez's buy-back
 // price. Never buildings, companies or collectibles. The lender only ever gets what they're owed; the fee goes to
-// TODD (the Reserve).
+// the city treasury. Under New Management: the mayor sets the fee (5–20%) and the grace period (1–5 days).
 import type { Db } from '../core/db';
 import { GameError } from '../core/errors';
-import { RESERVE, balance, transfer, wallet } from '../core/ledger';
+import { balance, ensureAccount, transfer, wallet } from '../core/ledger';
+import { cityAccount, policyOf } from '../city/state';
 import { format, type Cents } from '../core/money';
 import { DAY } from '../core/time';
 import { getCompany, holdingsOf, sellShares } from '../companies/companies';
@@ -20,8 +21,13 @@ import { type Loan, overdue, payLoan } from './loans';
 
 export const COLLECT = { graceMs: 3 * DAY, fee: 0.1 };
 
+/** The fee and grace period in this server right now (the mayor's, or the defaults). */
+export const collectTerms = (db: Db, g: string, now = Date.now()): { fee: number; graceMs: number } => {
+  const p = policyOf(db, g, now);
+  return { fee: p.collectFee, graceMs: p.graceDays * DAY };
+};
 /** When the lender can collect. */
-export const collectableAt = (l: Loan): number => l.due_at + COLLECT.graceMs;
+export const collectableAt = (db: Db, l: Loan, now = Date.now()): number => l.due_at + collectTerms(db, l.guild_id, now).graceMs;
 
 export interface Collected { toLender: Cents; fee: Cents; left: Cents; took: string[] }
 
@@ -29,9 +35,10 @@ export interface Collected { toLender: Cents; fee: Cents; left: Cents; took: str
 export function collect(db: Db, m: MarketData | null, l: Loan, now = Date.now()): Collected {
   if (l.status !== 'active') throw new GameError('collect.none', 'That loan is closed.');
   if (!overdue(l, now)) throw new GameError('collect.early', 'That loan isn\'t due yet.');
-  if (now < collectableAt(l)) throw new GameError('collect.grace', `The borrower gets ${COLLECT.graceMs / DAY} days after the due date to pay. You can collect from <t:${Math.floor(collectableAt(l) / 1000)}:F>.`);
+  const terms = collectTerms(db, l.guild_id, now);
+  if (now < collectableAt(db, l, now)) throw new GameError('collect.grace', `The borrower gets ${terms.graceMs / DAY} days after the due date to pay. You can collect from <t:${Math.floor(collectableAt(db, l, now) / 1000)}:F>.`);
   const g = l.guild_id, u = l.borrower_id, w = wallet(g, u);
-  const need = l.owed + Math.ceil(l.owed * COLLECT.fee);
+  const need = l.owed + Math.ceil(l.owed * terms.fee);
   const short = () => need - balance(db, w);
   const took: string[] = [];
   return db.tx(() => {
@@ -77,10 +84,10 @@ export function collect(db: Db, m: MarketData | null, l: Loan, now = Date.now())
     }
     // pay the lender first, then TODD's fee
     const pot = Math.min(balance(db, w), need);
-    const toLender = Math.min(l.owed, Math.floor(pot / (1 + COLLECT.fee)));
+    const toLender = Math.min(l.owed, Math.floor(pot / (1 + terms.fee)));
     if (toLender > 0) payLoan(db, l, toLender, now, 'loan.collect');
     const fee = Math.min(pot - toLender, balance(db, w));
-    if (fee > 0) transfer(db, { from: w, to: RESERVE, cents: fee, reason: 'loan.collect.fee', guildId: g, now, note: { loan: l.id } });
+    if (fee > 0) { ensureAccount(db, cityAccount(g), 'city', g, null, now); transfer(db, { from: w, to: cityAccount(g), cents: fee, reason: 'loan.collect.fee', guildId: g, now, note: { loan: l.id } }); }
     return { toLender, fee, left: l.owed - toLender, took };
   });
 }

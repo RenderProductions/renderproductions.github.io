@@ -14,6 +14,7 @@ import { GameError } from '../core/errors';
 import { RESERVE, balance, ensureAccount, ensureEscrow, escrow, transfer, wallet } from '../core/ledger';
 import { format, polygons, type Cents } from '../core/money';
 import { DAY } from '../core/time';
+import { cityLog, frozenUntil, investigated } from '../city/state';
 
 export const LEVELS = [
   { name: 'Startup', cost: polygons(2500), upkeep: polygons(25), value: 0, payMult: 1.0 },
@@ -130,6 +131,7 @@ export function die(db: Db, c: Company, reason: string, now = Date.now()): void 
     const left = treasury(db, c);
     if (left > 0) transfer(db, { from: treasuryId(c.ticker), to: RESERVE, cents: left, reason: 'company.closed', now, note: { ticker: c.ticker } });
     update(db, c.ticker, { status: 'dead', price: 0, died_at: now, note: reason });
+    db.run('DELETE FROM workers WHERE ticker = ?', c.ticker);   // NPC staff go home
     db.run('DELETE FROM company_holdings WHERE ticker = ?', c.ticker);
     db.run('UPDATE players SET job = NULL WHERE job = ?', c.ticker);
     cancelBid(db, c.ticker, now);   // a bidder gets their premium back (it used to be left in escrow)
@@ -234,9 +236,16 @@ export function addRevenue(db: Db, ticker: string, cents: Cents, now = Date.now(
 
 // ---------------------------------------------------------------- shares (fill at the average price across the move)
 
+/** Under New Management: a frozen company (or a market holiday) can't be traded. */
+function tradingOpen(db: Db, g: string, c: Company, now: number): void {
+  const until = frozenUntil(db, g, c.ticker, now);
+  if (until > now) throw new GameError('co.frozen', `🏛️ City Hall froze trading in ${c.ticker} until ${discordTime(until)}.`);
+}
+
 export function buyShares(db: Db, g: string, u: string, c: Company, n: number, now = Date.now()): { cost: Cents; priceCents: Cents; held: number } {
   if (c.status !== 'public') throw new GameError('co.notpublic', `${c.ticker} is not publicly traded.`);
   if (c.owner_id === u) throw new GameError('co.own', 'You cannot own shares of your own company.');
+  tradingOpen(db, g, c, now);
   const available = CO.float - sharesHeld(db, c.ticker);
   if (n > available) throw new GameError('co.available', available ? `Only ${available} shares of ${c.ticker} are available.` : `Every public share of ${c.ticker} is owned right now.`);
   const price = c.price * (1 + CO.impact * n / CO.float);
@@ -249,6 +258,7 @@ export function buyShares(db: Db, g: string, u: string, c: Company, n: number, n
     const held = holding(db, g, u, c.ticker) + n;
     setHolding(db, g, u, c.ticker, held);
     update(db, c.ticker, { offering_left: c.offering_left - fromOffering, price });
+    if (investigated(db, g, u, now)) cityLog(db, g, u, 'trade', `<@${u}> bought ${n} ${c.ticker} at ${format(priceCents)}`, cost, now);
     return { cost, priceCents, held };
   });
 }
@@ -256,6 +266,7 @@ export function buyShares(db: Db, g: string, u: string, c: Company, n: number, n
 export function sellShares(db: Db, g: string, u: string, c: Company, n: number, now = Date.now()): { proceeds: Cents; priceCents: Cents; held: number } {
   const owned = holding(db, g, u, c.ticker);
   if (n > owned) throw new GameError('co.short', `You hold ${owned} shares of ${c.ticker}.`);
+  tradingOpen(db, g, c, now);
   if (Math.round(c.price * 100) <= 0) throw new GameError('co.worthless', `${c.ticker} has no value at present.`);
   const price = Math.max(0.01, c.price * (1 - CO.impact * n / CO.float));
   const priceCents = Math.floor(((c.price + price) / 2) * 100);
@@ -265,6 +276,7 @@ export function sellShares(db: Db, g: string, u: string, c: Company, n: number, 
     transfer(db, { from: RESERVE, to: wallet(g, u), cents: proceeds, reason: 'company.shares.sell', guildId: g, actorId: u, now, note: { ticker: c.ticker } });
     setHolding(db, g, u, c.ticker, owned - n);
     update(db, c.ticker, { price });
+    if (investigated(db, g, u, now)) cityLog(db, g, u, 'trade', `<@${u}> sold ${n} ${c.ticker} at ${format(priceCents)}`, proceeds, now);
     return { proceeds, priceCents, held: owned - n };
   });
 }

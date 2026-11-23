@@ -15,7 +15,8 @@ import { addRevenue, alive, getCompany } from '../companies/companies';
 import { economy } from '../config';
 import type { Db } from '../core/db';
 import { payFromReserve } from '../core/economy';
-import { RESERVE, balance, ensureEscrow, escrow, transfer, wallet } from '../core/ledger';
+import { RESERVE, balance, ensureEscrow, escrow, transfer, wallet, ensureAccount } from '../core/ledger';
+import { cityAccount, propertyTax, workBonus } from '../city/state';
 import { polygons, type Cents } from '../core/money';
 import { DAY, HOUR } from '../core/time';
 import { roll, weatherLog } from '../farming/farming';
@@ -212,7 +213,7 @@ export function settle(db: Db, guildId: string, now: number): EstateNews[] {
   db.tx(() => {
     const lots = lotsOf(db, guildId, now);
     const storms = weatherLog(db).filter((w) => w.kind === 'storm');
-    const bonus = landmarkRent(db, guildId);
+    const bonus = landmarkRent(db, guildId) + workBonus(db, guildId, 'rent', now);   // landmarks, and the city's public works
     // No Questions Asked: nights the Connector squatted in an owned place (its rent is halved that day)
     let hosts: { lot: number; from: number; until: number }[] = [];
     try { hosts = JSON.parse(db.meta(`ug.hosts:${guildId}`) ?? '[]'); } catch { /* none */ }
@@ -269,6 +270,9 @@ function settleLot(db: Db, lots: Lot[], l: Lot, owners: Map<string, { n: number;
     const can = Math.min(due, Math.max(0, balance(db, w)));
     if (can > 0) transfer(db, { from: w, to: RESERVE, cents: can, reason: 'estate.upkeep', guildId: l.guild_id, actorId: owner, now: to, note: { lot: l.lot } });
     charges += can;
+    // Under New Management: the mayor's property tax, on top, into the city treasury
+    const cityTax = Math.min(Math.floor(value(l) * propertyTax(db, l.guild_id, to)), Math.max(0, balance(db, w)));
+    if (cityTax > 0) { ensureAccount(db, cityAccount(l.guild_id), 'city', l.guild_id, null, to); transfer(db, { from: w, to: cityAccount(l.guild_id), cents: cityTax, reason: 'city.tax.property', guildId: l.guild_id, actorId: owner, now: to, note: { lot: l.lot } }); charges += cityTax; }
     // wear
     let wear = ESTATE.decay + fx.factories * ESTATE.pollutionWear;
     if (storms.some((s) => s.from < to && s.until > from)) wear += o.beacon ? ESTATE.stormDamage / 2 : ESTATE.stormDamage;

@@ -178,6 +178,14 @@
       },
       items: function (el) { filtered(el, D.items.concat(D.collectibles.map(function (c) { c.collectible = true; return c; })), function (i) { return i.shelf; }, ['Item'], function (i) { return [name(i.id, i.emoji, i.name), td(i.price == null ? 'rolled each restock' : poly(i.price), 'n'), td(i.collectible ? 'limited' : i.stock, 'n'), td(esc(i.shelf), 'dim'), td(esc(i.desc) + (i.passive ? ' <span class="dim">(works on its own)</span>' : ''))]; }, [['Item'], ['Price', 1], ['Stock', 1], ['Shelf'], ['What it does']], function (i) { return i.name + ' ' + i.desc + ' ' + i.id; }); },
       achievements: function (el) { var order = Object.keys(D.rarity); filtered(el, D.achievements.slice().sort(function (x, y) { return order.indexOf(y.rarity) - order.indexOf(x.rarity); }), function (a) { return a.category; }, null, function (a) { var r = D.rarity[a.rarity]; return [td(ico('rarity_' + a.rarity, r.emoji), ''), td(esc(a.name), 'nm'), td(esc(a.desc)), td(esc(a.category), 'dim'), td(poly(r.pay), 'n')]; }, [['<span class="sr">Rarity</span>'], ['Achievement'], ['How'], ['Section'], ['Pays', 1]], function (a) { return a.name + ' ' + a.desc + ' ' + a.category + ' ' + D.rarity[a.rarity].label; }); },
+      cityWorks: function (el) {
+        var W = D.refined.city.works, icons = { rent: 'property', chat: 'megaphone', shifts: 'work', crops: 'carrot', happyhour: 'jackpot' };
+        el.innerHTML = table([['Effect'], ['Size'], ['How long'], ['Rate', 1]], Object.keys(W).map(function (k) {
+          var w = W[k], hours = w.unit === 'h';
+          return row([name(icons[k], '', w.label.charAt(0).toUpperCase() + w.label.slice(1)), td(hours ? w.min + ' to ' + w.max + ' hours' : (k === 'chat' ? '×' + (1 + w.min) + ' to ×' + (1 + w.max) : '+' + Math.round(w.min * 100) + '% to +' + Math.round(w.max * 100) + '%')),
+            td(hours ? 'that many hours' : D.refined.city.workDays[0] + ' to ' + D.refined.city.workDays[1] + ' days'), td(poly(w.rate) + (hours ? ' per hour' : ' per % per day'), 'n')]);
+        }));
+      },
       commands: function (el) {
         filtered(el, D.commands, function (c) { return (D.sections[c.section] || {}).label || c.section; }, null, function (c) {
           var opts = c.options.map(function (o) { return o.required ? '&lt;' + esc(o.name) + '&gt;' : '[' + esc(o.name) + ']'; }).join(' ');

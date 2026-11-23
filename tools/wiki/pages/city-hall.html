@@ -1,0 +1,57 @@
+<!--{"title": "City Hall", "section": "Systems", "icon": "city_hall", "summary": "Under New Management: weekly mayoral elections, who can run and vote, the mayor's powers (business, taxes, public works, decrees, appointments), the limits on them, impeachment and the city treasury.", "prev": "city", "next": "underground", "also": ["city", "companies", "everyday"], "meta": "Under New Management", "command": "r!mayor"}-->
+<div class="lede">
+<p>Every server elects a <strong>mayor</strong> each week. The mayor has real power over the server's economy: they can stop a company from being crashed and swallowed, set taxes, fund public works, and issue decrees. Everything they do goes on a public record, and the server can vote them out.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Elections</span><span>Weekly</span></div>
+<div><span>Nominations</span><span>Mon–Thu</span></div>
+<div><span>Voting</span><span>Fri–Sun 9 PM ET</span></div>
+<div><span>Who can vote</span><span>Anyone</span></div>
+<div><span>Who can run</span><span>Active players</span></div>
+</div>
+</div>
+
+<h2 id="elections">Elections</h2>
+<ul>
+<li><strong>Nominations</strong> run Monday to Thursday: <code>r!mayor run [slogan]</code>. You can drop out with <code>r!mayor withdraw</code>.</li>
+<li><strong>Voting</strong> runs Friday to Sunday at 9 PM Eastern: <code>r!vote @player</code>. Anyone with an account in the server can vote, once; you can change your vote until it closes. <code>r!mayor race</code> shows the ballot.</li>
+<li><strong>Results</strong> come in Sunday at 9 PM Eastern. The winner is mayor until the next Sunday at 9 PM. A tie goes to whoever signed up first. If nobody runs, the seat stays empty for the week.</li>
+<li><strong>Who can run:</strong> active players: you have to have played on at least <span data-v="refined.city.activeDays" data-f="num">?</span> different days in the last 7, with an account at least <span data-v="refined.city.accountAgeDays" data-f="num">?</span> days old in the server. <code>r!mayor eligible</code> checks.</li>
+<li><strong>Term limit:</strong> at most <span data-v="refined.city.maxConsecutive" data-f="num">?</span> terms in a row; then sit one out before running again.</li>
+</ul>
+
+<h2 id="powers">The mayor's powers</h2>
+<p><code>r!mayor help</code> lists them in Discord. Every action needs a reason, and it goes on the public record (<code>r!mayor log</code>).</p>
+<h3>Business</h3>
+<ul>
+<li><strong>Block</strong> a takeover bid or merger: <code>r!mayor block PREY &lt;reason&gt;</code>. A blocked bidder gets their premium back.</li>
+<li><strong>Freeze</strong> a player company's trading for 24 hours: nobody can buy or sell its shares. <span data-v="refined.city.freezes" data-f="num">?</span> a term.</li>
+<li><strong>Investigate</strong> a player: their buys and sells in player companies go on the public record for <span data-v="refined.city.investigateDays" data-f="num">?</span> days.</li>
+<li><strong>Fine</strong> a company (from its treasury) or a player (from their wallet): up to <span data-v="refined.city.fineShare" data-f="pct">?</span>, at most <span data-v="refined.city.fineMax">?</span>, <span data-v="refined.city.fines" data-f="num">?</span> a term. Fines go into the city treasury.</li>
+<li><strong>Bail out</strong> a company with a grant from the city treasury, to save one that's being crashed.</li>
+</ul>
+<h3>Taxes</h3>
+<ul>
+<li>A <strong>sales tax</strong> on Marquez's shop (0 to <span data-v="refined.city.taxMax.shop" data-f="pct">?</span>), a <strong>property tax</strong> on top of the building tax (0 to <span data-v="refined.city.taxMax.property" data-f="pct">?</span> of a building's value a day), and a tax on <strong>casino winnings</strong> (0 to <span data-v="refined.city.taxMax.casino" data-f="pct">?</span> of what you win over your bet). <code>r!mayor tax shop 5</code>.</li>
+<li>Changes start at <strong>midnight Eastern</strong>, so nobody gets ambushed. Taxes belong to the mayor's term: a new mayor starts at 0.</li>
+<li><strong>Collections:</strong> the mayor sets <a href="/wiki/everyday/#loans">Collect Call</a>'s fee (<span data-v="refined.city.collectFee.0" data-f="pct">?</span> to <span data-v="refined.city.collectFee.1" data-f="pct">?</span>) and grace period (<span data-v="refined.city.graceDays.0" data-f="raw">?</span> to <span data-v="refined.city.graceDays.1" data-f="raw">?</span> days). The fee goes to the city.</li>
+</ul>
+<h3>Public works</h3>
+<p>The mayor designs them: pick an effect, a size, how long, and a name, and the city treasury pays. <code>r!mayor build rent 10 3 Main Street Repaving</code>; <code>r!mayor quote rent 10 3</code> prices it first. One of each effect at a time.</p>
+<div data-table="cityWorks"></div>
+<p>The cost is the rate × the size × the days × the server's active players (at least 5).</p>
+<h3>Decrees and appointments</h3>
+<ul>
+<li><strong>Decrees:</strong> anything the mayor wants to say goes on the record (<code>r!mayor decree &lt;text&gt;</code>). Once a day a decree can also do something: Happy Hour for 2 hours, no heists for 24 hours, double dailies until midnight, a market holiday for player companies until midnight, or an amnesty (everyone's Heat drops by 25).</li>
+<li><strong>Appointments:</strong> a <strong>Treasurer</strong> (funds public works and bailouts) and a <strong>Police Chief</strong> (investigates and freezes). <code>r!mayor appoint chief @player</code>.</li>
+</ul>
+
+<h2 id="limits">The limits</h2>
+<ul>
+<li>The mayor and the appointees can <strong>never pay themselves</strong>, or anything they own, from the city treasury.</li>
+<li><strong>Conflicts of interest:</strong> no business powers on a company they own, hold shares in, or are bidding on (or the company it's merging with).</li>
+<li>Everything goes on the <strong>public record</strong>, with a reason.</li>
+<li><strong>Impeachment:</strong> <code>r!impeach</code> opens a 24-hour vote. If more than half as many players as voted in the last election vote yes (and at least <span data-v="refined.city.impeachMin" data-f="num">?</span>), the mayor is out; their taxes and decrees end, and the seat is empty until the next election. One impeachment vote a term.</li>
+</ul>
+
+<h2 id="treasury">The city treasury</h2>
+<p>Taxes, fines and collection fees go in; public works and bailouts come out. It's public: <code>r!mayor</code> shows the balance, the taxes, what's being built and the latest entries on the record. Unspent money stays for the next mayor.</p>

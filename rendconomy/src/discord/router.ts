@@ -15,6 +15,7 @@ import { isGameError } from '../core/errors';
 import type { Rng } from '../core/rng';
 import { runInRequest } from '../core/request';
 import * as sessions from '../core/sessions';
+import { markActive } from '../city/state';
 import { COLORS } from './style';
 
 export interface Deps { db: Db; config: BotConfig; rng: Rng; ping?: () => number; botId?: () => string | undefined; onChat?: (ctx: Ctx, msg: Message) => Promise<void> }
@@ -43,6 +44,7 @@ export async function execute(cmd: Command, ctx: Ctx, args: Args): Promise<Reply
 function afterAny(ctx: Ctx): void {
   if (!ctx.guildId) return;
   try { runInRequest(requestOf(ctx), () => checkMillionaire(ctx.guildId!, ctx.user.id)); } catch { /* never break a reply over this */ }
+  try { if (ctx.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', ctx.guildId, ctx.user.id)) markActive(ctx.db, ctx.guildId, ctx.user.id, ctx.now); } catch { /* same */ }
 }
 
 const requestOf = (ctx: Ctx) => ({ db: ctx.db, guildId: ctx.guildId, userId: ctx.user.id, now: ctx.now, notes: ctx.notes });
