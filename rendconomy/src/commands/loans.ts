@@ -1,4 +1,4 @@
-import { nameOf, receipt } from '../social/receipts';
+import { nameOf, receipt, type ReceiptLine } from '../social/receipts';
 import { awardHere } from '../achievements/achievements';
 import { GameError } from '../core/errors';
 import { balance } from '../core/ledger';
@@ -42,7 +42,7 @@ export const repay: Command = {
     const debt = toddDebt(ctx.db, guildId, ctx.user.id);
     const cents = parseAmount(args.amount, { all: Math.min(debt, balance(ctx.db, wallet)) });
     const r = repayTodd(ctx.db, guildId, ctx.user.id, cents, ctx.now);
-    receipt(ctx.db, guildId, ctx.user.id, 'Payment to TODD', [['Paid', format(r.paid)], ['Still owed', r.left ? format(r.left) : 'Nothing'], ['Balance', format(balance(ctx.db, wallet))]]);
+    receipt(ctx.db, guildId, ctx.user.id, 'Payment to TODD', [['Paid', format(r.paid), '-'], ['Still owed', r.left ? format(r.left) : 'Nothing'], ['Balance', format(balance(ctx.db, wallet))]]);
     if (r.left === 0) awardHere('debt_free');
     return { embeds: [embed('social', 'TODD Loans', [
       `Repaid ${format(r.paid)}.`,
@@ -97,9 +97,9 @@ export function onLoanButton(ctx: Ctx, s: sessions.Session<LoanRequest>, value: 
   ensurePlayer(ctx.db, g, st.lenderId, economy.startingCash, ctx.now);
   const l = createLoan(ctx.db, g, st.lenderId, st.borrowerId, st.cents, st.rate, ctx.now);
   if (st.rate >= LOANS.maxRate) awardHere('loan_shark', st.lenderId);
-  const terms: [string, string][] = [['Amount', format(st.cents)], ['Interest', `${st.rate}% a day`], ['Due', new Date(l.due_at).toUTCString().replace(' GMT', ' UTC')]];
-  receipt(ctx.db, g, st.borrowerId, `Loan received from ${nameOf(ctx.db, st.lenderId)}`, [...terms, ['Repay with', `${ctx.config.prefix}payback`]]);
-  receipt(ctx.db, g, st.lenderId, `Loan given to ${st.borrowerName}`, terms);
+  const terms = (sign: '+' | '-'): ReceiptLine[] => [['Amount', format(st.cents), sign], ['Interest', `${st.rate}% a day`], ['Due', new Date(l.due_at).toUTCString().replace(' GMT', ' UTC')]];
+  receipt(ctx.db, g, st.borrowerId, `Loan received from ${nameOf(ctx.db, st.lenderId)}`, [...terms('+'), ['Repay with', `${ctx.config.prefix}payback`]]);
+  receipt(ctx.db, g, st.lenderId, `Loan given to ${st.borrowerName}`, terms('-'));
   return { update: { content: '', embeds: [embed('social', 'Loan issued', [
     `<@${st.lenderId}> lent <@${st.borrowerId}> **${format(st.cents)}** at ${st.rate}% a day.`,
     `Due ${discordTime(l.due_at)}. Repay with \`${ctx.config.prefix}payback @lender <amount>\`.`
@@ -133,9 +133,9 @@ export const payback: Command = {
     const cents = parseAmount(args.amount, { all: Math.min(l.owed, balance(ctx.db, wallet)) });
     const paid = payLoan(ctx.db, l, cents, ctx.now);
     const left = l.owed - paid;
-    const lines: [string, string][] = [['Paid', format(paid)], ['Still owed', left > 0 ? format(left) : 'Nothing: repaid in full']];
-    receipt(ctx.db, guildId, ctx.user.id, `Loan payment to ${nameOf(ctx.db, lender)}`, [...lines, ['Balance', format(balance(ctx.db, wallet))]]);
-    receipt(ctx.db, guildId, lender, `Loan payment from ${ctx.user.name}`, lines);
+    const owed: ReceiptLine = ['Still owed', left > 0 ? format(left) : 'Nothing: repaid in full'];
+    receipt(ctx.db, guildId, ctx.user.id, `Loan payment to ${nameOf(ctx.db, lender)}`, [['Paid', format(paid), '-'], owed, ['Balance', format(balance(ctx.db, wallet))]]);
+    receipt(ctx.db, guildId, lender, `Loan payment from ${ctx.user.name}`, [['Paid to you', format(paid), '+'], owed]);
     return { embeds: [embed('social', 'Loan repayment', [`Paid <@${lender}> ${format(paid)}.`, left > 0 ? `Still owed: **${format(left)}**.` : 'The loan is repaid in full.', `Balance: ${format(balance(ctx.db, wallet))}`])] };
   }
 };

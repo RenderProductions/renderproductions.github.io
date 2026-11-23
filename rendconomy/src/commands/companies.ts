@@ -73,7 +73,7 @@ export const invest: Command = {
     if (c.status !== 'pending' && c.status !== 'private' && c.status !== 'public') throw new GameError('co.dead', 'That company is closed.');
     const cents = parseAmount(args.amount, { all: balance(ctx.db, wallet) });
     investCo(ctx.db, c, guildId, ctx.user.id, cents, ctx.now);
-    receipt(ctx.db, guildId, ctx.user.id, `Invested in ${c.name}`, [['Invested', format(cents)], ['Treasury now', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, wallet))]]);
+    receipt(ctx.db, guildId, ctx.user.id, `Invested in ${c.name}`, [['Invested', format(cents), '-'], ['Treasury now', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, wallet))]]);
     return { embeds: [embed('market', 'Invested', [`${format(cents)} into ${c.name}. Treasury: ${format(treasury(ctx.db, c))}.`])] };
   }
 };
@@ -105,7 +105,7 @@ export const salary: Command = {
     if (!alive(c)) throw new GameError('co.pending', 'The company must be approved first.');
     const cents = parseAmount(args.amount, { all: Math.floor(treasury(ctx.db, c) * CO.salaryMaxPct) });
     salaryCo(ctx.db, c, cents, ctx.now);
-    receipt(ctx.db, c.owner_guild, ctx.user.id, `Salary from ${c.name}`, [['Paid to you', format(cents)], ['Treasury left', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, `wallet:${c.owner_guild}:${ctx.user.id}`))]]);
+    receipt(ctx.db, c.owner_guild, ctx.user.id, `Salary from ${c.name}`, [['Paid to you', format(cents), '+'], ['Treasury left', format(treasury(ctx.db, c))], ['Balance', format(balance(ctx.db, `wallet:${c.owner_guild}:${ctx.user.id}`))]]);
     return { embeds: [embed('market', 'Salary paid', [`${format(cents)} from ${c.name}. Treasury: ${format(treasury(ctx.db, c))}.`])] };
   }
 };
@@ -130,7 +130,7 @@ export const closecompany: Command = {
     }
     const n = employees(ctx.db, c.ticker);
     const q = closeCo(ctx.db, c, ctx.now);
-    receipt(ctx.db, c.owner_guild, ctx.user.id, `Closed ${c.name}`, [['Shareholders bought out', format(q.buyout)], ['Closing fee', format(q.fee)], ['Paid to you', format(q.payout)]]);
+    receipt(ctx.db, c.owner_guild, ctx.user.id, `Closed ${c.name}`, [['Shareholders bought out', format(q.buyout)], ['Closing fee', format(q.fee)], ['Paid to you', format(q.payout), '+']]);
     emit('mod.action', { guildId: c.owner_guild, modId: ctx.user.id, action: `company closed by its owner: ${c.ticker} (${c.name})` });
     return { embeds: [embed('market', `${emoji('no')} ${c.name} is closed`, [
       `You got **${format(q.payout)}** from the treasury.${q.buyout ? ` Shareholders were paid ${format(q.buyout)}.` : ''}${n ? ` ${n} employee${n === 1 ? ' was' : 's were'} let go.` : ''}`,
@@ -157,7 +157,7 @@ export const sellcompany: Command = {
       }
       const seller = o.c.owner_id;
       acceptSale(ctx.db, o.c, guildId, ctx.user.id, ctx.user.name, ctx.now);
-      receipt(ctx.db, o.c.owner_guild, seller, `Sold ${o.c.name} to ${ctx.user.name}`, [['Price', format(o.s.price)]]);
+      receipt(ctx.db, o.c.owner_guild, seller, `Sold ${o.c.name} to ${ctx.user.name}`, [['Paid to you', format(o.s.price), '+']]);
       return { embeds: [embed('market', `🤝 ${o.c.name} is yours`, [
         `You bought **${o.c.name} (${o.c.ticker})** from <@${seller}> for **${format(o.s.price)}**: its treasury of ${format(treasury(ctx.db, o.c))}, its ${levelOf(o.c).name} level and its ${employees(ctx.db, o.c.ticker)} employees.`,
         `-# See it with \`${P}company\`. It still owes ${format(levelOf(o.c).upkeep)} a day in upkeep.`

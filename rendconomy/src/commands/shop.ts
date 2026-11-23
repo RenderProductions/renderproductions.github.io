@@ -102,7 +102,7 @@ export const purchase: Command = {
     const qty = parseCount(amount || '1', { max: 10 });
     try {
       const r = buy(ctx.db, ctx.rng, guildId, ctx.user.id, id, qty, ctx.now);
-      receipt(ctx.db, guildId, ctx.user.id, `Bought ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name}`, [['Item', `${itemE(r.item.id, r.item.emoji)} ${r.item.name}`], ['Quantity', String(r.qty)], ['Price', format(r.cost)], ['Balance', format(r.cash)]]);
+      receipt(ctx.db, guildId, ctx.user.id, `Bought ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name}`, [['Item', `${itemE(r.item.id, r.item.emoji)} ${r.item.name}`], ['Quantity', String(r.qty)], ['Price', format(r.cost), '-'], ['Balance', format(r.cash)]]);
       return { embeds: [embed('wallet', `🛍️ ${r.item.emoji} ${r.item.name}${r.qty > 1 ? ` × ${r.qty}` : ''}`, [`*${marquez('thanks', ctx.rng)}*`, `${r.qty} × ${itemE(r.item.id, r.item.emoji)} ${r.item.name}: ${format(r.cost)}`, `Balance: ${format(r.cash)}`,
         r.item.passive ? '-# This item works on its own while it is in your inventory.' : `-# Use it with \`${ctx.config.prefix}use ${r.item.name.toLowerCase()}\`.`])] };
     } catch (e) {
@@ -193,7 +193,7 @@ export const sellitem: Command = {
     const { guildId } = me(ctx);
     const { id, qty } = itemAndCount(ctx, guildId, args.item, args.amount, 'sell');
     const r = sellBack(ctx.db, guildId, ctx.user.id, id, qty, ctx.now);
-    receipt(ctx.db, guildId, ctx.user.id, `Sold ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name} back`, [['Paid to you', format(r.paid)], ['Balance', format(r.cash)]]);
+    receipt(ctx.db, guildId, ctx.user.id, `Sold ${r.qty > 1 ? `${r.qty} × ` : 'a '}${r.item.name} back`, [['Paid to you', format(r.paid), '+'], ['Balance', format(r.cash)]]);
     const left = count(ctx.db, guildId, ctx.user.id, id);
     return { embeds: [embed('wallet', `🛍️ Sold: ${r.item.emoji} ${r.item.name}${r.qty > 1 ? ` × ${r.qty}` : ''}`, [
       `Marquez looks it over and gives you **${format(r.paid)}**${r.qty > 1 ? ` (${format(r.paid / r.qty)} each)` : ''}. It's back on his shelf.`,

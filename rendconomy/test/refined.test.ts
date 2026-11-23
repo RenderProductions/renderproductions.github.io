@@ -106,3 +106,12 @@ test('achievements: a row of rarity buttons shows every achievement of one rarit
   assert.deepEqual(last.map((b) => b.label), ['Common', 'Rare', 'Epic', 'Legendary', 'Mythic']);
   assert.ok(last[3]!.id.endsWith('r:legendary'));
 });
+
+test('money lists use Discord\'s colored diff blocks: green in, red out', async () => {
+  const { diffBlock } = await import('../src/discord/diff.js');
+  const { receiptView } = await import('../src/social/receipts.js');
+  assert.equal(diffBlock([['+', '⬡120.00', 'Sold back'], ['-', '⬡8,000.00', 'Rebuilt C4']]), '```diff\n+ ⬡120.00    Sold back\n- ⬡8,000.00  Rebuilt C4\n```');
+  const v = receiptView({ guildId: 'g', userId: 'u', title: 'Bought a Coffee', lines: [['Item', '☕ Coffee'], ['Price', '⬡100.00', '-'], ['Balance', '⬡400.00']] });
+  assert.equal(v.description, '```diff\n- ⬡100.00  Price\n  ⬡400.00  Balance\n```');
+  assert.deepEqual(v.fields.map((f) => f.name), ['Item']);
+});

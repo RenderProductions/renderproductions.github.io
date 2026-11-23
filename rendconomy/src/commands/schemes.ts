@@ -123,7 +123,7 @@ export const short: Command = {
     const q = tradableQuote(m, String(args.ticker ?? ''));
     const qty = parseCount(args.amount, { max: SHORTS.maxShares });
     const r = openShort(ctx.db, m, guildId, ctx.user.id, q, qty, ctx.now);
-    receipt(ctx.db, guildId, ctx.user.id, `Shorted ${qty} ${q.id}`, [['Company', `${q.name} (${q.id})`], ['Shares', String(qty)], ['Sold at', format(q.priceCents)], ['Margin set aside', format(r.margin)], r.fee ? ['Fee', format(r.fee)] : null, ['Balance', format(balance(ctx.db, wallet))]]);
+    receipt(ctx.db, guildId, ctx.user.id, `Shorted ${qty} ${q.id}`, [['Company', `${q.name} (${q.id})`], ['Shares', String(qty)], ['Sold at', format(q.priceCents)], ['Margin set aside', format(r.margin), '-'], r.fee ? ['Fee', format(r.fee), '-'] : null, ['Balance', format(balance(ctx.db, wallet))]]);
     return { embeds: [embed('market', `Short opened: ${qty} ${q.id}`, [
       `Sold ${qty} borrowed shares at ${format(q.priceCents)}.`, `Margin set aside: ${format(r.margin)}${r.fee ? ` · fee ${format(r.fee)}` : ''}`,
       `Position: ${r.short.shares} shares at an average of ${format(r.short.entry)}.`,
@@ -147,7 +147,7 @@ export const cover: Command = {
     const price = settlePrice(s, q);
     if (price > 0) tradableQuote(m, t);
     const r = coverShort(ctx.db, s, price, ctx.now);
-    receipt(ctx.db, guildId, ctx.user.id, `Covered ${s.shares} ${t}`, [['Shorted at', format(s.entry)], ['Covered at', format(price)], [r.pnl >= 0 ? 'Profit' : 'Loss', format(Math.abs(r.pnl))], ['Back to you', format(r.back)], ['Balance', format(balance(ctx.db, wallet))]]);
+    receipt(ctx.db, guildId, ctx.user.id, `Covered ${s.shares} ${t}`, [['Shorted at', format(s.entry)], ['Covered at', format(price)], [r.pnl >= 0 ? 'Profit' : 'Loss', format(Math.abs(r.pnl)), r.pnl >= 0 ? '+' : '-'], ['Back to you', format(r.back), '+'], ['Balance', format(balance(ctx.db, wallet))]]);
     return { embeds: [embed('market', `Short covered: ${s.shares} ${t}`, [`Bought back at ${format(price)} (sold at ${format(s.entry)}).`, `${r.pnl >= 0 ? 'Profit' : 'Loss'}: ${format(Math.abs(r.pnl))}`, `Returned to your wallet: ${format(r.back)}`, `Balance: ${format(balance(ctx.db, wallet))}`])] };
   }
 };

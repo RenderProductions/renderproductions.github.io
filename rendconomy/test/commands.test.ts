@@ -55,8 +55,8 @@ test('balance of another player, and of someone with no account', async () => {
 test('history shows where the money came from, privately', async () => {
   const r = await run('r!history');
   assert.equal(r.ephemeral, true);
-  assert.match(text(r), /\+⬡250\.00 · Daily allowance/);
-  assert.match(text(r), /\+⬡500\.00 · Starting balance/);
+  assert.match(text(r), /```diff\n\+ ⬡250\.00  Daily allowance +just now/);
+  assert.match(text(r), /\n\+ ⬡500\.00  Starting balance +just now/);
 });
 
 test('reserve shows what the house has left', async () => {

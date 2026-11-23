@@ -119,6 +119,8 @@
   .msg .cmd { display: flex; justify-content: space-between; color: var(--faint); font-size: 10.5px; margin-bottom: 4px; }
   .msg h4 { margin: 0 0 4px; font-size: 12.5px; color: var(--text); }
   .msg .sub { color: var(--dim); font-size: 10.5px; display: block; }
+  .msg pre.code { margin: 4px 0; padding: 6px 8px; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.1); border-radius: 4px; font: 11.5px/1.45 ui-monospace, Consolas, monospace; white-space: pre; overflow-x: auto; }
+  .msg pre.code .add { color: #43d17a; } .msg pre.code .del { color: #f0605d; }
   .msg code { background: rgba(255, 255, 255, 0.07); padding: 0 4px; border-radius: 3px; }
   .msg .ft { color: var(--faint); font-size: 10.5px; margin-top: 4px; }
   .msg img.emo, .farm img.emo { width: 18px; height: 18px; vertical-align: -4px; image-rendering: pixelated; }
@@ -357,6 +359,12 @@ const nameOf = (c) => (market.names && market.names[c.id]) || c.name;
 
 // ---------- Discord's little markdown, for the bot's replies ----------
 function md(text) {
+  // Discord code blocks; in a ```diff block, + lines are green and - lines red, like in Discord
+  const blocks = [];
+  text = String(text ?? '').replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, body) => {
+    blocks.push('<pre class="code">' + body.replace(/\n$/, '').split('\n').map((l) => `<span${lang === 'diff' ? (l[0] === '+' ? ' class="add"' : l[0] === '-' ? ' class="del"' : '') : ''}>${esc(l)}</span>`).join('\n') + '</pre>');
+    return `\u0000${blocks.length - 1}\u0000`;
+  });
   return esc(text).split('\n').map((line) => {
     let small = false;
     if (line.startsWith('-# ')) { small = true; line = line.slice(3); }
@@ -367,7 +375,7 @@ function md(text) {
       .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\*(.+?)\*/g, '<i>$1</i>').replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/^# (.*)$/, '<b style="font-family:var(--display);font-size:24px">$1</b>');
     return small ? `<span class="sub">${line}</span>` : line;
-  }).join('\n');
+  }).join('\n').replace(/\u0000(\d+)\u0000\n?/g, (_, i) => blocks[Number(i)]);
 }
 function render(result) {
   if (!result) return '';

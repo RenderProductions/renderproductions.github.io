@@ -1,7 +1,7 @@
 // RendConomy: starts the bot.
 import { loadAppEmojis, syncAppEmojis } from './discord/emoji';
 import { COLORS } from './discord/style';
-import { setReceiptSender } from './social/receipts';
+import { receiptView, setReceiptSender } from './social/receipts';
 import { Client, Events, GatewayIntentBits, Partials } from 'discord.js';
 import { botConfig, economy, loadEnv } from './config';
 import { dailyBackup } from './core/backups';
@@ -136,9 +136,9 @@ async function main(): Promise<void> {
     // Receipts: a small embed per transaction, with the server it happened in
     setReceiptSender((r) => {
       const server = c.guilds.cache.get(r.guildId)?.name;
+      const v = receiptView(r);
       c.users.fetch(r.userId).then((u) => u.send({ embeds: [{
-        title: `🧾 ${r.title}`, color: COLORS.wallet,
-        fields: r.lines.map(([name, value]) => ({ name, value: value.slice(0, 1024), inline: true })),
+        title: `🧾 ${r.title}`, color: COLORS.wallet, description: v.description, fields: v.fields,
         footer: { text: `${server ? `${server} · ` : ''}Turn these off with ${config.prefix}receipts off` }, timestamp: new Date().toISOString()
       }], allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     });

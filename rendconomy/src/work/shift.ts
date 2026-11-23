@@ -16,6 +16,7 @@ import { isRight, makeTask, type Task } from './tasks';
 import { takeItem, useEffect } from '../shop/inventory';
 import { CO, addRevenue, getCompany, levelOf, payFactor } from '../companies/companies';
 import { shiftMultiplier } from '../events/world';
+import { diffBlock, type DiffRow } from '../discord/diff';
 
 export const KIND = 'work';
 
@@ -217,8 +218,9 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
 
 /** The payslip: each part on its own line, then the total. */
 function slip(head: string, parts: [string, Cents][], total: Cents, cash: Cents): string {
-  const lines = parts.filter(([, c]) => c > 0).map(([label, c]) => `${label}: +${format(c)}`);
-  return `${head}\n${lines.join('\n')}${lines.length > 1 || lines.length === 0 ? `\n**Total: +${format(total)}**` : ''}\n-# Balance: ${format(cash)}`;
+  const rows: DiffRow[] = parts.filter(([, c]) => c > 0).map(([label, c]) => ['+', format(c), label]);
+  if (rows.length !== 1) rows.push(['+', format(total), 'Total']);
+  return `${head}\n${diffBlock(rows)}-# Balance: ${format(cash)}`;
 }
 
 // ---------------------------------------------------------------- answers
