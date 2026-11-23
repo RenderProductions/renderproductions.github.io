@@ -220,7 +220,7 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
 function slip(head: string, parts: [string, Cents][], total: Cents, cash: Cents): string {
   const rows: DiffRow[] = parts.filter(([, c]) => c > 0).map(([label, c]) => ['+', format(c), label]);
   if (rows.length !== 1) rows.push(['+', format(total), 'Total']);
-  return `${head}\n${diffBlock(rows)}-# Balance: ${format(cash)}`;
+  return `${head}\n${diffBlock(rows)}\n-# Balance: ${format(cash)}`;   // -# only works at the start of a line
 }
 
 // ---------------------------------------------------------------- answers
