@@ -13,6 +13,7 @@
 <ul>
 <li><strong>From TODD:</strong> <code>r!bailout</code> when you're nearly broke: <span data-v="loans.toddLend">⬡500</span> now, <span data-v="loans.toddOwe">⬡600</span> owed. No gambling until it's paid (<code>r!repay</code>).</li>
 <li><strong>From another player:</strong> <code>r!loan @player 1000 5</code> asks for ⬡1,000 at 5% a day (up to 25%); they accept or decline. Loans are due in a week. Overdue, and half of what you earn from work, dailies and dividends goes to the lender until it's paid. <code>r!loans</code> lists yours; a lender can <code>r!forgive</code>.</li>
+<li><strong>Collections:</strong> <span data-v="refined.collect.graceDays" data-f="num">?</span> days after the due date, the lender can run <code>r!collect @borrower</code>. TODD takes what's owed, plus a <span data-v="refined.collect.fee" data-f="pct">?</span> collection fee for himself, from the borrower's wallet, then their savings (closed early, no interest), their shares at the market price, then their shop items at Marquez's buy-back price. Never buildings, companies or collectibles. The lender only gets what they're owed. Borrowers get a DM when the loan goes overdue and again when it can be collected.</li>
 </ul>
 
 <h2 id="gifts">Gifts and trades</h2>

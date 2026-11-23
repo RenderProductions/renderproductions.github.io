@@ -92,3 +92,39 @@ test('asking the bot itself for a loan is an instant no', async () => {
   assert.equal(r.buttons, undefined, 'no Accept button that nobody can press');
   assert.equal(db.get('SELECT COUNT(*) AS n FROM sessions')!.n, 0);
 });
+
+test('collections: 3 days past due, the lender takes it from what the borrower owns (never buildings)', async () => {
+  const { addItem, count } = await import('../src/shop/inventory.js');
+  const { loanNotices } = await import('../src/discord/background.js');
+  const { db, run, ctx, later } = setup();
+  await run('balance', {}, B);
+  const req = await run('loan', { lender: B, amount: '400', rate: '0' });
+  press(ctx(B), sessions.buttonId(req.session!, 'yes'));
+  // A spends it all on coffee and stops playing
+  transfer(db, { from: wallet(G, A), to: RESERVE, cents: balance(db, wallet(G, A)), reason: 'mod.take' });
+  addItem(db, G, A, 'coffee', 20);
+  assert.match(text(await run('collect', { borrower: A }, B)), /isn't due until/);
+  later(7 * DAY + 1);
+  assert.deepEqual(loanNotices(db, noon + 7 * DAY + 1).map((n) => [n.userId, n.title]), [[A, 'Your loan is overdue']]);
+  assert.match(text(await run('collect', { borrower: A }, B)), /half of what they earn already goes to you/);
+  later(3 * DAY);
+  assert.deepEqual(loanNotices(db, noon + 10 * DAY + 1).map((n) => n.title), ['You can collect', 'Your lender can collect']);
+  assert.equal(loanNotices(db, noon + 10 * DAY + 2).length, 0, 'each notice once');
+  const b0 = balance(db, wallet(G, B));
+  const out = text(await run('collect', { borrower: A }, B));
+  assert.match(out, /Collected[\s\S]*Coffee[\s\S]*You get \*\*⬡400\.00\*\*[\s\S]*paid in full/);
+  assert.equal(balance(db, wallet(G, B)) - b0, polygons(400), 'the lender gets exactly what they were owed');
+  assert.equal(count(db, G, A, 'coffee'), 9, '11 coffees at ⬡40 covered ⬡400 and the ⬡40 fee');
+  assert.equal(activeLoans(db, G, { borrower: A }).length, 0);
+  assert.ok(audit(db).ok);
+});
+
+test('collections with nothing to take', async () => {
+  const { db, run, ctx, later } = setup();
+  await run('balance', {}, B);
+  const req = await run('loan', { lender: B, amount: '400', rate: '0' });
+  press(ctx(B), sessions.buttonId(req.session!, 'yes'));
+  transfer(db, { from: wallet(G, A), to: RESERVE, cents: balance(db, wallet(G, A)), reason: 'mod.take' });
+  later(10 * DAY + 1);
+  assert.match(text(await run('collect', { borrower: A }, B)), /Nothing to collect[\s\S]*still owe you \*\*⬡400\.00/);
+});

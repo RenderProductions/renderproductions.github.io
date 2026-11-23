@@ -129,7 +129,7 @@ export function installLoans(): void {
     const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
     return [
       { label: 'Owed to you', emoji: 'loan', cents: lent.reduce((s, l) => s + l.owed, 0), note: n(lent.length, 'loan') },
-      { label: 'Loans to repay', emoji: 'loan', cents: -owe.reduce((s, l) => s + l.owed, 0), note: `${n(owe.length, 'loan')}${late ? `, **${late} overdue**: half of everything you earn goes to ${late === 1 ? 'it' : 'them'}` : ''}` },
+      { label: 'Loans to repay', emoji: 'loan', cents: -owe.reduce((s, l) => s + l.owed, 0), note: `${n(owe.length, 'loan')}${late ? `, **${late} overdue**: half of everything you earn goes to ${late === 1 ? 'it' : 'them'}, and 3 days past due your lender can collect from what you own` : ''}` },
       { label: 'Owed to TODD', emoji: 'todd', cents: -toddDebt(db, guildId, userId), note: 'his bailout; no gambling until it\'s repaid' }
     ];
   });

@@ -96,6 +96,7 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['loan_shark', 'Loan Shark', 'Lend Polygons at 25% a day', 'social', 'rare'],
   ['debt_free', 'Debt Free', 'Pay TODD back in full', 'social', 'common'],
   ['merciful', 'Merciful', 'Forgive a loan', 'social', 'rare'],
+  ['repo_man', 'Repo Man', 'Collect on an overdue loan', 'social', 'rare'],
   ['quick_draw', 'Quick Draw', 'Win a TODD drop-in', 'social', 'common'],
   ['chatterbox', 'Chatterbox', 'Earn ⬡2,500 from chat pay', 'social', 'rare'],
 
