@@ -3,7 +3,8 @@
 import type { Db } from '../core/db';
 import { GameError } from '../core/errors';
 import { emit } from '../core/events';
-import { RESERVE, balance, transfer, wallet } from '../core/ledger';
+import { RESERVE, balance, transfer, wallet, ensureAccount } from '../core/ledger';
+import { cityAccount, shopTax } from '../city/state';
 import { format, polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { HOUR, DAY } from '../core/time';
@@ -106,11 +107,14 @@ export function buy(db: Db, rng: Rng, guildId: string, userId: string, id: strin
     if (left < qty) throw new ShopError('soldOut', left ? `Only ${left} ${it.name} left in stock.` : `${it.name} is sold out. Stock returns ${'within the hour'}.`);
     const cost = priceOf(db, id) * qty;
     const w = wallet(guildId, userId);
-    if (balance(db, w) < cost) throw new ShopError('broke', `${qty} × ${it.name} costs ${format(cost)}. The balance is ${format(balance(db, w))}.`);
+    // Under New Management: the mayor's sales tax, on top, into the city treasury
+    const tax = Math.floor(cost * shopTax(db, guildId, now));
+    if (balance(db, w) < cost + tax) throw new ShopError('broke', `${qty} × ${it.name} costs ${format(cost)}${tax ? ` plus ${format(tax)} sales tax` : ''}. The balance is ${format(balance(db, w))}.`);
     transfer(db, { from: w, to: RESERVE, cents: cost, reason: 'shop', guildId, actorId: userId, now, note: { item: id, qty } });
+    if (tax > 0) { ensureAccount(db, cityAccount(guildId), 'city', guildId, null, now); transfer(db, { from: w, to: cityAccount(guildId), cents: tax, reason: 'city.tax.shop', guildId, actorId: userId, now, note: { item: id } }); }
     db.run('UPDATE shop_stock SET stock = stock - ? WHERE item = ?', qty, id);
     addItem(db, guildId, userId, id, qty);
     emit('shop.bought', { guildId, userId, item: id, qty, cents: cost });
-    return { item: it, qty, cost, cash: balance(db, w) };
+    return { item: it, qty, cost: cost + tax, cash: balance(db, w) };
   });
 }

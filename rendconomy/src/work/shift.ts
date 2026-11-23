@@ -17,6 +17,7 @@ import { takeItem, useEffect } from '../shop/inventory';
 import { CO, addRevenue, getCompany, levelOf, payFactor } from '../companies/companies';
 import { shiftMultiplier } from '../events/world';
 import { diffBlock, type DiffRow } from '../discord/diff';
+import { workBonus } from '../city/state';
 
 export const KIND = 'work';
 
@@ -141,6 +142,8 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
     if (st.scab) { pay = Math.round(pay * 0.9); extras.push('Crossed the picket line: -10%'); }
     const world = shiftMultiplier(ctx.db, ticker, ctx.now);
     if (world > 1) { pay = Math.round(pay * world); extras.push(`World event: pay ${world}x`); }
+    const civic = workBonus(ctx.db, guildId, 'shifts', ctx.now);   // Under New Management: a public work
+    if (civic > 0) { pay = Math.round(pay * (1 + civic)); extras.push(`City public works: +${Math.round(civic * 100)}%`); }
     const boost = m?.boost as { tickers?: string[] } | null | undefined;
     if (boost && (!boost.tickers?.length || boost.tickers.includes(ticker))) { pay *= 2; extras.push('Market boom: pay doubled'); }
     tip = Math.round(pay * speed);

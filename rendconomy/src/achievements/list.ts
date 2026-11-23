@@ -23,6 +23,7 @@ export const CATEGORIES = {
   farming: { label: 'Farming', emoji: '🌾' },
   property: { label: 'Real estate', emoji: '🏠' },
   underground: { label: 'No Questions Asked', emoji: '🎩' },
+  city: { label: 'City Hall', emoji: '🏛️' },
   holiday: { label: 'Polygon Holidays', emoji: '🎄' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
@@ -97,6 +98,15 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['debt_free', 'Debt Free', 'Pay TODD back in full', 'social', 'common'],
   ['merciful', 'Merciful', 'Forgive a loan', 'social', 'rare'],
   ['repo_man', 'Repo Man', 'Collect on an overdue loan', 'social', 'rare'],
+  ['i_voted', 'I Voted', 'Vote in a mayoral election', 'city', 'common'],
+  ['elected', 'Elected!', 'Win an election and become mayor', 'city', 'epic'],
+  ['re_elected', 'Four More Years', 'Win a second term in a row', 'city', 'legendary'],
+  ['landslide', 'Landslide', 'Win an election with 70% of the votes or more', 'city', 'epic'],
+  ['trustbuster', 'Trustbuster', 'Block a takeover or merger as mayor', 'city', 'rare'],
+  ['public_works', 'Public Works', 'Fund a public work', 'city', 'rare'],
+  ['impeached', 'Impeached', 'Get voted out of office', 'city', 'rare', true],
+  ['first_hire', 'Now Hiring', 'Hire your company\'s first worker', 'companies', 'common'],
+  ['full_staff', 'Full Staff', 'Have 8 workers at your company', 'companies', 'epic'],
   ['quick_draw', 'Quick Draw', 'Win a TODD drop-in', 'social', 'common'],
   ['chatterbox', 'Chatterbox', 'Earn ⬡2,500 from chat pay', 'social', 'rare'],
 

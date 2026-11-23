@@ -20,6 +20,7 @@ import { marquez } from '../shop/items';
 import { dismiss, farmEnv, fertOf, giveFert, giveSeeds, handSettings, hasHand as handOn, hire, quietLog, runShift, setHandDm, shedOf, shedTotal, takeFert, takeLog, takeSeeds } from '../farming/farmhand';
 import { me } from './shared';
 import type { Command, Ctx, ReplyObject } from './types';
+import { workBonus } from '../city/state';
 
 const hasHand = (ctx: Ctx, guildId: string): boolean => handOn(ctx.db, guildId, ctx.user.id, ctx.now);
 const env = (ctx: Ctx, guildId: string): Env => farmEnv(ctx.db, guildId, ctx.user.id, hasHand(ctx, guildId));
@@ -330,7 +331,8 @@ export const sellcrops: Command = {
       const sold = new Map(b.map((r) => [r.item, rollSale(r.c, r.qty, ctx.now, ctx.rng, days)] as const));
       const value = (r: (typeof b)[number]) => sold.get(r.item)!.total;
       const base = b.reduce((s, r) => s + value(r), 0);
-      const total = co ? Math.round(base * MARKET.farmersMarket) : base;
+      const civic = workBonus(ctx.db, guildId, 'crops', ctx.now);   // Under New Management: a public work
+      const total = Math.round((co ? base * MARKET.farmersMarket : base) * (1 + civic));
       if (days > 1 && b.some((r) => sold.get(r.item)!.best >= 1.5)) awardHere('buy_low_sell_high');
       for (const r of b) takeItem(ctx.db, guildId, ctx.user.id, r.item, r.qty);
       const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: total, reason: 'farm.sell', guildId, actorId: ctx.user.id, now: ctx.now, note: co ? { company: co.ticker } : undefined });

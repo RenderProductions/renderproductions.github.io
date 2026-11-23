@@ -557,5 +557,81 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE farms ADD COLUMN hand_fert INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE casino ADD COLUMN free_day TEXT;
   ALTER TABLE casino ADD COLUMN free_used INTEGER NOT NULL DEFAULT 0;
+  `,
+
+  /* v22: Under New Management. Days each player was active (to run for mayor), candidates and votes per election
+     week, the mayors, impeachment votes, public works, NPC workers, and City Hall's public record. */ `
+  CREATE TABLE activity (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    day      TEXT NOT NULL,
+    PRIMARY KEY (guild_id, user_id, day)
+  );
+  CREATE TABLE candidates (
+    guild_id TEXT NOT NULL,
+    week     TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    slogan   TEXT,
+    at       INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, week, user_id)
+  );
+  CREATE TABLE votes (
+    guild_id     TEXT NOT NULL,
+    week         TEXT NOT NULL,
+    voter_id     TEXT NOT NULL,
+    candidate_id TEXT NOT NULL,
+    at           INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, week, voter_id)
+  );
+  CREATE TABLE mayors (
+    guild_id     TEXT NOT NULL,
+    week         TEXT NOT NULL,
+    user_id      TEXT NOT NULL,
+    votes        INTEGER NOT NULL,
+    total        INTEGER NOT NULL,
+    starts_at    INTEGER NOT NULL,
+    ends_at      INTEGER NOT NULL,
+    impeached_at INTEGER,
+    PRIMARY KEY (guild_id, week)
+  );
+  CREATE TABLE impeach_votes (
+    guild_id TEXT NOT NULL,
+    week     TEXT NOT NULL,
+    voter_id TEXT NOT NULL,
+    PRIMARY KEY (guild_id, week, voter_id)
+  );
+  CREATE TABLE city_works (
+    id        INTEGER PRIMARY KEY,
+    guild_id  TEXT NOT NULL,
+    effect    TEXT NOT NULL,
+    name      TEXT NOT NULL,
+    size      REAL NOT NULL,
+    starts_at INTEGER NOT NULL,
+    ends_at   INTEGER NOT NULL,
+    cost      INTEGER NOT NULL
+  );
+  CREATE INDEX city_works_guild ON city_works (guild_id, ends_at);
+  CREATE TABLE city_log (
+    id       INTEGER PRIMARY KEY,
+    guild_id TEXT NOT NULL,
+    at       INTEGER NOT NULL,
+    actor_id TEXT,
+    action   TEXT NOT NULL,
+    detail   TEXT NOT NULL,
+    cents    INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX city_log_guild ON city_log (guild_id, at);
+  CREATE TABLE workers (
+    id        INTEGER PRIMARY KEY,
+    ticker    TEXT NOT NULL,
+    name      TEXT NOT NULL,
+    wage      INTEGER NOT NULL,
+    mood      INTEGER NOT NULL DEFAULT 70,
+    hired_at  INTEGER NOT NULL,
+    paid_at   INTEGER NOT NULL,
+    strike_until INTEGER NOT NULL DEFAULT 0,
+    job       TEXT NOT NULL DEFAULT 'staff'
+  );
+  CREATE INDEX workers_ticker ON workers (ticker);
   `
 ];

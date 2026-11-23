@@ -52,7 +52,7 @@
   "property": {
    "label": "The city",
    "emoji": "🏙️",
-   "count": 2
+   "count": 5
   },
   "underground": {
    "label": "The Underground",
@@ -240,6 +240,52 @@
      "required": true
     }
    ]
+  },
+  {
+   "name": "mayor",
+   "aliases": [
+    "cityhall",
+    "townhall"
+   ],
+   "description": "City Hall: the mayor, the election, and the mayor's powers",
+   "section": "property",
+   "slash": "/mayor",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank for City Hall, or: race, run, withdraw, help, log, block, freeze, investigate, fine, bailout, tax, build, decree…",
+     "required": false
+    },
+    {
+     "name": "details",
+     "description": "The rest: a ticker or @player, an amount, a reason, a name",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "vote",
+   "aliases": [
+    "ballot"
+   ],
+   "description": "Vote for mayor (Friday to Sunday 9 PM Eastern)",
+   "section": "property",
+   "slash": "/vote",
+   "options": [
+    {
+     "name": "candidate",
+     "description": "Who you're voting for",
+     "required": true
+    }
+   ]
+  },
+  {
+   "name": "impeach",
+   "aliases": [],
+   "description": "Call or join a 24-hour vote to remove the mayor",
+   "section": "property",
+   "slash": "/impeach",
+   "options": []
   },
   {
    "name": "shop",
@@ -1103,13 +1149,18 @@
    "aliases": [
     "co"
    ],
-   "description": "A player company (yours if you leave it out)",
+   "description": "A player company (yours if you leave it out), or your staff: staff, hire, fire, wage",
    "section": "market",
    "slash": "/company",
    "options": [
     {
      "name": "ticker",
-     "description": "Ticker",
+     "description": "A ticker, or for your staff: staff, hire, fire, wage",
+     "required": false
+    },
+    {
+     "name": "details",
+     "description": "For fire and wage: the worker (and the daily wage)",
      "required": false
     }
    ]
@@ -2973,6 +3024,78 @@
    "secret": false
   },
   {
+   "id": "i_voted",
+   "name": "I Voted",
+   "desc": "Vote in a mayoral election",
+   "category": "City Hall",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "elected",
+   "name": "Elected!",
+   "desc": "Win an election and become mayor",
+   "category": "City Hall",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "re_elected",
+   "name": "Four More Years",
+   "desc": "Win a second term in a row",
+   "category": "City Hall",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "landslide",
+   "name": "Landslide",
+   "desc": "Win an election with 70% of the votes or more",
+   "category": "City Hall",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "trustbuster",
+   "name": "Trustbuster",
+   "desc": "Block a takeover or merger as mayor",
+   "category": "City Hall",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "public_works",
+   "name": "Public Works",
+   "desc": "Fund a public work",
+   "category": "City Hall",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "secret-65",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "City Hall",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
+   "id": "first_hire",
+   "name": "Now Hiring",
+   "desc": "Hire your company's first worker",
+   "category": "Companies",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "full_staff",
+   "name": "Full Staff",
+   "desc": "Have 8 workers at your company",
+   "category": "Companies",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
    "id": "quick_draw",
    "name": "Quick Draw",
    "desc": "Win a TODD drop-in",
@@ -3565,7 +3688,7 @@
    "secret": false
   },
   {
-   "id": "secret-133",
+   "id": "secret-142",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3573,7 +3696,7 @@
    "secret": true
   },
   {
-   "id": "secret-134",
+   "id": "secret-143",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3581,7 +3704,7 @@
    "secret": true
   },
   {
-   "id": "secret-135",
+   "id": "secret-144",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3589,7 +3712,7 @@
    "secret": true
   },
   {
-   "id": "secret-136",
+   "id": "secret-145",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3597,7 +3720,7 @@
    "secret": true
   },
   {
-   "id": "secret-137",
+   "id": "secret-146",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3605,7 +3728,7 @@
    "secret": true
   },
   {
-   "id": "secret-138",
+   "id": "secret-147",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3613,7 +3736,7 @@
    "secret": true
   },
   {
-   "id": "secret-139",
+   "id": "secret-148",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3621,7 +3744,7 @@
    "secret": true
   },
   {
-   "id": "secret-140",
+   "id": "secret-149",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3629,7 +3752,7 @@
    "secret": true
   },
   {
-   "id": "secret-141",
+   "id": "secret-150",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",

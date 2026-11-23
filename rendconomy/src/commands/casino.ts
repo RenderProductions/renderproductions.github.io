@@ -66,7 +66,7 @@ export const slots: Command = {
       return {
         embeds: [card('slots', [`## [ ${show(x!)} | ${show(y!)} | ${show(z!)} ]`, what, ...outcome(ctx, guildId, bet, r.paid, r.lines),
           offer ? `-# ${emoji('slots')} **Redeem yourself:** one free spin of 15 reels. Land ${REDEEM.need} of a kind and your ${format(bet)} comes back.` : null,
-          `-# 💎 Progressive jackpot: **${format(jackpotOf(ctx.db, guildId))}**${happyHour(ctx.db, ctx.now) ? ' · 🥂 Happy Hour' : ''}`], toneOf(bet, win))],
+          `-# 💎 Progressive jackpot: **${format(jackpotOf(ctx.db, guildId))}**${happyHour(ctx.db, ctx.now, guildId) ? ' · 🥂 Happy Hour' : ''}`], toneOf(bet, win))],
         ...(offer ? { buttons: [[{ label: 'Redeem yourself', emoji: '🙏', id: sessions.buttonId(offer.id, 'go'), style: 'primary' as const }]], session: offer.id, later: { ms: REDEEM.windowMs - 3000, edit: { buttons: [] } } } : {}),
         teaser: {
           ...frame(blur(), blur(), blur(), `${line(ctx.rng, 'reels')} ${emoji('slots')}`, 700),
@@ -512,7 +512,7 @@ export const vip: Command = {
       const left = freeSpinsLeft(ctx.db, guildId, ctx.user.id, ctx.now);
       if (/^(spin|free|claim)$/i.test(String(args.action ?? '').trim())) {
         if (!v.tier) throw new GameError('vip.none', `Free spins are for VIPs. Bet ${format(VIP[0]!.at)} in the Rend-Sino to reach ${VIP[0]!.emoji} Bronze (you're at ${format(v.wagered)}).`);
-        if (!left) throw new GameError('vip.used', `You've had today's free spin. Another tomorrow${happyHour(ctx.db, ctx.now) ? '' : ' (two during Happy Hour)'}.`);
+        if (!left) throw new GameError('vip.used', `You've had today's free spin. Another tomorrow${happyHour(ctx.db, ctx.now, guildId) ? '' : ' (two during Happy Hour)'}.`);
         useFreeSpin(ctx.db, guildId, ctx.user.id, ctx.now);
         const stake = v.tier.spin;
         const [x, y, z] = [ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS), ctx.rng.pick(SYMBOLS)];
@@ -533,7 +533,7 @@ export const vip: Command = {
       return { embeds: [card('slots', [
         `## ${emojiOr('jackpot', '💎')} ${format(jackpotOf(ctx.db, guildId))}`,
         'The **progressive jackpot**: every bet in this server adds to it. Three 💎 on Slots win it (all of it at the max bet).',
-        happyHour(ctx.db, ctx.now) ? '🥂 **Happy Hour!** The jackpot grows 3x as fast and VIPs get a second free spin.' : null,
+        happyHour(ctx.db, ctx.now, guildId) ? '🥂 **Happy Hour!** The jackpot grows 3x as fast and VIPs get a second free spin.' : null,
         '',
         v.tier ? `**VIP:** ${v.tier.emoji} **${v.tier.name}** · daily free spin worth ${format(v.tier.spin)}` : '**VIP:** not yet',
         `Bet here so far: ${format(v.wagered)}${v.next ? ` · ${v.next.emoji} ${v.next.name} at ${format(v.next.at)}` : ' · the top level'}`,

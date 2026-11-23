@@ -9,7 +9,9 @@ import { embed } from '../discord/style';
 import { TICKERS } from '../market/market';
 import { CO, LEVELS, TAKEOVER, shieldedUntil, alive, approve as approveCo, bidOn, change, cleanName, employees, found as foundCo, getCompany, invest as investCo, ipo as ipoCo, levelOf, listCompanies, merge as mergeCo, mergerFor, ownedBy, poisonPill, proposeMerger, reject as rejectCo, salary as salaryCo, sharesHeld, CLOSE, closeQuote, closeCompany as closeCo, saleOf, saleFor, offerSale, cancelSale, acceptSale, spark, startBid, treasury, upgrade as upgradeCo, worthOf, completeBid } from '../companies/companies';
 import { me } from './shared';
-import type { Command, Ctx } from './types';
+import { frozenUntil } from '../city/state';
+import { WORKERS, capOf, dayRevenue, findWorker, fire, hire, moodChange, moodEmoji, moodWord, payroll, setWage, staffOf } from '../companies/workers';
+import type { Command, Ctx, ReplyObject } from './types';
 
 const canApprove = (ctx: Ctx) => ctx.isOwner || (!!ctx.config.homeGuildId && ctx.guildId === ctx.config.homeGuildId && ctx.isMod);
 function mine(ctx: Ctx) {
@@ -26,7 +28,8 @@ const card = (ctx: Ctx, t: string) => {
     `Owner: <@${c.owner_id}> · **${lv.name}** (level ${c.level}) · ${c.status}`,
     c.status === 'public' ? `Price: **${format(Math.round(c.price * 100))}** ${emoji(change(c) >= 0 ? 'up' : 'down')} ${Math.abs(change(c)).toFixed(1)}% ${spark(c.history)} · ${CO.float - sharesHeld(ctx.db, c.ticker)} public shares available` : null,
     `Treasury: ${format(treasury(ctx.db, c))} · worth ${format(worthOf(ctx.db, c))} · upkeep ${format(lv.upkeep)}/day${c.strikes ? ` · **${c.strikes} missed upkeep${c.strikes > 1 ? 's' : ''}**` : ''}`,
-    `Employees: ${employees(ctx.db, c.ticker)} (pay ${lv.payMult}x)`,
+    `Employees: ${employees(ctx.db, c.ticker)} (pay ${lv.payMult}x) · Staff: ${staffOf(ctx.db, c.ticker).length} of ${capOf(c)}${staffOf(ctx.db, c.ticker).length ? ` (${staffOf(ctx.db, c.ticker).map((w) => moodEmoji(w.mood)).join('')})` : ''}`,
+    frozenUntil(ctx.db, ctx.guildId, c.ticker, ctx.now) > ctx.now ? `🏛️ **Trading frozen by City Hall** until ${discordTime(frozenUntil(ctx.db, ctx.guildId, c.ticker, ctx.now))}.` : null,
     next ? `Next level: ${next.name}, ${format(next.cost)} from the treasury` : 'Top level reached.',
     c.status === 'private' && c.level >= CO.ipoLevel ? `Ready to go public: \`${ctx.config.prefix}ipo\` (${format(CO.listingFee)})` : null,
     bid ? `**Takeover bid** by <@${bid.bidder_id}>: completes ${discordTime(bid.ends_at)} unless defended.` : null,
@@ -47,13 +50,55 @@ export const found: Command = {
 };
 
 export const company: Command = {
-  name: 'company', aliases: ['co'], description: 'A player company (yours if you leave it out)', system: 'market',
-  options: [{ name: 'ticker', type: 'string', description: 'Ticker' }],
+  name: 'company', aliases: ['co'], description: 'A player company (yours if you leave it out), or your staff: staff, hire, fire, wage', system: 'market',
+  options: [
+    { name: 'ticker', type: 'string', description: 'A ticker, or for your staff: staff, hire, fire, wage' },
+    { name: 'details', type: 'string', description: 'For fire and wage: the worker (and the daily wage)' }
+  ],
   run(ctx, args) {
-    const t = String(args.ticker ?? '').trim().toUpperCase() || mine(ctx).ticker;
+    const word = String(args.ticker ?? '').trim().toLowerCase();
+    if (['staff', 'workers', 'hire', 'fire', 'wage', 'pay'].includes(word)) return staff(ctx, word, String(args.details ?? '').trim());
+    const t = word.toUpperCase() || mine(ctx).ticker;
     return { embeds: [card(ctx, t)] };
   }
 };
+
+// NPC workers: hire, fire, set wages, see moods
+function staff(ctx: Ctx, word: string, rest: string): ReplyObject {
+  const P = ctx.config.prefix;
+  const c = mine(ctx);
+  return ctx.db.tx(() => {
+    if (word === 'hire') {
+      const w = hire(ctx.db, c, () => ctx.rng.next(), ctx.now);
+      return { embeds: [embed('market', `${emoji('company')} Hired: ${w.name}`, [
+        `**${w.name}** joins ${c.name} at the going rate, **${format(w.wage)}** a day from the treasury (hiring cost ${format(WORKERS.hireFee)}).`,
+        `Every day they earn the company about **${format(dayRevenue(c, w.mood))}**, more when they're happy. Pay them well: underpaid workers strike, and eventually quit.`,
+        `-# ${staffOf(ctx.db, c.ticker).length} of ${capOf(c)} workers · \`${P}company staff\``
+      ])] };
+    }
+    if (word === 'fire') {
+      const w = findWorker(ctx.db, c.ticker, rest);
+      fire(ctx.db, c, w);
+      return { embeds: [embed('market', 'Let go', [`${w.name} cleans out their desk. ${w.mood >= 65 ? '*"It was nice working here."*' : '*"Good luck finding someone else to put up with this."*'}`])] };
+    }
+    if (word === 'wage' || word === 'pay') {
+      const m = /^(.*?)\s+(\S+)$/.exec(rest);
+      if (!m) throw new GameError('co.wage', `\`${P}company wage <worker|all> <daily wage>\`. The going rate is ${format(WORKERS.rate)}.`);
+      const cents = parseAmount(m[2]!);
+      const list = m[1]!.toLowerCase() === 'all' ? staffOf(ctx.db, c.ticker) : [findWorker(ctx.db, c.ticker, m[1]!)];
+      for (const w of list) setWage(ctx.db, w, cents);
+      const mood = moodChange(cents);
+      return { embeds: [embed('market', 'Wages set', [`${list.length === 1 ? list[0]!.name : `All ${list.length} workers`} now ${list.length === 1 ? 'earns' : 'earn'} **${format(cents)}** a day.`, mood > 0 ? `That's ${cents >= WORKERS.rate * 1.5 ? 'generous' : 'fair'}: moods will rise.` : `That's under the going rate (${format(WORKERS.rate)}): moods will fall.`])] };
+    }
+    const list = staffOf(ctx.db, c.ticker);
+    return { embeds: [embed('market', `${c.name}'s staff`, [
+      list.length ? list.map((w) => `${moodEmoji(w.mood)} **${w.name}** · ${moodWord(w.mood)} (${w.mood}) · ${format(w.wage)}/day · earns ~${format(dayRevenue(c, w.mood))}/day${w.strike_until > ctx.now ? ' · **on strike**' : ''}`).join('\n') : 'No staff yet.',
+      '',
+      `**${list.length} of ${capOf(c)}** · payroll ${format(payroll(ctx.db, c.ticker))} a day · going rate ${format(WORKERS.rate)}`,
+      `-# \`${P}company hire\` (${format(WORKERS.hireFee)}) · \`${P}company wage <name|all> <amount>\` · \`${P}company fire <name>\`. Wages are paid from the treasury daily; unpaid or underpaid workers get unhappy, strike below ${WORKERS.strikeBelow} mood, and quit at 0.`
+    ])] };
+  });
+}
 
 export const exchange: Command = {
   name: 'exchange', aliases: ['companies', 'ex'], description: 'Every player company', system: 'market',
