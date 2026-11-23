@@ -97,7 +97,7 @@ def head(p):
 <meta property="og:title" content="{html.escape(p['title'], quote=True)}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{SITE}{p['url']}">
-<meta name="theme-color" content="#16181d">
+<meta name="theme-color" content="#070b15">
 <link rel="icon" href="/bot/emojis/rc_{p.get('icon', 'achievement')}.png">
 <link rel="stylesheet" href="/wiki/wiki.css">
 </head>
