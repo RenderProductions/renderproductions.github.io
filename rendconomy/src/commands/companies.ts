@@ -50,10 +50,10 @@ export const found: Command = {
 };
 
 export const company: Command = {
-  name: 'company', aliases: ['co'], description: 'A player company (yours if you leave it out), or your staff: staff, hire, fire, wage', system: 'market',
+  name: 'company', aliases: ['co'], description: 'A player company (yours if blank), or: found, invest, upgrade, ipo, close, sell, staff, hire…', system: 'market',
   options: [
-    { name: 'ticker', type: 'string', description: 'A ticker, or for your staff: staff, hire, fire, wage' },
-    { name: 'details', type: 'string', description: 'For fire and wage: the worker (and the daily wage)' }
+    { name: 'ticker', type: 'string', description: 'A ticker, or: found, invest, upgrade, ipo, salary, close, sell, takeover, merge, staff, hire…' },
+    { name: 'details', type: 'string', description: 'The rest: e.g. "MEOW Cat Corp" to found, an amount to invest, "@player 5000" to sell' }
   ],
   run(ctx, args) {
     const word = String(args.ticker ?? '').trim().toLowerCase();

@@ -109,7 +109,8 @@ export function onLoanButton(ctx: Ctx, s: sessions.Session<LoanRequest>, value: 
 }
 
 export const loans: Command = {
-  name: 'loans', aliases: ['debts'], description: 'Your loans: what you owe and what you are owed', system: 'social', guildOnly: true,
+  name: 'loans', aliases: ['debts'], description: 'Your loans, or: pay, forgive, collect', system: 'social', guildOnly: true,
+  options: [{ name: 'action', type: 'string', description: 'Blank to see them, or "pay <amount>", "forgive @player", "collect @player"' }],
   run(ctx) {
     const { guildId } = me(ctx);
     const owe = activeLoans(ctx.db, guildId, { borrower: ctx.user.id }, ctx.now);

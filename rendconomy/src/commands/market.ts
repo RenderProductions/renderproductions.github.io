@@ -31,8 +31,9 @@ const plain = (s: unknown) => String(s ?? '').replace(/\*\*/g, '');
 export const market: Command = {
   name: 'market',
   aliases: ['stocks', 'm'],
-  description: 'Current stock prices and market status',
+  description: 'Stock prices, or: chart, compare, dividends, order, broker, short, cover, event',
   system: 'market',
+  options: [{ name: 'action', type: 'string', description: 'Blank for prices, or e.g. "chart RRM", "order", "short BNW 10", "dividends", "event"' }],
   run(ctx) {
     const m = current(ctx.db);
     const lines = m.companies.map((c) => {

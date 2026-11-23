@@ -38,6 +38,24 @@ import type { Command } from './types';
 export const commands: Command[] = [];
 commands.push(daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, collect, mayorCmd, vote, impeachCmd, shop, purchase, inventory, use, sellitem, discard, settitle, fish, sellfish, ...farmCommands, ...holidayCommands, ...connectionCommands, ...funCommands, ...propertyCommands, ...undergroundCommands, achievements, gift, leaderboard, savings, work, gig, beg, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, closecompany, sellcompany, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, vip, table, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, giveitem, takeitem, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
 
+// Helpers: commands folded under a parent, to keep under Discord's 100 slash commands and keep families together.
+// r!company close runs r!closecompany (which still works); /company action:close does the same.
+const HELPERS: Record<string, Record<string, string>> = {
+  company: { found: 'found', invest: 'invest', upgrade: 'upgrade', ipo: 'ipo', salary: 'salary', close: 'closecompany', sell: 'sellcompany', takeover: 'takeover', merge: 'merge' },
+  market: { chart: 'chart', compare: 'compare', dividends: 'dividends', order: 'order', orders: 'order', broker: 'broker', short: 'short', cover: 'cover', event: 'event' },
+  mayor: { vote: 'vote', impeach: 'impeach' },
+  loans: { pay: 'payback', payback: 'payback', forgive: 'forgive', collect: 'collect' },
+  farm: { fertilize: 'fertilize', compost: 'compost' },
+  fish: {}
+};
+/** Commands the parent already handles itself (r!farm plant…), so they don't need their own slash command either. */
+const HANDLED: Record<string, string[]> = { farm: ['plant', 'water', 'harvest', 'sellcrops', 'buyplot'], fish: ['sellfish'] };
+for (const [parent, map] of Object.entries(HELPERS)) {
+  const p = commands.find((c) => c.name === parent)!;
+  p.helpers = map;
+  for (const child of [...Object.values(map), ...(HANDLED[parent] ?? [])]) commands.find((c) => c.name === child)!.helperOf = parent;
+}
+
 installAchievementListeners();
 installLoans();
 installSchemes();

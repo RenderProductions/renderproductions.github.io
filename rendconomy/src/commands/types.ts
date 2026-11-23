@@ -100,6 +100,10 @@ export interface Command {
   options?: Option[];
   /** Prefix-only and left out of /help and the slash command list (secrets). */
   hidden?: boolean;
+  /** Subcommands: "company close" runs the closecompany command. The word → the command's name. */
+  helpers?: Record<string, string>;
+  /** Set on a command that lives under another as a helper: it isn't its own slash command (its r! name still works). */
+  helperOf?: string;
   /** Needs a server (balances are per server). Refused in DMs. */
   guildOnly?: boolean;
   run(ctx: Ctx, args: Args): Reply | Promise<Reply>;

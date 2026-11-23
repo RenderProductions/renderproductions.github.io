@@ -17,6 +17,7 @@ import { CATCH, FISHING, SIZE_NAMES, TABLES } from '../fishing/fishing';
 import { HEIST, ROLES, TARGETS } from '../heists/heists';
 import { LOANS } from '../loans/loans';
 import { BROKERS, ORDERS, SHORTS, TRAITS } from '../market/schemes';
+import { slashFor } from '../commands/slashname';
 import { MOD_SLASH } from '../discord/router';
 import { COLLECTIBLES, ITEMS, SHELVES } from '../shop/items';
 import { SELL_BACK, SHOP_RULES } from '../shop/shop';
@@ -43,7 +44,7 @@ export function wikiData(): Record<string, unknown> {
     sections: Object.fromEntries(Object.entries(SECTIONS).map(([k, v]) => [k, { label: v.label, emoji: v.emoji, count: visible.filter((c) => c.system === k).length }])),
     commands: visible.map((c) => ({
       name: c.name, aliases: c.aliases ?? [], description: c.description, section: c.system,
-      slash: c.system === 'admin' ? `/${MOD_SLASH} ${c.name}` : `/${c.name}`,
+      slash: c.system === 'admin' ? `/${MOD_SLASH} ${c.name}` : slashFor(c, commands),
       options: (c.options ?? []).map((o) => ({ name: o.name, description: o.description, required: !!o.required }))
     })),
     items: Object.values(ITEMS).filter((i) => i.ready !== false).map((i) => ({ id: i.id, emoji: i.emoji, name: i.name, price: i.price === null ? null : p(i.price), stock: i.stock, shelf: SHELVES[i.shelf].label, desc: i.desc, passive: !!i.passive, unlock: !!i.unlock })),

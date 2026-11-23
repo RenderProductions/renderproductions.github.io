@@ -2,6 +2,7 @@ import { sectionE } from '../discord/icons';
 import { SITE, embed } from '../discord/style';
 import { GameError } from '../core/errors';
 import * as sessions from '../core/sessions';
+import { slashFor } from './slashname';
 import type { Button, Command, Ctx, ReplyObject, SessionReply, System } from './types';
 
 export const ping: Command = {
@@ -27,7 +28,7 @@ function visible(ctx: Ctx): Command[] {
 }
 
 function line(c: Command, p: string): string {
-  return `\`/${c.name}\`${c.aliases?.length ? ` (${c.aliases.map((a) => p + a).join(', ')})` : ''}: ${c.description}`;
+  return `\`${slashFor(c, listCommands())}\`${c.aliases?.length ? ` (${c.aliases.map((a) => p + a).join(', ')})` : ''}: ${c.description}`;
 }
 
 /** One page of help: the overview, or one section. Every page stays well inside Discord's limits. */
@@ -70,7 +71,7 @@ export function makeHelp(list: () => Command[]): Command {
       if (q) {
         const c = visible(ctx).find((x) => x.name === q || x.aliases?.includes(q));
         if (c) {
-          return { embeds: [embed(c.system, `/${c.name}`, [
+          return { embeds: [embed(c.system, slashFor(c, listCommands()), [
             c.description,
             c.aliases?.length ? `Also: ${c.aliases.map((a) => `\`${ctx.config.prefix}${a}\``).join(', ')}` : null,
             ...(c.options ?? []).map((o) => `\`${o.name}\`: ${o.description}`)

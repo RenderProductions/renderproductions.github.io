@@ -11,6 +11,7 @@ import { polygons } from '../src/core/money';
 import { seededRng } from '../src/core/rng';
 import { execute, parsePrefix, press, slashBody } from '../src/discord/router';
 import { tick } from '../src/market/market';
+import { slashFor } from '../src/commands/slashname';
 
 const G = 'guild1';
 const db = freshDb();
@@ -81,7 +82,7 @@ test('help: every command is on a section page, and every page fits in a Discord
     assert.ok(d.length <= 4096, `${b.label} page is ${d.length} characters`);
     all += d;
   }
-  for (const c of commands.filter((x) => x.system !== 'admin' && !x.hidden)) assert.ok(all.includes(`/${c.name}`), `help is missing ${c.name}`);
+  for (const c of commands.filter((x) => x.system !== 'admin' && !x.hidden)) assert.ok(all.includes(slashFor(c, commands)), `help is missing ${c.name}`);
   assert.ok(!all.includes('/wipe'), 'moderator commands are hidden from players');
   assert.match(text(await run('r!help w')), /\/work[\s\S]*r!w/);
   assert.match(text(await run('r!help stock')), /Stock market[\s\S]*\/buy/);
@@ -100,7 +101,7 @@ test('prefix parsing', () => {
 
 test('slash definitions are valid for Discord', () => {
   const body = slashBody();
-  assert.equal(body.length, commands.filter((c) => !c.hidden && c.system !== 'admin').length + 1, 'every command, with the moderator ones folded into /mod');
+  assert.equal(body.length, commands.filter((c) => !c.hidden && !c.helperOf && c.system !== 'admin').length + 1, 'every command, with the moderator ones folded into /mod and helpers under their parents');
   for (const c of body) {
     assert.match(c.name, /^[a-z0-9_-]{1,32}$/);
     assert.ok(c.description.length > 0 && c.description.length <= 100);
@@ -135,4 +136,23 @@ test('slash commands fit under Discord\'s limit of 100; moderator commands share
   assert.ok(body.length <= 100, `${body.length} slash commands`);
   assert.ok(body.some((c) => c.name === 'mod'));
   assert.ok(!body.some((c) => c.name === 'give' || c.name === 'wipe'));
+});
+
+test('helpers: "company close" runs closecompany, by prefix and by slash; folded commands leave the slash list', async () => {
+  const { parsePrefix, slashBody } = await import('../src/discord/router.js');
+  const { commands } = await import('../src/commands/index.js');
+  const p = parsePrefix('r!company close confirm', 'r!');
+  assert.ok(p && 'cmd' in p && p.cmd.name === 'closecompany' && p.args.confirm === 'confirm');
+  const q = parsePrefix('r!market chart RRM', 'r!');
+  assert.ok(q && 'cmd' in q && q.cmd.name === 'chart');
+  const v = parsePrefix('r!mayor vote <@222222222222222222>', 'r!');
+  assert.ok(v && 'cmd' in v && v.cmd.name === 'vote' && v.args.candidate === '222222222222222222');
+  const old = parsePrefix('r!closecompany', 'r!');
+  assert.ok(old && 'cmd' in old && old.cmd.name === 'closecompany', 'the old names still work');
+  const names = slashBody().map((c) => c.name);
+  for (const n of ['closecompany', 'chart', 'vote', 'plant', 'sellfish', 'payback']) assert.ok(!names.includes(n), n);
+  assert.ok(names.length <= 75, `${names.length} slash commands`);
+  const { slashFor } = await import('../src/commands/slashname.js');
+  assert.equal(slashFor(commands.find((c) => c.name === 'closecompany')!, commands), '/company close');
+  assert.equal(slashFor(commands.find((c) => c.name === 'sellcrops')!, commands), '/farm sell');
 });

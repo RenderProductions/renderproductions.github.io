@@ -65,7 +65,7 @@ const HELP = (P: string): string[] => [
 export const mayorCmd: Command = {
   name: 'mayor', aliases: ['cityhall', 'townhall'], description: 'City Hall: the mayor, the election, and the mayor\'s powers', system: 'property', guildOnly: true,
   options: [
-    { name: 'action', type: 'string', description: 'Blank for City Hall, or: race, run, withdraw, help, log, block, freeze, investigate, fine, bailout, tax, build, decree…' },
+    { name: 'action', type: 'string', description: 'Blank for City Hall, or: vote, impeach, race, run, help, log, block, freeze, fine, tax, build, decree…' },
     { name: 'details', type: 'string', description: 'The rest: a ticker or @player, an amount, a reason, a name' }
   ],
   run(ctx, args) {

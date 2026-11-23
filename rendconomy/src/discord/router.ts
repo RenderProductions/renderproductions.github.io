@@ -129,6 +129,9 @@ export function parsePrefix(content: string, prefix: string): { cmd: Command; ar
     else if (o.type === 'integer') args[o.name] = Number.isInteger(Number(raw)) ? Number(raw) : raw;
     else args[o.name] = raw;
   });
+  // a helper: "company close confirm" runs closecompany with "confirm"
+  const sub = cmd.helpers?.[String(words[0] ?? '').toLowerCase()];
+  if (sub) return parsePrefix(`${prefix}${sub} ${words.slice(1).join(' ')}`, prefix);
   return { cmd, args };
 }
 
@@ -261,6 +264,15 @@ export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promi
     else args[o.name] = i.options.getString(o.name) ?? undefined;
   }
   if (!cmd || cmd.hidden) { await i.reply({ content: 'This command is no longer available.', flags: MessageFlags.Ephemeral }); return; }
+  if (cmd.helpers) {
+    // /company action:close details:confirm → the closecompany command, parsed like the prefix version
+    const line = (cmd.options ?? []).map((o) => args[o.name]).filter((v) => v !== undefined && v !== '').map((v) => (/^\d{15,22}$/.test(String(v)) ? `<@${v}>` : String(v))).join(' ');
+    const sub = cmd.helpers[line.split(/\s+/)[0]?.toLowerCase() ?? ''];
+    if (sub) {
+      const parsed = parsePrefix(`!${sub} ${line.split(/\s+/).slice(1).join(' ')}`, '!');
+      if (parsed && 'cmd' in parsed) { cmd = parsed.cmd; args = parsed.args; }
+    }
+  }
   const reply = await execute(cmd, ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), args);
   const res = await i.reply({ ...payload(firstOf(reply)), ...(reply.ephemeral ? { flags: MessageFlags.Ephemeral as const } : {}), withResponse: true });
   const sent = res.resource?.message;
@@ -296,7 +308,7 @@ export function slashBody(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
     default_member_permissions: String(PermissionFlagsBits.ManageGuild),
     options: [{ name: 'command', description: 'The command and what follows it, e.g. "give @Ana 500"', type: TYPES.string, required: true }]
   };
-  return [...commands.filter((c) => !c.hidden && c.system !== 'admin').map((c) => ({
+  return [...commands.filter((c) => !c.hidden && !c.helperOf && c.system !== 'admin').map((c) => ({
     name: c.name,
     description: c.description.slice(0, 100),
     dm_permission: !c.guildOnly,

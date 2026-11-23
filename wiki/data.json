@@ -186,17 +186,23 @@
    "aliases": [
     "debts"
    ],
-   "description": "Your loans: what you owe and what you are owed",
+   "description": "Your loans, or: pay, forgive, collect",
    "section": "social",
    "slash": "/loans",
-   "options": []
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to see them, or \"pay <amount>\", \"forgive @player\", \"collect @player\"",
+     "required": false
+    }
+   ]
   },
   {
    "name": "payback",
    "aliases": [],
    "description": "Repay a loan from another player",
    "section": "social",
-   "slash": "/payback",
+   "slash": "/loans pay",
    "options": [
     {
      "name": "lender",
@@ -215,7 +221,7 @@
    "aliases": [],
    "description": "Cancel what a borrower owes you",
    "section": "social",
-   "slash": "/forgive",
+   "slash": "/loans forgive",
    "options": [
     {
      "name": "borrower",
@@ -232,7 +238,7 @@
    ],
    "description": "Make an overdue borrower pay from what they own (3 days after the due date)",
    "section": "social",
-   "slash": "/collect",
+   "slash": "/loans collect",
    "options": [
     {
      "name": "borrower",
@@ -253,7 +259,7 @@
    "options": [
     {
      "name": "action",
-     "description": "Blank for City Hall, or: race, run, withdraw, help, log, block, freeze, investigate, fine, bailout, tax, build, decree…",
+     "description": "Blank for City Hall, or: vote, impeach, race, run, help, log, block, freeze, fine, tax, build, decree…",
      "required": false
     },
     {
@@ -270,7 +276,7 @@
    ],
    "description": "Vote for mayor (Friday to Sunday 9 PM Eastern)",
    "section": "property",
-   "slash": "/vote",
+   "slash": "/mayor vote",
    "options": [
     {
      "name": "candidate",
@@ -284,7 +290,7 @@
    "aliases": [],
    "description": "Call or join a 24-hour vote to remove the mayor",
    "section": "property",
-   "slash": "/impeach",
+   "slash": "/mayor impeach",
    "options": []
   },
   {
@@ -443,7 +449,7 @@
    ],
    "description": "Sell your whole catch to Marquez",
    "section": "wallet",
-   "slash": "/sellfish",
+   "slash": "/fish sell",
    "options": []
   },
   {
@@ -472,7 +478,7 @@
    ],
    "description": "Plant seeds in your empty plots (or one plot)",
    "section": "farm",
-   "slash": "/plant",
+   "slash": "/farm plant",
    "options": [
     {
      "name": "crop",
@@ -494,7 +500,7 @@
    ],
    "description": "Water every crop that needs it",
    "section": "farm",
-   "slash": "/water",
+   "slash": "/farm water",
    "options": []
   },
   {
@@ -505,7 +511,7 @@
    ],
    "description": "Harvest every ready crop (and clear wilted ones)",
    "section": "farm",
-   "slash": "/harvest",
+   "slash": "/farm harvest",
    "options": []
   },
   {
@@ -517,7 +523,7 @@
    ],
    "description": "Sell your whole harvest to Marquez, or to a player company at the farmers' market",
    "section": "farm",
-   "slash": "/sellcrops",
+   "slash": "/farm sell",
    "options": [
     {
      "name": "company",
@@ -534,7 +540,7 @@
    ],
    "description": "Put Fertilizer on every growing crop (or one plot): they grow 50% faster and come out Prime more often",
    "section": "farm",
-   "slash": "/fertilize",
+   "slash": "/farm fertilize",
    "options": [
     {
      "name": "plot",
@@ -548,7 +554,7 @@
    "aliases": [],
    "description": "Turn fishing junk into Fertilizer (a Soggy Boot makes 1; other junk, 2 for 1)",
    "section": "farm",
-   "slash": "/compost",
+   "slash": "/farm compost",
    "options": []
   },
   {
@@ -559,7 +565,7 @@
    ],
    "description": "Buy another plot of land (up to 9, or 15 with a Barn)",
    "section": "farm",
-   "slash": "/buyplot",
+   "slash": "/farm buy",
    "options": []
   },
   {
@@ -972,10 +978,16 @@
     "stocks",
     "m"
    ],
-   "description": "Current stock prices and market status",
+   "description": "Stock prices, or: chart, compare, dividends, order, broker, short, cover, event",
    "section": "market",
    "slash": "/market",
-   "options": []
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank for prices, or e.g. \"chart RRM\", \"order\", \"short BNW 10\", \"dividends\", \"event\"",
+     "required": false
+    }
+   ]
   },
   {
    "name": "chart",
@@ -984,7 +996,7 @@
    ],
    "description": "A price chart for a company (last 24 hours)",
    "section": "market",
-   "slash": "/chart",
+   "slash": "/market chart",
    "options": [
     {
      "name": "ticker",
@@ -1000,7 +1012,7 @@
    ],
    "description": "Compare companies side by side",
    "section": "market",
-   "slash": "/compare",
+   "slash": "/market compare",
    "options": []
   },
   {
@@ -1049,7 +1061,7 @@
    ],
    "description": "Collect what your shares have earned",
    "section": "market",
-   "slash": "/dividends",
+   "slash": "/market dividends",
    "options": []
   },
   {
@@ -1060,7 +1072,7 @@
    ],
    "description": "Limit and stop orders that fill on their own",
    "section": "market",
-   "slash": "/order",
+   "slash": "/market order",
    "options": [
     {
      "name": "action",
@@ -1076,7 +1088,7 @@
    ],
    "description": "Hire a broker to trade for you by your rules",
    "section": "market",
-   "slash": "/broker",
+   "slash": "/market broker",
    "options": [
     {
      "name": "action",
@@ -1092,7 +1104,7 @@
    ],
    "description": "Short a stock: profit if it falls",
    "section": "market",
-   "slash": "/short",
+   "slash": "/market short",
    "options": [
     {
      "name": "ticker",
@@ -1114,7 +1126,7 @@
    ],
    "description": "Close a short (or list your shorts)",
    "section": "market",
-   "slash": "/cover",
+   "slash": "/market cover",
    "options": [
     {
      "name": "ticker",
@@ -1130,7 +1142,7 @@
    ],
    "description": "Found a player company (⬡2,500; approved by moderators)",
    "section": "market",
-   "slash": "/found",
+   "slash": "/company found",
    "options": [
     {
      "name": "ticker",
@@ -1149,18 +1161,18 @@
    "aliases": [
     "co"
    ],
-   "description": "A player company (yours if you leave it out), or your staff: staff, hire, fire, wage",
+   "description": "A player company (yours if blank), or: found, invest, upgrade, ipo, close, sell, staff, hire…",
    "section": "market",
    "slash": "/company",
    "options": [
     {
      "name": "ticker",
-     "description": "A ticker, or for your staff: staff, hire, fire, wage",
+     "description": "A ticker, or: found, invest, upgrade, ipo, salary, close, sell, takeover, merge, staff, hire…",
      "required": false
     },
     {
      "name": "details",
-     "description": "For fire and wage: the worker (and the daily wage)",
+     "description": "The rest: e.g. \"MEOW Cat Corp\" to found, an amount to invest, \"@player 5000\" to sell",
      "required": false
     }
    ]
@@ -1183,7 +1195,7 @@
    ],
    "description": "Put your own Polygons into your company's treasury",
    "section": "market",
-   "slash": "/invest",
+   "slash": "/company invest",
    "options": [
     {
      "name": "amount",
@@ -1199,7 +1211,7 @@
    ],
    "description": "Level your company up (paid from its treasury)",
    "section": "market",
-   "slash": "/upgrade",
+   "slash": "/company upgrade",
    "options": []
   },
   {
@@ -1207,7 +1219,7 @@
    "aliases": [],
    "description": "Take your company public",
    "section": "market",
-   "slash": "/ipo",
+   "slash": "/company ipo",
    "options": []
   },
   {
@@ -1217,7 +1229,7 @@
    ],
    "description": "Pay yourself from your company (up to 10% of the treasury a day)",
    "section": "market",
-   "slash": "/salary",
+   "slash": "/company salary",
    "options": [
     {
      "name": "amount",
@@ -1234,7 +1246,7 @@
    ],
    "description": "Close your company for good: you get its treasury, minus a 10% fee",
    "section": "market",
-   "slash": "/closecompany",
+   "slash": "/company close",
    "options": [
     {
      "name": "confirm",
@@ -1250,7 +1262,7 @@
    ],
    "description": "Sell your company to another player, or answer an offer",
    "section": "market",
-   "slash": "/sellcompany",
+   "slash": "/company sell",
    "options": [
     {
      "name": "action",
@@ -1267,7 +1279,7 @@
    ],
    "description": "Hostile takeovers: bid, defend (poison pill), or accept a bid on your company",
    "section": "market",
-   "slash": "/takeover",
+   "slash": "/company takeover",
    "options": [
     {
      "name": "action",
@@ -1283,7 +1295,7 @@
    ],
    "description": "Propose or accept a merger with another company",
    "section": "market",
-   "slash": "/merge",
+   "slash": "/company merge",
    "options": [
     {
      "name": "ticker",
@@ -1300,7 +1312,7 @@
    ],
    "description": "The world event running now (bot owner: start or end one)",
    "section": "market",
-   "slash": "/event",
+   "slash": "/market event",
    "options": [
     {
      "name": "action",
