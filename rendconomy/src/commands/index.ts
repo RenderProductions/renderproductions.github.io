@@ -25,7 +25,7 @@ import { bus, derby, dropin, gambling, installExtras, lottery, notFound, receipt
 import { boost, broker, compare, cover, crash, order, short } from './schemes';
 import { installSchemes } from '../market/schemes';
 import { fish, sellfish } from './fishing';
-import { bailout, collect, forgive, loan, loans, payback, repay } from './loans';
+import { bailout, forgive, loan, loans, payback, repay } from './loans';
 import { installLoans } from '../loans/loans';
 import { cleartitle, discard, inventory, purchase, sellitem, settitle, shop, use } from './shop';
 import { gift, leaderboard, savings } from './social';
@@ -34,7 +34,7 @@ import { beg } from './beg';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, collect, shop, purchase, inventory, use, sellitem, discard, settitle, fish, sellfish, ...farmCommands, ...holidayCommands, ...connectionCommands, ...funCommands, ...propertyCommands, ...undergroundCommands, achievements, gift, leaderboard, savings, work, gig, beg, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, closecompany, sellcompany, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, vip, table, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, giveitem, takeitem, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
+commands.push(daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, shop, purchase, inventory, use, sellitem, discard, settitle, fish, sellfish, ...farmCommands, ...holidayCommands, ...connectionCommands, ...funCommands, ...propertyCommands, ...undergroundCommands, achievements, gift, leaderboard, savings, work, gig, beg, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, closecompany, sellcompany, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, vip, table, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, giveitem, takeitem, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
 
 installAchievementListeners();
 installLoans();

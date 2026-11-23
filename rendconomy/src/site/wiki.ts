@@ -22,8 +22,6 @@ import { COLLECTIBLES, ITEMS, SHELVES } from '../shop/items';
 import { SELL_BACK, SHOP_RULES } from '../shop/shop';
 import { BULK_MAX, MYSTERY } from '../shop/use';
 import { BEG } from '../commands/beg';
-import { COLLECT } from '../loans/collect';
-import { WHOLESALE } from '../estate/wholesale';
 import { CHATTER } from '../social/chatter';
 import { SAVINGS } from '../social/savings';
 import { CONTRABAND, LOOT, UG } from '../underground/underground';
@@ -53,8 +51,6 @@ export function wikiData(): Record<string, unknown> {
       : { id: a.id, name: a.name, desc: a.desc, category: CATEGORIES[a.cat].label, rarity: a.rarity, secret: false })),
     refined: {
       mystery: { jackpotChance: MYSTERY.jackpotChance, jackpot: p(MYSTERY.jackpot), overtimeChance: MYSTERY.overtimeChance, cash: MYSTERY.cash },
-      collect: { graceDays: COLLECT.graceMs / 86_400_000, fee: COLLECT.fee },
-      wholesale: WHOLESALE,
       payPrice: PAY_PRICE, sellBack: SELL_BACK, bulkMax: BULK_MAX, closeFee: CLOSE.fee, refoundDays: CLOSE.refoundMs / 86_400_000, salvage: ESTATE.salvage, sellBackEstate: ESTATE.sellBack,
       beg: { coins: BEG.coins, coinChance: BEG.chances.coins, trinketChance: BEG.chances.trinket, caught: BEG.caught.map((c) => ({ above: p(c.above), chance: c.chance })), fineShare: BEG.fineShare, fineMax: p(BEG.fineMax), cooldownMinutes: BEG.cooldownMs / 60_000 }
     },

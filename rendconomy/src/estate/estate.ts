@@ -38,7 +38,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   factory: kind('factory', 'Factory', 'Factories', '🏭', 35_000, 0, 200, 6, 3, 'Production', 'makes 24 crates of Goods a day per level. Pollutes: −15% rent and faster wear next door', { industrial: true }),
   barn: kind('barn', 'Barn', 'Barns', '🐄', 12_000, 0, 40, 4, 1, 'More Land', 'unlocks 6 more farm plots (up to 15, in 3 rows of 5)'),
   bank: kind('bank', 'Bank Branch', 'Bank Branches', '🏦', 60_000, 600, 200, 8, 3, 'Branch Manager', 'your savings earn 25% more interest per level'),
-  warehouse: kind('warehouse', 'Warehouse', 'Warehouses', '📦', 18_000, 100, 60, 4, 3, 'Cold Storage & Wholesale', 'sell crops at the best price of the last 3 days (5 at level 2, 7 at level 3), and order seeds wholesale with your own daily allowance', { industrial: true }),
+  warehouse: kind('warehouse', 'Warehouse', 'Warehouses', '📦', 18_000, 100, 60, 4, 3, 'Cold Storage', 'sell crops at the best price of the last 3 days (5 at level 2, 7 at level 3)', { industrial: true }),
   park: kind('park', 'Park', 'Parks', '🌳', 5_000, 0, 10, 1, 1, 'Green Space', 'no rent, but +15% rent for every building next to it'),
   police: kind('police', 'Police Station', 'Police Stations', '🚓', 25_000, 100, 100, 6, 1, 'Neighborhood Watch', 'the Connector can\'t set up within 1 tile, and no squatters within 1 tile')
 };

@@ -22,7 +22,7 @@
   "social": {
    "label": "Players",
    "emoji": "👥",
-   "count": 16
+   "count": 15
   },
   "work": {
    "label": "Work",
@@ -216,23 +216,6 @@
    "description": "Cancel what a borrower owes you",
    "section": "social",
    "slash": "/forgive",
-   "options": [
-    {
-     "name": "borrower",
-     "description": "Who owes you",
-     "required": true
-    }
-   ]
-  },
-  {
-   "name": "collect",
-   "aliases": [
-    "seize",
-    "repo"
-   ],
-   "description": "Make an overdue borrower pay from what they own (3 days after the due date)",
-   "section": "social",
-   "slash": "/collect",
    "options": [
     {
      "name": "borrower",
@@ -703,7 +686,7 @@
    "options": [
     {
      "name": "action",
-     "description": "Blank for yours, or: map, buildings, build, upgrade, sell, teardown, repair, wholesale, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info",
+     "description": "Blank for yours, or: map, buildings, build, upgrade, sell, teardown, repair, evict, bid, accept, refuse, storefront, party, freight, goods, landmark, info",
      "required": false
     },
     {
@@ -2965,14 +2948,6 @@
    "secret": false
   },
   {
-   "id": "repo_man",
-   "name": "Repo Man",
-   "desc": "Collect on an overdue loan",
-   "category": "Social",
-   "rarity": "rare",
-   "secret": false
-  },
-  {
    "id": "quick_draw",
    "name": "Quick Draw",
    "desc": "Win a TODD drop-in",
@@ -3565,6 +3540,14 @@
    "secret": false
   },
   {
+   "id": "secret-132",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Secret",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
    "id": "secret-133",
    "name": "???",
    "desc": "A secret. Keep playing.",
@@ -3585,7 +3568,7 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "rare",
+   "rarity": "common",
    "secret": true
   },
   {
@@ -3601,7 +3584,7 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "common",
+   "rarity": "rare",
    "secret": true
   },
   {
@@ -3609,7 +3592,7 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "rare",
+   "rarity": "epic",
    "secret": true
   },
   {
@@ -3617,19 +3600,11 @@
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
-   "rarity": "epic",
-   "secret": true
-  },
-  {
-   "id": "secret-140",
-   "name": "???",
-   "desc": "A secret. Keep playing.",
-   "category": "Secret",
    "rarity": "rare",
    "secret": true
   },
   {
-   "id": "secret-141",
+   "id": "secret-140",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3653,23 +3628,6 @@
    "cash": [
     20,
     100
-   ]
-  },
-  "collect": {
-   "graceDays": 3,
-   "fee": 0.1
-  },
-  "wholesale": {
-   "markup": 0.1,
-   "perDay": [
-    10,
-    25,
-    50
-   ],
-   "polyfruitPerDay": [
-    3,
-    6,
-    10
    ]
   },
   "payPrice": {
@@ -4511,8 +4469,8 @@
     "upkeep": 60,
     "hours": 4,
     "maxLevel": 3,
-    "perk": "Cold Storage & Wholesale",
-    "perkText": "sell crops at the best price of the last 3 days (5 at level 2, 7 at level 3), and order seeds wholesale with your own daily allowance"
+    "perk": "Cold Storage",
+    "perkText": "sell crops at the best price of the last 3 days (5 at level 2, 7 at level 3)"
    },
    {
     "id": "barn",

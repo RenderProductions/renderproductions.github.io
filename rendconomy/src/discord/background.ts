@@ -34,7 +34,6 @@ import { current as currentLandmark, finished as finishedLandmarks } from '../es
 import { nextOpen, nightCloses, tonight } from '../underground/underground';
 import { cryptoRng } from '../core/rng';
 import { handSettings, runShift } from '../farming/farmhand';
-import { COLLECT } from '../loans/collect';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
 export function startReminders(db: Db, client: Client, prefix: string): void {
@@ -50,30 +49,7 @@ export function startReminders(db: Db, client: Client, prefix: string): void {
       const text = `${emoji('work')} Your next shift at **${job}** is ready${server ? ` in **${server}**` : ''}. Clock in with \`${prefix}work\`.\n-# Turn these off with \`${prefix}job remind off\`.`;
       client.users.fetch(userId).then((u) => u.send({ content: text, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     }
-    for (const n of loanNotices(db, now)) {
-      addInbox(db, n.userId, n.guildId, n.title, n.text.replace(/`(payback|collect)/g, '`' + prefix + '$1'), now);
-      const server = client.guilds.cache.get(n.guildId)?.name;
-      client.users.fetch(n.userId).then((u) => u.send({ content: `${emoji('loan')} ${n.text.replace(/`(payback|collect)/g, '`' + prefix + '$1')}${server ? `\n-# ${server}` : ''}`, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
-    }
   }, MINUTE).unref();
-}
-
-/** Loans: tells a borrower when their loan goes overdue, and both sides when the lender can collect. Once each. */
-export function loanNotices(db: Db, now: number): { guildId: string; userId: string; title: string; text: string }[] {
-  const out: { guildId: string; userId: string; title: string; text: string }[] = [];
-  for (const l of db.all<{ id: number; guild_id: string; lender_id: string; borrower_id: string; owed: number; due_at: number }>("SELECT id, guild_id, lender_id, borrower_id, owed, due_at FROM loans WHERE status = 'active' AND due_at <= ?", now)) {
-    const step = Number(db.meta(`loan.notice:${l.id}`) ?? 0);
-    const at = l.due_at + COLLECT.graceMs;
-    if (step < 1) {
-      db.setMeta(`loan.notice:${l.id}`, 1);
-      out.push({ guildId: l.guild_id, userId: l.borrower_id, title: 'Your loan is overdue', text: `Your loan from <@${l.lender_id}> is **overdue** (${format(l.owed)}). Half of what you earn now goes to it. Pay it with \`payback\` before <t:${Math.floor(at / 1000)}:F>, or they can collect from your wallet, savings, shares and items.` });
-    } else if (step < 2 && now >= at) {
-      db.setMeta(`loan.notice:${l.id}`, 2);
-      out.push({ guildId: l.guild_id, userId: l.lender_id, title: 'You can collect', text: `<@${l.borrower_id}> still owes you ${format(l.owed)}, three days past due. You can collect now: \`collect @them\`.` });
-      out.push({ guildId: l.guild_id, userId: l.borrower_id, title: 'Your lender can collect', text: `<@${l.lender_id}> can now collect your overdue loan from what you own. Pay it with \`payback\` to keep your things.` });
-    }
-  }
-  return out;
 }
 
 /** Polygon Holidays: Secret Santa draws, DMs and Christmas deliveries. Quiet outside December and early January. */
