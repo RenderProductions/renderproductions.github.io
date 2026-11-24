@@ -11,7 +11,7 @@ import { embed } from '../discord/style';
 import { guildOf } from './shared';
 import { anyItem, findItem } from '../shop/items';
 import { addItem, count, items, takeItem } from '../shop/inventory';
-import { CATCH, FISHING, isCatch } from '../fishing/fishing';
+import { CATCH, FISHING, SPECIES, addToBag, bagCount, bagOf, isCatch, takeFromBag } from '../fishing/fishing';
 import { CROPS, cropItem, parseCropItem, type Mutation } from '../farming/farming';
 import type { Command, Ctx, SessionReply } from './types';
 
@@ -207,6 +207,19 @@ function itemCommand(mode: 'give' | 'take'): Command {
       const it = resolveItem(item);
       if (!it) throw new GameError('item.unknown', `No item called "${item}". Try an id like coffee, col_snowglobe, fish_whale, crop_golden_pumpkin or seed_carrot.`);
       let done = qty;
+      const sp = it.where === 'fish bag' ? SPECIES[it.id.slice(5)] : undefined;
+      if (sp && sp.size > 0) {
+        // The Fishy Deep: real fish go in the bag, one row each, at the middle of their weight range
+        const rows = bagOf(ctx.db, g, who).filter((r) => r.species === sp.id);
+        if (mode === 'give') for (let i = 0; i < qty; i++) addToBag(ctx.db, g, who, sp.id, Math.round(((sp.lb[0] + sp.lb[1]) / 2) * 100) / 100, ctx.now);
+        else {
+          if (!rows.length) throw new GameError('item.none', `<@${who}> has no ${it.name}.`);
+          done = Math.min(qty, rows.length);
+          for (const r of rows.slice(0, done)) takeFromBag(ctx.db, r.id);
+        }
+        emit('mod.action', { guildId: g, modId: ctx.user.id, action: `${mode}item ${it.id} ×${done}`, targetId: who });
+        return { embeds: [embed('admin', mode === 'give' ? 'Items granted' : 'Items removed', [`${mode === 'give' ? 'Gave' : 'Took'} **${done} × ${it.name}** ${mode === 'give' ? 'to' : 'from'} <@${who}>'s fish bag.`, `They now have **${bagOf(ctx.db, g, who).filter((r) => r.species === sp.id).length}**.`])] };
+      }
       if (mode === 'give') addItem(ctx.db, g, who, it.id, qty);
       else {
         const have = count(ctx.db, g, who, it.id);
@@ -224,7 +237,7 @@ function itemCommand(mode: 'give' | 'take'): Command {
     }
   };
 }
-const fishInBag = (ctx: Ctx, g: string, u: string) => items(ctx.db, g, u).filter((r) => isCatch(r.item)).reduce((s, r) => s + r.qty, 0);
+const fishInBag = (ctx: Ctx, g: string, u: string) => items(ctx.db, g, u).filter((r) => isCatch(r.item)).reduce((s, r) => s + r.qty, 0) + bagCount(ctx.db, g, u);
 
 export const giveitem = itemCommand('give');
 export const takeitem = itemCommand('take');

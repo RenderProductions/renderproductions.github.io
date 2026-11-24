@@ -15,6 +15,7 @@ import { onQuitButton, onStrikeButton } from './work';
 import type { Ctx, ReplyObject, SessionReply } from './types';
 
 import { onOddjobText } from './connections';
+import { onReelButton } from './fishing';
 
 export interface SessionHandler {
   onButton(ctx: Ctx, s: Session<any>, value: string): SessionReply;
@@ -35,6 +36,7 @@ export const handlers: Record<string, SessionHandler> = {
   broker: { onButton: onBrokerButton },
   heist: { onButton: onHeistButton },
   help: { onButton: onHelpButton },
+  reel: { onButton: onReelButton as SessionHandler['onButton'] },
   'casino.bus': { onButton: onBus as SessionHandler['onButton'] },
   ...Object.fromEntries(Object.entries(casinoHandlers).map(([k, fn]) => [k, { onButton: fn as SessionHandler['onButton'] }]))
 };

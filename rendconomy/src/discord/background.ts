@@ -36,6 +36,7 @@ import { cryptoRng } from '../core/rng';
 import { handSettings, runShift } from '../farming/farmhand';
 import { collectTerms } from '../loans/collect';
 import { countElections } from '../city/city';
+import { settleTourneys } from '../fishing/docks';
 import { weekOf } from '../city/state';
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
@@ -54,6 +55,8 @@ export function startReminders(db: Db, client: Client, prefix: string): void {
     }
     // Under New Management: count elections that just closed (results go to the candidates' inboxes)
     for (const r of db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM candidates WHERE week >= ?', weekOf(now - 8 * 86_400_000))) countElections(db, r.guild_id, now);
+    // The Fishy Deep: pay out last Saturday's fishing tournaments (winners hear by inbox)
+    settleTourneys(db, now);
     for (const n of loanNotices(db, now)) {
       addInbox(db, n.userId, n.guildId, n.title, n.text.replace(/`(payback|collect)/g, '`' + prefix + '$1'), now);
       const server = client.guilds.cache.get(n.guildId)?.name;

@@ -10,7 +10,8 @@ import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, SHELVES, anyItem, findItem, 
 import { isHoliday } from '../holidays/holidays';
 import { SELL_BACK, SHOP_RULES, ShopError, buy, collectibleOfWeek, priceOf, restock, sellBack, sellBackPrice, stockOf } from '../shop/shop';
 import { BULK_MAX, useItem, useMany } from '../shop/use';
-import { FISHING, isCatch } from '../fishing/fishing';
+import { bagCount, isCatch } from '../fishing/fishing';
+import { bagMax } from '../fishing/docks';
 import { isCropItem } from '../farming/farming';
 import { me } from './shared';
 import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
@@ -122,13 +123,13 @@ export const inventory: Command = {
     const all = invItems(ctx.db, guildId, ctx.user.id);
     const list = all.filter((r) => !isCatch(r.item) && !isCropItem(r.item));   // fish live in the bag, crops in the basket
     const crops = all.filter((r) => isCropItem(r.item)).reduce((s, r) => s + r.qty, 0);
-    const fish = all.filter((r) => isCatch(r.item)).reduce((s, r) => s + r.qty, 0);
+    const fish = all.filter((r) => isCatch(r.item)).reduce((s, r) => s + r.qty, 0) + bagCount(ctx.db, guildId, ctx.user.id);
     const lines = list.map(({ item, qty }) => {
       const it = anyItem(item);
       return it ? `${itemE(it.id, it.emoji)} **${it.name}** × ${qty}${it.passive ? ' · works on its own' : ''}` : `${item} × ${qty}`;
     });
     if (crops) lines.push(`${emojiOr('harvest', '🧺')} **Harvest basket** (${crops}) · \`${ctx.config.prefix}farm\``);
-    if (fish || list.some((r) => r.item === 'rod')) lines.push(`${emojiOr('fishing', '🎣')} **Fishing bag** (${fish}/${FISHING.bagMax}) · \`${ctx.config.prefix}fish bag\``);
+    if (fish || list.some((r) => r.item === 'rod')) lines.push(`${emojiOr('fishing', '🎣')} **Fishing bag** (${fish}/${bagMax(ctx.db, guildId, ctx.user.id)}) · \`${ctx.config.prefix}fish bag\``);
     return { embeds: [embed('wallet', `Inventory: ${ctx.user.name}`, lines.length ? lines : ['Your inventory is empty. Marquez is open: `/shop`.'],
       { footer: { text: `${ctx.config.prefix}use <item> to use one` } })] };
   }

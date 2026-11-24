@@ -633,5 +633,53 @@ export const MIGRATIONS: readonly string[] = [
     job       TEXT NOT NULL DEFAULT 'staff'
   );
   CREATE INDEX workers_ticker ON workers (ticker);
+  `,
+
+  /* v23: The Fishy Deep. The fish bag (one row per fish, with its weight), the Fishdex, server records, mounted
+     trophies, and the Saturday tournament. */ `
+  CREATE TABLE fish_bag (
+    id        INTEGER PRIMARY KEY,
+    guild_id  TEXT NOT NULL,
+    user_id   TEXT NOT NULL,
+    species   TEXT NOT NULL,
+    lb        REAL NOT NULL,
+    value     INTEGER NOT NULL,
+    caught_at INTEGER NOT NULL
+  );
+  CREATE INDEX fish_bag_owner ON fish_bag (guild_id, user_id);
+  CREATE TABLE fishdex (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    species  TEXT NOT NULL,
+    caught   INTEGER NOT NULL DEFAULT 0,
+    best_lb  REAL NOT NULL DEFAULT 0,
+    first_at INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id, species)
+  );
+  CREATE TABLE fish_records (
+    guild_id TEXT NOT NULL,
+    species  TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    lb       REAL NOT NULL,
+    at       INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, species)
+  );
+  CREATE TABLE fish_trophies (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    species  TEXT NOT NULL,
+    lb       REAL NOT NULL,
+    at       INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id)
+  );
+  CREATE TABLE fish_tourney (
+    guild_id TEXT NOT NULL,
+    day      TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    species  TEXT,
+    lb       REAL NOT NULL DEFAULT 0,
+    at       INTEGER,
+    PRIMARY KEY (guild_id, day, user_id)
+  );
   `
 ];

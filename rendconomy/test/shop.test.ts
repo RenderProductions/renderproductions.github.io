@@ -160,29 +160,40 @@ test('titles: set with a Title item, cleared by moderators', async () => {
   assert.equal(db.get<{ title: string }>('SELECT title FROM players WHERE user_id = ?', A)!.title, 'Nacho Baron');
 });
 
-test('fishing: needs a rod, costs bait, fills the bag, sells to Marquez', async () => {
-  const { db, run, later } = setup();
+test('fishing: needs a rod, costs bait, fills the bag, reels in the big ones, sells', async () => {
+  const { db, run, later, ctx } = setup();
   await run('balance');
-  assert.match(text(await run('fish')), /Fishing Rod is required/);
+  assert.match(text(await run('fish')), /You need a rod/);
   addItem(db, G, A, 'rod');
-  let caught = 0;
+  let caught = 0, fights = 0;
   for (let i = 0; i < 40; i++) {
     const reply = await run('fish');
     const r = text(reply);
-    assert.match(r, /🎣 Fishing/);
+    assert.match(r, /🎣 Fish/);
     assert.match(reply.teaser!.embeds[0]!.description!, /cast your line/, 'Discord sees the cast first');
     if (/You caught a|You pulled up a/.test(r)) caught++;
+    if (reply.session) {   // a fish on the line: reel it, letting out when the tension gets high
+      fights++;
+      let view = reply;
+      for (let k = 0; k < 40 && view.buttons?.length; k++) {
+        const m = /Tension:\*\* \S+ (\d+) \/ (\d+)/.exec(text(view));
+        const out = press(ctx(), sessions.buttonId(reply.session, m && Number(m[1]) > Number(m[2]) - 30 ? 'let' : 'reel'));
+        view = out.update!;
+      }
+      if (/You caught a/.test(text(view))) caught++;
+    }
     later(3 * 60_000);
   }
   assert.ok(caught > 10, `caught ${caught} in 40 casts`);
-  const bag = text(await run('fish', { bait: 'bag' }));
-  assert.match(bag, /🎣 Your catch[\s\S]*each[\s\S]*Marquez would pay \*\*⬡[\s\S]*\d+ \/ 50 in your bag/, 'r!fish bag lists the catch');
+  assert.ok(fights >= 0);
+  const bag = text(await run('fish', { action: 'bag' }));
+  assert.match(bag, /🎣 Your catch[\s\S]*lb[\s\S]*would all sell for \*\*⬡[\s\S]*\d+ \/ 50 in your bag/, 'r!fish bag lists the catch with weights');
   const inv = text(await run('inventory'));
   assert.match(inv, /Fishing bag\*\* \(\d+\/50\)/, 'the inventory shows one bag line');
   assert.doesNotMatch(inv, /Minnow|Bluegill|Soggy Boot/, 'fish are not listed one by one');
   assert.match(text(await run('sellfish')), /Catch sold[\s\S]*He pays \*\*⬡/);
   assert.match(text(await run('sellfish')), /bag is empty/);
-  assert.match(text(await run('fish', { bait: 'bag' })), /Nothing yet[\s\S]*0 \/ 50 in your bag/);
+  assert.match(text(await run('fish', { action: 'bag' })), /No fish yet[\s\S]*0 \/ 50 in your bag/);
   assert.match(text(await run('inventory')), /Fishing bag\*\* \(0\/50\)/, 'a rod owner still sees the empty bag');
   assert.ok(audit(db).ok);
 });

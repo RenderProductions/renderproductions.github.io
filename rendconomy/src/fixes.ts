@@ -7,6 +7,7 @@ import { RESERVE, balance, escrow, transfer, wallet } from './core/ledger';
 import { polygons } from './core/money';
 import { addInbox } from './social/inbox';
 import { award } from './achievements/achievements';
+import { SPECIES, addToBag } from './fishing/fishing';
 
 interface Fix { id: string; run: (db: Db, now: number) => string }
 export const FIXES: Fix[] = [
@@ -18,6 +19,24 @@ export const FIXES: Fix[] = [
       if (!c) return 'no company REND, nothing to do';
       const { bid, shield } = cancelBid(db, 'REND', now, TAKEOVER.shieldMs);
       return `${bid ? `removed the bid by ${bid.bidder_id} (refunded ${format(bid.premium)})` : 'no bid on it'}; shielded until ${new Date(shield!).toISOString()}`;
+    }
+  },
+  {
+    // The Fishy Deep: real fish move from the inventory into the fish bag, each at the middle of its weight range
+    // (so it's worth what it was worth before). Junk stays in the inventory.
+    id: '2026-11-23-fish-bag',
+    run(db, now) {
+      const rows = db.all<{ guild_id: string; user_id: string; item: string; qty: number }>("SELECT guild_id, user_id, item, qty FROM inventory WHERE substr(item, 1, 5) = 'fish_' AND qty > 0");
+      let moved = 0;
+      for (const r of rows) {
+        const f = SPECIES[r.item.slice(5)];
+        if (!f || f.size === 0) continue;
+        const lb = Math.round(((f.lb[0] + f.lb[1]) / 2) * 100) / 100;
+        for (let i = 0; i < r.qty; i++) addToBag(db, r.guild_id, r.user_id, f.id, lb, now);
+        db.run('DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item = ?', r.guild_id, r.user_id, r.item);
+        moved += r.qty;
+      }
+      return `${moved} fish moved into bags`;
     }
   },
   {

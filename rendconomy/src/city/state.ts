@@ -69,7 +69,7 @@ export const casinoTax = (db: Db, g: string, now = Date.now()): number => policy
 
 // ---------------------------------------------------------------- public works and decrees in effect
 
-export type WorkEffect = 'rent' | 'chat' | 'shifts' | 'crops' | 'happyhour';
+export type WorkEffect = 'rent' | 'chat' | 'shifts' | 'crops' | 'happyhour' | 'fishing';
 export interface Work { id: number; guild_id: string; effect: WorkEffect; name: string; size: number; starts_at: number; ends_at: number; cost: number }
 export const worksNow = (db: Db, g: string, now = Date.now()): Work[] =>
   db.all<Work>('SELECT * FROM city_works WHERE guild_id = ? AND starts_at <= ? AND ends_at > ? ORDER BY ends_at', g, now, now);

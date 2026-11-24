@@ -34,7 +34,8 @@ export const CITY = {
     chat: { min: 0.25, max: 1, rate: polygons(20), label: 'chat pay', unit: '%' },
     shifts: { min: 0.05, max: 0.15, rate: polygons(60), label: 'shift pay', unit: '%' },
     crops: { min: 0.05, max: 0.2, rate: polygons(30), label: 'crop prices', unit: '%' },
-    happyhour: { min: 1, max: 6, rate: polygons(300), label: 'Happy Hour', unit: 'h' }
+    happyhour: { min: 1, max: 6, rate: polygons(300), label: 'Happy Hour', unit: 'h' },
+    fishing: { min: 0.1, max: 0.3, rate: polygons(25), label: 'fishing luck', unit: '%' }
   } as Record<WorkEffect, { min: number; max: number; rate: Cents; label: string; unit: '%' | 'h' }>,
   workDays: [1, 7] as [number, number],
   decrees: {

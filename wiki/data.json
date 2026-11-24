@@ -431,13 +431,13 @@
     "cast",
     "fishing"
    ],
-   "description": "Cast a line (needs a Fishing Rod; optionally use a fish as bait)",
+   "description": "Fish: r!fish [place] [bait], or bag, sell, shop, dex, records, mount, tournament",
    "section": "wallet",
    "slash": "/fish",
    "options": [
     {
-     "name": "bait",
-     "description": "A fish to use as bait (e.g. minnow), \"bag\" to see your catch, or \"sell\"",
+     "name": "action",
+     "description": "Blank for the Lake, or a place (river, pier, deep, sewer, ice) and bait, or: bag, sell, shop, dex…",
      "required": false
     }
    ]
@@ -447,7 +447,7 @@
    "aliases": [
     "sellcatch"
    ],
-   "description": "Sell your whole catch to Marquez",
+   "description": "Sell your whole catch",
    "section": "wallet",
    "slash": "/fish sell",
    "options": []
@@ -552,7 +552,7 @@
   {
    "name": "compost",
    "aliases": [],
-   "description": "Turn fishing junk into Fertilizer (a Soggy Boot makes 1; other junk, 2 for 1)",
+   "description": "Turn fishing junk into Fertilizer and Worms (a Soggy Boot makes 1 Fertilizer; other junk, 2 for 1)",
    "section": "farm",
    "slash": "/farm compost",
    "options": []
@@ -2136,11 +2136,11 @@
   {
    "id": "rod",
    "emoji": "🎣",
-   "name": "Fishing Rod",
+   "name": "Bamboo Rod",
    "price": 300,
    "stock": 5,
    "shelf": "Bait & Tackle",
-   "desc": "Lets you fish. Yours for good. Each cast costs ⬡5 of bait.",
+   "desc": "Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait. Better rods: Old Barnaby at the docks.",
    "passive": true,
    "unlock": false
   },
@@ -2901,11 +2901,99 @@
   },
   {
    "id": "moby_dick",
-   "name": "Moby Dick",
-   "desc": "Catch a whale",
+   "name": "Call Me Ishmael",
+   "desc": "Catch the White Whale",
    "category": "Fishing",
    "rarity": "epic",
    "secret": false
+  },
+  {
+   "id": "meow",
+   "name": "Meow!",
+   "desc": "Catch a catfish",
+   "category": "Fishing",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "big_bertha",
+   "name": "Big Bertha",
+   "desc": "Catch a small fish that weighs over 20 lb",
+   "category": "Fishing",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "ninja_fishies",
+   "name": "Teenage Mutant Ninja Fishies!",
+   "desc": "Catch a \"fish\" in the sewer",
+   "category": "Fishing",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "homebrew_bait",
+   "name": "Homebrew Bait",
+   "desc": "Compost junk into a worm",
+   "category": "Fishing",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "gotta_catch_em_all",
+   "name": "Gotta Catch 'Em All!",
+   "desc": "Complete the Fishdex",
+   "category": "Fishing",
+   "rarity": "mythic",
+   "secret": false
+  },
+  {
+   "id": "sunken_treasure",
+   "name": "Sunken Treasure",
+   "desc": "Fish up a treasure chest",
+   "category": "Fishing",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "message_in_a_bottle",
+   "name": "Message in a Bottle",
+   "desc": "Fish up a message in a bottle",
+   "category": "Fishing",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "trophy_wall",
+   "name": "Trophy Wall",
+   "desc": "Mount a fish on your profile",
+   "category": "Fishing",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "top_of_the_line",
+   "name": "Top of the Line",
+   "desc": "Buy the Polygon Rod",
+   "category": "Fishing",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "reel_champion",
+   "name": "Reel Champion",
+   "desc": "Win a fishing tournament",
+   "category": "Fishing",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "secret-53",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Fishing",
+   "rarity": "rare",
+   "secret": true
   },
   {
    "id": "bigger_fish",
@@ -3084,7 +3172,7 @@
    "secret": false
   },
   {
-   "id": "secret-65",
+   "id": "secret-76",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "City Hall",
@@ -3700,7 +3788,7 @@
    "secret": false
   },
   {
-   "id": "secret-142",
+   "id": "secret-153",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3708,7 +3796,7 @@
    "secret": true
   },
   {
-   "id": "secret-143",
+   "id": "secret-154",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3716,7 +3804,7 @@
    "secret": true
   },
   {
-   "id": "secret-144",
+   "id": "secret-155",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3724,7 +3812,7 @@
    "secret": true
   },
   {
-   "id": "secret-145",
+   "id": "secret-156",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3732,7 +3820,7 @@
    "secret": true
   },
   {
-   "id": "secret-146",
+   "id": "secret-157",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3740,7 +3828,7 @@
    "secret": true
   },
   {
-   "id": "secret-147",
+   "id": "secret-158",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3748,7 +3836,7 @@
    "secret": true
   },
   {
-   "id": "secret-148",
+   "id": "secret-159",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3756,7 +3844,7 @@
    "secret": true
   },
   {
-   "id": "secret-149",
+   "id": "secret-160",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3764,7 +3852,7 @@
    "secret": true
   },
   {
-   "id": "secret-150",
+   "id": "secret-161",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3865,6 +3953,13 @@
      "rate": 300,
      "label": "Happy Hour",
      "unit": "h"
+    },
+    "fishing": {
+     "min": 0.1,
+     "max": 0.3,
+     "rate": 25,
+     "label": "fishing luck",
+     "unit": "%"
     }
    },
    "workDays": [
@@ -4306,6 +4401,7 @@
   "bait": 5,
   "lureCasts": 25,
   "bagMax": 50,
+  "coolerMax": 100,
   "sizes": [
    "Junk",
    "Small",
@@ -4313,145 +4409,589 @@
    "Large",
    "Legendary"
   ],
+  "giantChance": 0.01,
+  "giant": [
+   4,
+   12
+  ],
+  "wormsPerJunk": 2,
+  "barnaby": "Old Barnaby",
+  "places": [
+   {
+    "id": "lake",
+    "name": "The Lake",
+    "emoji": "🏞️",
+    "desc": "Calm water and the classics.",
+    "needs": "Any rod",
+    "dexReward": 1000
+   },
+   {
+    "id": "river",
+    "name": "The River",
+    "emoji": "🌊",
+    "desc": "Fast water. The salmon run in the morning.",
+    "needs": "A Fiberglass Rod or better",
+    "dexReward": 2500
+   },
+   {
+    "id": "pier",
+    "name": "The Pier",
+    "emoji": "⚓",
+    "desc": "The ocean: tuna, swordfish and sharks.",
+    "needs": "A Carbon Rod or better, or your own Lighthouse",
+    "dexReward": 5000
+   },
+   {
+    "id": "deep",
+    "name": "The Deep",
+    "emoji": "🛥️",
+    "desc": "Way out past the pier. Things live down there.",
+    "needs": "A Boat",
+    "dexReward": 10000
+   },
+   {
+    "id": "sewer",
+    "name": "The Sewer",
+    "emoji": "🕳️",
+    "desc": "Nobody should fish here. Every cast adds Heat.",
+    "needs": "Any rod",
+    "dexReward": 2500
+   },
+   {
+    "id": "ice",
+    "name": "Ice Fishing",
+    "emoji": "🧊",
+    "desc": "A hole in the frozen lake. December only.",
+    "needs": "Any rod, in December",
+    "dexReward": 5000
+   }
+  ],
   "catch": [
    {
     "id": "boot",
     "emoji": "🥾",
     "name": "Soggy Boot",
+    "place": "any",
     "size": "Junk",
-    "value": 2
+    "lb": [
+     0,
+     0
+    ],
+    "value": 2,
+    "when": "any"
    },
    {
     "id": "can",
     "emoji": "🥫",
     "name": "Rusty Can",
+    "place": "any",
     "size": "Junk",
-    "value": 1
+    "lb": [
+     0,
+     0
+    ],
+    "value": 1,
+    "when": "any"
    },
    {
     "id": "tire",
     "emoji": "🛞",
     "name": "Old Tire",
+    "place": "any",
     "size": "Junk",
-    "value": 4
+    "lb": [
+     0,
+     0
+    ],
+    "value": 4,
+    "when": "any"
    },
    {
     "id": "controller",
     "emoji": "🎮",
     "name": "Waterlogged Controller",
+    "place": "any",
     "size": "Junk",
-    "value": 8
+    "lb": [
+     0,
+     0
+    ],
+    "value": 8,
+    "when": "any"
    },
    {
     "id": "minnow",
     "emoji": "🐟",
     "name": "Minnow",
+    "place": "lake",
     "size": "Small",
-    "value": 6
+    "lb": [
+     0.05,
+     0.2
+    ],
+    "value": 6,
+    "when": "any"
    },
    {
     "id": "bluegill",
     "emoji": "🐟",
     "name": "Bluegill",
+    "place": "lake",
     "size": "Small",
-    "value": 9
+    "lb": [
+     0.3,
+     1.2
+    ],
+    "value": 9,
+    "when": "any"
    },
    {
     "id": "perch",
     "emoji": "🐟",
     "name": "Perch",
+    "place": "lake",
     "size": "Small",
-    "value": 12
+    "lb": [
+     0.3,
+     1.5
+    ],
+    "value": 12,
+    "when": "any"
    },
    {
     "id": "bass",
     "emoji": "🐠",
     "name": "Largemouth Bass",
+    "place": "lake",
     "size": "Medium",
-    "value": 25
-   },
-   {
-    "id": "trout",
-    "emoji": "🐠",
-    "name": "Rainbow Trout",
-    "size": "Medium",
-    "value": 30
+    "lb": [
+     1,
+     8
+    ],
+    "value": 25,
+    "when": "any"
    },
    {
     "id": "catfish",
     "emoji": "🐠",
     "name": "Catfish",
+    "place": "lake",
     "size": "Medium",
-    "value": 40
+    "lb": [
+     2,
+     25
+    ],
+    "value": 40,
+    "when": "night"
    },
    {
     "id": "pike",
     "emoji": "🦈",
     "name": "Northern Pike",
+    "place": "lake",
     "size": "Large",
-    "value": 80
-   },
-   {
-    "id": "salmon",
-    "emoji": "🦈",
-    "name": "King Salmon",
-    "size": "Large",
-    "value": 110
-   },
-   {
-    "id": "sturgeon",
-    "emoji": "🦈",
-    "name": "Lake Sturgeon",
-    "size": "Large",
-    "value": 160
+    "lb": [
+     4,
+     20
+    ],
+    "value": 80,
+    "when": "any"
    },
    {
     "id": "koi",
     "emoji": "✨",
     "name": "Golden Polygon Koi",
+    "place": "lake",
     "size": "Legendary",
-    "value": 1000
+    "lb": [
+     5,
+     15
+    ],
+    "value": 1000,
+    "when": "any"
+   },
+   {
+    "id": "shiner",
+    "emoji": "🐟",
+    "name": "Golden Shiner",
+    "place": "river",
+    "size": "Small",
+    "lb": [
+     0.1,
+     0.4
+    ],
+    "value": 7,
+    "when": "any"
+   },
+   {
+    "id": "trout",
+    "emoji": "🐠",
+    "name": "Rainbow Trout",
+    "place": "river",
+    "size": "Medium",
+    "lb": [
+     1,
+     6
+    ],
+    "value": 30,
+    "when": "morning"
+   },
+   {
+    "id": "smallmouth",
+    "emoji": "🐠",
+    "name": "Smallmouth Bass",
+    "place": "river",
+    "size": "Medium",
+    "lb": [
+     1,
+     5
+    ],
+    "value": 28,
+    "when": "any"
+   },
+   {
+    "id": "walleye",
+    "emoji": "🐠",
+    "name": "Walleye",
+    "place": "river",
+    "size": "Medium",
+    "lb": [
+     2,
+     10
+    ],
+    "value": 45,
+    "when": "night"
+   },
+   {
+    "id": "salmon",
+    "emoji": "🦈",
+    "name": "King Salmon",
+    "place": "river",
+    "size": "Large",
+    "lb": [
+     8,
+     40
+    ],
+    "value": 110,
+    "when": "morning"
+   },
+   {
+    "id": "sturgeon",
+    "emoji": "🦈",
+    "name": "Lake Sturgeon",
+    "place": "river",
+    "size": "Large",
+    "lb": [
+     20,
+     150
+    ],
+    "value": 160,
+    "when": "any"
+   },
+   {
+    "id": "gar",
+    "emoji": "🐊",
+    "name": "The River King",
+    "place": "river",
+    "size": "Legendary",
+    "lb": [
+     80,
+     200
+    ],
+    "value": 1100,
+    "when": "any"
+   },
+   {
+    "id": "sardine",
+    "emoji": "🐟",
+    "name": "Sardine",
+    "place": "pier",
+    "size": "Small",
+    "lb": [
+     0.1,
+     0.4
+    ],
+    "value": 8,
+    "when": "any"
+   },
+   {
+    "id": "mackerel",
+    "emoji": "🐟",
+    "name": "Mackerel",
+    "place": "pier",
+    "size": "Small",
+    "lb": [
+     0.5,
+     2.5
+    ],
+    "value": 14,
+    "when": "any"
+   },
+   {
+    "id": "snapper",
+    "emoji": "🐠",
+    "name": "Red Snapper",
+    "place": "pier",
+    "size": "Medium",
+    "lb": [
+     2,
+     15
+    ],
+    "value": 45,
+    "when": "any"
+   },
+   {
+    "id": "tuna",
+    "emoji": "🐟",
+    "name": "Bluefin Tuna",
+    "place": "pier",
+    "size": "Large",
+    "lb": [
+     30,
+     250
+    ],
+    "value": 220,
+    "when": "any"
+   },
+   {
+    "id": "swordfish",
+    "emoji": "🗡️",
+    "name": "Swordfish",
+    "place": "pier",
+    "size": "Large",
+    "lb": [
+     50,
+     400
+    ],
+    "value": 300,
+    "when": "any"
+   },
+   {
+    "id": "hammerhead",
+    "emoji": "🦈",
+    "name": "Hammerhead Shark",
+    "place": "pier",
+    "size": "Legendary",
+    "lb": [
+     200,
+     700
+    ],
+    "value": 1600,
+    "when": "any"
+   },
+   {
+    "id": "anglerfish",
+    "emoji": "🏮",
+    "name": "Anglerfish",
+    "place": "deep",
+    "size": "Medium",
+    "lb": [
+     1,
+     10
+    ],
+    "value": 120,
+    "when": "night"
+   },
+   {
+    "id": "oarfish",
+    "emoji": "🐉",
+    "name": "Oarfish",
+    "place": "deep",
+    "size": "Large",
+    "lb": [
+     30,
+     300
+    ],
+    "value": 400,
+    "when": "any"
+   },
+   {
+    "id": "squid",
+    "emoji": "🦑",
+    "name": "Giant Squid",
+    "place": "deep",
+    "size": "Legendary",
+    "lb": [
+     200,
+     600
+    ],
+    "value": 1800,
+    "when": "any"
    },
    {
     "id": "whale",
     "emoji": "🐋",
     "name": "White Whale",
+    "place": "deep",
     "size": "Legendary",
-    "value": 1500
+    "lb": [
+     20000,
+     40000
+    ],
+    "value": 2500,
+    "when": "any"
+   },
+   {
+    "id": "sludge",
+    "emoji": "🐟",
+    "name": "Sludge Minnow",
+    "place": "sewer",
+    "size": "Small",
+    "lb": [
+     0.05,
+     0.3
+    ],
+    "value": 4,
+    "when": "any"
+   },
+   {
+    "id": "carp",
+    "emoji": "🐠",
+    "name": "Three-Eyed Carp",
+    "place": "sewer",
+    "size": "Medium",
+    "lb": [
+     2,
+     20
+    ],
+    "value": 35,
+    "when": "any"
+   },
+   {
+    "id": "eel",
+    "emoji": "🐍",
+    "name": "Glowing Eel",
+    "place": "sewer",
+    "size": "Medium",
+    "lb": [
+     1,
+     8
+    ],
+    "value": 50,
+    "when": "night"
+   },
+   {
+    "id": "gator",
+    "emoji": "🐊",
+    "name": "Sewer Gator",
+    "place": "sewer",
+    "size": "Legendary",
+    "lb": [
+     50,
+     300
+    ],
+    "value": 1200,
+    "when": "any"
+   },
+   {
+    "id": "cisco",
+    "emoji": "🐟",
+    "name": "Cisco",
+    "place": "ice",
+    "size": "Small",
+    "lb": [
+     0.2,
+     1
+    ],
+    "value": 10,
+    "when": "any"
+   },
+   {
+    "id": "whitefish",
+    "emoji": "🐟",
+    "name": "Frozen Whitefish",
+    "place": "ice",
+    "size": "Small",
+    "lb": [
+     0.5,
+     3
+    ],
+    "value": 15,
+    "when": "any"
+   },
+   {
+    "id": "char",
+    "emoji": "🐠",
+    "name": "Arctic Char",
+    "place": "ice",
+    "size": "Medium",
+    "lb": [
+     2,
+     10
+    ],
+    "value": 50,
+    "when": "any"
+   },
+   {
+    "id": "polarkoi",
+    "emoji": "❄️",
+    "name": "Polar Koi",
+    "place": "ice",
+    "size": "Legendary",
+    "lb": [
+     5,
+     15
+    ],
+    "value": 1400,
+    "when": "any"
+   }
+  ],
+  "gear": [
+   {
+    "id": "rod_fiberglass",
+    "name": "Fiberglass Rod",
+    "price": 2500,
+    "desc": "Opens the River. Bigger fish a bit more often, and it holds more tension."
+   },
+   {
+    "id": "rod_carbon",
+    "name": "Carbon Rod",
+    "price": 10000,
+    "desc": "Opens the Pier. Better again."
+   },
+   {
+    "id": "rod_polygon",
+    "name": "Polygon Rod",
+    "price": 50000,
+    "desc": "The best odds and the most tension."
+   },
+   {
+    "id": "cooler",
+    "name": "Cooler",
+    "price": 3000,
+    "desc": "Your fish bag holds 100 instead of 50."
+   },
+   {
+    "id": "boat",
+    "name": "Boat",
+    "price": 25000,
+    "desc": "Takes you out to the Deep."
+   }
+  ],
+  "rods": [
+   {
+    "id": "rod",
+    "name": "Bamboo Rod",
+    "tension": 100
+   },
+   {
+    "id": "rod_fiberglass",
+    "name": "Fiberglass Rod",
+    "tension": 110
+   },
+   {
+    "id": "rod_carbon",
+    "name": "Carbon Rod",
+    "tension": 120
+   },
+   {
+    "id": "rod_polygon",
+    "name": "Polygon Rod",
+    "tension": 135
    }
   ],
   "tables": {
-   "1": {
-    "1": 15,
-    "2": 25,
-    "3": 6.5,
-    "4": 0.5,
-    "nothing": 30,
-    "snag": 12,
-    "junk": 10,
-    "wallet": 1
-   },
-   "2": {
-    "1": 8,
-    "2": 20,
-    "3": 16,
-    "4": 1,
-    "nothing": 32,
-    "snag": 14,
-    "junk": 8,
-    "wallet": 1
-   },
-   "3": {
-    "1": 0,
-    "2": 6,
-    "3": 40,
-    "4": 4,
-    "nothing": 30,
-    "snag": 15,
-    "junk": 5,
-    "wallet": 0
-   },
-   "bait": {
+   "lake": {
     "1": 26,
     "2": 11,
     "3": 2.8,
@@ -4459,18 +4999,79 @@
     "nothing": 24,
     "snag": 10,
     "junk": 22,
-    "wallet": 4
+    "wallet": 4,
+    "chest": 0.6,
+    "bottle": 0.8
    },
-   "lure": {
-    "1": 26,
-    "2": 17,
-    "3": 6.5,
-    "4": 0.5,
-    "nothing": 20,
+   "river": {
+    "1": 22,
+    "2": 18,
+    "3": 4.5,
+    "4": 0.25,
+    "nothing": 24,
+    "snag": 14,
+    "junk": 14,
+    "wallet": 3,
+    "chest": 0.6,
+    "bottle": 0.8
+   },
+   "pier": {
+    "1": 22,
+    "2": 16,
+    "3": 7,
+    "4": 0.3,
+    "nothing": 26,
     "snag": 10,
-    "junk": 16,
-    "wallet": 4
+    "junk": 14,
+    "wallet": 3,
+    "chest": 1,
+    "bottle": 1.2
+   },
+   "deep": {
+    "1": 0,
+    "2": 26,
+    "3": 16,
+    "4": 1.2,
+    "nothing": 34,
+    "snag": 12,
+    "junk": 6,
+    "wallet": 0,
+    "chest": 2,
+    "bottle": 1.5
+   },
+   "sewer": {
+    "1": 16,
+    "2": 9,
+    "3": 0,
+    "4": 0.4,
+    "nothing": 18,
+    "snag": 10,
+    "junk": 38,
+    "wallet": 6,
+    "chest": 0.5,
+    "bottle": 0.5
+   },
+   "ice": {
+    "1": 32,
+    "2": 16,
+    "3": 0,
+    "4": 0.4,
+    "nothing": 30,
+    "snag": 6,
+    "junk": 8,
+    "wallet": 2,
+    "chest": 0.6,
+    "bottle": 1
    }
+  },
+  "tourney": {
+   "entry": 100,
+   "seed": 2500,
+   "split": [
+    0.6,
+    0.3,
+    0.1
+   ]
   }
  },
  "farming": {

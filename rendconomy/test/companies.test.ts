@@ -146,7 +146,7 @@ test('the one-time REND fix: removes the bid, refunds the bidder in full, shield
   await run('takeover', { action: 'bid REND' }, B);
   assert.ok(bidOn(db, 'REND'));
   const out = runFixes(db, now());
-  assert.equal(out.length, 4, 'the REND fix, the IPO prices, the sprinkler refund and the plow');
+  assert.equal(out.length, 5, 'the REND fix, the IPO prices, the fish bag, the sprinkler refund and the plow');
   assert.match(out[0]!, /REND|rend-takeover.*removed the bid/);
   assert.equal(bidOn(db, 'REND'), null);
   assert.equal(balance(db, wallet(G, B)), before, 'refunded in full');

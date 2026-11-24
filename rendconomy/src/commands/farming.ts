@@ -21,6 +21,7 @@ import { dismiss, farmEnv, fertOf, giveFert, giveSeeds, handSettings, hasHand as
 import { me } from './shared';
 import type { Command, Ctx, ReplyObject } from './types';
 import { workBonus } from '../city/state';
+import { FISHING } from '../fishing/fishing';
 
 const hasHand = (ctx: Ctx, guildId: string): boolean => handOn(ctx.db, guildId, ctx.user.id, ctx.now);
 const env = (ctx: Ctx, guildId: string): Env => farmEnv(ctx.db, guildId, ctx.user.id, hasHand(ctx, guildId));
@@ -386,7 +387,7 @@ export const fertilize: Command = {
 
 const JUNK = ['boot', 'can', 'tire', 'controller'];
 export const compost: Command = {
-  name: 'compost', description: 'Turn fishing junk into Fertilizer (a Soggy Boot makes 1; other junk, 2 for 1)', system: 'farm', guildOnly: true,
+  name: 'compost', description: 'Turn fishing junk into Fertilizer and Worms (a Soggy Boot makes 1 Fertilizer; other junk, 2 for 1)', system: 'farm', guildOnly: true,
   run(ctx) {
     const { guildId } = me(ctx);
     return ctx.db.tx(() => {
@@ -398,9 +399,13 @@ export const compost: Command = {
       let use = Math.floor(other / 2) * 2;
       for (const j of JUNK.slice(1)) { const t = Math.min(use, have[j]!); if (t) takeItem(ctx.db, guildId, ctx.user.id, `fish_${j}`, t); use -= t; }
       addItem(ctx.db, guildId, ctx.user.id, 'fertilizer', made);
+      // The Fishy Deep: the bin turns up worms too (bait small and medium fish love)
+      const worms = (boots + Math.floor(other / 2) * 2) * FISHING.wormsPerJunk;
+      addItem(ctx.db, guildId, ctx.user.id, 'worm', worms);
+      awardHere('homebrew_bait');
       if (boots) awardHere('one_mans_trash');
       return { embeds: [embed('farm', '♻️ Compost', [`${emoji('compost')} Into the bin it goes. A few days of rot later (or right now, this is a game)...`, '',
-        `You get **${made} Fertilizer**.`, other % 2 ? '-# One piece of junk was left over: it takes 2 to make one.' : null])] };
+        `You get **${made} Fertilizer** and **${worms} Worms** ${emojiOr('worm', '🪱')} (bait: \`${ctx.config.prefix}fish worm\`).`, other % 2 ? '-# One piece of junk was left over: it takes 2 to make one.' : null])] };
     });
   }
 };

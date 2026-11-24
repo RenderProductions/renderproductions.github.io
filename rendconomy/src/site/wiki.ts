@@ -13,7 +13,9 @@ import { ESTATE, KINDS, KIND_ORDER, taxRate } from '../estate/estate';
 import { LANDMARKS } from '../estate/landmarks';
 import { EVENTS } from '../events/world';
 import { CROPS, FARMING, GRADES, MARKET, MUTATIONS, PRICE_SWING } from '../farming/farming';
-import { CATCH, FISHING, SIZE_NAMES, TABLES } from '../fishing/fishing';
+import { FISHING, PLACES, RODS, SIZE_NAMES, SPECIES, odds } from '../fishing/fishing';
+import { BARNABY, TOURNEY } from '../fishing/docks';
+import { ITEMS as GEAR } from '../shop/items';
 import { HEIST, ROLES, TARGETS } from '../heists/heists';
 import { LOANS } from '../loans/loans';
 import { BROKERS, ORDERS, SHORTS, TRAITS } from '../market/schemes';
@@ -76,7 +78,16 @@ export function wikiData(): Record<string, unknown> {
     companies: { levels: LEVELS.map((l) => ({ name: l.name, cost: p(l.cost), upkeep: p(l.upkeep), payMult: l.payMult })), ipoLevel: CO.ipoLevel, listingFee: p(CO.listingFee), totalShares: CO.totalShares, float: CO.float, takeover: TAKEOVER },
     casino: { games: Object.entries(NAMES).map(([id, name]) => ({ id, name, odds: ODDS[id as keyof typeof ODDS], maxBet: p(CASINO.maxBet[id as keyof typeof CASINO.maxBet]) })), minBet: p(CASINO.minBet), hotStreak: CASINO.hotStreak, banHours: hours(CASINO.banMs), jackpot: { seed: p(JACKPOT.seed), cut: JACKPOT.cut, happyCut: JACKPOT.happyCut }, vip: VIP.map((v) => ({ name: v.name, emoji: v.emoji, at: p(v.at), spin: p(v.spin) })) },
     heists: { roles: Object.values(ROLES).map((r) => ({ label: r.label, emoji: r.emoji, odds: r.odds, haul: r.haul })), targets: Object.entries(TARGETS).map(([id, t]) => ({ id, label: t.label, emoji: t.emoji, odds: t.odds, stake: p(t.stake), haul: t.haul.map(p), needs: t.needs })), rules: { minCrew: HEIST.minCrew, maxCrew: HEIST.maxCrew, playerGapHours: hours(HEIST.playerGapMs), serverGapHours: hours(HEIST.serverGapMs), fine: HEIST.fine, getaway: HEIST.getaway } },
-    fishing: { cooldownMinutes: FISHING.cooldownMs / 60_000, bait: p(FISHING.bait), lureCasts: FISHING.lureCasts, bagMax: FISHING.bagMax, sizes: SIZE_NAMES, catch: Object.entries(CATCH).map(([id, c]) => ({ id, emoji: c.emoji, name: c.name, size: SIZE_NAMES[c.size], value: p(c.value) })), tables: TABLES },
+    fishing: {
+      cooldownMinutes: FISHING.cooldownMs / 60_000, bait: p(FISHING.bait), lureCasts: FISHING.lureCasts, bagMax: FISHING.bagMax, coolerMax: FISHING.coolerMax, sizes: SIZE_NAMES,
+      giantChance: FISHING.giantChance, giant: FISHING.giant, wormsPerJunk: FISHING.wormsPerJunk, barnaby: BARNABY.name,
+      places: Object.values(PLACES).map((x) => ({ id: x.id, name: x.name, emoji: x.emoji, desc: x.desc, needs: x.needs, dexReward: p(x.dexReward) })),
+      catch: Object.values(SPECIES).map((c) => ({ id: c.id, emoji: c.emoji, name: c.name, place: c.place, size: SIZE_NAMES[c.size], lb: c.lb, value: c.value, when: c.when })),
+      gear: BARNABY.gear.map((id) => ({ id, name: GEAR[id]!.name, price: p(GEAR[id]!.price!), desc: GEAR[id]!.desc })),
+      rods: RODS.map((r) => ({ id: r.id, name: r.name, tension: r.tension })),
+      tables: Object.fromEntries(Object.keys(PLACES).map((pl) => [pl, odds(pl as keyof typeof PLACES, 'bait', { rodTier: 0, hour: 12, rain: false, storm: false, luck: 0 })])),
+      tourney: { entry: p(TOURNEY.entry), seed: p(TOURNEY.seed), split: TOURNEY.split }
+    },
     farming: { startPlots: FARMING.startPlots, maxPlots: FARMING.maxPlots, barnPlots: FARMING.barnPlots, plotPrices: FARMING.plotPrices.map(p), wage: p(FARMING.farmhandWage),
       crops: Object.values(CROPS).map((c) => ({ id: c.id, name: c.name, emoji: c.emoji, seed: c.seedPrice, value: p(c.value), growHours: Math.round(hours(c.growMs) * 10) / 10, harvests: c.harvests })),
       mutations: Object.entries(MUTATIONS).map(([id, m]) => ({ id, label: m.label, emoji: m.emoji, mult: m.mult, chance: m.chance })),

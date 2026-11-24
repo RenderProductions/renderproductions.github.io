@@ -13,6 +13,8 @@ import { COMPANIES, rankName } from '../work/jobs';
 import { COLORS } from '../discord/style';
 import { guildOf, me } from './shared';
 import type { Command } from './types';
+import { trophyOf } from '../fishing/docks';
+import { SPECIES, fmtLb } from '../fishing/fishing';
 
 const SITE = 'https://renderproductions.github.io/profile/';
 
@@ -68,7 +70,8 @@ export const profile: Command = {
         `**Shifts worked:** ${shifts} · **Best Rend-Sino hit:** ${format(best)}`,
         `**Achievements:** ${ach.length} of ${ACHIEVEMENTS.length}`,
         cols.length ? `**Collectibles:** ${cols.map((c) => COLLECTIBLES[c]!.emoji).join(' ')}` : null,
-        st.pin && COLLECTIBLES[st.pin] ? `**Pinned:** ${itemE(st.pin, COLLECTIBLES[st.pin]!.emoji)} ${COLLECTIBLES[st.pin]!.name}` : null
+        st.pin && COLLECTIBLES[st.pin] ? `**Pinned:** ${itemE(st.pin, COLLECTIBLES[st.pin]!.emoji)} ${COLLECTIBLES[st.pin]!.name}` : null,
+        (() => { const t = trophyOf(ctx.db, guildId, target); return t ? `**On the wall:** ${itemE(`fish_${t.species}`, SPECIES[t.species]?.emoji ?? '🐟')} a ${fmtLb(t.lb)} ${SPECIES[t.species]?.name ?? 'fish'}` : null; })()
       ].filter(Boolean).join('\n'),
       footer: { text: target === ctx.user.id ? 'Customize your look on your profile page: open the title link' : 'View the full profile on the site' }
     }] };
