@@ -128,15 +128,26 @@
         return table([['Plot'], ['Price', 1]], f.plotPrices.map(function (pr, i) { var n = f.startPlots + i + 1; return row([td('Plot ' + n + (n > f.maxPlots ? ' <span class="dim">(needs a Barn)</span>' : '')), td(poly(pr), 'n')]); }));
       },
       fish: function () {
-        return table([['Catch'], ['Size'], ['Marquez pays', 1]], D.fishing.catch.map(function (c) { return row([name('fish_' + c.id, c.emoji, c.name), td(esc(c.size), 'dim'), td(poly(c.value), 'n')]); }));
+        var where = {}; D.fishing.places.forEach(function (p) { where[p.id] = p.name; });
+        var when = { night: 'at night', morning: 'in the morning', day: 'by day', any: '' };
+        var lb = function (c) { var f = function (v) { return v >= 100 ? Math.round(v).toLocaleString('en-US') : v; }; return c.lb[1] ? f(c.lb[0]) + '–' + f(c.lb[1]) + ' lb' : '—'; };
+        return table([['Catch'], ['Where'], ['Size'], ['Weight'], ['Bites best'], ['Worth', 1]], D.fishing.catch.map(function (c) {
+          return row([name('fish_' + c.id, c.emoji, c.name), td(c.place === 'any' ? 'anywhere (junk)' : esc(where[c.place]), 'dim'), td(esc(c.size), 'dim'), td(lb(c), 'dim'), td(when[c.when], 'dim'), td(poly(c.value) + (c.lb[1] ? ' <span class="dim">at the middle weight</span>' : ''), 'n')]);
+        }));
       },
       fishtables: function () {
-        var cols = [['nothing', 'Nothing'], ['snag', 'Snag'], ['junk', 'Junk'], ['wallet', 'Wallet'], ['1', 'Small'], ['2', 'Medium'], ['3', 'Large'], ['4', 'Legendary']];
-        var names = { bait: 'Plain bait', lure: 'Lure', 1: 'A small fish', 2: 'A medium fish', 3: 'A large fish' };
-        return table([['Casting with']].concat(cols.map(function (c) { return [c[1], 1]; })), Object.keys(D.fishing.tables).map(function (k) {
+        var cols = [['nothing', 'Nothing'], ['snag', 'Snag'], ['junk', 'Junk'], ['wallet', 'Wallet'], ['chest', 'Chest'], ['bottle', 'Bottle'], ['1', 'Small'], ['2', 'Medium'], ['3', 'Large'], ['4', 'Legendary']];
+        var where = {}; D.fishing.places.forEach(function (p) { where[p.id] = p.name; });
+        return table([['Place']].concat(cols.map(function (c) { return [c[1], 1]; })), Object.keys(D.fishing.tables).map(function (k) {
           var t = D.fishing.tables[k], sum = 0; Object.keys(t).forEach(function (x) { sum += t[x]; });
-          return row([td(names[k] || k, 'nm')].concat(cols.map(function (c) { return td(t[c[0]] ? pct(t[c[0]] / sum, 1) : '—', 'n'); })));
+          return row([td(esc(where[k] || k), 'nm')].concat(cols.map(function (c) { return td(t[c[0]] ? pct(t[c[0]] / sum, 1) : '—', 'n'); })));
         }));
+      },
+      fishplaces: function () {
+        return table([['Place'], ['How to get there'], ['Finishing it in the Fishdex pays', 1]], D.fishing.places.map(function (p) { return row([td(esc(p.emoji + ' ' + p.name) + '<br><span class="dim">' + esc(p.desc) + '</span>', 'nm'), td(esc(p.needs)), td(poly(p.dexReward), 'n')]); }));
+      },
+      fishgear: function () {
+        return table([['Gear'], ['Price', 1], ['What it does']], D.fishing.gear.map(function (g) { return row([name(g.id, '', g.name), td(poly(g.price), 'n'), td(esc(g.desc))]); }));
       },
       jobs: function () {
         return table([['Company'], ['The job'], ['Ranks']], D.work.companies.map(function (c) { return row([td(esc(c.name) + ' <span class="dim">' + c.ticker + '</span>', 'nm'), td(esc(c.role), 'dim'), td(c.ranks.map(function (r, i) { return esc(r) + ' <span class="dim">' + D.work.rankPay[i] + '×</span>'; }).join(' → '))]); }));
@@ -179,7 +190,7 @@
       items: function (el) { filtered(el, D.items.concat(D.collectibles.map(function (c) { c.collectible = true; return c; })), function (i) { return i.shelf; }, ['Item'], function (i) { return [name(i.id, i.emoji, i.name), td(i.price == null ? 'rolled each restock' : poly(i.price), 'n'), td(i.collectible ? 'limited' : i.stock, 'n'), td(esc(i.shelf), 'dim'), td(esc(i.desc) + (i.passive ? ' <span class="dim">(works on its own)</span>' : ''))]; }, [['Item'], ['Price', 1], ['Stock', 1], ['Shelf'], ['What it does']], function (i) { return i.name + ' ' + i.desc + ' ' + i.id; }); },
       achievements: function (el) { var order = Object.keys(D.rarity); filtered(el, D.achievements.slice().sort(function (x, y) { return order.indexOf(y.rarity) - order.indexOf(x.rarity); }), function (a) { return a.category; }, null, function (a) { var r = D.rarity[a.rarity]; return [td(ico('rarity_' + a.rarity, r.emoji), ''), td(esc(a.name), 'nm'), td(esc(a.desc)), td(esc(a.category), 'dim'), td(poly(r.pay), 'n')]; }, [['<span class="sr">Rarity</span>'], ['Achievement'], ['How'], ['Section'], ['Pays', 1]], function (a) { return a.name + ' ' + a.desc + ' ' + a.category + ' ' + D.rarity[a.rarity].label; }); },
       cityWorks: function (el) {
-        var W = D.refined.city.works, icons = { rent: 'property', chat: 'megaphone', shifts: 'work', crops: 'carrot', happyhour: 'jackpot' };
+        var W = D.refined.city.works, icons = { rent: 'property', chat: 'megaphone', shifts: 'work', crops: 'carrot', happyhour: 'jackpot', fishing: 'fishing' };
         el.innerHTML = table([['Effect'], ['Size'], ['How long'], ['Rate', 1]], Object.keys(W).map(function (k) {
           var w = W[k], hours = w.unit === 'h';
           return row([name(icons[k], '', w.label.charAt(0).toUpperCase() + w.label.slice(1)), td(hours ? w.min + ' to ' + w.max + ' hours' : (k === 'chat' ? '×' + (1 + w.min) + ' to ×' + (1 + w.max) : '+' + Math.round(w.min * 100) + '% to +' + Math.round(w.max * 100) + '%')),

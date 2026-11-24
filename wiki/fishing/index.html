@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fishing | Rend-Conomy Wiki</title>
-<meta name="description" content="Casting, bait and lures, using fish as bait for bigger fish, every catch and what Marquez pays for it, and the odds of each cast.">
+<meta name="description" content="The Fishy Deep: six places to fish, rods and gear from Old Barnaby, bait and worms, reeling in the big ones, weights and giants, the Fishdex, server records, trophies, the Saturday tournament, and what everything is worth.">
 <meta property="og:title" content="Fishing">
-<meta property="og:description" content="Casting, bait and lures, using fish as bait for bigger fish, every catch and what Marquez pays for it, and the odds of each cast.">
+<meta property="og:description" content="The Fishy Deep: six places to fish, rods and gear from Old Barnaby, bait and worms, reeling in the big ones, weights and giants, the Fishdex, server records, trophies, the Saturday tournament, and what everything is worth.">
 <meta property="og:url" content="https://renderproductions.github.io/wiki/fishing/">
 <meta name="theme-color" content="#070b15">
 <link rel="icon" href="/bot/emojis/rc_fishing.png">
@@ -23,33 +23,81 @@
   </nav>
 </header>
 <div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Fishing</div>
-<header class="ahead"><img src="/bot/emojis/rc_fishing.png" alt=""><div><h1>Fishing</h1><div class="meta"><code>r!fish</code></div></div></header>
+<header class="ahead"><img src="/bot/emojis/rc_fishing.png" alt=""><div><h1>Fishing</h1><div class="meta">Overhauled in The Fishy Deep · <code>r!fish</code></div></div></header>
 <div class="layout">
-<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#bait">Bait, lures and fish as bait</a><a href="#catches">What you can catch</a><a href="#perks">Perks</a><hr><div class="lbl">See also</div><a href="/wiki/items/">Items</a><a href="/wiki/city/">The City</a></nav>
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#places">Where to fish</a><a href="#gear">Gear: Old Barnaby's Bait &amp; Tackle</a><a href="#bait">Bait</a><a href="#reeling">Reeling in</a><a href="#catches">Every catch</a><a href="#weights">Weights, giants and records</a><a href="#dex">The Fishdex</a><a href="#tournament">The Saturday tournament</a><a href="#selling">Selling</a><a href="#perks">Perks and events</a><hr><div class="lbl">See also</div><a href="/wiki/items/">Items</a><a href="/wiki/city/">The City</a><a href="/wiki/underground/">The Underground</a></nav>
 <article>
 <div class="lede">
-<p>Buy a Fishing Rod from Marquez and cast with <code>r!fish</code>. Each cast costs a little bait unless you have a Lure on. You might catch nothing, snag your line, pull up junk, find a lost wallet, or land a fish. Sell your bag with <code>r!sellfish</code>.</p>
+<p>Get a rod and cast with <code>r!fish</code>. Pick a place (<code>r!fish river</code>) and a bait (<code>r!fish river worm</code>). You might catch nothing, snag your line, pull up junk, a lost wallet, a treasure chest or a message in a bottle, or a fish. Medium and bigger fish fight back: you reel them in with buttons. Every fish has its own weight, and heavier is worth more.</p>
 <div class="glance"><div class="lbl">At a glance</div>
 <div><span>Cast</span><span>every <span data-v="fishing.cooldownMinutes" data-f="raw">3</span> min</span></div>
 <div><span>Bait</span><span data-v="fishing.bait">⬡5</span></div>
-<div><span>A Lure lasts</span><span><span data-v="fishing.lureCasts" data-f="raw">25</span> casts</span></div>
-<div><span>Bag holds</span><span><span data-v="fishing.bagMax" data-f="raw">50</span></span></div>
+<div><span>Bag holds</span><span><span data-v="fishing.bagMax" data-f="raw">50</span> (<span data-v="fishing.coolerMax" data-f="raw">100</span> with a Cooler)</span></div>
+<div><span>Places</span><span>6</span></div>
+<div><span>Fish</span><span>34 kinds</span></div>
 </div>
 </div>
 
-<h2 id="bait"><img class="hi" src="/bot/emojis/rc_lure.png" alt="">Bait, lures and fish as bait</h2>
-<p>Plain bait is the cheapest way to fish. A Lure makes bigger fish more likely. Better still, a fish you've caught makes good bait for the next size up: <code>r!fish perch</code>. Carrots from your farm work like a small fish.</p>
-<div data-table="fishtables"></div>
+<h2 id="places"><img class="hi" src="/bot/emojis/rc_fishing.png" alt="">Where to fish</h2>
+<p><code>r!fish places</code> shows which ones you can reach. The Lake is the default.</p>
+<div data-table="fishplaces"></div>
+<p>The <strong>Sewer</strong> is open to anyone, but every cast there adds <strong>3 Heat</strong> (see <a href="/wiki/underground/#heat">the Underground</a>). <strong>Ice fishing</strong> only opens in December.</p>
 
-<h2 id="catches"><img class="hi" src="/bot/emojis/rc_fish_bass.png" alt="">What you can catch</h2>
-<div data-table="fish"></div>
-<p>Use a fish as bait and catch a bigger one for <strong>There's Always a Bigger Fish</strong>, and land the White Whale for <strong>Moby Dick</strong>.</p>
+<h2 id="gear"><img class="hi" src="/bot/emojis/rc_rod_carbon.png" alt="">Gear: Old Barnaby's Bait &amp; Tackle</h2>
+<p>Marquez sells the Bamboo Rod. Everything better is at the docks: <code>r!fish shop</code>, then <code>r!fish buy carbon</code>. Each rod tier also means fewer empty casts, bigger fish more often, and a line that holds more tension.</p>
+<div data-table="fishgear"></div>
 
-<h2 id="perks"><img class="hi" src="/bot/emojis/rc_rod.png" alt="">Perks</h2>
+<h2 id="bait"><img class="hi" src="/bot/emojis/rc_worm.png" alt="">Bait</h2>
 <ul>
-<li>A <strong>Shack</strong> on the city map gives you free bait (Bait Shed).</li>
-<li>A <strong>Lighthouse</strong> makes plain bait fish like a Lure (Beacon).</li>
+<li><strong>Plain bait</strong> costs <span data-v="fishing.bait">?</span> a cast (free with a Shack's Bait Shed).</li>
+<li>A <strong>Lure</strong> (from Marquez) lasts <span data-v="fishing.lureCasts" data-f="raw">?</span> casts and brings bigger fish.</li>
+<li><strong>Worms</strong> are free: <code>r!farm compost</code> turns each piece of junk into <span data-v="fishing.wormsPerJunk" data-f="raw">?</span> worms (and Fertilizer). Small and medium fish love them. <code>r!fish worm</code>. <strong>Carrots</strong> from your farm work the same way.</li>
+<li><strong>A fish as bait</strong> brings out the next size up: <code>r!fish perch</code> uses your lightest Perch.</li>
+</ul>
+<p>The odds of a cast with plain bait and a Bamboo Rod, at midday in calm weather:</p>
+<div data-table="fishtables"></div>
+<p>Better rods, lures, worms, rain (fewer empty casts), storms (more legends) and the mayor's <a href="/wiki/city-hall/#powers">fishing luck</a> public work all shift these.</p>
+
+<h2 id="reeling"><img class="hi" src="/bot/emojis/rc_rod.png" alt="">Reeling in</h2>
+<p>Small fish come straight in. Anything bigger is a fight: a <strong>Line in</strong> bar, a <strong>Tension</strong> bar, and two buttons.</p>
+<ul>
+<li><strong>Reel</strong> pulls it closer, but raises the tension.</li>
+<li><strong>Let out</strong> eases the tension, but gives a little line back.</li>
+<li>Every round, the fish <strong>pulls</strong> (tension jumps), <strong>runs</strong> (it takes line) or <strong>rests</strong>.</li>
+<li>Tension past what your rod can hold and the line <strong>snaps</strong>. Line in to 100% and it's yours. Let it get away, or take longer than 60 seconds, and it's gone.</li>
+</ul>
+<p>Bigger fish fight harder, and legends hardest of all. Better rods hold more tension.</p>
+
+<h2 id="catches"><img class="hi" src="/bot/emojis/rc_fish_bass.png" alt="">Every catch</h2>
+<p>A fish's worth scales with its weight. Prices also change every day (80–120%, the same for everyone), so the same fish sells for more on a good day.</p>
+<div data-table="fish"></div>
+
+<h2 id="weights"><img class="hi" src="/bot/emojis/rc_fish_tuna.png" alt="">Weights, giants and records</h2>
+<ul>
+<li>Every fish rolls a weight in its range, leaning to the middle.</li>
+<li><span data-v="fishing.giantChance" data-f="pct">?</span> of small, medium and large fish are <strong>giants</strong>: <span data-v="fishing.giant.0" data-f="raw">?</span> to <span data-v="fishing.giant.1" data-f="raw">?</span> times the normal weight, and they fight a bit harder.</li>
+<li><strong>Server records:</strong> the heaviest of each fish anyone has caught here. <code>r!fish records</code>.</li>
+<li><strong>Trophies:</strong> <code>r!fish mount pike</code> puts your heaviest Pike on your profile (it comes out of your bag, so you can't sell it).</li>
+</ul>
+
+<h2 id="dex"><img class="hi" src="/bot/emojis/rc_fish_koi.png" alt="">The Fishdex</h2>
+<p><code>r!fish dex</code> lists every fish by place, with a silhouette until you catch one and your heaviest after. Finishing a place's page pays a reward from Old Barnaby (in the table above). Catch every fish there is for <strong>Gotta Catch 'Em All!</strong></p>
+
+<h2 id="tournament"><img class="hi" src="/bot/emojis/rc_fish_pike.png" alt="">The Saturday tournament</h2>
+<p>Every <strong>Saturday</strong> (Eastern time), enter with <code>r!fish tournament join</code> for <span data-v="fishing.tourney.entry">?</span>. Your heaviest single fish that day counts. At midnight the Reserve adds <span data-v="fishing.tourney.seed">?</span> to the entries, and the top 3 split the pot 60 / 30 / 10. <code>r!fish tournament</code> shows the standings.</p>
+
+<h2 id="selling"><img class="hi" src="/bot/emojis/rc_polygon.png" alt="">Selling</h2>
+<ul>
+<li><code>r!fish sell</code> sells your whole bag at today's prices. Junk sells for a little, or compost it.</li>
+<li>Own a <strong>Warehouse</strong> and your fish stay fresh: they sell at the best price of the last 3, 5 or 7 days, by level.</li>
+<li>Treasure chests pay out Polygons or a useful item; messages in bottles pay nothing, but they say things.</li>
+</ul>
+
+<h2 id="perks"><img class="hi" src="/bot/emojis/rc_lure.png" alt="">Perks and events</h2>
+<ul>
+<li>A <strong>Shack</strong> gives you free bait (Bait Shed). A <strong>Lighthouse</strong> makes plain bait fish like a Lure (Beacon), and opens the Pier without a Carbon Rod.</li>
 <li>The <strong>Fish Frenzy</strong> event lets you cast every 90 seconds, and plain bait works like a Lure.</li>
+<li>The mayor can fund a <strong>fishing luck</strong> public work: fewer empty casts and bigger fish for everyone.</li>
 </ul>
 
 <div class="pager"><a href="/wiki/heists/">← Heists</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/farming/">Farming →</a></div>
