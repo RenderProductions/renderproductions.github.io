@@ -92,13 +92,13 @@
   <header class="profile" aria-labelledby="bot-name">
     <img class="profile-banner" src="banner.png" alt="" width="1500" height="600">
     <div class="profile-body">
-      <img class="profile-avatar" src="avatar.png" alt="Render's Vision icon: a gold R inside a hexagon" width="512" height="512">
+      <img class="profile-avatar" src="avatar.png" alt="RendConomy icon: a gold R inside a hexagon" width="512" height="512">
       <span class="presence" id="presence" role="img" aria-label="Status: unknown" title="Status: unknown"></span>
       <div class="profile-actions">
         <a class="btn primary" href="https://discord.com/oauth2/authorize?client_id=1569206837352337609&amp;permissions=274878000128&amp;scope=bot+applications.commands" target="_blank" rel="noopener">Add to your server</a>
         <a class="btn" href="https://discord.gg/D2v4EsuZBU">Join the Render Room</a>
       </div>
-      <h1 class="profile-name" id="bot-name">Render's Vision <span class="app-badge">APP</span></h1>
+      <h1 class="profile-name" id="bot-name">RendConomy <span class="app-badge">APP</span></h1>
       <p class="profile-handle">The Rend-Conomy bot · <code>r!</code> or <code>/</code> commands</p>
       <p class="activity" id="activity"></p>
 
@@ -194,7 +194,7 @@
           $('activity').textContent = fresh ? b.activity : '';
           $('st-servers').textContent = b.servers == null ? '—' : num(b.servers);
           $('st-players').textContent = num(b.players);
-          $('st-polygons').textContent = '⬢ ' + short(b.polygons);
+          $('st-polygons').textContent = '⬡ ' + short(b.polygons);
           $('st-reserve').textContent = d.reserve ? Math.max(0, Math.round(d.reserve.level * 100)) + '%' : '—';
           $('st-shifts').textContent = num(b.shifts);
           $('st-bets').textContent = num(b.bets);

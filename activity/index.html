@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rend-Conomy Trading Floor</title>
+<meta name="description" content="The Trading Floor: play Rend-Conomy inside Discord. Trade the market, play the Rend-Sino and run commands, all from a Discord Activity.">
 <!-- The Discord Activity. Runs inside Discord (through the Cloudflare Worker in worker.js), not on the site.
      Everything it does goes through the bot, as you, in the server you opened it in. -->
 <link rel="stylesheet" href="fonts.css">
@@ -208,7 +209,7 @@
     </nav>
     <div class="screen" id="s-market">
     <div class="board" id="board" role="group" aria-label="Companies"></div>
-    <div class="welcome" id="welcome"><b>Pick a company</b> to see its chart and trade it.<br>Everything you do here runs through Render's Vision, as you, in this server.</div>
+    <div class="welcome" id="welcome"><b>Pick a company</b> to see its chart and trade it.<br>Everything you do here runs through RendConomy, as you, in this server.</div>
     <div class="detail" id="detail" hidden>
       <div>
         <div class="d-head">
@@ -245,7 +246,7 @@
         <button class="sbtn" type="button" data-play="water">💧 Water</button><button class="sbtn" type="button" data-play="harvest">🧺 Harvest</button><button class="sbtn" type="button" data-play="farm sell">💰 Sell to Marquez</button><button class="sbtn" type="button" data-play="fertilize">🧪 Fertilize</button><button class="sbtn" type="button" data-play="compost">♻️ Compost</button><button class="sbtn" type="button" data-play="buyplot">🪧 Buy a plot</button>
       </div>
       <div class="stage-btns">
-        <button class="sbtn" type="button" data-play="plant carrot">🥕 Plant carrots</button><button class="sbtn" type="button" data-play="plant corn">🌽 Corn</button><button class="sbtn" type="button" data-play="plant tomato">🍅 Tomatoes</button><button class="sbtn" type="button" data-play="plant pumpkin">🎃 Pumpkins</button><button class="sbtn" type="button" data-play="plant polygon fruit"><img class="emo px" src="/emojis/rc_polyfruit.png" alt=""> Polygon Fruit</button>
+        <button class="sbtn" type="button" data-play="plant carrot">🥕 Plant carrots</button><button class="sbtn" type="button" data-play="plant corn">🌽 Corn</button><button class="sbtn" type="button" data-play="plant tomato">🍅 Tomatoes</button><button class="sbtn" type="button" data-play="plant pumpkin">🎃 Pumpkins</button><button class="sbtn" type="button" data-play="plant polygon fruit"><img class="emo px" src="/bot/emojis/rc_polyfruit.png" alt=""> Polygon Fruit</button>
       </div>
     </div>
     <div class="screen" id="s-desk" hidden>
@@ -682,7 +683,7 @@ function presence() {
     details: casino ? 'At the Rend-Sino' : 'On the Trading Floor',
     state: casino ? 'Feeling lucky' : c ? `Watching ${c.id} at ${fmt(market.prices[c.id])}` : 'Reading the market',
     timestamps: { start: started },
-    assets: { large_image: 'rend_conomy', large_text: "Render's Vision · Rend-Conomy" }
+    assets: { large_image: 'rend_conomy', large_text: "RendConomy · Rend-Conomy" }
   };
   if (casino) Object.assign(activity.assets, { small_image: 'rendsino', small_text: 'The Rend-Sino' });
   else if (c) Object.assign(activity.assets, { small_image: c.id.toLowerCase(), small_text: nameOf(c) });
@@ -746,7 +747,7 @@ async function start() {
     setInterval(refreshDesk, 60000);
     refreshFarm();
     setInterval(refreshFarm, 120000);
-    log('welcome', { content: "**Welcome to the Trading Floor.** Pick a company to trade it, try a quick bet at the Rend-Sino, or type any command below.\n-# Everything here runs through Render's Vision, as you, in this server." });
+    log('welcome', { content: "**Welcome to the Trading Floor.** Pick a company to trade it, try a quick bet at the Rend-Sino, or type any command below.\n-# Everything here runs through RendConomy, as you, in this server." });
   } catch (e) {
     console.error(e);
     $('who').textContent = 'Could not log in';

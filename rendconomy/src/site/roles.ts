@@ -1,5 +1,5 @@
 // Linked Roles: servers can give out roles based on a player's real Rend-Conomy stats (Server Settings →
-// Roles → Links → Render's Vision). Discord allows five stats per app, and they belong to the player, not to
+// Roles → Links → RendConomy). Discord allows five stats per app, and they belong to the player, not to
 // one server, so each is the player's best across every server they play in.
 //
 // The bot registers the five with Discord when it starts, and sends everyone's numbers to the Worker

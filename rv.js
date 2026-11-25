@@ -1,4 +1,4 @@
-// Render's Vision on the site: play Rend-Conomy from any page.
+// RendConomy on the site: play Rend-Conomy from any page.
 //   RV.me()            who's logged in (from Log in with Discord on the profile page), or null
 //   RV.token()         their Discord token for this browser session, or null
 //   RV.login()         logs in, then comes back to this page

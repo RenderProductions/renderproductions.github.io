@@ -4,7 +4,7 @@
    Battles are played by chess.js (IsoChess.startBattle); this file builds them and handles everything between.
    The run is saved in this browser (localStorage), so a refresh doesn't lose it.
 
-   Tie-in with Render's Vision (logged in on the site): openings and piece skins are unlocked at
+   Tie-in with RendConomy (logged in on the site): openings and piece skins are unlocked at
    Marquez's shop (r!shop chess), and a finished run pays a few Polygons, up to a daily cap. */
 (function () {
   'use strict';
@@ -420,7 +420,7 @@
     show(`<h1>${victory ? 'THE KINGDOM IS YOURS' : 'YOUR KING HAS FALLEN'}</h1>
       <p class="sub">${victory ? 'All three acts, done.' : `You fell in Act ${R.act + 1}.`} ${R.won.battle + R.won.elite + R.won.boss} battles won · ${R.won.boss} boss${R.won.boss === 1 ? '' : 'es'} · ${R.clever} clever kills</p>
       ${armyList()}
-      <div class="claim" id="claim">${me ? 'Sending your run to Render’s Vision…' : `Log in on the site to turn runs into Polygons (this one: about ⬡${est}). <a href="#" id="login">Log in</a>`}</div>
+      <div class="claim" id="claim">${me ? 'Sending your run to RendConomy…' : `Log in on the site to turn runs into Polygons (this one: about ⬡${est}). <a href="#" id="login">Log in</a>`}</div>
       <div class="row"><button class="btn big" id="again2">NEW RUN</button></div>`, victory ? 'reward win' : 'reward lose');
     $('again2').onclick = title;
     if ($('login')) $('login').onclick = (ev) => { ev.preventDefault(); RV.login(); };

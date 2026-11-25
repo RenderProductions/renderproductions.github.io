@@ -910,7 +910,7 @@
         var t = el('div'); t.style.minWidth = '0';
         t.appendChild(el('div', 'rn', u.name));
         var best = (u.servers || []).reduce(function (m, sv) { return Math.max(m, sv.worth || 0); }, 0);
-        t.appendChild(el('div', 'rs', '🏆 ' + u.achievements.length + (best ? ' · ⬢ ' + num(best) : '')));
+        t.appendChild(el('div', 'rs', '🏆 ' + u.achievements.length + (best ? ' · ⬡ ' + num(best) : '')));
         a.appendChild(t);
         li.appendChild(a); list.appendChild(li);
       });

@@ -402,7 +402,7 @@
           reserveEl.className = 'reserve' + (r.level < 0.1 ? ' is-critical' : r.level < 0.25 ? ' is-low' : '');
           reserveEl.querySelector('.meter-fill').style.width = Math.min(100, pct) + '%';
           reserveEl.querySelector('.meter').setAttribute('aria-valuenow', pct);
-          reserveEl.querySelector('.reserve-amount').textContent = '⬢ ' + Math.max(0, r.polygons).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' · ' + pct + '%';
+          reserveEl.querySelector('.reserve-amount').textContent = '⬡ ' + Math.max(0, r.polygons).toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' · ' + pct + '%';
           reserveEl.querySelector('.reserve-line').textContent = (r.polygons <= 0
             ? 'EMPTY. The house is out of Polygons, and the market is going down with it.'
             : r.payouts < 1 ? 'Running low: payouts are at ' + Math.round(r.payouts * 100) + '%. If it hits zero, the market crashes.'

@@ -58,5 +58,5 @@ export function chessFinish(db: Db, guildId: string, userId: string, raw: string
   const paid = payFromReserve(db, economy.reserveStart, { to: wallet(guildId, userId), cents: Math.min(earned, room), reason: 'chess', guildId, actorId: userId, now });
   setProgress(db, userId, 'chess_day', today(now));
   setProgress(db, userId, 'chess_paid', before + paid);
-  return `Render's Vision paid you ${format(paid)} for this run${paid < earned ? ` (today's cap is ${format(CHESS.dailyCap)})` : ''}.`;
+  return `RendConomy paid you ${format(paid)} for this run${paid < earned ? ` (today's cap is ${format(CHESS.dailyCap)})` : ''}.`;
 }

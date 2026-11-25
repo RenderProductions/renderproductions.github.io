@@ -546,7 +546,7 @@
     $('.co-note', top).textContent = 'Shaded stretches are after hours (9 PM to 3 AM Eastern), when prices only drift.';
   }
 
-  // ---- Trading from the page (Connections pt. 2): through Render's Vision, as you, in your server ----
+  // ---- Trading from the page (Connections pt. 2): through RendConomy, as you, in your server ----
   function tradePanel() {
     var box = bottom && bottom.querySelector('.tp');
     if (!box || !window.RV) return;

@@ -20,7 +20,7 @@
 //      page through the Hub, and kept for /api/live), and profiles whenever they change (/api/profiles).
 //
 // Settings on the Worker (Settings -> Variables and Secrets), never in this file:
-//   DISCORD_CLIENT_ID      text    Render's Vision's Application ID
+//   DISCORD_CLIENT_ID      text    RendConomy's Application ID
 //   DISCORD_CLIENT_SECRET  secret  from the Developer Portal (OAuth2)
 //   BOT_SECRET             secret  the same value as ACTIVITY_SECRET in the bot's .env
 //   ACTIVITY_BRANCH        text    optional: serve the Activity from a test branch instead of main
@@ -146,7 +146,7 @@ async function user(req) {
 }
 
 // ---------------------------------------------------------------- Linked Roles
-// Servers can give out roles from a player's real stats (Server Settings → Roles → Links → Render's Vision).
+// Servers can give out roles from a player's real stats (Server Settings → Roles → Links → RendConomy).
 // The player links once here (Discord sends them to /linked-roles from the role's requirements); after that,
 // whenever the bot sends new stats (/bot/roles), every linked player whose numbers changed is updated.
 // The five stats are registered by the bot (src/site/roles.ts).
