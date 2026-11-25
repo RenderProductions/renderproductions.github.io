@@ -237,7 +237,7 @@
     var k = T.cls(D, c.cls);
     T.$('#clsText').textContent = k ? k.text : npc ? 'NPCs don\u2019t need a class. Pick one if they should have its Health and spell lists.' : 'Pick one. You can read about each in the Classes chapter.';
     T.$('#clsInfo').innerHTML = k ? '+' + k.hpPerLevel + ' Health every level · leans on ' + k.leans.map(function (x) { return D.stats.filter(function (s) { return s.key === x; })[0].name; }).join(' & ') +
-      (k.caster ? ' · its spells are ' + D.classRules.classListNeed + ' easier' : '') + ' · <a href="/varandia/classes/#' + k.key + '" target="_blank" rel="noopener">features</a>' : '';
+      (k.caster ? ' · its spells are ' + D.classRules.classListNeed + ' easier' : '') + (k.saves ? ' · good at ' + k.saves.map(function (x) { return D.stats.filter(function (s) { return s.key === x; })[0].name; }).join(' & ') + ' saves' : '') + ' · <a href="/varandia/classes/#' + k.key + '" target="_blank" rel="noopener">features</a>' : '';
   }
   function step(n) {
     T.$$('#form > .spread').forEach(function (sp) { sp.hidden = sp.dataset.step !== String(n); });

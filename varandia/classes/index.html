@@ -47,7 +47,7 @@
       <div class="leaf">
         <div class="kicker">Chapter II</div>
         <h1 id="title">Classes</h1>
-        <p>Your class is what you do. In Varandia a class adds to your <b>Health</b> every level, points at the stats it leans on, and makes the spells on its list <b>easier</b>: their Need drops by <span data-cl>1</span>. Anyone can still learn any spell.</p>
+        <p>Your class is what you do. In Varandia a class adds to your <b>Health</b> every level, points at the stats it leans on, adds your proficiency bonus to two saving throws, and makes the spells on its list <b>easier</b>: their Need drops by <span data-cl>1</span>. Anyone can still learn any spell.</p>
         <ol class="toc" id="toc" style="font-size: 20px"></ol>
         <div class="inked thin" style="padding: 16px 18px">
           <h3 style="margin-bottom: 6px">Reading D&amp;D features</h3>
@@ -81,9 +81,10 @@
     T.$('#card').innerHTML =
       '<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap"><span class="inked round" style="width:90px;height:90px;flex:none;display:grid;place-items:center;font:42px/1 var(--sc)">' + c.name.charAt(0) + '</span>' +
       '<div style="flex:1 1 200px"><h2 style="font-style:normal;font-size:46px">' + T.esc(c.name) + '</h2><p style="margin:4px 0 0;font-style:italic;font-size:19px">' + T.esc(c.text) + '</p></div></div>' +
-      '<div class="costs" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:center">' +
+      '<div class="costs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;text-align:center">' +
         '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:30px">+' + c.hpPerLevel + '</b><span class="sc faded" style="font-size:13px">Health per level</span></div>' +
         '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:' + (c.leans.length > 1 ? 19 : 24) + 'px;line-height:1.5">' + c.leans.map(statName).join(' &amp; ') + '</b><span class="sc faded" style="font-size:13px">Leans on</span></div>' +
+        '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:19px;line-height:1.5">' + (c.saves || []).map(statName).join(' &amp; ') + '</b><span class="sc faded" style="font-size:13px">Saving throws</span></div>' +
         '<div class="inked" style="padding:12px 6px"><b style="display:block;font-weight:400;font-size:30px">' + favored + '</b><span class="sc faded" style="font-size:13px">' + (favored ? '<a href="/varandia/spells/?cls=' + c.key + '">favored spells</a>' : 'favored spells') + '</span></div>' +
       '</div>' +
       (x.subclasses.length ? '<p style="margin:0;font-size:16px"><span class="sc">Path in the book:</span> ' + x.subclasses.map(T.esc).join(', ') + '</p>' : '') +

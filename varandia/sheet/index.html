@@ -74,6 +74,14 @@
   .spelltext p { margin: 0 0 0.6em; font-size: 16px; }
 
   .satchel li .tag { font: 13px/1 var(--sc); color: var(--faded); white-space: nowrap; }
+  .saves .chip.pro::before { border-color: var(--red); border-width: 2.4px; }
+  .satchel li.ench::before { content: "◈"; color: var(--el); }
+  .satchel li .rune { font: 13px/1 var(--sc); font-style: normal; color: var(--el); border: 1.5px solid var(--el); border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+  .satchel li .rtext { display: block; font: 17px/1.2 var(--hand); color: var(--pencil); }
+  .x.en { font-size: 19px; }
+  .x.en:hover, .x.en.on { color: var(--el, var(--red)); }
+  .weapons .rn { font: 13px/1 var(--sc); color: var(--el); }
+  #runePanel { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; margin: 6px 0; }
   .satchel li .btn.small { min-height: 34px; font-size: 14px; padding: 0 10px; }
   .weapons { display: flex; flex-direction: column; gap: 6px; }
   .weapons button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 44px; padding: 4px 10px; background: transparent; border: 0; border-bottom: 1px dashed rgba(42, 29, 18, 0.35); text-align: left; font-size: 18px; }
@@ -167,7 +175,11 @@
             <span class="sc faded" style="font-size: 14px">Training marks</span>
             <div class="conds" id="marks" role="group" aria-label="Training marks"></div>
           </div>
-          <p class="pencil" style="margin: 4px 0 0; font-size: 17px">tap a stat to roll it · a natural 20 marks it for training</p>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px">
+            <span class="sc faded" style="font-size: 14px">Saving throws</span>
+            <div class="conds saves" id="saves" role="group" aria-label="Saving throws: tap one to roll it"></div>
+          </div>
+          <p class="pencil" style="margin: 4px 0 0; font-size: 17px">tap a stat to roll it · a natural 20 marks it for training · tap a save to resist something (◆ your class is good at it)</p>
         </div>
       </div>
       <span class="folio">— 1 —</span>
@@ -269,7 +281,18 @@
         <h1 id="saT" style="font-size: 44px">The Satchel</h1>
         <ul class="satchel" id="items"></ul>
         <form class="adder" data-list="items"><label class="sr" for="addItem">Add to the satchel</label><input id="addItem" list="itemNames" maxlength="60" placeholder="add something…" autocomplete="off"><datalist id="itemNames"></datalist><button class="btn small" type="submit">Add</button></form>
-        <p class="pencil" style="margin: 0">anything from <a href="/varandia/items/">the Armory</a> comes alive here: weapons get an attack button on The Fight, armor can be worn</p>
+        <form class="inked dashed" id="runePanel" hidden>
+          <h3 id="runeT">Enchant</h3>
+          <div><span class="sc faded" style="font-size: 14px">Element</span><div class="chips" id="runeEls" role="group" aria-label="Element of the rune" style="margin-top: 6px"></div></div>
+          <label class="field"><span>What it does</span><input id="runeText" maxlength="120" autocomplete="off" placeholder="glows near goblins, burns on a hit…"></label>
+          <div><span class="sc faded" style="font-size: 14px">Bonus (weapons and armor)</span><div class="chips" id="runePlus" role="group" aria-label="Rune bonus" style="margin-top: 6px"></div></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+            <button type="submit" class="btn small ink" id="runeGo">Enchant</button>
+            <button type="button" class="btn small" id="runeOff">Remove the rune</button>
+            <button type="button" class="linkish" id="runeNo">never mind</button>
+          </div>
+        </form>
+        <p class="pencil" style="margin: 0">anything from <a href="/varandia/items/">the Armory</a> comes alive here: weapons get an attack button on The Fight, armor can be worn · tap ✧ to enchant something with a rune</p>
       </div>
       <span class="folio">— 5 —</span>
     </section>
@@ -491,6 +514,15 @@
     T.$('#marks').innerHTML = D.stats.map(function (s) {
       return '<button type="button" class="chip" data-mark="' + s.key + '" aria-pressed="' + !!c.marks[s.key] + '" aria-label="Training mark on ' + s.name + '">' + s.short + '</button>';
     }).join('');
+    drawSaves();
+  }
+  function saveProf(k) { var cl = T.cls(D, c.cls); return !!(cl && cl.saves && cl.saves.indexOf(k) >= 0); }
+  function saveBonus(k) { return T.half(T.stat(c, k, D)) + (saveProf(k) ? T.prof(D, c.level || 1) : 0); }
+  function drawSaves() {
+    T.$('#saves').innerHTML = D.stats.map(function (s) {
+      var p = saveProf(s.key), b = T.sign(saveBonus(s.key));
+      return '<button type="button" class="chip' + (p ? ' pro' : '') + '" data-save="' + s.key + '" title="' + s.name + ' save' + (p ? ', proficient' : '') + '" aria-label="Roll a ' + s.name + ' save, ' + b + (p ? ', proficient' : '') + '">' + (p ? '◆ ' : '') + s.short + ' ' + b + '</button>';
+    }).join('');
   }
   function statShort(k) { return D.stats.filter(function (x) { return x.key === k; })[0].short; }
   function levelUp(pointTo) {
@@ -599,23 +631,68 @@
   var X = null;
   function itemFor(name) { return X ? X.find(name) : null; }
   function isWorn(it) { return (c.worn || []).some(function (w) { return w.name === it.name; }); }
+  // runes: c.runes.items[i] and c.runes.cardinal[i] sit beside the Satchel lines ({ el, text, plus })
+  function runeList(k) {
+    if (!c.runes || typeof c.runes !== 'object') c.runes = {};
+    if (!Array.isArray(c.runes[k])) c.runes[k] = [];
+    var a = c.runes[k]; while (a.length < c[k].length) a.push(null); a.length = c[k].length;
+    return a;
+  }
+  function runeAt(k, i) { return runeList(k)[i] || null; }
+  function elOf(key) { return D.elements.filter(function (e) { return e.key === key; })[0] || D.elements[0]; }
+  /** The item on a Satchel line with its rune worked in: a rune's bonus counts if it beats the one in the name. */
+  function gearAt(k, i) {
+    var it = itemFor(c[k][i]), r = runeAt(k, i);
+    if (!it || !r || !r.plus || !(it.group === 'weapon' || it.group === 'armor') || r.plus <= (it.plus || 0)) return it;
+    var g = Object.assign({}, it);
+    if (it.group === 'armor') g.defense = it.defense - (it.plus || 0) + r.plus;
+    g.plus = r.plus;
+    return g;
+  }
+  function runeTag(r) {
+    var e = elOf(r.el);
+    return '<i class="rune" title="' + T.esc(e.name + ' rune' + (r.text ? ': ' + r.text : '')) + '">' + T.esc(e.name) + ' rune' + (r.plus ? ' +' + r.plus : '') + '</i>';
+  }
   function drawList(key) {
     T.$('#' + key).innerHTML = c[key].map(function (t, i) {
-      var it = itemFor(t), extra = '';
-      if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + T.esc(t) + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
+      var it = gearAt(key, i), extra = '', rn = runeAt(key, i), el = rn ? elOf(rn.el) : null;
+      if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + i + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
       else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + (it.plus ? ' +' + it.plus : '') + '</span>';
       else if (it && it.group === 'healing') extra = '<span class="tag">' + T.esc(it.heal || it.stamina) + '</span><button type="button" class="btn small" data-use="' + i + '">' + (it.kind === 'Kit' ? 'Use' : 'Drink') + '</button>';
       var label = it ? '<a href="/varandia/items/?i=' + it.key + '" style="color:var(--ink);text-decoration:none">' + T.esc(t) + '</a>' : T.esc(t);
-      return '<li><span>' + label + '</span>' + extra + '<button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
+      if (rn && rn.text) label += '<small class="rtext">' + T.esc(rn.text) + '</small>';
+      var on = runeOpen && runeOpen.k === key && runeOpen.i === i;
+      return '<li' + (el ? ' class="ench" style="--el:' + el.color + '"' : '') + '><span>' + label + '</span>' + (rn ? runeTag(rn) : '') + extra +
+        '<button type="button" class="x en' + (on ? ' on' : '') + '" data-ench="' + i + '" aria-label="' + (rn ? 'Change the rune on ' : 'Enchant ') + T.esc(t) + '" title="' + (rn ? 'change the rune' : 'enchant') + '">✧</button>' +
+        '<button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
     }).join('');
     if (key === 'items') drawWeapons();
   }
+  var runeOpen = null;   // { k, i, el, plus } while the enchanting panel is open
+  function openRune(k, i) {
+    var r = runeAt(k, i), it = itemFor(c[k][i]);
+    runeOpen = { k: k, i: i, el: r ? r.el : D.elements[0].key, plus: r ? r.plus || 0 : 0 };
+    var p = T.$('#runePanel'); T.$('#' + k).after(p); p.hidden = false;
+    T.$('#runeT').textContent = (r ? 'The rune on ' : 'Enchant ') + c[k][i];
+    T.$('#runeText').value = r ? r.text || '' : '';
+    T.$('#runeOff').hidden = !r;
+    T.$('#runePlus').parentNode.hidden = !(it && (it.group === 'weapon' || it.group === 'armor'));
+    paintRune(); drawList(k);
+    T.$('#runeText').focus();
+  }
+  function paintRune() {
+    T.$$('#runeEls [data-el]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.el === runeOpen.el)); });
+    T.$$('#runePlus [data-plus]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.plus === (runeOpen.plus || 0))); });
+    T.$('#runePanel').style.setProperty('--el', elOf(runeOpen.el).color);
+  }
+  function closeRune() { runeOpen = null; T.$('#runePanel').hidden = true; }
   function drawWeapons() {
     if (!X || !D) return;
-    var ws = c.items.map(itemFor).filter(function (it) { return it && it.dice; });
+    var ws = c.items.map(function (t, i) { var g = gearAt('items', i); return g && g.dice ? { w: g, i: i, r: runeAt('items', i) } : null; }).filter(Boolean);
     T.$('#weaponsBox').hidden = !ws.length;
-    T.$('#weapons').innerHTML = ws.map(function (w) {
-      return '<button type="button" data-attack="' + T.esc(w.name) + '"><span>' + T.esc(w.name) + '</span><span>' + T.sign(T.weaponBonus(c, D, w) + (w.plus || 0)) + ' · ' + T.esc(w.dice) + (w.plus ? '+' + w.plus : '') + '</span></button>';
+    T.$('#weapons').innerHTML = ws.map(function (x) {
+      var w = x.w, e = x.r ? elOf(x.r.el) : null;
+      return '<button type="button" data-attack="' + x.i + '"><span>' + T.esc(w.name) + (e ? ' <span class="rn" style="--el:' + e.color + '">◈ ' + T.esc(e.name) + '</span>' : '') + '</span><span>' + T.sign(T.weaponBonus(c, D, w) + (w.plus || 0)) + ' · ' + T.esc(w.dice) + (w.plus ? '+' + w.plus : '') + '</span></button>';
     }).join('');
     var worn = (c.worn || []).map(function (w) { return w.name; });
     T.$('#defNote').textContent = worn.length ? 'wearing ' + worn.join(' & ') : '';
@@ -670,6 +747,35 @@
       if (w.r.die === 20 && !c.marks[s.key]) { c.marks[s.key] = true; drawSeven(); }
       logLine(lineFor(w.label, w.r) + (w.r.die === 20 ? ' — marked for training' : ''), info('stat', s.name + ' check', w, { stat: s.name }));
     });
+    T.$('#saves').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-save]'); if (!b) return;
+      var s = D.stats.filter(function (x) { return x.key === b.dataset.save; })[0], p = saveProf(s.key);
+      var w = rollWith(s.name + ' save', saveBonus(s.key), !p);   // proficient saves already have it; the others can take the "+ proficiency" chip
+      if (p) { w.notes.unshift('proficient'); w.label = s.name + ' save (' + w.notes.join(', ') + ')'; }
+      logLine(lineFor(w.label, w.r), info('save', s.name + ' save', w, { stat: s.name, what: 'save' }));
+    });
+    T.$('#runeEls').innerHTML = D.elements.map(function (el) { return '<button type="button" class="chip" data-el="' + el.key + '" aria-pressed="false" style="--c:' + el.color + '"><span class="dot"></span>' + T.esc(el.name) + '</button>'; }).join('');
+    T.$('#runePlus').innerHTML = [0, 1, 2, 3].map(function (n) { return '<button type="button" class="chip" data-plus="' + n + '" aria-pressed="false">' + (n ? '+' + n : 'none') + '</button>'; }).join('');
+    T.$('#runeEls').addEventListener('click', function (e) { var b = e.target.closest('[data-el]'); if (!b || !runeOpen) return; runeOpen.el = b.dataset.el; paintRune(); });
+    T.$('#runePlus').addEventListener('click', function (e) { var b = e.target.closest('[data-plus]'); if (!b || !runeOpen) return; runeOpen.plus = +b.dataset.plus; paintRune(); });
+    T.$('#runePanel').addEventListener('submit', function (e) {
+      e.preventDefault(); if (!runeOpen) return;
+      var k = runeOpen.k, i = runeOpen.i, txt = T.$('#runeText').value.trim().slice(0, 120);
+      runeList(k)[i] = { el: runeOpen.el, text: txt, plus: runeOpen.plus || 0 };
+      var g = gearAt(k, i);
+      if (g && g.group === 'armor') c.worn.forEach(function (w) { if (w.name === g.name) w.defense = g.defense; });
+      var e2 = elOf(runeOpen.el);
+      T.$('#status').textContent = c[k][i] + ' now carries a ' + e2.name + ' rune';
+      closeRune(); drawList(k); drawVitals(); save();
+    });
+    T.$('#runeOff').onclick = function () {
+      if (!runeOpen) return;
+      var k = runeOpen.k, i = runeOpen.i; runeList(k)[i] = null;
+      var g = gearAt(k, i);
+      if (g && g.group === 'armor') c.worn.forEach(function (w) { if (w.name === g.name) w.defense = g.defense; });
+      closeRune(); drawList(k); drawVitals(); save();
+    };
+    T.$('#runeNo').onclick = function () { var k = runeOpen && runeOpen.k; closeRune(); if (k) drawList(k); };
     T.$('#marks').addEventListener('click', function (e) {
       var b = e.target.closest('[data-mark]'); if (!b) return;
       var k = b.dataset.mark; if (c.marks[k]) delete c.marks[k]; else c.marks[k] = true;
@@ -736,9 +842,11 @@
     // satchel
     ['items', 'cardinal'].forEach(function (k) {
       T.$('#' + k).addEventListener('click', function (e) {
+        var eb = e.target.closest('[data-ench]');
+        if (eb) { var ei = +eb.dataset.ench; if (runeOpen && runeOpen.k === k && runeOpen.i === ei) closeRune(); else openRune(k, ei); return; }
         var wb = e.target.closest('[data-wear]');
         if (wb) {
-          var it = itemFor(wb.dataset.wear);
+          var it = gearAt(k, +wb.dataset.wear);
           if (isWorn(it)) c.worn = c.worn.filter(function (w) { return w.name !== it.name; });
           else {
             var shield = it.kind === 'Shield';
@@ -752,28 +860,32 @@
           var idx = +ub.dataset.use, h = itemFor(c[k][idx]);
           if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health', info('heal', h.name, null, { total: n1, what: 'Health', dice: h.heal })); }
           if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina', info('tonic', h.name, null, { total: n2, what: 'Stamina', dice: h.stamina })); }
-          if (h.kind !== 'Kit') c[k].splice(idx, 1);
+          if (h.kind !== 'Kit') { c[k].splice(idx, 1); runeList(k).splice(idx, 1); closeRune(); }
           drawList(k); drawVitals(); drawKnown(); drawSpellCard(); save(); return;
         }
         var b = e.target.closest('[data-rm]'); if (!b) return;
         var gone = itemFor(c[k][+b.dataset.rm]);
-        c[k].splice(+b.dataset.rm, 1);
+        runeList(k); c[k].splice(+b.dataset.rm, 1); c.runes[k].splice(+b.dataset.rm, 1); closeRune();
         if (gone && isWorn(gone) && !c[k].some(function (t) { var o = itemFor(t); return o && o.name === gone.name; })) c.worn = c.worn.filter(function (w) { return w.name !== gone.name; });
         drawList(k); drawVitals(); save();
       });
     });
     T.$('#weapons').addEventListener('click', function (e) {
       var b = e.target.closest('[data-attack]'); if (!b) return;
-      var w = itemFor(b.dataset.attack), a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
+      var wi = +b.dataset.attack, w = gearAt('items', wi), rn = runeAt('items', wi), re = rn ? elOf(rn.el) : null;
+      if (!w) return;
+      var a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
       var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0) + (w.plus || 0);
-      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + (w.type || '').toLowerCase() + ' damage',
-        info('weapon', w.name, a, { what: 'to hit', dmg: dmg, dmgType: (w.type || '').toLowerCase(), dice: (crit ? '2×' : '') + w.dice + (w.plus ? ' + ' + w.plus : ''), crit: crit, ranged: /ranged/i.test(w.kind || w.cat || '') }));
+      var dtype = (w.type || '').toLowerCase() + (re ? ' + ' + re.name.toLowerCase() : '');
+      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + dtype + ' damage' + (rn && rn.text ? ' — ' + re.name + ' rune: ' + rn.text : ''),
+        info('weapon', w.name, a, { what: 'to hit', dmg: dmg, dmgType: dtype, dice: (crit ? '2×' : '') + w.dice + (w.plus ? ' + ' + w.plus : ''), crit: crit, ranged: /ranged/i.test(w.kind || w.cat || ''),
+          rune: re ? { el: re.key, name: re.name, text: rn.text || '' } : null }));
     });
     T.$$('form.adder[data-list]').forEach(function (f) {
       f.addEventListener('submit', function (e) {
         e.preventDefault();
         var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
-        c[f.dataset.list].push(v); inp.value = ''; drawList(f.dataset.list); save();
+        runeList(f.dataset.list); c[f.dataset.list].push(v); c.runes[f.dataset.list].push(null); inp.value = ''; drawList(f.dataset.list); save();
       });
     });
 
@@ -794,8 +906,10 @@
       lines.push('', 'Defense ' + dv.defense + ' · Health ' + c.hp + '/' + dv.hp + ' · Stamina ' + c.sta + '/' + dv.stamina + ' · Initiative ' + T.sign(dv.initiative) + ' · Move ' + dv.movement + ' ft · Proficiency ' + T.sign(T.prof(D, c.level || 1)));
       var sp = c.known.map(function (x) { return S.byKey[x]; }).filter(Boolean).map(function (x) { return x.name; });
       if (sp.length) lines.push('Spells: ' + sp.join(', '));
-      if (c.items.length) lines.push('Satchel: ' + c.items.join(', '));
-      if (c.cardinal.length) lines.push('Cardinal Items: ' + c.cardinal.join(', '));
+      lines.push('Saves: ' + D.stats.map(function (s) { return (saveProf(s.key) ? '◆' : '') + s.short + ' ' + T.sign(saveBonus(s.key)); }).join(', '));
+      var withRunes = function (k) { return c[k].map(function (t, i) { var rn = runeAt(k, i); return rn ? t + ' (' + elOf(rn.el).name + ' rune' + (rn.plus ? ' +' + rn.plus : '') + (rn.text ? ': ' + rn.text : '') + ')' : t; }).join(', '); };
+      if (c.items.length) lines.push('Satchel: ' + withRunes('items'));
+      if (c.cardinal.length) lines.push('Cardinal Items: ' + withRunes('cardinal'));
       if (c.profs) lines.push('Proficiencies: ' + c.profs);
       var text = lines.join('\n');
       (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { T.$('#status').textContent = 'copied'; }, function () { T.$('#status').textContent = 'couldn’t copy'; });

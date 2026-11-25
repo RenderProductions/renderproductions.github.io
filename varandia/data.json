@@ -290,6 +290,10 @@
       "leans": [
         "str"
       ],
+      "saves": [
+        "str",
+        "dur"
+      ],
       "caster": false,
       "text": "A warrior fuelled by rage, who shrugs off blows that would fell anyone else."
     },
@@ -299,6 +303,10 @@
       "hitDie": 8,
       "hpPerLevel": 1,
       "leans": [
+        "cha"
+      ],
+      "saves": [
+        "spd",
         "cha"
       ],
       "caster": true,
@@ -312,6 +320,10 @@
       "leans": [
         "per"
       ],
+      "saves": [
+        "per",
+        "cha"
+      ],
       "caster": true,
       "text": "A servant of the divine who heals, protects and smites."
     },
@@ -321,6 +333,10 @@
       "hitDie": 8,
       "hpPerLevel": 1,
       "leans": [
+        "per"
+      ],
+      "saves": [
+        "int",
         "per"
       ],
       "caster": true,
@@ -335,6 +351,10 @@
         "str",
         "spd"
       ],
+      "saves": [
+        "str",
+        "dur"
+      ],
       "caster": false,
       "text": "A master of weapons and armor, trained for every kind of fight."
     },
@@ -347,6 +367,10 @@
         "spd",
         "per"
       ],
+      "saves": [
+        "str",
+        "spd"
+      ],
       "caster": false,
       "text": "A disciplined martial artist who turns inner focus into speed and strikes."
     },
@@ -357,6 +381,10 @@
       "hpPerLevel": 2,
       "leans": [
         "str",
+        "cha"
+      ],
+      "saves": [
+        "per",
         "cha"
       ],
       "caster": true,
@@ -371,6 +399,10 @@
         "spd",
         "per"
       ],
+      "saves": [
+        "str",
+        "spd"
+      ],
       "caster": true,
       "text": "A hunter and tracker at home in the wilds, deadly at range."
     },
@@ -382,6 +414,10 @@
       "leans": [
         "spd"
       ],
+      "saves": [
+        "spd",
+        "int"
+      ],
       "caster": false,
       "text": "A sneak and a specialist who strikes where it hurts most."
     },
@@ -391,6 +427,10 @@
       "hitDie": 6,
       "hpPerLevel": 0,
       "leans": [
+        "cha"
+      ],
+      "saves": [
+        "dur",
         "cha"
       ],
       "caster": true,
@@ -404,6 +444,10 @@
       "leans": [
         "cha"
       ],
+      "saves": [
+        "per",
+        "cha"
+      ],
       "caster": true,
       "text": "Someone who made a pact with a powerful being, and pays for the power."
     },
@@ -415,12 +459,16 @@
       "leans": [
         "int"
       ],
+      "saves": [
+        "int",
+        "per"
+      ],
       "caster": true,
       "text": "A scholar of magic who learns spells from books and long study."
     }
   ],
   "classRules": {
-    "_about": "Classes are the standard D&D classes. hpPerLevel is added to max Health at every level (d6 0, d8 1, d10 2, d12 3). Spells on your class's list are easier: their Need drops by classListNeed.",
+    "_about": "Classes are the standard D&D classes. hpPerLevel is added to max Health at every level (d6 0, d8 1, d10 2, d12 3). Spells on your class's list are easier: their Need drops by classListNeed. saves are the two saving throws the class is proficient in: those saves add the proficiency bonus.",
     "classListNeed": 1
   },
   "proficiency": {

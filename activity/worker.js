@@ -374,9 +374,9 @@ const vId = (n) => Array.from(crypto.getRandomValues(new Uint8Array(n)), (b) => 
 const vCharOut = (r) => ({ id: r.id, owner: r.owner, ownerName: r.owner_name, name: r.name, campaign: r.campaign, updated: r.updated, data: JSON.parse(r.data) });
 const vCampOut = (c, isGm) => ({ id: c.id, name: c.name, intro: c.intro || '', gm: c.gm, gmName: c.gm_name, isGm, code: isGm ? c.code : undefined, hasWebhook: !!c.webhook, webhook: isGm ? (c.webhook || '') : undefined, created: c.created });
 // ---- how a roll looks in Discord
-const vCol = { gm: 0x8b6b4a, stat: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
+const vCol = { gm: 0x8b6b4a, stat: 0x8b6b4a, save: 0x8b6b4a, attack: 0x8f9ba8, weapon: 0x8f9ba8, init: 0x6f7f8f, die: 0x8b6b4a, heal: 0x4caf6a, tonic: 0x3aa6a0, rest: 0x5b6fa8, level: 0xf1c40f, note: 0x6e1f17,
   fire: 0xe8642c, water: 0x3b8fd9, ice: 0x9fdcf5, earth: 0x9c7442, air: 0xb4c6d4, lightning: 0xf2c92b, nature: 0x4caf50, poison: 0x8bc34a, light: 0xf7e8a6, dark: 0x5b3f9e, evil: 0x8b0a1a };
-const vIcon = { gm: '🎲', stat: '🎲', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
+const vIcon = { gm: '🎲', stat: '🎲', save: '🛡️', attack: '⚔️', weapon: '⚔️', init: '⏱️', die: '🎲', heal: '🧪', tonic: '🧪', rest: '🌙', level: '⭐', note: '📜',
   fire: '🔥', water: '🌊', ice: '❄️', earth: '🪨', air: '🌪️', lightning: '⚡', nature: '🌿', poison: '☠️', light: '☀️', dark: '🌑', evil: '🩸', chaotic: '🌀' };
 const vClean = (v, n) => String(v == null ? '' : v).replace(/[@`*_~|#<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
 const vNum = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : Math.round(+v));
@@ -387,7 +387,7 @@ const vSeal = (k) => (vSealIds[k] ? '<:v_' + k + ':' + vSealIds[k] + '>' : /^d\d
 const vStatKey = { Strength: 'str', Durability: 'dur', Speed: 'spd', Charisma: 'cha', Intelligence: 'int', Perception: 'per', Stamina: 'sta' };
 function vEmbed(i, line, campName, pic) {
   i = i && typeof i === 'object' ? i : {};
-  const kind = ['stat', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell', 'gm', 'turn'].includes(i.kind) ? i.kind : 'note';
+  const kind = ['stat', 'save', 'attack', 'weapon', 'init', 'die', 'heal', 'tonic', 'rest', 'level', 'spell', 'gm', 'turn'].includes(i.kind) ? i.kind : 'note';
   if (kind === 'turn') {
     // the initiative order, with whoever's up marked
     const order = (Array.isArray(i.order) ? i.order : []).slice(0, 30).map((x) => (x && x.cur ? '▶ **' + vClean(x.name, 40) + '**' : '-# ' + vClean(x && x.name, 40)) + (vNum(x && x.init) != null ? ' · ' + vNum(x.init) : ''));
@@ -398,7 +398,7 @@ function vEmbed(i, line, campName, pic) {
   const color = el ? (el === 'chaotic' ? vHsl(Math.floor(Math.random() * 360)) : vCol[el]) : vCol[kind];
   // which seal leads the post
   const sides = vNum(i.sides);
-  const sealKey = el ? el : kind === 'stat' ? (vStatKey[vClean(i.stat, 20)] || 'd20') : kind === 'die' ? ('d' + (sides || 20)) : kind === 'attack' ? 'd20' : kind === 'gm' ? (sides ? 'd' + sides : ((String(i.rolled || '').match(/^\d*d(\d+)/) || [])[1] ? 'd' + String(i.rolled).match(/^\d*d(\d+)/)[1] : 'd20'))
+  const sealKey = el ? el : kind === 'stat' || kind === 'save' ? (vStatKey[vClean(i.stat, 20)] || 'd20') : kind === 'die' ? ('d' + (sides || 20)) : kind === 'attack' ? 'd20' : kind === 'gm' ? (sides ? 'd' + sides : ((String(i.rolled || '').match(/^\d*d(\d+)/) || [])[1] ? 'd' + String(i.rolled).match(/^\d*d(\d+)/)[1] : 'd20'))
     : kind === 'init' ? 'init' : kind === 'heal' ? 'health' : kind === 'tonic' ? 'sta' : '';
   const lead = sealKey ? vSeal(sealKey) + ' ' : '';
   const title = vClean(i.title, 80) || 'A roll';
@@ -417,7 +417,8 @@ function vEmbed(i, line, campName, pic) {
   if (kind === 'heal' || kind === 'tonic') { lines.push('# ' + lead + '+' + (total ?? '?') + ' ' + vClean(i.what, 20)); if (i.dice) lines.push('-# rolled ' + vClean(i.dice, 30)); }
   if (kind === 'level' || kind === 'rest' || kind === 'note') lines.push(vClean(i.text || (kind === 'note' ? line : ''), 300));
   // the details
-  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: 'Damage', value: '🗡️ **' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 20) + (i.dice ? '\n-# ' + vClean(i.dice, 30) : ''), inline: true });
+  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: 'Damage', value: '🗡️ **' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 30) + (i.dice ? '\n-# ' + vClean(i.dice, 30) : ''), inline: true });
+  if (kind === 'weapon' && i.rune && typeof i.rune === 'object') { const rk = vClean(i.rune.el, 12); e.fields.push({ name: (vClean(i.rune.name, 20) || 'A') + ' rune', value: (vSeal(rk) || vIcon[rk] || '✧') + ' ' + (vClean(i.rune.text, 120) || 'It hums with ' + rk + '.'), inline: true }); }
   if (kind === 'spell') {
     e.fields.push(i.ok ? { name: 'Cast!', value: '✅ ' + (i.damage ? 'Damage: ' + vClean(i.damage, 40) : 'It works.'), inline: true }
                        : { name: 'Fizzled', value: '💨 ' + (vClean(i.fail, 80) || 'The magic slips away.'), inline: true });
