@@ -180,8 +180,11 @@ test('player stores: stock a Corner Shop at any price, others buy, the owner kee
   assert.equal(listings(db, G, A)[0]!.price, polygons(9999), 'no price cap');
   const before = balance(db, wallet(G, A));
   const store = await run('shop', { shelf: `<@${A}>` }, B);
-  assert.match(text(store), /store[\s\S]*Coffee\*\* × 4/);
-  const pressed = press(ctx(B), sessions.buttonId(store.session!, `sbuy:${listings(db, G, A)[0]!.id}`));
+  assert.match(text(store), /store[\s\S]*Coffee\*\* · ⬡9,999\.00 each · 4 in stock/);
+  const lid = listings(db, G, A)[0]!.id;
+  const look = press(ctx(B), `${sessions.buttonId(store.session!, 'lst')}:${lid}`);   // the store's dropdown
+  assert.match(text(look.update), /Coffee[\s\S]*Price:\*\* ⬡9,999\.00 each[\s\S]*Stock:\*\* 4/);
+  const pressed = press(ctx(B), sessions.buttonId(store.session!, `sbuy:${lid}:1`));
   assert.match(text(pressed.update), /Bought Coffee/);
   assert.equal(balance(db, wallet(G, A)) - before, polygons(9999));
   assert.equal(count(db, G, B, 'coffee'), 1);
@@ -251,6 +254,6 @@ test('Chuck calls you by your rank: Greenhorn, Deckhand after one Fishdex page, 
   assert.equal(chuckRank(db, G, A).id, 'deckhand');
   fill('river'); fill('pier');
   assert.equal(chuckRank(db, G, A).id, 'skipper');
-  assert.match(text(await run('fish', { action: 'shop' })), /Chuck calls you \*\*Skipper\*\* \(3 of \d Fishdex pages done; all of them for Old Salt\)/);
+  assert.match(text(await run('fish', { action: 'shop' })), /Chuck calls you \*\*Skipper\*\*: 3 of \d Fishdex pages done \(all of them for Old Salt\)/);
   done();
 });

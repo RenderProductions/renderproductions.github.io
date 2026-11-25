@@ -104,7 +104,8 @@ function refusal(e: unknown, ctx: Ctx): string {
 
 // ---------------------------------------------------------------- the views
 
-type View = { v: 'hub' } | { v: 'shelf'; shelf: Shelf } | { v: 'item'; shelf: Shelf; item: string } | { v: 'stores' } | { v: 'store'; owner: string } | { v: 'chuck' } | { v: 'card' };
+type View = { v: 'hub' } | { v: 'shelf'; shelf: Shelf } | { v: 'item'; shelf: Shelf; item: string; from?: 'chuck' } | { v: 'stores' } | { v: 'store'; owner: string }
+  | { v: 'listing'; owner: string; id: number } | { v: 'chuck' } | { v: 'card' };
 const navRow = (sid: string, here: View['v']): Button[] => [
   { label: 'Main Street', emoji: emojiOr('main_street', '🏙️'), id: sessions.buttonId(sid, 'go:hub'), style: 'secondary', disabled: here === 'hub' },
   { label: "Marquez's", emoji: emojiOr('marquez', '🏪'), id: sessions.buttonId(sid, 'go:shelf'), style: 'secondary', disabled: here === 'shelf' },
@@ -112,12 +113,19 @@ const navRow = (sid: string, here: View['v']): Button[] => [
   { label: 'Player stores', emoji: emojiOr('stall', '🛒'), id: sessions.buttonId(sid, 'go:stores'), style: 'secondary', disabled: here === 'stores' },
   { label: 'My card', emoji: emojiOr('loyalty_card', '🪪'), id: sessions.buttonId(sid, 'go:card'), style: 'secondary', disabled: here === 'card' }
 ];
-const chunk = (bs: Button[], rows: Button[][], max = 5) => bs.forEach((b, i) => { if (i % max === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
+/** A dropdown row. */
+const pick = (sid: string, id: string, placeholder: string, options: NonNullable<Button['options']>): Button[] =>
+  options.length ? [{ label: placeholder, id: sessions.buttonId(sid, id), placeholder, options: options.slice(0, 25) }] : [];
+/** One line of any shop's list, the same everywhere: the item, its price, how many, and a note under it. */
+const row = (emoji: string, name: string, price: string, stock: string, note: string): string => `${emoji} **${name}** · ${price} · ${stock}\n-# ${note}`;
+const stockText = (n: number, back = 0) => `${n ? `${n} in stock` : 'sold out'}${back ? ` · ${emojiOr('back_room', '🚪')} ${back} in the back` : ''}`;
+const ownerLine = (ctx: Ctx, emoji: string, text: string) => `${emoji} *${text}*`;
 
 function render(ctx: Ctx, g: string, sid: string, view: View, line?: string): ReplyObject {
   sweepStores(ctx.db, g, ctx.now, itemName);
-  const r = view.v === 'hub' ? hubView(ctx, g, sid, line) : view.v === 'shelf' ? shelfView(ctx, g, sid, view.shelf, line) : view.v === 'item' ? itemView(ctx, g, sid, view.shelf, view.item, line)
-    : view.v === 'stores' ? storesView(ctx, g, sid, line) : view.v === 'store' ? storeView(ctx, g, sid, view.owner, line) : view.v === 'chuck' ? chuckView(ctx, g, sid, line) : cardView(ctx, g, sid, line);
+  const r = view.v === 'hub' ? hubView(ctx, g, sid, line) : view.v === 'shelf' ? shelfView(ctx, g, sid, view.shelf, line) : view.v === 'item' ? itemView(ctx, g, sid, view.shelf, view.item, view.from, line)
+    : view.v === 'stores' ? storesView(ctx, g, sid, line) : view.v === 'store' ? storeView(ctx, g, sid, view.owner, line) : view.v === 'listing' ? listingView(ctx, g, sid, view.owner, view.id, line)
+    : view.v === 'chuck' ? chuckView(ctx, g, sid, line) : cardView(ctx, g, sid, line);
   return { ...r, session: sid };
 }
 
@@ -129,13 +137,14 @@ function hubView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   const night = tonight(ctx.db, g, ctx.now);
   return {
     embeds: [embed('wallet', '🏙️ Main Street', [
-      line ? `${line}\n` : `*${ctx.rng.pick(['Marquez sweeps his front step. Down by the water, Chuck Alfrey is untangling line.', 'A delivery truck rattles past. Shop bells jingle up and down the street.', 'The street smells like coffee and lake water. Somebody\'s haggling at a Corner Shop.', 'Hand-lettered signs in every window. Main Street is open for business.'])}*\n`,
-      `${emojiOr('marquez', '🏪')} **Marquez's Shop** · ${emojiOr('truck', '🚚')} next delivery ${discordTime(nextDelivery(ctx.now))}`,
+      line ?? `*${ctx.rng.pick(['Marquez sweeps his front step. Down by the water, Chuck Alfrey is untangling line.', 'A delivery truck rattles past. Shop bells jingle up and down the street.', 'The street smells like coffee and lake water. Somebody\'s haggling at a Corner Shop.', 'Hand-lettered signs in every window. Main Street is open for business.'])}*`, '',
+      `${emojiOr('marquez', '🏪')} **Marquez's Shop** · next delivery ${discordTime(nextDelivery(ctx.now))}`,
       ...dealLines(ctx, g).map((l) => `-# ${l}`),
-      `⚓ **${CHUCK.name}'s Bait & Tackle** · rods, lures, a cooler, a boat`,
-      `${emojiOr('stall', '🛒')} **Player stores** · ${owners.length ? `${owners.length} on the street` : `none yet: any Corner Shop owner can open one with \`${P}shop stock\``}`,
-      ...owners.slice(0, 5).map((o) => `-# ${nameOf(ctx.db, o)}: ${all.filter((l) => l.owner_id === o).length} item${all.filter((l) => l.owner_id === o).length === 1 ? '' : 's'}`),
-      `${emojiOr('connector', '👁️')} **The alley** · ${night ? `Mr. Glaz is down there, muttering. \`${P}underground\`` : 'empty. Come back after dark.'}`,
+      `⚓ **${CHUCK.name}'s Bait & Tackle**\n-# Rods, lures, a cooler, a boat`,
+      `${emojiOr('stall', '🛒')} **Player stores** · ${owners.length ? `${owners.length} open` : 'none yet'}`,
+      `-# ${owners.length ? owners.slice(0, 4).map((o) => nameOf(ctx.db, o)).join(' · ') + (owners.length > 4 ? ' …' : '') : `Own a Corner Shop? Open one with \`${P}shop stock\`.`}`,
+      `${emojiOr('connector', '👁️')} **The alley** · ${night ? 'someone\'s down there' : 'empty'}`,
+      `-# ${night ? `Mr. Glaz, muttering. \`${P}underground\`` : 'Come back after dark.'}`,
       '',
       `${emojiOr('loyalty_card', '🪪')} Your card at Marquez's: **${lvl.name}**${lvl.off ? ` · ${Math.round(lvl.off * 100)}% off` : ''}`
     ], { footer: { text: `${P}shop <shelf> · ${P}shop buy <item> · ${P}shop sell <item> · ${P}shop want <item> · ${P}shop @player` } })],
@@ -146,32 +155,37 @@ function hubView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
 function shelfView(ctx: Ctx, g: string, sid: string, shelf: Shelf, line?: string): ReplyObject {
   const list = shelfItems(shelf, ctx.now);
   const family = levelOf(ctx.db, g, ctx.user.id).id === 'family';
-  const lines = list.map((i) => {
-    const left = stockOf(ctx.db, g, i.id), back = family ? backOf(ctx.db, g, i.id) : 0;
-    const q = quote(ctx.db, g, i.id, ctx.user.id, ctx.now);
-    return `${itemE(i.id, i.emoji)} **${i.name}** · ${priceText(q)} · ${left ? `${left} in stock` : 'sold out'}${back ? ` · ${emojiOr('back_room', '🚪')} ${back} in the back` : ''}${onWishlist(ctx.db, g, ctx.user.id, i.id) ? ' · ⭐' : ''}\n-# ${i.desc}`;
-  });
+  const lines = list.map((i) => row(itemE(i.id, i.emoji), i.name, priceText(quote(ctx.db, g, i.id, ctx.user.id, ctx.now)),
+    stockText(stockOf(ctx.db, g, i.id), family ? backOf(ctx.db, g, i.id) : 0) + (onWishlist(ctx.db, g, ctx.user.id, i.id) ? ' · ⭐' : ''), i.desc));
   // Regulars see next week's collectible a day early
   const weekEnds = (Math.floor(ctx.now / SHOP_RULES.weekMs) + 1) * SHOP_RULES.weekMs;
   const peek = shelf === 'rare' && levelIndex(levelOf(ctx.db, g, ctx.user.id)) >= 2 && weekEnds - ctx.now < DAY ? COLLECTIBLES[collectibleOfWeek(weekEnds)] : undefined;
-  const rows: Button[][] = [
-    [{ label: 'Shelf', id: sessions.buttonId(sid, 'shelf'), placeholder: 'Pick a shelf', options: shelves(ctx.now).map((s) => ({ label: SHELVES[s].label, value: s, emoji: SHELVES[s].emoji, default: s === shelf, ...(isFriday(ctx.now) && s === featuredShelf(ctx.now) ? { description: `Black Friday: ${Math.round(STREET.friday.featured * 100)}% off` } : {}) })) }],
-    [{ label: 'Look closer', id: sessions.buttonId(sid, 'look'), placeholder: 'Look closer at an item…', options: list.map((i) => ({ label: i.name, value: i.id, emoji: itemE(i.id, i.emoji), description: `${format(quote(ctx.db, g, i.id, ctx.user.id, ctx.now).each)} · ${stockOf(ctx.db, g, i.id) || 'sold out'}${stockOf(ctx.db, g, i.id) ? ' in stock' : ''}` })) }]
-  ];
-  chunk(list.slice(0, 10).map((i) => ({ label: `Buy ${i.name}`.slice(0, 80), emoji: itemE(i.id, i.emoji), id: sessions.buttonId(sid, `buy:${i.id}:1`), style: 'success' as const, disabled: avail(ctx, g, i.id) === 0 })), rows);
-  rows.push(navRow(sid, 'shelf'));
   return {
     embeds: [embed('wallet', `Marquez's Shop · ${SHELVES[shelf].emoji} ${SHELVES[shelf].label}`, [
-      line ?? `${emojiOr('marquez', '🏪')} *${greeting(ctx, g, list)}*`, ...dealLines(ctx, g).map((l) => `-# ${l}`), '', ...lines,
+      line ?? ownerLine(ctx, emojiOr('marquez', '🏪'), greeting(ctx, g, list)), ...dealLines(ctx, g).map((l) => `-# ${l}`), '', ...lines,
       peek ? `\n🔮 Next week's collectible, a day early (you're a regular): ${itemE(peek.id, peek.emoji)} **${peek.name}**` : null
-    ], { footer: { text: `Stock is this server's own. The delivery truck comes at 8 AM, 2 PM and 8 PM Eastern.` } })],
-    buttons: rows.slice(0, 5).length < rows.length ? [...rows.slice(0, 4), rows[rows.length - 1]!] : rows
+    ], { footer: { text: 'Pick an item to buy it. The delivery truck comes at 8 AM, 2 PM and 8 PM Eastern.' } })],
+    buttons: [
+      pick(sid, 'shelf', 'Pick a shelf', shelves(ctx.now).map((s) => ({ label: SHELVES[s].label, value: s, emoji: SHELVES[s].emoji, default: s === shelf, ...(isFriday(ctx.now) && s === featuredShelf(ctx.now) ? { description: `Black Friday: ${Math.round(STREET.friday.featured * 100)}% off` } : {}) }))),
+      pick(sid, 'look', 'Pick something to buy…', list.map((i) => ({ label: i.name, value: i.id, emoji: itemE(i.id, i.emoji), description: `${format(quote(ctx.db, g, i.id, ctx.user.id, ctx.now).each)} · ${stockOf(ctx.db, g, i.id) ? `${stockOf(ctx.db, g, i.id)} in stock` : 'sold out'}` }))),
+      navRow(sid, 'shelf')
+    ].filter((r) => r.length)
   };
 }
 
-function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, line?: string): ReplyObject {
+/** Looking closer at one item, at Marquez's or Chuck's: the price and why, the stock, and the Buy buttons. */
+function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, from: 'chuck' | undefined, line?: string): ReplyObject {
   const it = anyItem(id);
-  if (!it) return shelfView(ctx, g, sid, shelf, line);
+  if (!it) return from ? chuckView(ctx, g, sid, line) : shelfView(ctx, g, sid, shelf, line);
+  const keeper = from ? ownerLine(ctx, '⚓', `"${chuckSays(ctx, g)}"`) : ownerLine(ctx, emojiOr('marquez', '🏪'), greeting(ctx, g));
+  const backBtn: Button = from ? { label: 'Back to Chuck\'s', emoji: '↩️', id: sessions.buttonId(sid, 'go:chuck'), style: 'secondary' } : { label: 'Back to the shelf', emoji: '↩️', id: sessions.buttonId(sid, `shelf:${shelf}`), style: 'secondary' };
+  if (CHUCK.gear.includes(id)) {   // Chuck's gear: one each, yours for good
+    const have = count(ctx.db, g, ctx.user.id, id) > 0;
+    return {
+      embeds: [embed('wallet', `${itemE(id, it.emoji)} ${it.name}`, [line ?? keeper, '', it.desc, '', `**Price:** ${format(it.price!)}`, `**Stock:** ${have ? 'you have one ✅' : 'one each, yours for good'}`])],
+      buttons: [[{ label: have ? 'You have one' : 'Buy it', emoji: itemE(id, it.emoji), id: sessions.buttonId(sid, `gear:${id}`), style: 'success', disabled: have }, backBtn]]
+    };
+  }
   const q = quote(ctx.db, g, id, ctx.user.id, ctx.now);
   const left = stockOf(ctx.db, g, id), family = levelOf(ctx.db, g, ctx.user.id).id === 'family', back = family ? backOf(ctx.db, g, id) : 0;
   const tax = shopTax(ctx.db, g, ctx.now);
@@ -180,16 +194,9 @@ function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, li
   const max = Math.max(0, Math.min(left + back, afford, one ? 1 : 10));
   const wished = onWishlist(ctx.db, g, ctx.user.id, id);
   const back40 = ITEMS[id] && it.ready !== false ? sellBackPrice(ctx.db, g, id) : 0;
-  const buttons: Button[][] = [[
-    { label: 'Buy 1', emoji: itemE(id, it.emoji), id: sessions.buttonId(sid, `buy:${id}:1`), style: 'success', disabled: left + back === 0 },
-    ...(one ? [] : [{ label: 'Buy 5', id: sessions.buttonId(sid, `buy:${id}:5`), style: 'success' as const, disabled: left + back < 5 },
-      { label: `Buy max${max > 1 ? ` (${max})` : ''}`, id: sessions.buttonId(sid, `buy:${id}:${Math.max(1, max)}:max`), style: 'success' as const, disabled: max < 2 }]),
-    ...(regular(ITEMS[id]) ? [{ label: wished ? 'On your wishlist' : 'Add to wishlist', emoji: emojiOr('wishlist', '⭐'), id: sessions.buttonId(sid, `wish:${id}`), style: (wished ? 'primary' : 'secondary') as 'primary' | 'secondary' }] : []),
-    { label: 'Back to the shelf', emoji: '↩️', id: sessions.buttonId(sid, `shelf:${shelf}`), style: 'secondary' }
-  ]];
   return {
     embeds: [embed('wallet', `${itemE(id, it.emoji)} ${it.name}`, [
-      line ?? `${emojiOr('marquez', '🏪')} *${greeting(ctx, g)}*`, '',
+      line ?? keeper, '',
       it.desc, '',
       `**Price:** ${priceText(q)}${tax ? ` + ${Math.round(tax * 100)}% city sales tax` : ''}`,
       q.each !== q.base ? `-# ${breakdown(q, ctx.now)}` : null,
@@ -197,7 +204,13 @@ function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, li
       back40 ? `-# Marquez buys it back for ${format(back40)} (\`${ctx.config.prefix}shop sell\`).` : null,
       wished ? '-# ⭐ On your wishlist: you\'ll get a DM when a delivery brings it.' : null
     ])],
-    buttons
+    buttons: [[
+      { label: 'Buy 1', emoji: itemE(id, it.emoji), id: sessions.buttonId(sid, `buy:${id}:1`), style: 'success', disabled: left + back === 0 },
+      ...(one ? [] : [{ label: 'Buy 5', id: sessions.buttonId(sid, `buy:${id}:5`), style: 'success' as const, disabled: left + back < 5 },
+        { label: `Buy max${max > 1 ? ` (${max})` : ''}`, id: sessions.buttonId(sid, `buy:${id}:${Math.max(1, max)}:max`), style: 'success' as const, disabled: max < 2 }]),
+      ...(regular(ITEMS[id]) ? [{ label: wished ? 'On your wishlist' : 'Add to wishlist', emoji: emojiOr('wishlist', '⭐'), id: sessions.buttonId(sid, `wish:${id}`), style: (wished ? 'primary' : 'secondary') as 'primary' | 'secondary' }] : []),
+      backBtn
+    ]]
   };
 }
 
@@ -213,24 +226,22 @@ function chuckSays(ctx: Ctx, g: string): string {
 function chuckView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   const P = ctx.config.prefix;
   const tackle = TACKLE();
-  const rows: Button[][] = [];
-  chunk([
-    ...tackle.map((i) => ({ label: `Buy ${i.name}`, emoji: itemE(i.id, i.emoji), id: sessions.buttonId(sid, `buy:${i.id}:1`), style: 'success' as const, disabled: stockOf(ctx.db, g, i.id) === 0 })),
-    ...CHUCK.gear.map((id) => ({ label: `Buy ${ITEMS[id]!.name}`, emoji: itemE(id, ITEMS[id]!.emoji), id: sessions.buttonId(sid, `gear:${id}`), style: 'success' as const, disabled: count(ctx.db, g, ctx.user.id, id) > 0 }))
-  ], rows);
-  rows.push(navRow(sid, 'chuck'));
+  const owned = (id: string) => count(ctx.db, g, ctx.user.id, id) > 0;
+  const r = chuckRank(ctx.db, g, ctx.user.id), d = pagesDone(ctx.db, g, ctx.user.id), next = CHUCK_RANKS[CHUCK_RANKS.indexOf(r) + 1];
   return {
     embeds: [embed('wallet', `⚓ ${CHUCK.name}'s Bait & Tackle`, [
-      line ?? `*An old man in a yellow raincoat looks up from a tangle of line.* "${chuckSays(ctx, g)}"`,
-      '**Bait and starter rods** (restocked by the truck)',
-      ...tackle.map((i) => `${itemE(i.id, i.emoji)} **${i.name}** · ${priceText(quote(ctx.db, g, i.id, ctx.user.id, ctx.now))} · ${stockOf(ctx.db, g, i.id) ? `${stockOf(ctx.db, g, i.id)} in stock` : 'sold out'}\n-# ${i.desc}`),
-      '', '**Gear** (one each, yours for good)',
-      ...CHUCK.gear.map((id) => `${itemE(id, ITEMS[id]!.emoji)} **${ITEMS[id]!.name}** · ${format(ITEMS[id]!.price!)} · ${ITEMS[id]!.desc}${count(ctx.db, g, ctx.user.id, id) ? ' ✅' : ''}`),
-      '', (() => { const r = chuckRank(ctx.db, g, ctx.user.id), d = pagesDone(ctx.db, g, ctx.user.id), next = CHUCK_RANKS[CHUCK_RANKS.indexOf(r) + 1];
-        return `⚓ Chuck calls you **${r.name}** (${d.done} of ${d.of} Fishdex pages done${next ? `; ${next.pages === Infinity ? 'all of them' : next.pages} for ${next.name}` : ''}).`; })(),
-      `-# Or \`${P}fish buy <gear>\`. Worms come from composting junk: \`${P}farm compost\`.`
-    ])],
-    buttons: rows.slice(-5)
+      line ?? ownerLine(ctx, '⚓', `"${chuckSays(ctx, g)}"`),
+      `-# Chuck calls you **${r.name}**: ${d.done} of ${d.of} Fishdex pages done${next ? ` (${next.pages === Infinity ? 'all of them' : next.pages} for ${next.name})` : ''}.`, '',
+      ...tackle.map((i) => row(itemE(i.id, i.emoji), i.name, priceText(quote(ctx.db, g, i.id, ctx.user.id, ctx.now)), stockText(stockOf(ctx.db, g, i.id)), i.desc)),
+      ...CHUCK.gear.map((id) => row(itemE(id, ITEMS[id]!.emoji), ITEMS[id]!.name, format(ITEMS[id]!.price!), owned(id) ? 'you have one ✅' : 'one each', ITEMS[id]!.desc))
+    ], { footer: { text: `Pick something to buy it, or ${P}fish buy <gear>. Worms come from composting junk: ${P}farm compost.` } })],
+    buttons: [
+      pick(sid, 'clook', 'Pick something to buy…', [
+        ...tackle.map((i) => ({ label: i.name, value: i.id, emoji: itemE(i.id, i.emoji), description: `${format(quote(ctx.db, g, i.id, ctx.user.id, ctx.now).each)} · ${stockOf(ctx.db, g, i.id) ? `${stockOf(ctx.db, g, i.id)} in stock` : 'sold out'}` })),
+        ...CHUCK.gear.map((id) => ({ label: ITEMS[id]!.name, value: id, emoji: itemE(id, ITEMS[id]!.emoji), description: `${format(ITEMS[id]!.price!)} · ${owned(id) ? 'you have one' : 'one each'}` }))
+      ]),
+      navRow(sid, 'chuck')
+    ].filter((x) => x.length)
   };
 }
 
@@ -251,24 +262,27 @@ function cardView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject 
   };
 }
 
+const listingOpen = (ctx: Ctx, g: string, l: Listing) => { const s = storesOf(ctx.db, g, l.owner_id, ctx.now).find((x) => x.lot === l.lot); return !!s && isOpen(s); };
+const listingIcon = (l: Listing) => itemE(l.item, anyItem(l.item)?.emoji ?? '📦');
+
 function storesView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   const P = ctx.config.prefix;
   const all = listings(ctx.db, g);
   const owners = [...new Set(all.map((l) => l.owner_id))];
-  const rows: Button[][] = [];
-  chunk(owners.slice(0, 15).map((o) => ({ label: nameOf(ctx.db, o).slice(0, 60), emoji: emojiOr('stall', '🛒'), id: sessions.buttonId(sid, `store:${o}`), style: 'primary' as const })), rows);
-  rows.push(navRow(sid, 'stores'));
+  const closed = (o: string) => storesOf(ctx.db, g, o, ctx.now).every((l) => !isOpen(l));
   return {
     embeds: [embed('wallet', '🛒 Player stores', [
-      line ?? '*Hand-lettered signs, mismatched shelves, prices that make no sense. Or perfect sense, if you look closely.*', '',
+      line ?? ownerLine(ctx, emojiOr('stall', '🛒'), 'Hand-lettered signs, mismatched shelves, prices that make no sense. Or perfect sense, if you look closely.'), '',
       ...(owners.length ? owners.map((o) => {
         const mine = all.filter((l) => l.owner_id === o);
-        const closed = storesOf(ctx.db, g, o, ctx.now).every((l) => !isOpen(l));
-        return `**${nameOf(ctx.db, o)}** · ${mine.length} item${mine.length === 1 ? '' : 's'}${closed ? ' · 🔒 closed' : ''}\n-# ${mine.slice(0, 4).map((l) => `${itemE(l.item, anyItem(l.item)?.emoji ?? '📦')} ${itemName(l.item)} ${format(l.price)}`).join(' · ')}${mine.length > 4 ? ' …' : ''}`;
-      }) : ['Nobody has opened a store yet.']),
-      '', `-# Own a finished Corner Shop? Stock it: \`${P}shop stock <item> [n] at <price>\`. Buyers pay your price plus the city's sales tax; you keep the price.`
-    ])],
-    buttons: rows.slice(-5)
+        return row(emojiOr('stall', '🛒'), `${nameOf(ctx.db, o)}'s store`, `${mine.length} item${mine.length === 1 ? '' : 's'}`, closed(o) ? '🔒 closed' : 'open',
+          mine.slice(0, 4).map((l) => `${listingIcon(l)} ${itemName(l.item)} ${format(l.price)}`).join(' · ') + (mine.length > 4 ? ' …' : ''));
+      }) : ['Nobody has opened a store yet.'])
+    ], { footer: { text: `Own a finished Corner Shop? Stock it: ${P}shop stock <item> [n] at <price>. Buyers pay your price plus the city's sales tax.` } })],
+    buttons: [
+      pick(sid, 'store', 'Pick a store…', owners.map((o) => ({ label: `${nameOf(ctx.db, o)}'s store`, value: o, emoji: emojiOr('stall', '🛒'), description: `${all.filter((l) => l.owner_id === o).length} items${closed(o) ? ' · closed' : ''}` }))),
+      navRow(sid, 'stores')
+    ].filter((x) => x.length)
   };
 }
 
@@ -277,20 +291,38 @@ function storeView(ctx: Ctx, g: string, sid: string, owner: string, line?: strin
   const mine = listings(ctx.db, g, owner);
   const shops = storesOf(ctx.db, g, owner, ctx.now);
   const self = owner === ctx.user.id;
-  const open = (l: Listing) => { const s = shops.find((x) => x.lot === l.lot); return !!s && isOpen(s); };
-  const rows: Button[][] = [];
-  if (!self) chunk(mine.slice(0, 15).map((l) => ({ label: `Buy ${itemName(l.item)}`.slice(0, 80), emoji: itemE(l.item, anyItem(l.item)?.emoji ?? '📦'), id: sessions.buttonId(sid, `sbuy:${l.id}`), style: 'success' as const, disabled: !open(l) })), rows);
-  rows.push(navRow(sid, 'stores').map((b) => (b.id.endsWith('go:stores') ? { ...b, disabled: false } : b)));
   const tax = shopTax(ctx.db, g, ctx.now);
   return {
     embeds: [embed('wallet', `🛒 ${self ? 'Your store' : `${nameOf(ctx.db, owner)}'s store`}`, [
-      line ?? null,
-      ...(shops.length ? shops.map((s) => `🏪 Corner Shop on **${tileName(s.lot)}** · ${listings(ctx.db, g, owner).filter((l) => l.lot === s.lot).length}/${slotsOf(s)} slots${isOpen(s) ? '' : ` · 🔒 closed (${s.squatters ? 'squatters' : `condition ${s.condition}%`})`}`) : ['No Corner Shop.']), '',
-      ...(mine.length ? mine.map((l) => `${itemE(l.item, anyItem(l.item)?.emoji ?? '📦')} **${itemName(l.item)}** × ${l.qty} · ${format(l.price)} each${!open(l) ? ' · 🔒' : ''}`) : ['The shelves are empty.']),
-      tax && !self ? `-# Plus ${Math.round(tax * 100)}% city sales tax.` : null,
-      self ? `\n-# \`${P}shop stock <item> [n] at <price>\` · \`${P}shop unstock <item> [n|all]\` · a Corner Shop under ${STORES.minCondition}% (or with squatters) closes until repaired.` : null
+      line ?? ownerLine(ctx, emojiOr('stall', '🛒'), shops.length ? shops.map((s) => `Corner Shop on ${tileName(s.lot)}: ${listings(ctx.db, g, owner).filter((l) => l.lot === s.lot).length}/${slotsOf(s)} slots${isOpen(s) ? '' : `, closed (${s.squatters ? 'squatters' : `condition ${s.condition}%`})`}`).join(' · ') : 'No Corner Shop.'), '',
+      ...(mine.length ? mine.map((l) => row(listingIcon(l), itemName(l.item), `${format(l.price)} each`, listingOpen(ctx, g, l) ? `${l.qty} in stock` : `${l.qty} in stock · 🔒 closed`, `On ${tileName(l.lot)}`)) : ['The shelves are empty.']),
+      tax && !self ? `\n-# Plus ${Math.round(tax * 100)}% city sales tax.` : null
+    ], { footer: { text: self ? `${P}shop stock <item> [n] at <price> · ${P}shop unstock <item> [n|all] · under ${STORES.minCondition}% condition (or with squatters) a store closes` : 'Pick something to buy it.' } })],
+    buttons: [
+      self ? [] : pick(sid, 'lst', 'Pick something to buy…', mine.map((l) => ({ label: itemName(l.item), value: String(l.id), emoji: listingIcon(l), description: `${format(l.price)} each · ${l.qty} in stock${listingOpen(ctx, g, l) ? '' : ' · closed'}` }))),
+      navRow(sid, 'stores').map((b) => (b.id.endsWith('go:stores') ? { ...b, disabled: false } : b))
+    ].filter((x) => x.length)
+  };
+}
+
+/** Looking closer at one thing in a player's store, with the Buy buttons. */
+function listingView(ctx: Ctx, g: string, sid: string, owner: string, id: number, line?: string): ReplyObject {
+  const l = listings(ctx.db, g, owner).find((x) => x.id === id);
+  if (!l) return storeView(ctx, g, sid, owner, line ?? 'That\'s gone now.');
+  const open = listingOpen(ctx, g, l), tax = shopTax(ctx.db, g, ctx.now);
+  return {
+    embeds: [embed('wallet', `${listingIcon(l)} ${itemName(l.item)}`, [
+      line ?? ownerLine(ctx, emojiOr('stall', '🛒'), `On a shelf in ${nameOf(ctx.db, owner)}'s Corner Shop, ${tileName(l.lot)}.`), '',
+      anyItem(l.item)?.desc ?? null, anyItem(l.item) ? '' : null,
+      `**Price:** ${format(l.price)} each${tax ? ` + ${Math.round(tax * 100)}% city sales tax` : ''}`,
+      `**Stock:** ${l.qty}${open ? '' : ' · 🔒 the store is closed'}`
     ])],
-    buttons: rows.slice(-5)
+    buttons: [[
+      { label: 'Buy 1', emoji: listingIcon(l), id: sessions.buttonId(sid, `sbuy:${l.id}:1`), style: 'success', disabled: !open },
+      ...(l.qty >= 5 ? [{ label: 'Buy 5', id: sessions.buttonId(sid, `sbuy:${l.id}:5`), style: 'success' as const, disabled: !open }] : []),
+      ...(l.qty > 1 ? [{ label: `Buy all (${l.qty})`, id: sessions.buttonId(sid, `sbuy:${l.id}:${l.qty}:all`), style: 'success' as const, disabled: !open }] : []),
+      { label: 'Back to the store', emoji: '↩️', id: sessions.buttonId(sid, `store:${owner}`), style: 'secondary' }
+    ]]
   };
 }
 
@@ -314,6 +346,8 @@ export function onShopButton(ctx: Ctx, s: sessions.Session<{ view: View }>, valu
       return {};
     case 'shelf': return a && a in SHELVES ? go({ v: 'shelf', shelf: a as Shelf }) : {};
     case 'look': return a && anyItem(a) ? go({ v: 'item', shelf: lastShelf(), item: a }) : {};
+    case 'clook': return a && anyItem(a) ? go({ v: 'item', shelf: lastShelf(), item: a, from: 'chuck' }) : {};
+    case 'lst': { const owner = 'owner' in view ? view.owner : ''; return a && owner ? go({ v: 'listing', owner, id: Number(a) }) : {}; }
     case 'store': return a ? go({ v: 'store', owner: a }) : {};
     case 'wish': {
       if (!a) return {};
@@ -334,7 +368,7 @@ export function onShopButton(ctx: Ctx, s: sessions.Session<{ view: View }>, valu
     }
     case 'sbuy': {
       let line: string;
-      try { line = storeBought(ctx, g, buyFrom(ctx.db, g, ctx.user.id, Number(a), 1, ctx.now)); } catch (e) { line = refusal(e, ctx); }
+      try { line = storeBought(ctx, g, buyFrom(ctx.db, g, ctx.user.id, Number(a), Math.max(1, Number(b) || 1), ctx.now)); } catch (e) { line = refusal(e, ctx); }
       return go(view, line);
     }
   }

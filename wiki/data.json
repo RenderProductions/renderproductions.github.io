@@ -2149,7 +2149,7 @@
    "price": 300,
    "stock": 5,
    "shelf": "Bait & Tackle",
-   "desc": "Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait. Better rods: Chuck Alfrey at the docks.",
+   "desc": "Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait.",
    "passive": true,
    "unlock": false
   },

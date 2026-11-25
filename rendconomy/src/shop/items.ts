@@ -45,7 +45,7 @@ export const ITEMS: Record<string, Item> = Object.fromEntries([
   item('wrap', '🎀', 'Gift Wrap', 75, 5, 'fun', 'Your next gift has no fee.'),
   item('megaphone', '📣', 'Megaphone', 1000, 1, 'fun', 'An ad for your player company in the market news feed.'),
   item('title', '🏷️', 'Title', 5000, 1, 'fun', 'A custom title on your profile. Set it with /settitle.', { passive: true }),
-  item('rod', '🎣', 'Bamboo Rod', 300, 5, 'tackle', 'Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait. Better rods: Chuck Alfrey at the docks.', { passive: true }),
+  item('rod', '🎣', 'Bamboo Rod', 300, 5, 'tackle', 'Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait.', { passive: true }),
   // The Fishy Deep: Chuck Alfrey's gear at the docks (r!fish shop). Not on Marquez's shelves.
   item('rod_fiberglass', '🎣', 'Fiberglass Rod', 2_500, 0, 'tackle', 'Opens the River. Bigger fish a bit more often, and it holds more tension.', { passive: true, ready: false }),
   item('rod_carbon', '🎣', 'Carbon Rod', 10_000, 0, 'tackle', 'Opens the Pier. Better again.', { passive: true, ready: false }),
