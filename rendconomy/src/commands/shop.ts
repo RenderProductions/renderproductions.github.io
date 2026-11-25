@@ -45,10 +45,13 @@ function shopView(ctx: Ctx, shelf: Shelf, sessionId: string, line: string): Repl
 export const shop: Command = {
   name: 'shop',
   aliases: ['store', 'marquez'],
-  description: "Marquez's shop: items, shelves and this week's collectible",
+  description: "Marquez's shop: browse a shelf, or buy and sell items by name",
   system: 'wallet',
   guildOnly: true,
-  options: [{ name: 'shelf', type: 'string', description: 'work, market, casino, fun, rare...' }],
+  options: [
+    { name: 'shelf', type: 'string', description: 'A shelf (work, market, casino, fun, rare...), or: buy, sell' },
+    { name: 'details', type: 'string', description: 'For buy or sell: the item and how many, e.g. "coffee 3"' }
+  ],
   run(ctx, args) {
     const { guildId } = me(ctx);
     const want = String(args.shelf ?? '').trim().toLowerCase();
@@ -220,7 +223,7 @@ export const discard: Command = {
     const back = ITEMS[id] && ITEMS[id]!.ready !== false ? sellBackPrice(ctx.db, id) * qty : 0;
     return { embeds: [embed('wallet', `🗑️ ${it.emoji} ${it.name}${qty > 1 ? ` × ${qty}` : ''}`, [
       `Gone. ${qty > 1 ? 'They\'re' : 'It\'s'} in the bin behind Marquez's shop.`,
-      back ? `-# Next time, Marquez would have paid ${format(back)} for ${qty > 1 ? 'them' : 'it'}: \`${ctx.config.prefix}sellitem\`.` : null
+      back ? `-# Next time, Marquez would have paid ${format(back)} for ${qty > 1 ? 'them' : 'it'}: \`${ctx.config.prefix}shop sell\`.` : null
     ])] };
   }
 };

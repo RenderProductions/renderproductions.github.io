@@ -299,13 +299,18 @@
     "store",
     "marquez"
    ],
-   "description": "Marquez's shop: items, shelves and this week's collectible",
+   "description": "Marquez's shop: browse a shelf, or buy and sell items by name",
    "section": "wallet",
    "slash": "/shop",
    "options": [
     {
      "name": "shelf",
-     "description": "work, market, casino, fun, rare...",
+     "description": "A shelf (work, market, casino, fun, rare...), or: buy, sell",
+     "required": false
+    },
+    {
+     "name": "details",
+     "description": "For buy or sell: the item and how many, e.g. \"coffee 3\"",
      "required": false
     }
    ]
@@ -317,7 +322,7 @@
    ],
    "description": "Buy an item from Marquez by name",
    "section": "wallet",
-   "slash": "/purchase",
+   "slash": "/shop buy",
    "options": [
     {
      "name": "item",
@@ -372,7 +377,7 @@
    ],
    "description": "Sell items back to Marquez for 40% of his price",
    "section": "wallet",
-   "slash": "/sellitem",
+   "slash": "/shop sell",
    "options": [
     {
      "name": "item",

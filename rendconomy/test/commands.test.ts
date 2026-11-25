@@ -156,3 +156,23 @@ test('helpers: "company close" runs closecompany, by prefix and by slash; folded
   assert.equal(slashFor(commands.find((c) => c.name === 'closecompany')!, commands), '/company close');
   assert.equal(slashFor(commands.find((c) => c.name === 'sellcrops')!, commands), '/farm sell');
 });
+
+test('helpers: "shop buy" and "shop sell" run purchase and sellitem; browsing a shelf still works', async () => {
+  const { parsePrefix, slashBody } = await import('../src/discord/router.js');
+  const { commands } = await import('../src/commands/index.js');
+  const { slashFor } = await import('../src/commands/slashname.js');
+  const b = parsePrefix('r!shop buy rocket fuel 2', 'r!');
+  assert.ok(b && 'cmd' in b && b.cmd.name === 'purchase', 'shop buy');
+  const s = parsePrefix('r!shop sell coffee all', 'r!');
+  assert.ok(s && 'cmd' in s && s.cmd.name === 'sellitem', 'shop sell');
+  const f = parsePrefix('r!shop casino', 'r!');
+  assert.ok(f && 'cmd' in f && f.cmd.name === 'shop' && f.args.shelf === 'casino', 'a shelf');
+  const old = parsePrefix('r!purchase coffee', 'r!');
+  assert.ok(old && 'cmd' in old && old.cmd.name === 'purchase', 'the old name still works');
+  const stock = parsePrefix('r!buy RRM 5', 'r!');
+  assert.ok(stock && 'cmd' in stock && stock.cmd.name === 'buy', 'r!buy is still stocks');
+  const names = slashBody().map((c) => c.name);
+  for (const n of ['purchase', 'sellitem']) assert.ok(!names.includes(n), n);
+  assert.equal(slashFor(commands.find((c) => c.name === 'purchase')!, commands), '/shop buy');
+  assert.equal(slashFor(commands.find((c) => c.name === 'sellitem')!, commands), '/shop sell');
+});

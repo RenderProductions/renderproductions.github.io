@@ -46,7 +46,8 @@ const HELPERS: Record<string, Record<string, string>> = {
   mayor: { vote: 'vote', impeach: 'impeach' },
   loans: { pay: 'payback', payback: 'payback', forgive: 'forgive', collect: 'collect' },
   farm: { fertilize: 'fertilize', compost: 'compost' },
-  fish: {}
+  fish: {},
+  shop: { buy: 'purchase', sell: 'sellitem' }
 };
 /** Commands the parent already handles itself (r!farm plant…), so they don't need their own slash command either. */
 const HANDLED: Record<string, string[]> = { farm: ['plant', 'water', 'harvest', 'sellcrops', 'buyplot'], fish: ['sellfish'] };
