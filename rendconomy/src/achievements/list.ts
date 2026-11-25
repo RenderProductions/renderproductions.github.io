@@ -25,6 +25,7 @@ export const CATEGORIES = {
   underground: { label: 'No Questions Asked', emoji: '👁️' },
   city: { label: 'City Hall', emoji: '🏛️' },
   shop: { label: 'Main Street', emoji: '🛍️' },
+  site: { label: 'On the site', emoji: '🖥️' },
   holiday: { label: 'Polygon Holidays', emoji: '🎄' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
@@ -221,6 +222,12 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['soon_friend', 'Soon, Friend', 'Find the number', 'secret', 'epic', true],
   ['tip_the_house', 'Tip the House', 'Try to give the house a gift', 'secret', 'rare', true],
   ['retirement_plan', 'Retirement Plan', 'Have a broker make ⬡10,000 in profit', 'secret', 'legendary', true],
+  ['rft_first_byte', 'First Byte', 'Sell your first file in Render\'s File Tycoon', 'site', 'common'],
+  ['rft_six_figures', 'Six Figures', 'Earn ⬡100,000 in Render\'s File Tycoon', 'site', 'rare'],
+  ['rft_gregulator', 'The Gregulator', 'Install The Gregulator in Render\'s File Tycoon', 'site', 'legendary'],
+  ['rft_fresh_install', 'Fresh Install', 'Reformat in Render\'s File Tycoon', 'site', 'rare'],
+  ['rft_contractor', 'Contractor', 'Finish 50 contracts in Render\'s File Tycoon', 'site', 'epic'],
+  ['rft_backdoor', 'Backdoor', 'Find a secret upgrade in Render\'s File Tycoon', 'site', 'rare', true],
   ['completionist', 'Completionist', 'Unlock every other achievement', 'mastery', 'mythic']
 ];
 

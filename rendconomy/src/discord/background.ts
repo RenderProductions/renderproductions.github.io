@@ -2,6 +2,7 @@
 // little web API for the site, and a status that reacts to the market.
 import { consoleFromDm } from './console';
 import { chessFinish, chessStatus } from '../games/chess';
+import { rftAchieve, rftCashout, rftStatus } from '../games/rft';
 import { me } from '../commands/shared';
 import { change, listCompanies, treasury } from '../companies/companies';
 import { profilesSnapshot, type Directory } from '../site/publish';
@@ -352,6 +353,15 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
       if (rest === 'status') return { content: '', chess: chessStatus(db, a.guild_id, a.user_id, now) };
       if (rest.startsWith('finish ')) return { content: chessFinish(db, a.guild_id, a.user_id, rest.slice(7), now) };
       return { content: 'Unknown Iso-Chess request.' };
+    }
+    // Render's File Tycoon on the site: cashing out game earnings, and its achievements (needs an account here)
+    if (line.startsWith('__rft ')) {
+      me(ctx);
+      const rest = line.slice(6).trim();
+      if (rest === 'status') return { content: '', rft: rftStatus(db, a.user_id, now) };
+      if (rest.startsWith('cashout ')) return { content: db.tx(() => rftCashout(db, a.guild_id, a.user_id, rest.slice(8), now)) };
+      if (rest.startsWith('achieve ')) return { content: db.tx(() => rftAchieve(db, a.guild_id, a.user_id, rest.slice(8).trim(), now)) };
+      return { content: 'Unknown File Tycoon request.' };
     }
     if (line.startsWith('__poll ')) return pollRelay(db, line.slice(7).trim(), now);
     if (line.startsWith('__press ')) {
