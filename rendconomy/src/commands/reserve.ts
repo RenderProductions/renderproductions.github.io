@@ -20,7 +20,7 @@ function thanks(ctx: Ctx, cents: number): string {
   const p = cents / 100;
   if (p >= 10_000) return ctx.rng.pick(['TODD stares at the number for a long time. "...Okay. Okay. Respect."', 'Somewhere, TODD stands up and slow-claps. Alone. In the dark.']);
   if (p >= 1_000) return ctx.rng.pick(['TODD: "Huh. You\'re not as bad as I thought."', 'Marquez takes off his hat for a moment. "That\'s good of you, friend."']);
-  return ctx.rng.pick(['Marquez nods. "Every little bit, pal."', 'Marquez drops it in the jar by the register. "Much obliged, kiddo."', '"Thank you kindly," Marquez says.']);
+  return ctx.rng.pick(['Marquez nods. "Every little bit, friend."', 'Marquez drops it in the jar by the register. "Much obliged, friend."', '"Thank you kindly," Marquez says.']);
 }
 
 function donate(ctx: Ctx, amount: string) {

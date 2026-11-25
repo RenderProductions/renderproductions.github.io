@@ -581,7 +581,7 @@ export const property: Command = {
         if (!have) throw new GameError('estate.nogoods', 'You have no Goods. Factories make them.');
         takeItem(ctx.db, guildId, ctx.user.id, 'goods', have);
         const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: have * ESTATE.goodsPrice, reason: 'estate.goods', guildId, actorId: ctx.user.id, now: ctx.now });
-        return done(`${emojiOr('goods', '📦')} Goods sold`, [`Marquez takes **${have}** crates off your hands for **${format(paid)}**. *"Good, honest work, pal."*`]);
+        return done(`${emojiOr('goods', '📦')} Goods sold`, [`Marquez takes **${have}** crates off your hands for **${format(paid)}**. *"Good, honest work, friend."*`]);
       }
 
       if (action === 'landmark' || action === 'landmarks' || action === 'donate') {

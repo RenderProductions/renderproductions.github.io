@@ -153,6 +153,6 @@ function rushOrder(ctx: Ctx, guildId: string, target?: string): string {
     if (!takeItem(ctx.db, guildId, ctx.user.id, 'rushorder')) throw new GameError('use.none', `You do not have a Rush Order. Marquez sells them: \`${P}shop\`.`);
     award(ctx.db, guildId, ctx.user.id, 'rush_order', ctx.now);
     addMoment(`📦 Someone placed a Rush Order: Marquez just restocked ${it.name}`, ctx.now);
-    return `Marquez makes a phone call. Ten minutes later a truck pulls up: **${added} ${it.name}** back on the shelf, for everyone here. *"Appreciate it, pal."*`;
+    return `Marquez makes a phone call. Ten minutes later a truck pulls up: **${added} ${it.name}** back on the shelf, for everyone here. *"Appreciate it, friend."*`;
   });
 }

@@ -134,9 +134,9 @@ export function findItem(text: string): string | null {
 }
 
 // ---------------------------------------------------------------- Marquez
-// Reserved, kind, a man of few words. He calls everyone friend, pal, kiddo and the like ({n}).
+// Reserved, kind, a man of few words. He only ever calls you "friend" ({n}): never a name, never anything else.
 // His real name never appears anywhere players can see it.
-const PET = ['friend', 'pal', 'kiddo', 'bud', 'champ', 'sport', 'my friend'];
+const PET = ['friend'];
 const LINES: Record<string, string[]> = {
   greet: [
     'Marquez nods from behind the counter. "Evening, {n}. Take your time."',
