@@ -38,3 +38,11 @@ test('File Tycoon achievements unlock in the bot, and only its own', () => {
   assert.match(rftAchieve(db, G, A, 'millionaire'), /Unknown/);
   assert.deepEqual(rftStatus(db, A).achievements, ['rft_first_byte']);
 });
+
+test('chat pay keeps a fingerprint of the last paid message, never its text', async () => {
+  const { fingerprint } = await import('../src/social/chatter.js');
+  const a = fingerprint('hello there friends'), b = fingerprint('hello there friends');
+  assert.equal(a, b);
+  assert.notEqual(a, fingerprint('hello there friend'));
+  assert.ok(!a.includes('hello'));
+});
