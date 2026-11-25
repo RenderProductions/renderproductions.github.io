@@ -3,6 +3,7 @@ import { nameOf, receipt } from '../social/receipts';
 import { balance, wallet } from '../core/ledger';
 import { format, parseCount } from '../core/money';
 import { embed } from '../discord/style';
+import { houseBalance, isHouse } from './house';
 import { current, load, quote } from '../market/market';
 import { affordable, buy as buyShares, pendingDividends, portfolio as positions, sell as sellShares, sharesOf, tradableQuote } from '../market/trading';
 import { economy } from '../config';
@@ -135,6 +136,7 @@ export const money: Command = {
   options: [{ name: 'player', type: 'user', description: 'Whose to show (default: yours)' }],
   run(ctx, args) {
     const m = load(ctx.db); // balance still works while the market is offline
+    if (isHouse(ctx, args.player)) return houseBalance(ctx);   // easter egg: the bot's own books
     const other = typeof args.player === 'string' && args.player !== ctx.user.id ? args.player : null;
     let guildId: string, userId: string;
     if (other) {

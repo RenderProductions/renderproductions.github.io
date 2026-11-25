@@ -12,6 +12,7 @@ import { netWorth } from '../social/worth';
 import { COMPANIES, rankName } from '../work/jobs';
 import { COLORS } from '../discord/style';
 import { guildOf, me } from './shared';
+import { houseProfile, isHouse } from './house';
 import type { Command } from './types';
 import { trophyOf } from '../fishing/docks';
 import { SPECIES, fmtLb } from '../fishing/fishing';
@@ -49,6 +50,7 @@ export const profile: Command = {
     }
     const guildId = guildOf(ctx);
     const target = /^<@!?(\d+)>$/.exec(raw)?.[1] ?? (/^\d{5,22}$/.test(raw) ? raw : ctx.user.id);
+    if (isHouse(ctx, target)) return houseProfile(ctx);   // easter egg: the house's profile
     if (target === ctx.user.id) me(ctx);
     const p = ctx.db.get<{ name: string | null; title: string | null; job: string | null }>('SELECT name, title, job FROM players WHERE guild_id = ? AND user_id = ?', guildId, target);
     if (!p) throw new GameError('player.none', 'That player has no account in this server.');
