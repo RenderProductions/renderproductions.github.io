@@ -88,7 +88,7 @@ function bought(ctx: Ctx, g: string, r: Bought): string {
     ['Price', format(r.cost), '-'], ['Balance', format(r.cash)]
   ]);
   return [
-    `*${marquez('thanks', ctx.rng)}*`,
+    `${emojiOr('marquez', '🏪')} *${marquez('thanks', ctx.rng)}*`,
     `${r.qty} × ${itemE(r.item.id, r.item.emoji)} ${r.item.name}: ${format(r.cost)}${r.tax ? ` (with ${format(r.tax)} tax)` : ''}${r.quote.sale ? ` · ${saleLabel(r.quote.sale, ctx.now)}` : ''}${r.fromBack ? ` · ${r.fromBack} from the back room` : ''}`,
     r.level ? `${r.level.emoji} Marquez punches your card: you're **${r.level.name}** now (${Math.round(r.level.off * 100)}% off${r.level.perk && r.level.off ? `, and ${r.level.perk}` : ''}).` : null,
     r.wished ? '-# It was on your wishlist, so it\'s off it now.' : null,
@@ -107,7 +107,7 @@ function refusal(e: unknown, ctx: Ctx): string {
 type View = { v: 'hub' } | { v: 'shelf'; shelf: Shelf } | { v: 'item'; shelf: Shelf; item: string } | { v: 'stores' } | { v: 'store'; owner: string } | { v: 'chuck' } | { v: 'card' };
 const navRow = (sid: string, here: View['v']): Button[] => [
   { label: 'Main Street', emoji: emojiOr('main_street', '🏙️'), id: sessions.buttonId(sid, 'go:hub'), style: 'secondary', disabled: here === 'hub' },
-  { label: "Marquez's", emoji: '🏪', id: sessions.buttonId(sid, 'go:shelf'), style: 'secondary', disabled: here === 'shelf' },
+  { label: "Marquez's", emoji: emojiOr('marquez', '🏪'), id: sessions.buttonId(sid, 'go:shelf'), style: 'secondary', disabled: here === 'shelf' },
   { label: "Chuck's", emoji: '⚓', id: sessions.buttonId(sid, 'go:chuck'), style: 'secondary', disabled: here === 'chuck' },
   { label: 'Player stores', emoji: emojiOr('stall', '🛒'), id: sessions.buttonId(sid, 'go:stores'), style: 'secondary', disabled: here === 'stores' },
   { label: 'My card', emoji: emojiOr('loyalty_card', '🪪'), id: sessions.buttonId(sid, 'go:card'), style: 'secondary', disabled: here === 'card' }
@@ -130,7 +130,7 @@ function hubView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   return {
     embeds: [embed('wallet', '🏙️ Main Street', [
       line ? `${line}\n` : `*${ctx.rng.pick(['Marquez sweeps his front step. Down by the water, Chuck Alfrey is untangling line.', 'A delivery truck rattles past. Shop bells jingle up and down the street.', 'The street smells like coffee and lake water. Somebody\'s haggling at a Corner Shop.', 'Hand-lettered signs in every window. Main Street is open for business.'])}*\n`,
-      `🏪 **Marquez's Shop** · ${emojiOr('truck', '🚚')} next delivery ${discordTime(nextDelivery(ctx.now))}`,
+      `${emojiOr('marquez', '🏪')} **Marquez's Shop** · ${emojiOr('truck', '🚚')} next delivery ${discordTime(nextDelivery(ctx.now))}`,
       ...dealLines(ctx, g).map((l) => `-# ${l}`),
       `⚓ **${CHUCK.name}'s Bait & Tackle** · rods, lures, a cooler, a boat`,
       `${emojiOr('stall', '🛒')} **Player stores** · ${owners.length ? `${owners.length} on the street` : `none yet: any Corner Shop owner can open one with \`${P}shop stock\``}`,
@@ -162,7 +162,7 @@ function shelfView(ctx: Ctx, g: string, sid: string, shelf: Shelf, line?: string
   rows.push(navRow(sid, 'shelf'));
   return {
     embeds: [embed('wallet', `Marquez's Shop · ${SHELVES[shelf].emoji} ${SHELVES[shelf].label}`, [
-      line ?? `*${greeting(ctx, g, list)}*`, ...dealLines(ctx, g).map((l) => `-# ${l}`), '', ...lines,
+      line ?? `${emojiOr('marquez', '🏪')} *${greeting(ctx, g, list)}*`, ...dealLines(ctx, g).map((l) => `-# ${l}`), '', ...lines,
       peek ? `\n🔮 Next week's collectible, a day early (you're a regular): ${itemE(peek.id, peek.emoji)} **${peek.name}**` : null
     ], { footer: { text: `Stock is this server's own. The delivery truck comes at 8 AM, 2 PM and 8 PM Eastern.` } })],
     buttons: rows.slice(0, 5).length < rows.length ? [...rows.slice(0, 4), rows[rows.length - 1]!] : rows
@@ -189,7 +189,7 @@ function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, li
   ]];
   return {
     embeds: [embed('wallet', `${itemE(id, it.emoji)} ${it.name}`, [
-      line ?? `*${greeting(ctx, g)}*`, '',
+      line ?? `${emojiOr('marquez', '🏪')} *${greeting(ctx, g)}*`, '',
       it.desc, '',
       `**Price:** ${priceText(q)}${tax ? ` + ${Math.round(tax * 100)}% city sales tax` : ''}`,
       q.each !== q.base ? `-# ${breakdown(q, ctx.now)}` : null,

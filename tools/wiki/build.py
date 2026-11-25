@@ -46,7 +46,7 @@ def topbar(current):
 # A pixel emoji (the bot's own art, from bot/emojis) in front of each section heading: 'page#heading': 'name'.
 HEAD_ICONS = {
     'achievements#rarity': 'rarity_legendary', 'achievements#all': 'achievement',
-    'characters#marquez': 'shop', 'characters#chuck': 'rod_carbon', 'characters#todd': 'todd', 'characters#connector': 'connector',
+    'characters#marquez': 'marquez', 'characters#chuck': 'rod_carbon', 'characters#todd': 'todd', 'characters#connector': 'connector',
     'city#building': 'construction', 'city#buildings': 'property', 'city#neighbors': 'tile', 'city#money': 'polygon', 'city#perks': 'promoted',
     'city#freight': 'freight', 'city#landmarks': 'landmark_statue', 'city#trouble': 'squatter',
     'commands#all': 'reference', 'emojis#all': 'rainbow_carrot',

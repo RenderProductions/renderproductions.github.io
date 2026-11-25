@@ -60,7 +60,7 @@ export const beg: Command = {
           ])] };
         }
         return { embeds: [embed('work', '😬 Caught!', [
-          `${emojiOr('shop', '🏪')} Marquez spots you from across the street. He walks over slowly.`,
+          `${emojiOr('marquez', '🏪')} Marquez spots you from across the street. He walks over slowly.`,
           `*"Kiddo. I've seen your net worth. Put the cup away."* He doesn't say anything else. He doesn't have to.`,
           '-# Nobody gave you anything.'
         ])] };
