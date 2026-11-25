@@ -220,3 +220,22 @@ test('the panel: Main Street hub, dropdowns, item detail, Barnaby\'s', async () 
   assert.equal(count(db, G, A, 'lure'), 1);
   done();
 });
+
+test('no two buttons in a Main Street view share an id (Discord refuses the message)', async () => {
+  const { run, fund, ctx } = setup(friday);
+  await run('balance');
+  fund(A, 100);   // can afford exactly one, so "Buy max" would be 1
+  const hub = await run('shop');
+  for (const v of ['go:shelf', 'go:barnaby', 'go:stores', 'go:card', 'go:hub']) {
+    const r = press(ctx(), sessions.buttonId(hub.session!, v));
+    const ids = (r.update?.buttons ?? []).flat().map((b) => b.id);
+    assert.equal(new Set(ids).size, ids.length, v);
+  }
+  for (const id of Object.keys(ITEMS).filter((i) => regular(ITEMS[i]))) {
+    const r = press(ctx(), `${sessions.buttonId(hub.session!, 'look')}:${id}`);
+    const ids = (r.update?.buttons ?? []).flat().map((b) => b.id);
+    assert.equal(new Set(ids).size, ids.length, id);
+    assert.ok((r.update?.buttons ?? []).length <= 5 && (r.update?.buttons ?? []).every((row) => row.length <= 5));
+  }
+  done();
+});

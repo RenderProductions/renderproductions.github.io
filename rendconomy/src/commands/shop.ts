@@ -71,8 +71,8 @@ function greeting(ctx: Ctx, g: string, list: Item[] = []): string {
 function dealLines(ctx: Ctx, g: string): string[] {
   const deal = ITEMS[dailyDeal(ctx.now)]!;
   return [
-    `🏷️ Daily deal: ${itemE(deal.id, deal.emoji)} **${deal.name}** ${Math.round(STREET.dailyDeal * 100)}% off (${priceText(quote(ctx.db, g, deal.id, ctx.user.id, ctx.now))})`,
-    isFriday(ctx.now) ? `🖤 **Black Friday!** The ${SHELVES[featuredShelf(ctx.now)].emoji} ${SHELVES[featuredShelf(ctx.now)].label} shelf is ${Math.round(STREET.friday.featured * 100)}% off, everything else ${Math.round(STREET.friday.rest * 100)}%.` : null
+    `${emojiOr('deal', '🏷️')} Daily deal: ${itemE(deal.id, deal.emoji)} **${deal.name}** ${Math.round(STREET.dailyDeal * 100)}% off (${priceText(quote(ctx.db, g, deal.id, ctx.user.id, ctx.now))})`,
+    isFriday(ctx.now) ? `${emojiOr('black_friday', '🖤')} **Black Friday!** The ${SHELVES[featuredShelf(ctx.now)].emoji} ${SHELVES[featuredShelf(ctx.now)].label} shelf is ${Math.round(STREET.friday.featured * 100)}% off, everything else ${Math.round(STREET.friday.rest * 100)}%.` : null
   ].filter((x): x is string => !!x);
 }
 
@@ -104,11 +104,11 @@ function refusal(e: unknown, ctx: Ctx): string {
 
 type View = { v: 'hub' } | { v: 'shelf'; shelf: Shelf } | { v: 'item'; shelf: Shelf; item: string } | { v: 'stores' } | { v: 'store'; owner: string } | { v: 'barnaby' } | { v: 'card' };
 const navRow = (sid: string, here: View['v']): Button[] => [
-  { label: 'Main Street', emoji: '🏙️', id: sessions.buttonId(sid, 'go:hub'), style: 'secondary', disabled: here === 'hub' },
+  { label: 'Main Street', emoji: emojiOr('main_street', '🏙️'), id: sessions.buttonId(sid, 'go:hub'), style: 'secondary', disabled: here === 'hub' },
   { label: "Marquez's", emoji: '🏪', id: sessions.buttonId(sid, 'go:shelf'), style: 'secondary', disabled: here === 'shelf' },
   { label: "Barnaby's", emoji: '⚓', id: sessions.buttonId(sid, 'go:barnaby'), style: 'secondary', disabled: here === 'barnaby' },
-  { label: 'Player stores', emoji: '🛒', id: sessions.buttonId(sid, 'go:stores'), style: 'secondary', disabled: here === 'stores' },
-  { label: 'My card', emoji: '🪪', id: sessions.buttonId(sid, 'go:card'), style: 'secondary', disabled: here === 'card' }
+  { label: 'Player stores', emoji: emojiOr('stall', '🛒'), id: sessions.buttonId(sid, 'go:stores'), style: 'secondary', disabled: here === 'stores' },
+  { label: 'My card', emoji: emojiOr('loyalty_card', '🪪'), id: sessions.buttonId(sid, 'go:card'), style: 'secondary', disabled: here === 'card' }
 ];
 const chunk = (bs: Button[], rows: Button[][], max = 5) => bs.forEach((b, i) => { if (i % max === 0) rows.push([]); rows[rows.length - 1]!.push(b); });
 
@@ -128,14 +128,14 @@ function hubView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   return {
     embeds: [embed('wallet', '🏙️ Main Street', [
       line ? `${line}\n` : `*${ctx.rng.pick(['Marquez sweeps his front step. Down by the water, Old Barnaby is untangling line.', 'A delivery truck rattles past. Shop bells jingle up and down the street.', 'The street smells like coffee and lake water. Somebody\'s haggling at a Corner Shop.', 'Hand-lettered signs in every window. Main Street is open for business.'])}*\n`,
-      `🏪 **Marquez's Shop** · next delivery ${discordTime(nextDelivery(ctx.now))}`,
+      `🏪 **Marquez's Shop** · ${emojiOr('truck', '🚚')} next delivery ${discordTime(nextDelivery(ctx.now))}`,
       ...dealLines(ctx, g).map((l) => `-# ${l}`),
       `⚓ **${BARNABY.name}'s Bait & Tackle** · rods, lures, a cooler, a boat`,
-      `🛒 **Player stores** · ${owners.length ? `${owners.length} on the street` : `none yet: any Corner Shop owner can open one with \`${P}shop stock\``}`,
+      `${emojiOr('stall', '🛒')} **Player stores** · ${owners.length ? `${owners.length} on the street` : `none yet: any Corner Shop owner can open one with \`${P}shop stock\``}`,
       ...owners.slice(0, 5).map((o) => `-# ${nameOf(ctx.db, o)}: ${all.filter((l) => l.owner_id === o).length} item${all.filter((l) => l.owner_id === o).length === 1 ? '' : 's'}`),
       `🎩 **The alley** · ${night ? `someone in a red suit is lurking. \`${P}underground\`` : 'empty. Come back after dark.'}`,
       '',
-      `${lvl.emoji} Your card at Marquez's: **${lvl.name}**${lvl.off ? ` · ${Math.round(lvl.off * 100)}% off` : ''}`
+      `${emojiOr('loyalty_card', '🪪')} Your card at Marquez's: **${lvl.name}**${lvl.off ? ` · ${Math.round(lvl.off * 100)}% off` : ''}`
     ], { footer: { text: `${P}shop <shelf> · ${P}shop buy <item> · ${P}shop sell <item> · ${P}shop want <item> · ${P}shop @player` } })],
     buttons: [navRow(sid, 'hub')]
   };
@@ -147,7 +147,7 @@ function shelfView(ctx: Ctx, g: string, sid: string, shelf: Shelf, line?: string
   const lines = list.map((i) => {
     const left = stockOf(ctx.db, g, i.id), back = family ? backOf(ctx.db, g, i.id) : 0;
     const q = quote(ctx.db, g, i.id, ctx.user.id, ctx.now);
-    return `${itemE(i.id, i.emoji)} **${i.name}** · ${priceText(q)} · ${left ? `${left} in stock` : 'sold out'}${back ? ` · ${back} in the back` : ''}${onWishlist(ctx.db, g, ctx.user.id, i.id) ? ' · ⭐' : ''}\n-# ${i.desc}`;
+    return `${itemE(i.id, i.emoji)} **${i.name}** · ${priceText(q)} · ${left ? `${left} in stock` : 'sold out'}${back ? ` · ${emojiOr('back_room', '🚪')} ${back} in the back` : ''}${onWishlist(ctx.db, g, ctx.user.id, i.id) ? ' · ⭐' : ''}\n-# ${i.desc}`;
   });
   // Regulars see next week's collectible a day early
   const weekEnds = (Math.floor(ctx.now / SHOP_RULES.weekMs) + 1) * SHOP_RULES.weekMs;
@@ -181,8 +181,8 @@ function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, li
   const buttons: Button[][] = [[
     { label: 'Buy 1', emoji: itemE(id, it.emoji), id: sessions.buttonId(sid, `buy:${id}:1`), style: 'success', disabled: left + back === 0 },
     ...(one ? [] : [{ label: 'Buy 5', id: sessions.buttonId(sid, `buy:${id}:5`), style: 'success' as const, disabled: left + back < 5 },
-      { label: `Buy max${max > 1 ? ` (${max})` : ''}`, id: sessions.buttonId(sid, `buy:${id}:${Math.max(1, max)}`), style: 'success' as const, disabled: max < 2 }]),
-    ...(regular(ITEMS[id]) ? [{ label: wished ? 'On your wishlist' : 'Add to wishlist', emoji: '⭐', id: sessions.buttonId(sid, `wish:${id}`), style: (wished ? 'primary' : 'secondary') as 'primary' | 'secondary' }] : []),
+      { label: `Buy max${max > 1 ? ` (${max})` : ''}`, id: sessions.buttonId(sid, `buy:${id}:${Math.max(1, max)}:max`), style: 'success' as const, disabled: max < 2 }]),
+    ...(regular(ITEMS[id]) ? [{ label: wished ? 'On your wishlist' : 'Add to wishlist', emoji: emojiOr('wishlist', '⭐'), id: sessions.buttonId(sid, `wish:${id}`), style: (wished ? 'primary' : 'secondary') as 'primary' | 'secondary' }] : []),
     { label: 'Back to the shelf', emoji: '↩️', id: sessions.buttonId(sid, `shelf:${shelf}`), style: 'secondary' }
   ]];
   return {
@@ -231,7 +231,7 @@ function cardView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject 
       `**${lvl.emoji} ${lvl.name}**${lvl.off ? ` · ${Math.round(lvl.off * 100)}% off everything` : ''}`,
       `Spent here: ${format(spent)}${next ? ` · ${format(next.spent - spent)} to **${next.name}**` : ' · as far as it goes'}`, '',
       ...LOYALTY.map((l) => `${spent >= l.spent ? '✅' : '▫️'} ${l.emoji} **${l.name}** (${format(l.spent)})${l.perk ? `: ${l.perk}` : ''}`), '',
-      `⭐ **Wishlist** (${wl.length}/${STREET.wishMax}): ${wl.length ? wl.map((id) => `${itemE(id, anyItem(id)?.emoji ?? '📦')} ${anyItem(id)?.name ?? id}`).join(', ') : `empty. Add with \`${ctx.config.prefix}shop want <item>\`.`}`,
+      `${emojiOr('wishlist', '⭐')} **Wishlist** (${wl.length}/${STREET.wishMax}): ${wl.length ? wl.map((id) => `${itemE(id, anyItem(id)?.emoji ?? '📦')} ${anyItem(id)?.name ?? id}`).join(', ') : `empty. Add with \`${ctx.config.prefix}shop want <item>\`.`}`,
       '-# Only what you spend at Marquez\'s counts. Collectibles, the Mystery box and the Title are never discounted.'
     ])],
     buttons: [navRow(sid, 'card')]
@@ -243,7 +243,7 @@ function storesView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObjec
   const all = listings(ctx.db, g);
   const owners = [...new Set(all.map((l) => l.owner_id))];
   const rows: Button[][] = [];
-  chunk(owners.slice(0, 15).map((o) => ({ label: nameOf(ctx.db, o).slice(0, 60), emoji: '🛒', id: sessions.buttonId(sid, `store:${o}`), style: 'primary' as const })), rows);
+  chunk(owners.slice(0, 15).map((o) => ({ label: nameOf(ctx.db, o).slice(0, 60), emoji: emojiOr('stall', '🛒'), id: sessions.buttonId(sid, `store:${o}`), style: 'primary' as const })), rows);
   rows.push(navRow(sid, 'stores'));
   return {
     embeds: [embed('wallet', '🛒 Player stores', [
@@ -345,8 +345,8 @@ export function truckEmbed(db: Ctx['db'], g: string, now: number, prefix: string
   return embed('wallet', '🚚 Marquez\'s delivery truck just pulled up', [
     `*${['Marquez props the door open with a crate. Boxes everywhere.', 'The truck backs up to the curb, beeping. Marquez signs for it without looking.', 'Fresh stock, still smelling of cardboard. Marquez starts stacking shelves.'][Math.floor(now / 60_000) % 3]}*`, '',
     'Every shelf is full again.',
-    `🏷️ Today's deal: ${itemE(deal.id, deal.emoji)} **${deal.name}** ${Math.round(STREET.dailyDeal * 100)}% off`,
-    isFriday(now) ? `🖤 **Black Friday:** ${SHELVES[featuredShelf(now)].emoji} ${SHELVES[featuredShelf(now)].label} ${Math.round(STREET.friday.featured * 100)}% off, everything else ${Math.round(STREET.friday.rest * 100)}%` : null,
+    `${emojiOr('deal', '🏷️')} Today's deal: ${itemE(deal.id, deal.emoji)} **${deal.name}** ${Math.round(STREET.dailyDeal * 100)}% off`,
+    isFriday(now) ? `${emojiOr('black_friday', '🖤')} **Black Friday:** ${SHELVES[featuredShelf(now)].emoji} ${SHELVES[featuredShelf(now)].label} ${Math.round(STREET.friday.featured * 100)}% off, everything else ${Math.round(STREET.friday.rest * 100)}%` : null,
     up ? `${emojiOr('up', '▲')} ${up.i.name} is in demand (×${up.q.factor.toFixed(2)})` : null,
     down ? `${emojiOr('down', '▼')} ${down.i.name} is going cheap (×${down.q.factor.toFixed(2)})` : null,
     '', `-# \`${prefix}shop\` · next delivery ${discordTime(nextDelivery(now))}`

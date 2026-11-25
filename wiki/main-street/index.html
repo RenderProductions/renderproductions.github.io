@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Main Street | Rend-Conomy Wiki</title>
+<meta name="description" content="Main Street: Marquez&#x27;s delivery truck and each server&#x27;s own stock, prices that move with demand, the daily deal, Black Friday every Friday, Marquez&#x27;s loyalty card and back room, wishlists, Old Barnaby&#x27;s Bait &amp; Tackle, and player stores in Corner Shops.">
+<meta property="og:title" content="Main Street">
+<meta property="og:description" content="Main Street: Marquez&#x27;s delivery truck and each server&#x27;s own stock, prices that move with demand, the daily deal, Black Friday every Friday, Marquez&#x27;s loyalty card and back room, wishlists, Old Barnaby&#x27;s Bait &amp; Tackle, and player stores in Corner Shops.">
+<meta property="og:url" content="https://renderproductions.github.io/wiki/main-street/">
+<meta name="theme-color" content="#070b15">
+<link rel="icon" href="/bot/emojis/rc_main_street.png">
+<link rel="stylesheet" href="/wiki/wiki.css">
+</head>
+<body>
+<div class="wrap">
+<header class="topbar">
+  <a class="brand" href="/wiki/"><i aria-hidden="true"></i>RENDER PRODUCTIONS <span>· WIKI</span></a>
+  <nav aria-label="Site">
+    <a href="/">Home</a><a href="/rend-conomy/">Rend-Conomy</a><a href="/play/">Play</a><a href="/patch-notes/">Patch Notes</a>
+    <a href="/wiki/">Wiki</a>
+    <div class="topsearch"><label class="sr" for="ts">Search the wiki</label><input id="ts" type="search" data-search placeholder="Search the wiki  ( / )" autocomplete="off"></div>
+  </nav>
+</header>
+<div class="crumbs"><a href="/wiki/">Wiki</a> / Systems / Main Street</div>
+<header class="ahead"><img src="/bot/emojis/rc_main_street.png" alt=""><div><h1>Main Street</h1><div class="meta">Added in Main Street · <code>r!shop</code></div></div></header>
+<div class="layout">
+<nav class="toc" aria-label="On this page"><div class="lbl">On this page</div><a href="#shopping">Shopping</a><a href="#truck">The delivery truck</a><a href="#prices">Prices that move</a><a href="#sales">The daily deal and Black Friday</a><a href="#loyalty">Marquez's loyalty card</a><a href="#wishlist">Wishlists</a><a href="#barnaby">Old Barnaby's Bait &amp; Tackle</a><a href="#stores">Player stores</a><hr><div class="lbl">See also</div><a href="/wiki/items/">Items</a><a href="/wiki/city/">The City</a><a href="/wiki/characters/">Who&#x27;s who</a></nav>
+<article>
+<div class="lede">
+<p><code>r!shop</code> opens <strong>Main Street</strong>: Marquez's Shop, Old Barnaby's Bait &amp; Tackle, the stores players run out of their Corner Shops, and the alley (at night). Each server has its own shelves, filled by Marquez's delivery truck. Prices move with what people buy, there's a deal every day and a sale every Friday, and the more you spend at Marquez's, the better he treats you.</p>
+<div class="glance"><div class="lbl">At a glance</div>
+<div><span>Deliveries</span><span><span data-v="shop.deliveries" data-f="list">8 AM, 2 PM, 8 PM</span> ET</span></div>
+<div><span>Daily deal</span><span><span data-v="street.dailyDeal" data-f="pct">30%</span> off</span></div>
+<div><span>Black Friday</span><span>Every Friday</span></div>
+<div><span>Sells back for</span><span><span data-v="street.sellBack" data-f="pct">40%</span></span></div>
+<div><span>Wishlist</span><span><span data-v="street.wishMax" data-f="raw">5</span> items</span></div>
+</div>
+</div>
+
+<h2 id="shopping"><img class="hi" src="/bot/emojis/rc_shop.png" alt="">Shopping</h2>
+<ul>
+<li><code>r!shop</code> opens the street. Buttons take you to Marquez's, Barnaby's, the player stores and your loyalty card.</li>
+<li>At Marquez's, pick a shelf from the dropdown and an item from the second one to look closer: its price (and why), how many are left, and Buy 1, Buy 5 or Buy max.</li>
+<li>By name: <code>r!shop buy coffee 3</code> and <code>r!shop sell coffee all</code>. <code>r!shop casino</code> opens a shelf directly.</li>
+<li>Selling back: Marquez pays <span data-v="street.sellBack" data-f="pct">?</span> of his <em>list</em> price, whatever the sale. Buying on sale and selling back never pays.</li>
+</ul>
+
+<h2 id="truck"><img class="hi" src="/bot/emojis/rc_truck.png" alt="">The delivery truck</h2>
+<p>Every server has its own stock now, so one busy server can't empty the shelves for everyone. The truck comes at <span data-v="shop.deliveries" data-f="list">?</span> Eastern and fills every shelf back up. A few minutes later it pulls up in a busy channel to say so (in the drop-in channel, if your server set one). The weekly collectible still changes once a week.</p>
+<p>A <strong>Rush Order</strong> (<code>r!use rush order coffee</code>) still refills one item right away, for your server.</p>
+
+<h2 id="prices"><img class="hi" src="/bot/emojis/rc_up.png" alt="">Prices that move</h2>
+<p>At each delivery, every regular item's price moves a little:</p>
+<ul>
+<li>Sold out since the last truck: <strong>+<span data-v="street.factor.up" data-f="pct">?</span></strong>.</li>
+<li>Sold less than <span data-v="street.factor.slowBelow" data-f="pct">?</span> of the stock: <strong>−<span data-v="street.factor.down" data-f="pct">?</span></strong>.</li>
+<li>Otherwise it drifts <span data-v="street.factor.drift" data-f="pct">?</span> back toward normal.</li>
+</ul>
+<p>Prices stay between <span data-v="street.factor.min" data-f="pct">?</span> and <span data-v="street.factor.max" data-f="pct">?</span> of the list price. The shelf shows ▲ or ▼ when an item has moved. The Title, the Mystery box and collectibles never move and are never discounted.</p>
+
+<h2 id="sales"><img class="hi" src="/bot/emojis/rc_black_friday.png" alt="">The daily deal and Black Friday</h2>
+<ul>
+<li><strong>Daily deal:</strong> one item a day is <span data-v="street.dailyDeal" data-f="pct">?</span> off. It's the same item in every server.</li>
+<li><strong>Black Friday, every Friday</strong> (Eastern): one shelf is featured at <span data-v="street.friday.featured" data-f="pct">?</span> off and everything else is <span data-v="street.friday.rest" data-f="pct">?</span> off. The featured shelf changes each week, in this order: <span data-v="street.fridayShelves" data-f="list">?</span>.</li>
+<li>Sales don't stack with each other (you get the bigger one), but your loyalty discount comes on top.</li>
+</ul>
+
+<h2 id="loyalty"><img class="hi" src="/bot/emojis/rc_loyalty_card.png" alt="">Marquez's loyalty card</h2>
+<p>Everything you spend at Marquez's counter in a server counts toward your card there (<code>r!shop card</code>). He warms up as you go.</p>
+<div data-table="loyalty"></div>
+<p><strong>The back room:</strong> for Family, the rare items (<span data-v="street.rareAt" data-f="raw">?</span> or fewer on the shelf) have as many again in the back, refilled with every delivery. When the shelf is empty, you buy from the back.</p>
+
+<h2 id="wishlist"><img class="hi" src="/bot/emojis/rc_wishlist.png" alt="">Wishlists</h2>
+<p><code>r!shop want coffee</code> puts an item on your wishlist (up to <span data-v="street.wishMax" data-f="raw">?</span>); the same again takes it off, and <code>r!shop want clear</code> empties it. When a delivery brings something on it, you get a DM. Good Friends hear <span data-v="street.headStartMin" data-f="raw">?</span> minutes before everyone else, and before the truck announces itself. Buying the item takes it off your list.</p>
+
+<h2 id="barnaby"><img class="hi" src="/bot/emojis/rc_rod_carbon.png" alt="">Old Barnaby's Bait &amp; Tackle</h2>
+<p>Barnaby has the Bamboo Rod and Lures (restocked by the same truck) and the better gear: rods, the Cooler and the Boat. Open it from Main Street or with <code>r!fish shop</code>, and buy with the buttons or <code>r!fish buy carbon</code>. See <a href="/wiki/fishing/#gear">Fishing</a>.</p>
+
+<h2 id="stores"><img class="hi" src="/bot/emojis/rc_stall.png" alt="">Player stores</h2>
+<p>Every finished <strong>Corner Shop</strong> on the map is a store. Stock it from your inventory and set your own price. There's no cap: if you want to beat Marquez, you'll have to be smart about it.</p>
+<ul>
+<li><code>r!shop stock coffee 3 at 150</code> puts 3 Coffee on your shelf at ⬡150 each. Add <code>on C4</code> to pick which Corner Shop. Stocking an item you already sell adds to it and sets the new price.</li>
+<li><code>r!shop unstock coffee</code> (or <code>unstock coffee 2</code>) takes them back. <code>r!shop store</code> shows your shelves.</li>
+<li>Slots per Corner Shop by level: <span data-v="street.stores.slots" data-f="list">?</span>.</li>
+<li>Anything in your inventory can go on a shelf: Marquez's items, collectibles, crops, Goods. Fish stay in the fishing bag.</li>
+<li>Buyers find you on Main Street, or go straight there with <code>r!shop @you</code> (and <code>r!shop @you coffee 2</code> buys). They pay your price plus the mayor's sales tax, and you keep the whole price. Every sale sends you a receipt.</li>
+<li>A Corner Shop under <span data-v="street.stores.minCondition" data-f="raw">?</span>% condition, or with squatters, closes until it's fixed. If the building is sold, torn down or condemned, everything on its shelves comes back to your inventory.</li>
+</ul>
+
+<div class="pager"><a href="/wiki/city-hall/">← City Hall</a><span>Something wrong or missing? Tell us in the Discord.</span><a href="/wiki/underground/">The Underground →</a></div>
+</article>
+</div>
+<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>
+</div>
+<script src="/wiki/wiki.js"></script>
+<script src="/rv.js" defer></script>
+</body>
+</html>

@@ -57,7 +57,7 @@ export function startStreet(db: Db, client: Client, prefix: string, rng: Rng): v
         for (const n of notes) {
           const what = n.items.map((id) => `${emojiOr(id, anyItem(id)?.emoji ?? '📦')} **${anyItem(id)?.name ?? id}**`).join(', ');
           addInbox(db, n.userId, g, 'Wishlist restocked', `Marquez's delivery brought ${n.items.map((id) => anyItem(id)?.name ?? id).join(', ')}.`, now);
-          client.users.fetch(n.userId).then((u) => u.send({ content: `🚚 Marquez's delivery truck just pulled up${server ? ` in **${server}**` : ''} with something off your wishlist: ${what}. \`${prefix}shop\`\n-# Take an item off with \`${prefix}shop want <item>\`.`, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+          client.users.fetch(n.userId).then((u) => u.send({ content: `${emojiOr('truck', '🚚')} Marquez's delivery truck just pulled up${server ? ` in **${server}**` : ''} with something off your wishlist: ${what}. \`${prefix}shop\`\n-# Take an item off with \`${prefix}shop want <item>\`.`, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
         }
       } catch (e) { console.error('[street]', e); }
     }

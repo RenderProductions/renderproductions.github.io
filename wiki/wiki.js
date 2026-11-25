@@ -84,7 +84,7 @@
     var get = function (path) { return path.split('.').reduce(function (o, k) { return o == null ? o : o[k]; }, D); };
     $$('[data-v]').forEach(function (el) {
       var v = get(el.getAttribute('data-v')), f = el.getAttribute('data-f');
-      el.textContent = f === 'pct' ? pct(v) : f === 'num' ? Number(v).toLocaleString('en-US') : f === 'raw' ? v : poly(v);
+      el.textContent = f === 'list' ? [].concat(v).join(', ') : f === 'pct' ? pct(v) : f === 'num' ? Number(v).toLocaleString('en-US') : f === 'raw' ? v : poly(v);
     });
     var table = function (heads, rows) {
       return '<div class="tbl"><table><thead><tr>' + heads.map(function (h) { return '<th' + (h[1] ? ' class="n"' : '') + ' scope="col">' + h[0] + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -187,8 +187,11 @@
       rarity: function () {
         return table([['Rarity'], ['Pays', 1], ['How many', 1]], Object.keys(D.rarity).map(function (k) { var r = D.rarity[k]; return row([name('rarity_' + k, r.emoji, r.label), td(poly(r.pay), 'n'), td(D.achievements.filter(function (a) { return a.rarity === k; }).length, 'n')]); }));
       },
-      items: function (el) { filtered(el, D.items.concat(D.collectibles.map(function (c) { c.collectible = true; return c; })), function (i) { return i.shelf; }, ['Item'], function (i) { return [name(i.id, i.emoji, i.name), td(i.price == null ? 'rolled each restock' : poly(i.price), 'n'), td(i.collectible ? 'limited' : i.stock, 'n'), td(esc(i.shelf), 'dim'), td(esc(i.desc) + (i.passive ? ' <span class="dim">(works on its own)</span>' : ''))]; }, [['Item'], ['Price', 1], ['Stock', 1], ['Shelf'], ['What it does']], function (i) { return i.name + ' ' + i.desc + ' ' + i.id; }); },
+      items: function (el) { filtered(el, D.items.concat(D.collectibles.map(function (c) { c.collectible = true; return c; })), function (i) { return i.shelf; }, ['Item'], function (i) { return [name(i.id, i.emoji, i.name), td(i.price == null ? 'rolled each delivery' : poly(i.price), 'n'), td(i.collectible ? 'limited' : i.stock, 'n'), td(esc(i.shelf), 'dim'), td(esc(i.desc) + (i.passive ? ' <span class="dim">(works on its own)</span>' : ''))]; }, [['Item'], ['Price', 1], ['Stock', 1], ['Shelf'], ['What it does']], function (i) { return i.name + ' ' + i.desc + ' ' + i.id; }); },
       achievements: function (el) { var order = Object.keys(D.rarity); filtered(el, D.achievements.slice().sort(function (x, y) { return order.indexOf(y.rarity) - order.indexOf(x.rarity); }), function (a) { return a.category; }, null, function (a) { var r = D.rarity[a.rarity]; return [td(ico('rarity_' + a.rarity, r.emoji), ''), td(esc(a.name), 'nm'), td(esc(a.desc)), td(esc(a.category), 'dim'), td(poly(r.pay), 'n')]; }, [['<span class="sr">Rarity</span>'], ['Achievement'], ['How'], ['Section'], ['Pays', 1]], function (a) { return a.name + ' ' + a.desc + ' ' + a.category + ' ' + D.rarity[a.rarity].label; }); },
+      loyalty: function () {
+        return table([['Level'], ['Spent at Marquez\'s', 1], ['Discount', 1], ['Also']], D.street.loyalty.map(function (l) { return row([td(esc(l.emoji + ' ' + l.name), 'nm'), td(poly(l.spent), 'n'), td(l.off ? pct(l.off) : '–', 'n'), td(l.off && l.perk.indexOf('% off') < 0 ? esc(l.perk) : '', 'dim')]); }));
+      },
       cityWorks: function (el) {
         var W = D.refined.city.works, icons = { rent: 'property', chat: 'megaphone', shifts: 'work', crops: 'carrot', happyhour: 'jackpot', fishing: 'fishing' };
         el.innerHTML = table([['Effect'], ['Size'], ['How long'], ['Rate', 1]], Object.keys(W).map(function (k) {

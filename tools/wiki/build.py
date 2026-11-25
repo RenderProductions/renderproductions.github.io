@@ -61,6 +61,8 @@ HEAD_ICONS = {
     'fishing#dex': 'fish_koi', 'fishing#tournament': 'fish_pike', 'fishing#selling': 'polygon', 'fishing#perks': 'lure',
     'glossary#terms': 'reference',
     'heists#targets': 'heist', 'heists#roles': 'password', 'heists#trains': 'freight', 'heists#loot': 'hot_gem',
+    'main-street#shopping': 'shop', 'main-street#truck': 'truck', 'main-street#prices': 'up', 'main-street#sales': 'black_friday', 'main-street#loyalty': 'loyalty_card',
+    'main-street#wishlist': 'wishlist', 'main-street#barnaby': 'rod_carbon', 'main-street#stores': 'stall',
     'market#hours': 'time', 'market#trading': 'stonks', 'market#news': 'megaphone', 'market#dividends': 'polygon', 'market#orders': 'receipt',
     'market#brokers': 'broker', 'market#shorts': 'down',
     'odds#casino': 'slots', 'odds#vip': 'vip', 'odds#heists': 'heist', 'odds#fishing': 'fishing', 'odds#crops': 'farm',
