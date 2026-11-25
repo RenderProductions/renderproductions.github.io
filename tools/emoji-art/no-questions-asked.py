@@ -43,8 +43,17 @@ for y in range(8, 20):                                                          
 c.r(10, 7, 21, 7, 'r3'); c.r(9, 19, 22, 20, 'r2')                                  # the hood's edge, the drape at the neck
 c.r(17, 12, 19, 13, 'e1'); c.p(18, 13, 'K'); c.p(16, 12, 'e2'); c.p(20, 13, 'e2')  # one white eye, wide open (his left)
 c.p(18, 11, 'e2')
-c.r(12, 16, 20, 16, 'e2'); c.r(13, 17, 19, 17, 'e1'); c.p(11, 15, 'e2'); c.p(21, 15, 'e2')   # a smile, too wide
-for x in (14, 16, 18): c.p(x, 17, 'hd')                                            # the gaps between his teeth
+c.r(14, 17, 17, 17, 'e1'); c.p(13, 16, 'e1'); c.p(18, 16, 'e1')                  # a small smile
+# one pixel down, and the frame's border drawn back over the robe so he sits inside it
+base = frame(); drawn = c.im.copy(); c.im = frame()
+for y in range(31, -1, -1):
+    for x in range(32):
+        px = drawn.getpixel((x, y))
+        if px != base.getpixel((x, y)) and y + 1 < 32: c.im.putpixel((x, y + 1), px)
+for y in range(32):
+    for x in range(32):
+        bp = base.getpixel((x, y))
+        if bp[3] and bp[:3] not in (BG[:3], HI[:3]): c.im.putpixel((x, y), bp)
 I['connector'] = c
 # ---- the Underground: a steel door with an eye slot
 c = C()
