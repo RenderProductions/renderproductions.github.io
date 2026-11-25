@@ -3,6 +3,7 @@
 import { consoleFromDm } from './console';
 import { chessFinish, chessStatus } from '../games/chess';
 import { rftAchieve, rftCashout, rftStatus } from '../games/rft';
+import { wikiSnapshot } from '../site/wikivote';
 import { me } from '../commands/shared';
 import { change, listCompanies, treasury } from '../companies/companies';
 import { profilesSnapshot, type Directory } from '../site/publish';
@@ -244,6 +245,7 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     // player companies: prices for public ones, treasuries for all (for /rend-conomy/exchange/co/)
     estates: estatesSnapshot(db),
     underground: undergroundSnapshot(db),
+    wiki: wikiSnapshot(db, now),
     players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
 }

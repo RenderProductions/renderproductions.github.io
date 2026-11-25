@@ -62,7 +62,7 @@
   "general": {
    "label": "General",
    "emoji": "ℹ️",
-   "count": 6
+   "count": 7
   },
   "admin": {
    "label": "Moderators",
@@ -71,6 +71,27 @@
   }
  },
  "commands": [
+  {
+   "name": "wiki",
+   "aliases": [
+    "featured"
+   ],
+   "description": "The wiki: this week's Featured page, and vote for next week's",
+   "section": "general",
+   "slash": "/wiki",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank to look, or: vote <page>, pages",
+     "required": false
+    },
+    {
+     "name": "page",
+     "description": "For vote: the page, e.g. fishing or \"main street\"",
+     "required": false
+    }
+   ]
+  },
   {
    "name": "daily",
    "aliases": [

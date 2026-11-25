@@ -727,5 +727,16 @@ export const MIGRATIONS: readonly string[] = [
     emptied  INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (guild_id, user_id)
   );
+  `,
+
+  /* v25: Site Care. The wiki's Featured page: one vote per player per week (across every server); the winner is
+     featured the next week. */ `
+  CREATE TABLE wiki_votes (
+    week    TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    page    TEXT NOT NULL,
+    at      INTEGER NOT NULL,
+    PRIMARY KEY (week, user_id)
+  );
   `
 ];
