@@ -21,21 +21,27 @@ def r(x0, y0, x1, y1, c):
     for y in range(y0, y1 + 1):
         for x in range(x0, x1 + 1): p(x, y, c)
 
-# simple shapes, like Mr. Glaz: the coat, the fur collar, a green face, the glasses, the fedora
-for y in range(22, 32):                                                   # the coat
-    r(7 - (y - 22) // 2, y, 24 + (y - 22) // 2, y, 'c1')
-r(15, 24, 16, 31, 'c3'); p(13, 27, 'bt'); p(18, 27, 'bt'); p(13, 30, 'bt'); p(18, 30, 'bt')
-for y in range(17, 25):                                                   # the fur collar
-    w = 10 + (y - 17) if y < 21 else 13 - (y - 21) * 2
+# simple shapes, like Mr. Glaz: the coat, the fur collar, a green face with mutton chops, the glasses, the fedora
+for y in range(23, 32):                                                   # the coat
+    r(7 - (y - 23) // 2, y, 24 + (y - 23) // 2, y, 'c1')
+r(15, 25, 16, 31, 'c3'); p(13, 27, 'bt'); p(18, 27, 'bt'); p(13, 30, 'bt'); p(18, 30, 'bt')
+for y in range(19, 25):                                                   # the fur collar
+    w = 11 + (y - 19) if y < 22 else 13 - (y - 22) * 2
     r(16 - w, y, 15 + w, y, 'f1')
-for x in (4, 8, 12, 19, 23, 27): p(x, 24, 'f1')                            # a few tufts
-r(9, 10, 22, 20, 'g2'); r(19, 10, 22, 20, 'g3')                           # the green face
-r(10, 21, 21, 21, 'g2'); r(19, 21, 21, 21, 'g3')
-r(9, 12, 14, 14, 'ln'); r(9, 11, 14, 11, 'fr')                            # a fogged lens
-r(16, 11, 21, 11, 'fr'); r(16, 12, 21, 14, 'g3'); r(18, 12, 19, 13, 'ey') # the other lens, his eye
-p(15, 12, 'fr')
-r(12, 17, 19, 17, 'g0'); p(11, 16, 'g0'); p(20, 16, 'g0')                 # the mustache
-r(10, 3, 21, 9, 'hl'); r(15, 3, 16, 3, 'hm'); r(19, 2, 21, 2, 'hl')        # the fedora's crown, pinched
+for x in (4, 8, 12, 19, 23, 27): p(x, 25, 'f1')
+r(9, 11, 22, 18, 'g2'); r(19, 11, 22, 18, 'g3')                           # the green face (shorter)
+for y, (l, rr) in {13: (8, 23), 14: (6, 25), 15: (8, 23), 16: (5, 26), 17: (7, 24), 18: (5, 26), 19: (7, 24), 20: (9, 22)}.items():   # mutton chops
+    r(l, y, 11, y, 'g2'); r(20, y, rr, y, 'g3'); p(l, y, 'g3'); p(rr, y, 'g0')
+p(10, 21, 'g2'); p(21, 21, 'g3'); p(8, 21, 'g2'); p(23, 21, 'g3')
+r(12, 15, 19, 18, 'g1'); r(13, 19, 18, 19, 'g1')                          # the pale snout
+r(11, 17, 15, 17, 'g0'); r(16, 17, 20, 17, 'g0'); p(15, 16, 'g0'); p(16, 16, 'g0'); p(11, 18, 'g0'); p(20, 18, 'g0')   # the mustache
+# the glasses: brown frames; a fogged lens on his right, a tinted one with his eye on his left
+r(8, 11, 14, 11, 'fr'); r(8, 12, 8, 13, 'fr'); r(14, 12, 14, 13, 'fr'); r(9, 14, 13, 14, 'fr')
+r(9, 12, 13, 13, 'ln'); p(10, 12, 'f1')
+r(17, 11, 23, 11, 'fr'); r(17, 12, 17, 13, 'fr'); r(23, 12, 23, 13, 'fr'); r(18, 14, 22, 14, 'fr')
+r(18, 12, 22, 13, 'g3'); r(19, 12, 20, 13, 'ey')
+r(15, 12, 16, 12, 'fr')                                                   # the bridge
+r(10, 5, 21, 8, 'hl'); r(19, 4, 21, 4, 'hl'); r(15, 5, 16, 5, 'hm')       # the fedora: shorter crown, pinched
 r(10, 7, 21, 8, 'hb')                                                     # the band
 r(6, 9, 25, 10, 'hd')                                                     # the brim
 # the frame's border drawn back over him, so he sits inside it
