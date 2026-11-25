@@ -43,7 +43,7 @@ for y in range(8, 20):                                                          
 c.r(10, 7, 21, 7, 'r3'); c.r(9, 19, 22, 20, 'r2')                                  # the hood's edge, the drape at the neck
 c.r(17, 12, 19, 13, 'e1'); c.p(18, 13, 'K'); c.p(16, 12, 'e2'); c.p(20, 13, 'e2')  # one white eye, wide open (his left)
 c.p(18, 11, 'e2')
-c.r(14, 17, 17, 17, 'e1'); c.p(13, 16, 'e1'); c.p(18, 16, 'e1')                  # a small smile
+c.r(13, 16, 18, 16, 'e1'); c.p(12, 15, 'e1'); c.p(19, 15, 'e1')                  # a small smile
 # one pixel down, and the frame's border drawn back over the robe so he sits inside it
 base = frame(); drawn = c.im.copy(); c.im = frame()
 for y in range(31, -1, -1):
