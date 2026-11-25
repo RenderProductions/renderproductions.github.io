@@ -140,7 +140,7 @@ export function useItem(ctx: Ctx, guildId: string, id: string, target?: string):
   });
 }
 
-/** A Rush Order: Marquez restocks one item, for every server. */
+/** A Rush Order: Marquez restocks one item in this server. */
 function rushOrder(ctx: Ctx, guildId: string, target?: string): string {
   const P = ctx.config.prefix;
   const id = findItem(String(target ?? ''));
@@ -148,11 +148,11 @@ function rushOrder(ctx: Ctx, guildId: string, target?: string): string {
   const it = anyItem(id)!;
   if (isCollectible(id) || !ITEMS[id] || it.ready === false || id === 'rushorder') throw new GameError('use.rush', `Marquez can't rush ${it.name}. Rush Orders are for his regular shelves, not collectibles.`);
   return ctx.db.tx(() => {
-    const added = restockOne(ctx.db, id);
+    const added = restockOne(ctx.db, guildId, id);
     if (!added) throw new GameError('use.rush', `${it.name} is already fully stocked. Your Rush Order is still in your inventory.`);
     if (!takeItem(ctx.db, guildId, ctx.user.id, 'rushorder')) throw new GameError('use.none', `You do not have a Rush Order. Marquez sells them: \`${P}shop\`.`);
     award(ctx.db, guildId, ctx.user.id, 'rush_order', ctx.now);
     addMoment(`📦 Someone placed a Rush Order: Marquez just restocked ${it.name}`, ctx.now);
-    return `Marquez makes a phone call. Ten minutes later a truck pulls up: **${added} ${it.name}** back on the shelf, for everyone. *"Appreciate it, pal."*`;
+    return `Marquez makes a phone call. Ten minutes later a truck pulls up: **${added} ${it.name}** back on the shelf, for everyone here. *"Appreciate it, pal."*`;
   });
 }

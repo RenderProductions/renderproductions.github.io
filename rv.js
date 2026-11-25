@@ -146,20 +146,34 @@
     var btns = (st.buttons || []).reduce(function (a, row) { return a.concat(row); }, []);
     if (btns.length) {
       var box = document.createElement('div'); box.className = 'rv-ebtns';
+      var press = function (id) {
+        box.querySelectorAll('button,select').forEach(function (q) { q.disabled = true; });
+        RV.run('__press ' + id).then(function (res) {
+          el._note = res.notice || '';
+          if (res.update) { ['content', 'embeds', 'buttons'].forEach(function (k) { if (res.update[k] !== undefined) el._rv[k] = res.update[k]; }); }
+          paint(el, after);
+          if (res.update && res.update.live) follow(el, res.update.live, res.update.everyMs, after);
+          if (res.followUp) { el._rv = res.followUp; paint(el, after); }
+          if (after) after();
+        }).catch(function (e) { el._note = e.message === 'login' ? 'Your login ran out. Log in again.' : e.message; paint(el, after); });
+      };
       btns.forEach(function (b) {
+        if (b.options) {   // a dropdown: picking an option presses id:value
+          var sel = document.createElement('select'); sel.className = 'rv-sel'; sel.disabled = !!b.disabled;
+          var ph = document.createElement('option'); ph.value = ''; ph.textContent = b.placeholder || b.label || 'Pick one'; sel.appendChild(ph);
+          b.options.forEach(function (o) {
+            var op = document.createElement('option'); op.value = o.value;
+            op.textContent = (o.emoji && !/^<a?:/.test(o.emoji) ? o.emoji + ' ' : '') + o.label + (o.description ? ' · ' + o.description : '');
+            if (o.default) op.selected = true;
+            sel.appendChild(op);
+          });
+          sel.onchange = function () { if (sel.value) press(b.id + ':' + sel.value); };
+          box.appendChild(sel);
+          return;
+        }
         var x = document.createElement('button'); x.type = 'button'; x.className = 'rv-b ' + (b.style || ''); x.disabled = !!b.disabled;
         x.innerHTML = (b.emoji ? (/^<a?:/.test(b.emoji) ? RV.md(b.emoji) : esc(b.emoji)) + ' ' : '') + esc(b.label || '');
-        x.onclick = function () {
-          box.querySelectorAll('button').forEach(function (q) { q.disabled = true; });
-          RV.run('__press ' + b.id).then(function (res) {
-            el._note = res.notice || '';
-            if (res.update) { ['content', 'embeds', 'buttons'].forEach(function (k) { if (res.update[k] !== undefined) el._rv[k] = res.update[k]; }); }
-            paint(el, after);
-            if (res.update && res.update.live) follow(el, res.update.live, res.update.everyMs, after);
-            if (res.followUp) { el._rv = res.followUp; paint(el, after); }
-            if (after) after();
-          }).catch(function (e) { el._note = e.message === 'login' ? 'Your login ran out. Log in again.' : e.message; paint(el, after); });
-        };
+        x.onclick = function () { press(b.id); };
         box.appendChild(x);
       });
       el.appendChild(box);
@@ -219,6 +233,7 @@
     '.rv-code{margin:.3rem 0;padding:.45rem .6rem;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:4px;font:12.5px/1.45 ui-monospace,Consolas,monospace;white-space:pre;overflow-x:auto}.rv-add{color:#43d17a}.rv-del{color:#f0605d}' +
     '.rv-sub{display:block;color:var(--grey);font-size:.85em}.rv-dim{color:var(--grey)}.rv-ebig{font-size:1.25em;display:block}' +
     '.rv-ebtns{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}' +
+    '.rv-sel{flex-basis:100%;font:inherit;font-size:.9rem;padding:.4rem .6rem;color:var(--bright);background:var(--panel-2);border:1px solid var(--line-strong)}' +
     '.rv-b{font:inherit;font-size:.9rem;padding:.4rem .75rem;color:var(--bright);background:var(--panel-2);border:1px solid var(--line-strong);cursor:pointer}' +
     '.rv-b.success{border-color:#3ddc84;color:#b9ffd5}.rv-b.danger{border-color:#ff5c61;color:#ffc2c4}.rv-b.primary{background:rgba(var(--accent-rgb),.14)}.rv-b:disabled{opacity:.45;cursor:default}' +
     '.rv-b .rv-emo{width:18px;height:18px;vertical-align:-4px}' +

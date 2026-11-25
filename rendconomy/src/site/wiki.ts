@@ -23,6 +23,8 @@ import { slashFor } from '../commands/slashname';
 import { MOD_SLASH } from '../discord/router';
 import { COLLECTIBLES, ITEMS, SHELVES } from '../shop/items';
 import { SELL_BACK, SHOP_RULES } from '../shop/shop';
+import { LOYALTY, STREET } from '../shop/street';
+import { STORES } from '../shop/stores';
 import { BULK_MAX, MYSTERY } from '../shop/use';
 import { BEG } from '../commands/beg';
 import { COLLECT } from '../loans/collect';
@@ -51,7 +53,13 @@ export function wikiData(): Record<string, unknown> {
     })),
     items: Object.values(ITEMS).filter((i) => i.ready !== false).map((i) => ({ id: i.id, emoji: i.emoji, name: i.name, price: i.price === null ? null : p(i.price), stock: i.stock, shelf: SHELVES[i.shelf].label, desc: i.desc, passive: !!i.passive, unlock: !!i.unlock })),
     collectibles: Object.values(COLLECTIBLES).map((i) => ({ id: i.id, emoji: i.emoji, name: i.name, price: i.price === null ? null : p(i.price), stock: i.stock, shelf: SHELVES[i.shelf].label, desc: i.desc })),
-    shop: { restockHours: hours(SHOP_RULES.restockMs), mystery: SHOP_RULES.mystery },
+    shop: { deliveries: STREET.deliveries.map((h) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`), mystery: SHOP_RULES.mystery },
+    street: {
+      factor: STREET.factor, dailyDeal: STREET.dailyDeal, friday: STREET.friday, fridayShelves: STREET.fridayShelves.map((s) => SHELVES[s].label),
+      wishMax: STREET.wishMax, headStartMin: STREET.headStartMs / 60_000, rareAt: STREET.rareAt, sellBack: SELL_BACK,
+      loyalty: LOYALTY.map((l) => ({ name: l.name, emoji: l.emoji, spent: p(l.spent), off: l.off, perk: l.perk })),
+      stores: { slots: STORES.slots, minCondition: STORES.minCondition }
+    },
     rarity: Object.fromEntries(Object.entries(RARITY).map(([k, r]) => [k, { label: r.label, emoji: r.emoji, pay: p(r.pay) }])),
     achievements: ACHIEVEMENTS.map((a) => (a.secret
       ? { id: `secret-${ACHIEVEMENTS.indexOf(a)}`, name: '???', desc: 'A secret. Keep playing.', category: CATEGORIES[a.cat].label, rarity: a.rarity, secret: true }

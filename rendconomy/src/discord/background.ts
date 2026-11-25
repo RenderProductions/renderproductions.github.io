@@ -38,6 +38,33 @@ import { collectTerms } from '../loans/collect';
 import { countElections } from '../city/city';
 import { settleTourneys } from '../fishing/docks';
 import { weekOf } from '../city/state';
+import { restock } from '../shop/shop';
+import { wishNotices } from '../shop/street';
+import { sweepStores } from '../shop/stores';
+import { itemName } from '../commands/connections';
+
+/** Main Street: the delivery truck comes to every server on time (even when nobody's shopping), wishlists hear
+ *  about restocks (Good Friends first), and stores whose Corner Shop is gone hand their stock back. */
+export function startStreet(db: Db, client: Client, prefix: string, rng: Rng): void {
+  const tick = () => {
+    const now = Date.now();
+    for (const { guild_id: g } of db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM players')) {
+      try {
+        restock(db, rng, g, now);
+        db.tx(() => sweepStores(db, g, now, itemName));
+        const notes = db.tx(() => wishNotices(db, g, now));
+        const server = client.guilds.cache.get(g)?.name;
+        for (const n of notes) {
+          const what = n.items.map((id) => `${emojiOr(id, anyItem(id)?.emoji ?? '📦')} **${anyItem(id)?.name ?? id}**`).join(', ');
+          addInbox(db, n.userId, g, 'Wishlist restocked', `Marquez's delivery brought ${n.items.map((id) => anyItem(id)?.name ?? id).join(', ')}.`, now);
+          client.users.fetch(n.userId).then((u) => u.send({ content: `🚚 Marquez's delivery truck just pulled up${server ? ` in **${server}**` : ''} with something off your wishlist: ${what}. \`${prefix}shop\`\n-# Take an item off with \`${prefix}shop want <item>\`.`, allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+        }
+      } catch (e) { console.error('[street]', e); }
+    }
+  };
+  setInterval(tick, MINUTE).unref();
+  setTimeout(tick, 20_000).unref();
+}
 
 /** DMs players whose next shift is ready (for those with /job remind on). Restart-safe: kept in the database. */
 export function startReminders(db: Db, client: Client, prefix: string): void {
@@ -159,7 +186,7 @@ export function startFarmhands(db: Db, client: Client, prefix: string, rng: Rng)
 
 // ---------------------------------------------------------------- the Trading Floor (Discord Activity)
 
-const ALLOWED = new Set(['underground', 'property', 'landmark', 'vip', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
+const ALLOWED = new Set(['underground', 'property', 'landmark', 'vip', 'use', 'inbox', 'showcase', 'trade', 'oddjob', 'farmhand', 'shop', 'purchase', 'sellitem', 'inventory', 'gift', 'loans', 'portfolio', 'rocket', 'blackjack', 'bus', 'hilo', 'mines', 'derby', 'heist', 'advent', 'santa', 'farm', 'plant', 'water', 'harvest', 'sellcrops', 'fertilize', 'compost', 'buyplot', 'balance', 'buy', 'sell', 'short', 'cover', 'dividends', 'daily', 'savings', 'event', 'leaderboard', 'reserve', 'order', 'gambling',
   'coinflip', 'dice', 'roulette', 'slots', 'fish', 'achievements', 'market', 'compare', 'profile', 'history']);
 // ---------------------------------------------------------------- the Trading Floor's buttons and live updates
 // The Activity can't receive message edits, so it asks: "__press <button id>" presses a button (at the moment

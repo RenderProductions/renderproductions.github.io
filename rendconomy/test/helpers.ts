@@ -1,6 +1,10 @@
 import { open } from '../src/core/db';
 import { ensureReserve } from '../src/core/economy';
 import { polygons } from '../src/core/money';
+import { TUNING as STREET } from '../src/shop/street';
+
+// Main Street's moving prices (demand, sales, loyalty) are off in tests unless a test turns them on.
+STREET.prices = false;
 
 /** A fresh in-memory database with a funded Reserve. */
 export function freshDb(reserve = polygons(25_000_000)) {

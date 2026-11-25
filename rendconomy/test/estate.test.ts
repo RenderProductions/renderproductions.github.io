@@ -416,12 +416,12 @@ test('Wholesale: a Warehouse orders seeds with its own daily allowance, apart fr
   await run('build', 'C4', 'warehouse');
   later(5 * HOUR);
   assert.match(text(await run('wholesale')), /Polygon Fruit[\s\S]*3 of 3 left today/);
-  const shelf = stockOf(db, 'seed_polyfruit');
+  const shelf = stockOf(db, G, 'seed_polyfruit');
   const b0 = balance(db, wallet(G, A));
   assert.match(text(await run('wholesale', 'polygon fruit', '2')), /2 Polygon Fruit Seeds[\s\S]*1 more/);
   assert.equal(b0 - balance(db, wallet(G, A)), polygons(880), '⬡400 + 10%, twice');
   assert.equal(count(db, G, A, 'seed_polyfruit'), 2);
-  assert.equal(stockOf(db, 'seed_polyfruit'), shelf, 'Marquez\'s shelf is untouched');
+  assert.equal(stockOf(db, G, 'seed_polyfruit'), shelf, 'Marquez\'s shelf is untouched');
   assert.match(text(await run('wholesale', 'polyfruit', '5')), /can order 1 more/);
   await run('wholesale', 'polyfruit');
   assert.match(text(await run('wholesale', 'polyfruit')), /ordered your 3 Polygon Fruit seeds for today/);

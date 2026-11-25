@@ -23,12 +23,14 @@ import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
 import { ButtonStyle, ComponentType, type SendableChannels } from 'discord.js';
 import { consoleFromDm, onRainButton, startConsole } from './discord/console';
-import { startActivity, startLiveFeed, startProfilesFeed, startApi, startFarmReminders, startFarmhands, startHolidays, startEstates, startReminders } from './discord/background';
+import { startActivity, startLiveFeed, startProfilesFeed, startApi, startFarmReminders, startFarmhands, startHolidays, startEstates, startReminders, startStreet } from './discord/background';
 import { startStatus } from './discord/status';
 import { connectorHijack } from './commands/underground';
 import { registerRoleMetadata } from './site/roles';
 import { setLotteryAnnouncer } from './commands/extras';
-import { answerDrop, chatPay, expireDrop, shouldDrop, startDrop } from './social/chatter';
+import { answerDrop, chatPay, dropinHome, dropinsOff, expireDrop, shouldDrop, startDrop } from './social/chatter';
+import { truckDue } from './shop/street';
+import { truckEmbed } from './commands/shop';
 import { runInRequest } from './core/request';
 import { importOnStartup, oldDbFile } from './achievements/import';
 import { runFixes } from './fixes';
@@ -119,6 +121,12 @@ async function main(): Promise<void> {
       if (open && ctx.guildId && ch.isSendable()) {
         const hijack = db.tx(() => connectorHijack(db, ctx.guildId!, ctx.now));
         if (hijack) { await ch.send({ ...hijack, allowedMentions: { parse: [] } }); return; }
+        // Main Street: the delivery truck announces itself in the next busy channel (where drop-ins may go)
+        const home = dropinHome(db, ctx.guildId);
+        if (!dropinsOff(db, ctx.guildId) && (!home || home === msg.channelId)) {
+          const truck = db.tx(() => truckDue(db, ctx.guildId!, ctx.now));
+          if (truck) { await ch.send({ embeds: [truckEmbed(db, ctx.guildId, ctx.now, config.prefix)], allowedMentions: { parse: [] } }); return; }
+        }
       }
       if (!open || !ctx.guildId || !shouldDrop(db, ctx.guildId, msg.channelId, ctx.now, rng)) return;
       if (!ch.isSendable()) return;
@@ -189,6 +197,7 @@ async function main(): Promise<void> {
     startFarmhands(db, c, config.prefix, cryptoRng());
     startHolidays(db, c, config.prefix);
     startEstates(db, config.prefix);
+    startStreet(db, c, config.prefix, cryptoRng());
     startActivity(db, config, rng, c);
     startLiveFeed(db);
     startApi(db, c);
@@ -238,6 +247,7 @@ async function main(): Promise<void> {
   });
   client.on(Events.InteractionCreate, (i) => {
     if (i.isChatInputCommand()) onSlash(deps, i).catch((e) => console.error('[slash]', e));
+    else if (i.isStringSelectMenu()) onButton(deps, i).catch((e) => console.error('[select]', e));
     else if (i.isButton()) onRainButton(i).then((done) => { if (!done) return onButton(deps, i); }).catch((e) => console.error('[button]', e));
   });
 

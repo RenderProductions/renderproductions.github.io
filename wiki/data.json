@@ -297,20 +297,22 @@
    "name": "shop",
    "aliases": [
     "store",
-    "marquez"
+    "marquez",
+    "mainstreet",
+    "street"
    ],
-   "description": "Marquez's shop: browse a shelf, or buy and sell items by name",
+   "description": "Main Street: Marquez's shop, Barnaby's tackle and player stores; buy, sell, wishlist, stock your store",
    "section": "wallet",
    "slash": "/shop",
    "options": [
     {
      "name": "shelf",
-     "description": "A shelf (work, market, casino, fun, rare...), or: buy, sell",
+     "description": "Blank for Main Street, a shelf, @player, or: buy, sell, want, stores, store, stock, unstock, card",
      "required": false
     },
     {
      "name": "details",
-     "description": "For buy or sell: the item and how many, e.g. \"coffee 3\"",
+     "description": "The rest: \"coffee 3\" to buy or sell, \"coffee 3 at 150\" to stock your store",
      "required": false
     }
    ]
@@ -2534,11 +2536,88 @@
   }
  ],
  "shop": {
-  "restockHours": 1,
+  "deliveries": [
+   "8 AM",
+   "2 PM",
+   "8 PM"
+  ],
   "mystery": [
    75,
    100
   ]
+ },
+ "street": {
+  "factor": {
+   "min": 0.8,
+   "max": 1.3,
+   "up": 0.05,
+   "down": 0.05,
+   "drift": 0.02,
+   "slowBelow": 0.25
+  },
+  "dailyDeal": 0.3,
+  "friday": {
+   "featured": 0.4,
+   "rest": 0.15
+  },
+  "fridayShelves": [
+   "Work",
+   "Market",
+   "Rend-Sino",
+   "Odds & Ends",
+   "Garden",
+   "Profile",
+   "Iso-Chess"
+  ],
+  "wishMax": 5,
+  "headStartMin": 10,
+  "rareAt": 2,
+  "sellBack": 0.4,
+  "loyalty": [
+   {
+    "name": "Stranger",
+    "emoji": "🪪",
+    "spent": 0,
+    "off": 0,
+    "perk": ""
+   },
+   {
+    "name": "Familiar Face",
+    "emoji": "🙂",
+    "spent": 5000,
+    "off": 0.02,
+    "perk": "2% off everything"
+   },
+   {
+    "name": "Regular",
+    "emoji": "☕",
+    "spent": 25000,
+    "off": 0.04,
+    "perk": "see next week's collectible a day early"
+   },
+   {
+    "name": "Good Friend",
+    "emoji": "🤝",
+    "spent": 100000,
+    "off": 0.06,
+    "perk": "hear about your wishlist 10 minutes before everyone else"
+   },
+   {
+    "name": "Family",
+    "emoji": "🏠",
+    "spent": 500000,
+    "off": 0.08,
+    "perk": "the back room: extra stock of the rare items"
+   }
+  ],
+  "stores": {
+   "slots": [
+    4,
+    6,
+    8
+   ],
+   "minCondition": 25
+  }
  },
  "rarity": {
   "common": {
@@ -3185,6 +3264,94 @@
    "secret": true
   },
   {
+   "id": "familiar_face",
+   "name": "Familiar Face",
+   "desc": "Become a Familiar Face at Marquez's",
+   "category": "Main Street",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "regular_customer",
+   "name": "The Usual?",
+   "desc": "Become a Regular at Marquez's",
+   "category": "Main Street",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "good_friend",
+   "name": "Good Friend",
+   "desc": "Become a Good Friend of Marquez",
+   "category": "Main Street",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "part_of_the_family",
+   "name": "Part of the Family",
+   "desc": "Become Family at Marquez's",
+   "category": "Main Street",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "bargain_hunter",
+   "name": "Bargain Hunter",
+   "desc": "Buy the daily deal",
+   "category": "Main Street",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "doorbuster",
+   "name": "Doorbuster",
+   "desc": "Buy from the featured shelf on Black Friday",
+   "category": "Main Street",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "worth_the_wait",
+   "name": "Worth the Wait",
+   "desc": "Buy something off your wishlist",
+   "category": "Main Street",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "secret-84",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "Main Street",
+   "rarity": "epic",
+   "secret": true
+  },
+  {
+   "id": "grand_opening",
+   "name": "Grand Opening",
+   "desc": "Make your first sale from your own store",
+   "category": "Main Street",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "cleaned_out",
+   "name": "Cleaned Out",
+   "desc": "Sell the last of 10 listings from your store",
+   "category": "Main Street",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "shopkeeper",
+   "name": "Shopkeeper",
+   "desc": "Sell ⬡100,000 worth from your store",
+   "category": "Main Street",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
    "id": "first_hire",
    "name": "Now Hiring",
    "desc": "Hire your company's first worker",
@@ -3793,7 +3960,7 @@
    "secret": false
   },
   {
-   "id": "secret-153",
+   "id": "secret-164",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3801,7 +3968,7 @@
    "secret": true
   },
   {
-   "id": "secret-154",
+   "id": "secret-165",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3809,7 +3976,7 @@
    "secret": true
   },
   {
-   "id": "secret-155",
+   "id": "secret-166",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3817,7 +3984,7 @@
    "secret": true
   },
   {
-   "id": "secret-156",
+   "id": "secret-167",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3825,7 +3992,7 @@
    "secret": true
   },
   {
-   "id": "secret-157",
+   "id": "secret-168",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3833,7 +4000,7 @@
    "secret": true
   },
   {
-   "id": "secret-158",
+   "id": "secret-169",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3841,7 +4008,7 @@
    "secret": true
   },
   {
-   "id": "secret-159",
+   "id": "secret-170",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3849,7 +4016,7 @@
    "secret": true
   },
   {
-   "id": "secret-160",
+   "id": "secret-171",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",
@@ -3857,7 +4024,7 @@
    "secret": true
   },
   {
-   "id": "secret-161",
+   "id": "secret-172",
    "name": "???",
    "desc": "A secret. Keep playing.",
    "category": "Secret",

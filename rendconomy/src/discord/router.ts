@@ -2,7 +2,7 @@
 // and turns the results into Discord messages. Every interaction always gets a response, so Discord
 // never shows "This interaction failed".
 import {
-  ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, MessageFlags, PermissionFlagsBits, type PermissionsBitField,
+  ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, type StringSelectMenuInteraction, MessageFlags, PermissionFlagsBits, type PermissionsBitField,
   type ButtonInteraction, type ChatInputCommandInteraction, type Message, type RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js';
 import { commands, find } from '../commands';
@@ -139,18 +139,24 @@ export function parsePrefix(content: string, prefix: string): { cmd: Command; ar
 
 const STYLES = { primary: ButtonStyle.Primary, secondary: ButtonStyle.Secondary, success: ButtonStyle.Success, danger: ButtonStyle.Danger } as const;
 
+const emojiOf = (e: string) => { const m = /^<(a?):(\w+):(\d+)>$/.exec(e); return m ? { id: m[3]!, name: m[2]!, animated: !!m[1] } : { name: e }; };   // the bot's own emoji, or a standard one
 function rows(buttons: Button[][]) {
-  return buttons.filter((r) => r.length).slice(0, 5).map((r) => new ActionRowBuilder<ButtonBuilder>().addComponents(
-    r.slice(0, 5).map((b) => {
-      const btn = new ButtonBuilder().setCustomId(b.id).setStyle(STYLES[b.style ?? 'secondary']).setDisabled(!!b.disabled);
-      if (b.label) btn.setLabel(b.label.slice(0, 80));
-      if (b.emoji) {
-        const m = /^<(a?):(\w+):(\d+)>$/.exec(b.emoji);   // the bot's own emoji, or a standard one
-        btn.setEmoji(m ? { id: m[3]!, name: m[2]!, animated: !!m[1] } : { name: b.emoji });
-      }
-      return btn;
-    })
-  ));
+  return buttons.filter((r) => r.length).slice(0, 5).map((r) => {
+    const sel = r[0]!.options;
+    if (sel) {   // a dropdown takes the whole row
+      const menu = new StringSelectMenuBuilder().setCustomId(r[0]!.id).setPlaceholder((r[0]!.placeholder ?? r[0]!.label).slice(0, 150)).setDisabled(!!r[0]!.disabled)
+        .addOptions(sel.slice(0, 25).map((o) => ({ label: o.label.slice(0, 100), value: o.value.slice(0, 100), ...(o.description ? { description: o.description.slice(0, 100) } : {}), ...(o.emoji ? { emoji: emojiOf(o.emoji) } : {}), default: !!o.default })));
+      return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);
+    }
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+      r.slice(0, 5).map((b) => {
+        const btn = new ButtonBuilder().setCustomId(b.id).setStyle(STYLES[b.style ?? 'secondary']).setDisabled(!!b.disabled);
+        if (b.label) btn.setLabel(b.label.slice(0, 80));
+        if (b.emoji) btn.setEmoji(emojiOf(b.emoji));
+        return btn;
+      })
+    );
+  });
 }
 
 /** A ReplyObject as a Discord message payload. Fields left out stay as they are when editing. */
@@ -279,9 +285,11 @@ export async function onSlash(deps: Deps, i: ChatInputCommandInteraction): Promi
   if (sent) revealThen(deps, reply, sent, (p) => i.editReply(payload(p)));
 }
 
-export async function onButton(deps: Deps, i: ButtonInteraction): Promise<void> {
-  if (i.customId === 'updates:role') return toggleUpdateRole(deps, i);
-  const r = press(ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), i.customId);
+export async function onButton(deps: Deps, i: ButtonInteraction | StringSelectMenuInteraction): Promise<void> {
+  if (i.isButton() && i.customId === 'updates:role') return toggleUpdateRole(deps, i);
+  // a dropdown presses its id with the picked value on the end
+  const id = i.isStringSelectMenu() ? `${i.customId}:${i.values[0] ?? ''}` : i.customId;
+  const r = press(ctxFor(deps, i.guildId, i.channelId, i.user, i.memberPermissions), id);
   if (r.update) {
     await i.update(payload(r.update));
     if (r.update.live || r.update.later) afterSend(deps, r.update, i.message, (p) => i.editReply(payload(p)));   // e.g. reels that keep spinning

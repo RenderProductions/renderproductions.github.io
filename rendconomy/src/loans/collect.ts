@@ -73,7 +73,7 @@ export function collect(db: Db, m: MarketData | null, l: Loan, now = Date.now())
     }
     // shop items at Marquez's buy-back price, priciest first (no collectibles, no Goods)
     const shelf = items(db, g, u).filter((i) => ITEMS[i.item] && ITEMS[i.item]!.ready !== false)
-      .map((i) => ({ ...i, each: sellBackPrice(db, i.item) })).filter((i) => i.each > 0).sort((a, b) => b.each - a.each);
+      .map((i) => ({ ...i, each: sellBackPrice(db, g, i.item) })).filter((i) => i.each > 0).sort((a, b) => b.each - a.each);
     for (const i of shelf) {
       if (short() <= 0) break;
       const qty = Math.min(i.qty, Math.ceil(short() / i.each));

@@ -681,5 +681,51 @@ export const MIGRATIONS: readonly string[] = [
     at       INTEGER,
     PRIMARY KEY (guild_id, day, user_id)
   );
+  `,
+
+  /* v24: Main Street. Stock per server (with a price factor, sales since the last delivery and back-room stock),
+     wishlists, loyalty with Marquez, and player stores in Corner Shops. */ `
+  DROP TABLE shop_stock;
+  CREATE TABLE shop_stock (
+    guild_id TEXT NOT NULL,
+    item     TEXT NOT NULL,
+    stock    INTEGER NOT NULL,
+    back     INTEGER NOT NULL DEFAULT 0,
+    factor   REAL NOT NULL DEFAULT 1,
+    sold     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, item)
+  );
+  CREATE TABLE shop_wish (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    item     TEXT NOT NULL,
+    at       INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id, item)
+  );
+  CREATE TABLE shop_loyalty (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    spent    INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+  );
+  CREATE TABLE store_shelf (
+    id        INTEGER PRIMARY KEY,
+    guild_id  TEXT NOT NULL,
+    owner_id  TEXT NOT NULL,
+    lot       INTEGER NOT NULL,
+    item      TEXT NOT NULL,
+    qty       INTEGER NOT NULL,
+    price     INTEGER NOT NULL,
+    listed_at INTEGER NOT NULL
+  );
+  CREATE INDEX store_shelf_owner ON store_shelf (guild_id, owner_id);
+  CREATE TABLE store_totals (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    sales    INTEGER NOT NULL DEFAULT 0,
+    cents    INTEGER NOT NULL DEFAULT 0,
+    emptied  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id)
+  );
   `
 ];

@@ -33,7 +33,7 @@ function setup() {
   return { db, ctx, run, rich, later: (ms: number) => { now += ms; } };
 }
 
-test('buying from the shop: stock is shared and restocks hourly; Marquez explains refusals', async () => {
+test('buying from the shop: stock is per server, the delivery truck refills it; Marquez explains refusals', async () => {
   const { db, run, rich, later } = setup();
   await run('balance');
   assert.match(text(await run('purchase', { item: 'coffee' })), /🛍️ ☕ Coffee[\s\S]*1 × ☕ Coffee: ⬡100\.00/);
@@ -41,22 +41,26 @@ test('buying from the shop: stock is shared and restocks hourly; Marquez explain
   assert.match(text(await run('purchase', { item: 'title' })), /costs ⬡5,000\.00/);
   rich();
   await run('purchase', { item: 'coffee 4' });
-  assert.equal(stockOf(db, 'coffee'), 0);
-  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /sold out/, 'stock is shared by everyone');
+  assert.equal(stockOf(db, G, 'coffee'), 0);
+  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /sold out[\s\S]*truck brings more/, 'stock is shared by the server');
   later(HOUR);
-  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /🛍️/, 'restocked');
+  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /sold out/, 'no hourly restock anymore');
+  later(HOUR);
+  assert.match(text(await run('purchase', { item: 'coffee' }, B)), /🛍️/, 'the 2 PM truck restocked it');
   assert.match(text(await run('purchase', { item: 'megaphone' })), /costs ⬡1,000\.00|🛍️|sold out/);
   assert.ok(audit(db).ok);
 });
 
 test('the shop view switches shelves and buys with buttons', async () => {
   const { db, run, ctx } = setup();
-  const r = await run('shop');
+  const hub = await run('shop');
+  assert.match(text(hub), /Main Street[\s\S]*Marquez's Shop[\s\S]*Barnaby/);
+  const r = await run('shop', { shelf: 'work' });
   assert.match(text(r), /Marquez's Shop · 💼 Work[\s\S]*Coffee/);
   const market = press(ctx(), sessions.buttonId(r.session!, 'shelf:market'));
   assert.match(text(market.update), /Dividend Booster/);
-  const bought = press(ctx(), sessions.buttonId(r.session!, 'buy:booster'));
-  assert.match(text(bought.update), /Purchased: 📈 Dividend Booster/);
+  const bought = press(ctx(), sessions.buttonId(r.session!, 'buy:booster:1'));
+  assert.match(text(bought.update), /1 × 📈 Dividend Booster/);
   assert.equal(count(db, G, A, 'booster'), 1);
 });
 

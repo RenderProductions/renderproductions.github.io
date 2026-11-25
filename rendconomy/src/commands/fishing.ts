@@ -28,6 +28,7 @@ import { addItem, charges, count, items, takeItem, useEffect } from '../shop/inv
 import { ITEMS, marquez } from '../shop/items';
 import { addHeat, row as ugRow } from '../underground/underground';
 import { me } from './shared';
+import { barnaby, purchase } from './shop';
 import type { Command, Ctx, ReplyObject, SessionReply } from './types';
 
 const BLUE = 0x3ba7f2;
@@ -53,7 +54,7 @@ export const fish: Command = {
     switch (words[0]) {
       case 'sell': return sellAll(ctx, g);
       case 'bag': case 'catch': case 'inv': case 'inventory': return bagView(ctx, g);
-      case 'shop': case 'docks': case 'barnaby': return docks(ctx, g);
+      case 'shop': case 'docks': case 'barnaby': return barnaby(ctx, g);
       case 'buy': return buy(ctx, g, words.slice(1).join(' '));
       case 'dex': case 'fishdex': case 'collection': return dex(ctx, g, words[1]);
       case 'records': case 'record': return records(ctx, g);
@@ -302,15 +303,10 @@ function mount(ctx: Ctx, g: string, want: string): ReplyObject {
 
 // ================================================================ the docks, the Fishdex, records, places, tournament
 
-function docks(ctx: Ctx, g: string): ReplyObject {
-  const P = ctx.config.prefix;
-  return { embeds: [embed('wallet', `⚓ ${BARNABY.name}'s Bait & Tackle`, [
-    `*An old man in a yellow raincoat looks up from a tangle of line. "${ctx.rng.pick(['Biting today. Always biting, for the patient.', 'Saw the White Whale once. Nobody believes me.', 'Rod\'s only half of it. The other half is you.', 'Don\'t fish the sewer. I mean it. ...You\'re going to fish the sewer.'])}"*`, '',
-    ...BARNABY.gear.map((id) => `${itemE(id, ITEMS[id]!.emoji)} **${ITEMS[id]!.name}** · ${format(ITEMS[id]!.price!)} · ${ITEMS[id]!.desc}${count(ctx.db, g, ctx.user.id, id) ? ' ✅' : ''}`),
-    '', `Buy with \`${P}fish buy <gear>\`. Worms come from composting junk: \`${P}farm compost\`.`
-  ])] };
-}
 function buy(ctx: Ctx, g: string, want: string): ReplyObject {
+  // bait and the Bamboo Rod come off the truck like Marquez's stock
+  const tackle = Object.values(ITEMS).find((i) => i.shelf === 'tackle' && i.ready && (i.id === want || i.name.toLowerCase() === want || i.name.toLowerCase().startsWith(want) || (want === 'bamboo' && i.id === 'rod')));
+  if (want && tackle) return purchase.run(ctx, { item: tackle.id }) as ReplyObject;
   const id = BARNABY.gear.find((x) => x === want || ITEMS[x]!.name.toLowerCase() === want || ITEMS[x]!.name.toLowerCase().startsWith(want) || x.replace('rod_', '') === want);
   if (!want || !id) throw new GameError('docks.none', `Buy what? \`${ctx.config.prefix}fish shop\` shows ${BARNABY.name}'s gear.`);
   const r = ctx.db.tx(() => buyGear(ctx.db, g, ctx.user.id, id, ctx.now));

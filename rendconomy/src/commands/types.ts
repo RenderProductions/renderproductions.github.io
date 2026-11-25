@@ -46,7 +46,13 @@ export interface Button {
   style?: 'primary' | 'secondary' | 'success' | 'danger';
   emoji?: string;
   disabled?: boolean;
+  /** A dropdown instead of a button (it takes a whole row). Picking an option presses `${id}:${value}`. */
+  options?: SelectOption[];
+  /** The dropdown's text before anything is picked. */
+  placeholder?: string;
 }
+
+export interface SelectOption { label: string; value: string; emoji?: string; description?: string; default?: boolean }
 
 export interface ReplyObject {
   content?: string;

@@ -131,6 +131,7 @@
   .msg .btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; white-space: normal; }
   .msg .btns button { background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 4px 9px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 5px; }
   .msg .btns button.success { border-color: rgba(61, 220, 132, 0.6); color: #b9ffd5; } .msg .btns button.danger { border-color: rgba(255, 92, 97, 0.6); color: #ffc2c4; }
+  .msg .btns .sel { flex-basis: 100%; background: var(--panel-2); color: inherit; border: 1px solid var(--line-2); border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 12px; }
   .msg .btns button.primary { border-color: var(--gold); color: var(--gold); } .msg .btns button:disabled { opacity: 0.4; cursor: default; }
   .msg .btns img.emo { width: 16px; height: 16px; vertical-align: 0; }
   .msg .note { color: var(--dim); font-size: 10.5px; margin-top: 4px; display: block; }
@@ -431,6 +432,13 @@ function paint(d) {
     const box = document.createElement('div');
     box.className = 'btns';
     for (const b of rows) {
+      if (b.options) {   // a dropdown: picking an option presses id:value
+        const sel = document.createElement('select'); sel.className = 'sel'; sel.disabled = !!b.disabled;
+        sel.innerHTML = `<option value="">${esc(b.placeholder || b.label || 'Pick one')}</option>` + b.options.map((o) => `<option value="${esc(o.value)}"${o.default ? ' selected' : ''}>${esc((o.emoji && !/^<a?:/.test(o.emoji) ? o.emoji + ' ' : '') + o.label + (o.description ? ' · ' + o.description : ''))}</option>`).join('');
+        sel.addEventListener('change', () => { if (sel.value) pressBtn(d, b.id + ':' + sel.value); });
+        box.appendChild(sel);
+        continue;
+      }
       const x = document.createElement('button');
       x.type = 'button'; x.className = b.style || ''; x.disabled = !!b.disabled;
       x.innerHTML = (b.emoji ? (/^<a?:/.test(b.emoji) ? md(b.emoji) : esc(b.emoji)) + ' ' : '') + esc(b.label || '');
@@ -447,7 +455,7 @@ function apply(d, u) {
   if (u.live && u.live !== d._live) follow(d, u.live, u.everyMs);
 }
 async function pressBtn(d, id) {
-  d.querySelectorAll('.btns button').forEach((b) => { b.disabled = true; });
+  d.querySelectorAll('.btns button, .btns select').forEach((b) => { b.disabled = true; });
   const r = await run('__press ' + id, true);
   if (!r) { d._note = "Couldn't reach the bot. Try again."; paint(d); return; }
   d._note = r.notice || '';

@@ -40,18 +40,18 @@ test('bulk use: one message for many, "all" caps at 25, one-at-a-time items refu
   assert.ok(audit(db).ok);
 });
 
-test('a Rush Order restocks one item for everyone', async () => {
+test('a Rush Order restocks one item for everyone in the server', async () => {
   const { db, run, ctx, fund } = setup();
   await run('balance');
   fund(10_000);
-  for (let i = 0; i < 20 && stockOf(db, 'coffee') !== 0; i++) { try { buy(db, ctx().rng, G, A, 'coffee', 1, ctx().now); } catch { break; } }
-  assert.equal(stockOf(db, 'coffee'), 0);
+  for (let i = 0; i < 20 && stockOf(db, G, 'coffee') !== 0; i++) { try { buy(db, ctx().rng, G, A, 'coffee', 1, ctx().now); } catch { break; } }
+  assert.equal(stockOf(db, G, 'coffee'), 0);
   addItem(db, G, A, 'rushorder', 2);
   assert.match(text(await run('use', { item: 'rush order' })), /Which item/);
   assert.match(text(await run('use', { item: 'rush order', amount: 'col_nacho' })), /can't rush|doesn't|Which item/);
   const r = text(await run('use', { item: 'rush order coffee' }));
   assert.match(r, /\d+ Coffee\*\* back on the shelf/);
-  assert.ok(stockOf(db, 'coffee') > 0);
+  assert.ok(stockOf(db, G, 'coffee') > 0);
   assert.equal(count(db, G, A, 'rushorder'), 1);
   assert.ok(has(db, A, 'rush_order'));
   assert.match(text(await run('use', { item: 'rush order', amount: 'coffee' })), /already fully stocked/);

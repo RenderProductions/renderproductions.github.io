@@ -164,9 +164,17 @@ const LINES: Record<string, string[]> = {
   golden: ['Marquez squints at the gold. "That\'s not paint, is it, {n}?"'],
   holiday: ['Marquez is wearing a Santa hat. He does not mention it. "Evening, {n}."', 'There\'s tinsel on the register. "Happy holidays, {n}," Marquez says.',
     'Marquez hums along to the radio, quietly. "Cocoa\'s on the house, {n}. Have a look around."', '"Cold one out there, {n}," Marquez says. "Warm up a minute."',
-    'A string of lights blinks over the counter. Marquez looks almost cheerful. "Hello, {n}."']
+    'A string of lights blinks over the counter. Marquez looks almost cheerful. "Hello, {n}."'],
+  // Main Street: he warms up as you become a regular
+  familiar: ['Marquez looks up and almost smiles. "You again, {n}. Good."', '"Ah, {n}. I was hoping you\'d stop by."', 'Marquez nods like he remembers you. "Back for more, {n}?"'],
+  regular: ['"The usual, {n}?" Marquez is already reaching under the counter.', 'Marquez slides a cup of coffee across the counter without asking. "Morning, {n}."', '"Saved you a spot in line, {n}," Marquez says. There is no line.'],
+  friend: ['Marquez lights up when you walk in. "There you are, {n}. Sit a minute if you like."', '"Business is better when you\'re around, {n}," Marquez says, and seems to mean it.', 'Marquez leans on the counter. "Tell me how you\'ve been, {n}. Then shop."'],
+  family: ['Marquez steps out from behind the counter to greet you. "Family doesn\'t knock, {n}. Come in."', '"The back room\'s open for you, {n}. Always is."', 'Marquez hands you a key on a red string. "Don\'t lose it, {n}." He has done this before. You still have the last one.'],
+  friday: ['Marquez is taping a hand-lettered SALE sign to the window. "Fridays, {n}. Don\'t tell anyone I\'m soft."', '"Everything\'s marked down, {n}. Go wild. Within reason."', 'There\'s a black ribbon on the door. "Black Friday, {n}. Every Friday. Don\'t ask."'],
+  pricey: ['"{item}\'s been flying off the shelf, {n}. Price went up a little."', '"Folks can\'t get enough {item}, {n}. Supply and demand."'],
+  cheap: ['"Nobody\'s touched the {item} in a while, {n}. I knocked a bit off."', '"{item}\'s just sitting there, {n}. Cheaper than it was."']
 };
 
-export function marquez(kind: keyof typeof LINES, rng: Rng): string {
-  return rng.pick(LINES[kind]!).replace(/\{n\}/g, () => rng.pick(PET));
+export function marquez(kind: keyof typeof LINES, rng: Rng, item = ''): string {
+  return rng.pick(LINES[kind]!).replace(/\{n\}/g, () => rng.pick(PET)).replace(/\{item\}/g, item);
 }
