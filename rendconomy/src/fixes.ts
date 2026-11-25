@@ -103,6 +103,15 @@ export const FIXES: Fix[] = [
       db.run("DELETE FROM meta WHERE key LIKE 'ug.night:%' OR key LIKE 'ug.hosts:%'");
       return `refunded ${told.size} ${told.size === 1 ? 'player' : 'players'}: ${format(refunded)} for lots, ${format(bids)} in bids`;
     }
+  },
+  {
+    // Site Care: chat pay used to keep the text of each player's last paid message (to refuse repeats). It keeps a
+    // one-way fingerprint now, so the texts already stored are cleared.
+    id: '2026-11-25-chat-text',
+    run(db) {
+      const n = db.run('UPDATE chat_pay SET last_text = NULL WHERE last_text IS NOT NULL').changes;
+      return `cleared ${n} stored chat messages`;
+    }
   }
 ];
 

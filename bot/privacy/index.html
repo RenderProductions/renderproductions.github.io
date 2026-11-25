@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy | Render's Vision</title>
+<title>Privacy Policy | RendConomy</title>
 <meta name="description" content="Privacy policy for the Rend-Conomy Discord bot.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Render Productions">
-<meta property="og:title" content="Privacy Policy | Render's Vision">
+<meta property="og:title" content="Privacy Policy | RendConomy">
 <meta property="og:description" content="Privacy policy for the Rend-Conomy Discord bot.">
 <meta property="og:url" content="https://renderproductions.github.io/bot/privacy/">
 <meta property="og:image" content="https://renderproductions.github.io/og/bot.png">
@@ -35,45 +35,52 @@
     <nav class="subnav" aria-label="Rend-Conomy"><a href="/rend-conomy/">Market</a><a href="/rend-conomy/exchange/">Exchange</a><a href="/rend-conomy/map/">Map</a><a href="/play/">Play</a><a href="/bot/" aria-current="page">Bot</a><a href="/profile/">Players</a></nav>
 
   <h1 class="page-title">PRIVACY POLICY</h1>
-  <p class="meta">Render's Vision, the Rend-Conomy bot. Last updated: November 10, 2026</p>
+  <p class="meta">RendConomy, the Rend-Conomy bot, and this website. Last updated: November 25, 2026</p>
 
   <div class="prose">
-    <p>This policy explains what information the Render's Vision Discord bot, which runs the Rend-Conomy game ("the bot"), collects, how it is used, and the choices you have. The bot is run by Render Productions, the team behind The Render Room Discord server.</p>
+    <p>This policy explains what information the RendConomy Discord bot, which runs the Rend-Conomy game ("the bot"), and this website ("the site") collect, how it is used, and the choices you have. Both are run by Render Productions, the team behind The Render Room Discord server.</p>
 
     <h2>What the bot receives and stores</h2>
     <ul>
       <li><strong>Discord account details:</strong> your Discord user ID and username, which Discord provides whenever you use a command.</li>
       <li><strong>Server details:</strong> the ID of the server and channel where a command is used.</li>
-      <li><strong>Commands:</strong> the bot receives messages in servers it is in so it can detect commands. It acts on messages that start with its command prefix (<code>r!</code>) and on its slash commands. During an <code>r!work</code> shift, it also reads your next message in that channel as your answer to the task. If you have used the bot in a server, it also looks at your ordinary messages there for chat pay (whether a message is long enough and not a repeat) and to check answers to TODD's drop-in questions. We do not store the content of messages.</li>
-      <li><strong>Game data:</strong> your fictional cash balance, any debt to TODD, the shares and items you hold, your job and shifts, your custom title, your trades, cooldown times, loans with other players, and any player company you start. This is tied to your Discord user ID and the server you play in.</li>
+      <li><strong>Messages:</strong> the bot receives messages in servers it is in so it can detect commands. It acts on messages that start with its command prefix (<code>r!</code>) and on its slash commands. During some games (like an <code>r!work</code> shift or an odd job) it reads your next message in that channel as your answer. If you have used the bot in a server, it also looks at your ordinary messages there for chat pay and to check answers to TODD's drop-in questions. We do not store the content of your messages. To stop people from being paid twice for the same message, the bot keeps a one-way fingerprint of your last paid message, which can't be turned back into the text.</li>
+      <li><strong>Activity:</strong> the days you used the bot in each server (this decides who can run for mayor) and the time of your last chat pay.</li>
+      <li><strong>Game data:</strong> everything that makes up your game in each server, such as your fictional Polygon balance, savings and loans, shares and orders, items, job and shifts, farm, fish, buildings on the city map, achievements, the mayoral votes you cast, and any player company or store you run. This is tied to your Discord user ID and the server you play in.</li>
+      <li><strong>Things you write:</strong> text you choose to enter in the game, like a custom title, a company name, a store's prices, or a note on a Secret Santa gift, is stored and shown to the people it's meant for.</li>
+      <li><strong>Your inbox:</strong> the bot keeps your latest notifications (receipts, trade offers, reports) so you can read them with <code>r!inbox</code> or the bell on the site.</li>
     </ul>
 
     <h2>How the information is used</h2>
     <ul>
-      <li>To run the stock market game: processing your trades, balances, and rewards.</li>
-      <li>To reply to your commands, and to send receipts for your trades, purchases, and loans to your direct messages (you can turn these off with <code>r!receipts off</code>).</li>
+      <li>To run the game: processing your trades, balances, and rewards.</li>
+      <li>To reply to your commands, and to send receipts and reminders to your direct messages (you can turn receipts off with <code>r!receipts off</code>, and reminders off where you turned them on).</li>
       <li>To keep the bot fair and working, including spotting abuse and fixing bugs.</li>
     </ul>
 
-    <h2>Player companies are public</h2>
-    <p>If you start a player company, its name, ticker, level, treasury, share price, number of employees, and your Discord username are shown publicly on <a href="/rend-conomy/exchange/">the Exchange page</a> and in a public data file in this website's GitHub repository. Company names and usernames also appear in the bot's replies in any server where it's used.</p>
+    <h2>What's public</h2>
+    <p>If you start a player company, its name, ticker, level, treasury, share price, number of employees, and your Discord username are shown publicly on <a href="/rend-conomy/exchange/">the Exchange page</a> and in a public data file in this website's GitHub repository. Buildings on a server's city map, with their owners' names, are shown on <a href="/rend-conomy/map/">the city map</a>. Company names and usernames also appear in the bot's replies in any server where it's used.</p>
+    <p>The bot publishes a public profile for each player on <a href="/profile/">the profile page</a> and in a public data file in this website's GitHub repository: your Discord ID, name and profile picture, your achievements, collectibles, title, profile style, net worth, job, shifts worked and best casino win, and the names of the servers where you play. You can hide yours at any time with <code>r!profile private</code>, and it disappears the next time the site updates (within a few minutes).</p>
 
-    <h2>Public profiles and logging in</h2>
-    <p>The bot publishes a public profile for each player on <a href="/profile/">the profile page</a> and in a public data file in this website's GitHub repository: your Discord ID, name and profile picture, your achievements, collectibles, title, net worth, job, shifts worked and best casino win, and the names of the servers where you play. You can hide yours at any time with <code>r!profile private</code>, and it disappears the next time the site updates (within a few minutes).</p>
-    <p>"Log in with Discord" on the site only asks Discord who you are (your ID, name and picture) so it can show your profile. That happens entirely in your browser: the site has no server, nothing is sent to us, and the short-lived login token is used once and thrown away. The site remembers who you are in your browser until you log out.</p>
+    <h2>The website and logging in</h2>
+    <p>"Log in with Discord" asks Discord who you are (your ID, name and picture). Your browser keeps a short-lived Discord login token so you can play from the site. When you do something on the site (in the Play hub, the Trading Floor, the games or the profile customizer), your browser sends that request and your token to our relay, a small service on Cloudflare, which checks with Discord who you are and passes the request to the bot. The relay keeps each request and the bot's answer for about an hour, then deletes it. It also keeps a copy of the public profiles and market prices so pages load quickly.</p>
+    <p>If you link a role with <strong>Linked Roles</strong>, the relay stores the Discord tokens that let it update your role's details (like your net worth or achievement count) until you unlink it in Discord.</p>
+    <p>If you use <strong>Story of Varandia</strong>, the characters and campaigns you save are stored by the relay with your Discord ID and name, so you can open them on any device and share them with your campaign. A campaign's Discord webhook, if its game master adds one, is stored too, so rolls can be posted to their channel.</p>
+    <p>The site's browser games (like Render's File Tycoon and Iso-Chess) save your progress in your own browser. When you're logged in, they can send your results to the bot to unlock achievements and pay out Polygons.</p>
 
     <h2>Where it is stored</h2>
-    <p>The bot runs on a server from Bot-Hosting.net, where game data is stored in a database with regular backups. Player company information is also published to GitHub, as described above. Market prices come from a public file on this website and contain no personal information. Game data from the bot's earlier version on Bot Designer for Discord (BDFD) was not carried over.</p>
+    <p>The bot runs on a server from Bot-Hosting.net, where game data is stored in a database with regular backups. The relay and its database run on Cloudflare. Public profiles, player companies and market prices are published to this website's GitHub repository, as described above. Game data from the bot's earliest version on Bot Designer for Discord (BDFD) was not carried over.</p>
 
     <h2>Sharing</h2>
-    <p>We do not sell your information. It is only handled by the services needed to run the bot (Discord, Bot-Hosting.net, and GitHub), or shared if required by law.</p>
+    <p>We do not sell your information. It is only handled by the services needed to run the bot and the site (Discord, Bot-Hosting.net, Cloudflare and GitHub), or shared if required by law.</p>
 
     <h2>How long we keep it</h2>
-    <p>Game data is kept for as long as the bot is in use, so your balance and holdings carry over. We may reset game data, for example for a new season or after a bug fix.</p>
+    <p>Game data is kept for as long as the bot is in use, so your balance and holdings carry over. We may reset game data, for example for a new season or after a bug fix. Requests sent through the relay are deleted after about an hour.</p>
 
     <h2>Your choices</h2>
     <ul>
       <li>You can stop using the bot at any time.</li>
+      <li>You can hide your public profile with <code>r!profile private</code>, turn off receipts with <code>r!receipts off</code>, log out of the site, and unlink Linked Roles in Discord's settings.</li>
       <li>Server administrators can remove the bot from their server whenever they like.</li>
       <li>You can ask us to delete or reset your game data. Contact us using the details below.</li>
     </ul>

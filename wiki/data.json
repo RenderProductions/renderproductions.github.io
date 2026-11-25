@@ -4034,6 +4034,54 @@
    "secret": true
   },
   {
+   "id": "rft_first_byte",
+   "name": "First Byte",
+   "desc": "Sell your first file in Render's File Tycoon",
+   "category": "On the site",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "rft_six_figures",
+   "name": "Six Figures",
+   "desc": "Earn ⬡100,000 in Render's File Tycoon",
+   "category": "On the site",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "rft_gregulator",
+   "name": "The Gregulator",
+   "desc": "Install The Gregulator in Render's File Tycoon",
+   "category": "On the site",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "rft_fresh_install",
+   "name": "Fresh Install",
+   "desc": "Upgrade every piece of hardware in Render's File Tycoon",
+   "category": "On the site",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "rft_contractor",
+   "name": "Contractor",
+   "desc": "Run 50 modules at once in Render's File Tycoon",
+   "category": "On the site",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "secret-178",
+   "name": "???",
+   "desc": "A secret. Keep playing.",
+   "category": "On the site",
+   "rarity": "rare",
+   "secret": true
+  },
+  {
    "id": "completionist",
    "name": "Completionist",
    "desc": "Unlock every other achievement",

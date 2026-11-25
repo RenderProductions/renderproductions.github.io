@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Render's File Tycoon | Render Productions</title>
-<meta name="description" content="Render's File Tycoon: run file services on RenderOS, sell to the Rend-Conomy companies at live market prices, take their contracts, and cash out into your RendConomy wallet.">
+<meta name="description" content="Render's File Tycoon: wire up a file pipeline, sell to the Rend-Conomy companies at live prices, and cash out into your RendConomy wallet.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Render Productions">
 <meta property="og:title" content="Render's File Tycoon | Render Productions">
-<meta property="og:description" content="Run file services on RenderOS, sell to the Rend-Conomy companies at live market prices, and take their contracts.">
+<meta property="og:description" content="Render's File Tycoon: wire up a file pipeline and sell to the Rend-Conomy market.">
 <meta property="og:url" content="https://renderproductions.github.io/games/rft/">
 <meta property="og:image" content="https://renderproductions.github.io/og/games.png">
 <meta property="og:image:width" content="1200">
@@ -16,106 +16,142 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#ffe600">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=VT323&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="rft.css">
 </head>
 <body>
-<div class="wrap">
-
-  <nav class="nav" aria-label="Main">
-    <a class="brand" href="/">RENDER PRODUCTIONS</a>
-    <ul>
-      <li><a href="/">Home</a></li>
-      <li><a href="/rend-conomy/">Rend-Conomy</a></li>
-      <li><a href="/games/" aria-current="page">Games</a></li>
-      <li><a href="/patch-notes/">Patch Notes</a></li>
-      <li><a href="/wiki/">Wiki</a></li>
-      <li><a href="/discord/">Discord</a></li>
-    </ul>
-  </nav>
-
-  <main class="os" id="os">
-    <header class="taskbar">
-      <span class="logo">RenderOS</span>
-      <span class="money" id="money">⬡0</span>
-      <span class="rate" id="rate">+⬡0/s</span>
-      <span class="spacer"></span>
-      <button class="tb" id="btn-term" type="button">Terminal</button>
-      <button class="tb" id="btn-help" type="button">How to play</button>
-      <span class="clock" id="clock">--:--</span>
-    </header>
-
-    <div class="note" id="note" hidden></div>
-
-    <div class="desk">
-      <div class="col">
-      <section class="win w-services" aria-labelledby="t-services">
-        <h2 id="t-services">Services</h2>
-        <p class="hint">They make files on their own. Files sell to the company that wants them.</p>
-        <div class="buyamt" role="group" aria-label="How many to buy"><button data-amt="1" class="on">×1</button><button data-amt="10">×10</button><button data-amt="max">max</button></div>
-        <div id="services"></div>
-      </section>
-      <section class="win w-wallet" aria-labelledby="t-wallet">
-        <h2 id="t-wallet">Wallet &amp; Reformat</h2>
-        <div id="wallet"></div>
-        <div id="reformat"></div>
-        <div id="ach"></div>
-      </section>
-      </div>
-      <div class="col">
-      <section class="win w-inbox" aria-labelledby="t-inbox">
-        <h2 id="t-inbox">Inbox</h2>
-        <p class="hint">Companies send contracts. Files go to a contract you've taken before they're sold.</p>
-        <div id="inbox"></div>
-      </section>
-      <section class="win w-proc" aria-labelledby="t-proc">
-        <h2 id="t-proc">Processing</h2>
-        <p class="hint">Every level makes some files worth more.</p>
-        <div id="proc"></div>
-      </section>
-      </div>
-      <div class="col">
-      <section class="win w-market" aria-labelledby="t-market">
-        <h2 id="t-market">Market <span class="live" id="mkt-status">LOADING</span></h2>
-        <p class="hint">Live from the Rend-Conomy. A company pays more when its stock is up.</p>
-        <div id="market"></div>
-      </section>
-      <section class="win w-hw" aria-labelledby="t-hw">
-        <h2 id="t-hw">Hardware</h2>
-        <div class="meters" id="meters"></div>
-        <div id="hw"></div>
-      </section>
-      </div>
-    </div>
-
-    <footer class="log" id="log" aria-live="polite"></footer>
-  </main>
-
-  <div class="modal" id="term" hidden>
-    <div class="term">
-      <div class="term-head"><span>TERMINAL</span><button type="button" id="term-x" aria-label="Close">×</button></div>
-      <div class="term-out" id="term-out"></div>
-      <form id="term-form"><span>&gt;</span><input id="term-in" autocomplete="off" spellcheck="false" aria-label="Terminal input"></form>
-    </div>
+<header id="rp-bar">
+  <a class="brand" href="/">RENDER PRODUCTIONS</a>
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/rend-conomy/">Rend-Conomy</a></li>
+    <li><a href="/games/" aria-current="page">Games</a></li>
+    <li><a href="/patch-notes/">Patch Notes</a></li>
+    <li><a href="/wiki/">Wiki</a></li>
+    <li><a href="/discord/">Discord</a></li>
+  </ul>
+</header>
+<div id="app">
+ <div id="sidebar">
+  <div id="sidebar-header">
+   <div class="game-title">RENDER'S FILE TYCOON</div>
+   <div class="game-sub">wire modules · sell signals · watch the market</div>
   </div>
 
-  <div class="modal" id="help" hidden>
-    <div class="term help">
-      <div class="term-head"><span>HOW TO PLAY</span><button type="button" id="help-x" aria-label="Close">×</button></div>
-      <div class="help-body">
-        <p><b>Services</b> make files by themselves. Buy more to make more. Each file sells to the company that wants that kind of file, at a price that moves with its stock.</p>
-        <p><b>Hardware</b> decides how much your PC can run. Over the CPU limit, everything slows down. Run hot and it throttles. RAM caps how many services you can have. Storage sets how long your PC keeps working while you're away. The network card makes files sell for more.</p>
-        <p><b>Processing</b> makes files worth more. <b>Contracts</b> pay well for a batch of one kind of file, if you deliver in time.</p>
-        <p><b>Reformat</b> wipes your services, hardware and Polygons for Format Points. Every point makes everything produce more, forever.</p>
-        <p><b>Log in with Discord</b> and you can cash out: <span id="help-rate">⬡5 for every ⬡1,000</span> you earn here goes into your RendConomy wallet. Achievements here unlock in the bot too.</p>
-        <p class="dim">The game saves in this browser on its own.</p>
-      </div>
-    </div>
+  <!-- Economy stats -->
+  <div id="stats">
+   <div class="stat"><span class="stat-label">Polygons</span><span class="stat-val green" id="st-money">150 ⬡</span></div>
+   <div class="stat"><span class="stat-label">Income/s</span><span class="stat-val" id="st-ips">0 ⬡/s</span></div>
+   <div class="stat"><span class="stat-label">Sold</span><span class="stat-val" id="st-sold">0</span></div>
+   <div class="stat"><span class="stat-label">Earned</span><span class="stat-val green" id="st-total">0 ⬡</span></div>
   </div>
 
+  <!-- PC Resource HUD -->
+  <div id="pc-hud">
+   <div class="hud-item" id="hud-cpu">
+    <div class="hud-label">CPU <span id="hud-cpu-pct" style="font-size:8px;color:var(--green)">0%</span></div>
+    <div class="hud-val" id="hud-cpu-val">0%</div>
+    <div class="hud-sub" id="hud-cpu-sub">i3-12100 · 4C</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-cpu-bar" style="width:0%"></div></div>
+   </div>
+   <div class="hud-item" id="hud-ram">
+    <div class="hud-label">RAM</div>
+    <div class="hud-val" id="hud-ram-val">0 / 8 GB</div>
+    <div class="hud-sub" id="hud-ram-sub">DDR4-3200</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-ram-bar" style="width:0%"></div></div>
+   </div>
+   <div class="hud-item" id="hud-disk">
+    <div class="hud-label">Storage</div>
+    <div class="hud-val" id="hud-disk-val">0 / 240 GB</div>
+    <div class="hud-sub" id="hud-disk-sub">SATA SSD</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-disk-bar" style="width:0%"></div></div>
+   </div>
+   <div class="hud-item" id="hud-temp">
+    <div class="hud-label">Temp</div>
+    <div class="hud-val" id="hud-temp-val">35°C</div>
+    <div class="hud-sub" id="hud-temp-sub">Stock cooler</div>
+    <div class="hud-bar"><div class="hud-bar-fill ok" id="hud-temp-bar" style="width:0%"></div></div>
+   </div>
+  </div>
+
+  <!-- Market demand (reads /prices.json) -->
+  <div id="mkt">
+   <div id="mkt-head"><span>Market demand</span><span id="mkt-status" class="off">LOADING</span></div>
+   <div id="mkt-rows"></div>
+  </div>
+
+  <!-- The bot: cash out and achievements (logged in with Discord) -->
+  <div id="wal">
+   <div id="wal-head"><span>RendConomy wallet</span><span id="wal-status">⬡5 / ⬡1,000</span></div>
+   <div id="wal-body"></div>
+   <div id="wal-ach"></div>
+  </div>
+
+  <!-- Hardware panel button -->
+  <button id="hw-btn" onclick="openHardware()">
+   <i class="ti ti-cpu"></i> Hardware Upgrades
+  </button>
+
+  <div id="module-list"></div>
+ </div>
+
+ <div id="canvas-wrap">
+  <div id="viewport">
+   <canvas id="grid-canvas"></canvas>
+   <svg id="svg-layer" overflow="visible"></svg>
+   <div id="node-layer"></div>
+   <svg id="temp-wire" overflow="visible"></svg>
+  </div>
+  <div id="toolbar">
+   <button class="tbtn" onclick="autoLayout()">Auto-arrange</button>
+   <button class="tbtn" onclick="resetView()">Reset view</button>
+   <button class="tbtn" id="btn-3d" onclick="RFT3D.toggle()">3D view</button>
+   <button class="tbtn" onclick="openTerminal()"><i class="ti ti-terminal-2"></i> Terminal</button>
+   <button class="tbtn" onclick="saveGame(true)">Save</button>
+   <button class="tbtn danger" onclick="resetSave()">Reset save</button>
+   <button class="tbtn danger" onclick="clearAll()">Clear all</button>
+  </div>
+  <div id="zoom-hud"></div>
+  <div id="log-bar"></div>
+ </div>
 </div>
-<script src="/rv.js"></script>
+
+<!-- Upgrade Modal -->
+<div id="upg-modal">
+ <div id="upg-box">
+  <span id="upg-close" onclick="closeUpgrade()">✕</span>
+  <h3 id="upg-title">Upgrade</h3>
+  <div id="upg-content"></div>
+ </div>
+</div>
+
+<!-- Hardware Panel -->
+<div id="hw-modal">
+ <div id="hw-box">
+  <span class="hw-close" onclick="closeHardware()">✕</span>
+  <h3>🖥️ PC Hardware</h3>
+  <div class="hw-subtitle">Upgrade your rig to unlock higher CPU caps, RAM, faster storage, and better cooling.</div>
+  <div id="hw-content"></div>
+ </div>
+</div>
+
+<!-- Terminal -->
+<div id="term-modal">
+ <div id="term-box" role="dialog" aria-label="Render Terminal">
+  <span class="hw-close" onclick="closeTerminal()">✕</span>
+  <h3>RENDER TERMINAL</h3>
+  <div id="term-out" aria-live="polite"></div>
+  <form id="term-form" autocomplete="off">
+   <span class="term-prompt">&gt;</span>
+   <input id="term-input" type="text" maxlength="40" spellcheck="false" placeholder="Enter code">
+  </form>
+ </div>
+</div>
+
 <script src="rft.js"></script>
-<script src="/holiday.js" defer></script>
+<script src="rft3d.js"></script>
+<script src="/face/popup.js" data-odds="20"></script>
+<script src="/rv.js" defer></script>
 </body>
 </html>

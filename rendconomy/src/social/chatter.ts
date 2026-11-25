@@ -9,6 +9,10 @@ import { economy } from '../config';
 import type { Db } from '../core/db';
 import { payFromReserve } from '../core/economy';
 import { wallet } from '../core/ledger';
+import { createHash } from 'node:crypto';
+
+/** A one-way fingerprint of a message: enough to spot the same message twice, not enough to read it. */
+export const fingerprint = (text: string): string => createHash('sha256').update(text).digest('base64').slice(0, 16);
 import { format, polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 import { dayKey, MINUTE } from '../core/time';
@@ -40,14 +44,16 @@ export function chatPay(ctx: Ctx, text: string): Cents {
   const paidToday = row && row.day === today ? row.paid : 0;
   const x = boosts.reduce((m, fn) => m * fn(ctx.db, g, ctx.now), chatMult(ctx.db));
   if (row && ctx.now - row.last_at < R.cooldownMs) return 0;
-  if (row && row.last_text === clean.toLowerCase()) return 0;
+  // only a fingerprint of the last paid message is kept (to refuse repeats), never its text
+  const print = fingerprint(clean.toLowerCase());
+  if (row && row.last_text === print) return 0;
   const room = R.perDay * x - paidToday;
   if (room <= 0) return 0;
   const want = Math.min(room, ctx.rng.int(R.min, R.max) * x);
   const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet(g, ctx.user.id), cents: want, reason: 'chat', guildId: g, actorId: ctx.user.id, now: ctx.now });
   ctx.db.run(`INSERT INTO chat_pay (guild_id, user_id, day, paid, last_at, last_text) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(guild_id, user_id) DO UPDATE SET day = excluded.day, paid = excluded.paid, last_at = excluded.last_at, last_text = excluded.last_text`,
-    g, ctx.user.id, today, paidToday + paid, ctx.now, clean.toLowerCase());
+    g, ctx.user.id, today, paidToday + paid, ctx.now, print);
   if (paid > 0 && bump(ctx.db, ctx.user.id, 'chat_pay', paid) >= polygons(2500)) awardHere('chatterbox');
   return paid;
 }
