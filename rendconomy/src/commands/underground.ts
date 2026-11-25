@@ -1,4 +1,4 @@
-// No Questions Asked: r!underground (the Connector), and his hijack of TODD's drop-ins on password nights.
+// No Questions Asked: r!underground (Mr. Glaz), and his hijack of TODD's drop-ins on password nights.
 import { award, awardHere } from '../achievements/achievements';
 import { economy } from '../config';
 import { payFromReserve } from '../core/economy';
@@ -18,17 +18,34 @@ import {
 import { me } from './shared';
 import type { Command, Ctx, ReplyObject } from './types';
 
-const WHISPERS = ['Keep your voice down.', 'Don\'t say my name. Don\'t say yours either.', 'You weren\'t followed? Good.', 'Make it quick.', 'Psst. Over here.', 'I wasn\'t here. Neither were you.', 'Nobody saw you come in. Keep it that way.', 'There\'s a frequency out there. Tune it to RED SUIT. Or don\'t.'];
-const BYES = ['Now get out of here.', 'We never talked.', 'Back door. Go.', 'Don\'t come back too soon.'];
+// Mr. Glaz: a red robe, the hood over his face, one white eye (his left). Mostly psychotic, driven by paranoia: he
+// whispers, then snaps; counts things; hears what isn't there; never says anyone's name. He keeps his rules.
+const WHISPERS = [
+  'Over here. NO. Don\'t look at me. Look at the wall.',
+  'Seven steps from the street. You took eight. Who taught you to walk like that.',
+  'Keep your voice down. The bricks listen. I\'ve asked them not to.',
+  'You weren\'t followed. I checked. I checked twice. I\'ll check again.',
+  'The eye on the screen can\'t see in here. It CAN\'T. ...Can it.',
+  'Don\'t say my name. I can hear you thinking it.',
+  'I counted the stars tonight. One was missing. Somebody took it. Not me.',
+  'Make it quick. They change shifts at the top of the hour.',
+  'The coat at the counter knows I\'m here. The coat lets it slide. Don\'t test the coat.',
+  'There\'s a frequency out there. Tune it to RED ROBE. Or don\'t. They\'d want you not to.',
+  'Ha. HA. ...Sorry. Something funny happened in my head.',
+  'Third crate off the truck is always light. I know where it goes. You don\'t.',
+  'The old man by the water talks too much. Fish don\'t talk. That\'s why I trust fish.',
+  'Shh. SHH. ...Okay. It\'s gone.'
+];
+const BYES = ['We never talked.', 'Back door. GO.', 'Walk out backwards. They track footprints by the toes.', 'Don\'t come back too soon. Don\'t come back too late either.', 'Leave. LEAVE. ...Thank you for your business.'];
 const pick = <T>(ctx: Ctx, list: T[]): T => list[Math.floor(ctx.rng.next() * list.length)]!;
-const ce = (): string => emojiOr('connector', '🎩');
+const ce = (): string => emojiOr('connector', '👁️');
 
 export const heatBar = (heat: number): string => {
   const n = stars(heat);
   return emojiOr('heat', '★').repeat(n) + emojiOr('heat_off', '☆').repeat(5 - n);
 };
 
-/** The message the Connector leaves in place of one of TODD's drop-ins on a password night. */
+/** The message Mr. Glaz leaves in place of one of TODD's drop-ins on a password night. */
 export function connectorHijack(db: Ctx['db'], guildId: string, now: number): ReplyObject | null {
   const n = passwordToPost(db, guildId, now);
   if (!n || !n.password) return null;
@@ -38,7 +55,7 @@ export function connectorHijack(db: Ctx['db'], guildId: string, now: number): Re
     description: [
       '~~First right answer wins.~~ ~~You have 60 seconds.~~',
       '',
-      '**THE CONNECTOR HAS TAKEN CONTROL OF THIS INFERNAL MACHINE TO LEAVE YOU THIS!**',
+      '**MR. GLAZ HAS TAKEN CONTROL OF THIS INFERNAL MACHINE TO LEAVE YOU THIS!**',
       '',
       `${emojiOr('password', '🔐')} Tonight's password: ||**${n.password}**||`,
       n.where === 'alley' ? '-# The alley. Ten o\'clock. You didn\'t hear it from me.' : `-# ${tileName(n.lot)}. Ten o'clock. You didn't hear it from me.`
@@ -89,7 +106,7 @@ function where(ctx: Ctx, g: string, n: Night): string {
 function shopView(ctx: Ctx, g: string, n: Night, extra: string[]): ReplyObject {
   const P = ctx.config.prefix;
   const stock = stockFor(g, n.night);
-  return { embeds: [embed('underground', `${ce()} The Connector`, [
+  return { embeds: [embed('underground', `${ce()} Mr. Glaz`, [
     ...extra, ...(extra.length ? [''] : []),
     `*"${pick(ctx, WHISPERS)}"*`,
     where(ctx, g, n) + ` Open until ${discordTime(nightCloses(n.night), 't')}.`,
@@ -107,13 +124,13 @@ function closedView(ctx: Ctx, g: string, extra: string[], why: string): ReplyObj
   return { embeds: [embed('underground', `${ce()} The Underground`, [...extra, ...(extra.length ? [''] : []), why, '', ...pockets(ctx, g)])] };
 }
 
-/** Throws unless the Connector will deal with this player right now. */
+/** Throws unless Mr. Glaz will deal with this player right now. */
 function open(ctx: Ctx, g: string): Night {
   const n = tonight(ctx.db, g, ctx.now);
-  if (!n) throw new GameError('ug.closed', `The lot's empty. The Connector comes back ${discordTime(nextOpen(ctx.now))}.`);
+  if (!n) throw new GameError('ug.closed', `The lot's empty. Mr. Glaz comes back ${discordTime(nextOpen(ctx.now))}.`);
   const r = row(ctx.db, g, ctx.user.id, ctx.now);
   if (r.locked_until > ctx.now) throw new GameError('ug.locked', `The door stays shut. You're too hot. Come back ${discordTime(r.locked_until)}.`);
-  if (n.password && r.entered !== n.night) throw new GameError('ug.password', `A slot in the door slides open. One red eye, one blue. *"Password."*\n-# \`${ctx.config.prefix}underground <password>\``);
+  if (n.password && r.entered !== n.night) throw new GameError('ug.password', `A slot in the door slides open. One white eye, open too wide. *"Password."*\n-# \`${ctx.config.prefix}underground <password>\``);
   return n;
 }
 
@@ -196,8 +213,8 @@ function buy(ctx: Ctx, g: string, w: string, n: Night, raw: string, extra: strin
 }
 
 export const underground: Command = {
-  name: 'underground', aliases: ['ug', 'connector', 'blackmarket', 'bm', 'nqa'], system: 'underground', guildOnly: true,
-  description: 'No Questions Asked: the Connector\'s black market (10 PM to 4 AM Eastern)',
+  name: 'underground', aliases: ['ug', 'glaz', 'mrglaz', 'connector', 'blackmarket', 'bm', 'nqa'], system: 'underground', guildOnly: true,
+  description: 'No Questions Asked: Mr. Glaz\'s black market (10 PM to 4 AM Eastern)',
   options: [
     { name: 'action', type: 'string', description: 'Blank to look, a password, or: buy, fence, launder, smuggle, snitch, heat' },
     { name: 'target', type: 'string', description: 'An item, a loot #, an amount, or a player' },
@@ -215,10 +232,10 @@ export const underground: Command = {
 
       if (!action || verb === 'look' || verb === 'heat' || verb === 'me') {
         const n = tonight(ctx.db, g, ctx.now);
-        if (!n) return closedView(ctx, g, done, `The lot's empty. The Connector comes back ${discordTime(nextOpen(ctx.now))} (10 PM to 4 AM Eastern), somewhere condemned.`);
+        if (!n) return closedView(ctx, g, done, `The lot's empty. Mr. Glaz comes back ${discordTime(nextOpen(ctx.now))} (10 PM to 4 AM Eastern), somewhere condemned.`);
         const r = row(ctx.db, g, ctx.user.id, ctx.now);
         if (r.locked_until > ctx.now) return closedView(ctx, g, done, `${where(ctx, g, n)} The door stays shut for you: you're too hot. Come back ${discordTime(r.locked_until)}.`);
-        if (n.password && r.entered !== n.night) return closedView(ctx, g, done, `${where(ctx, g, n)}\nA slot in the door slides open. One red eye, one blue. *"Password."*\n-# \`${P}underground <password>\` (it's out there somewhere tonight)`);
+        if (n.password && r.entered !== n.night) return closedView(ctx, g, done, `${where(ctx, g, n)}\nA slot in the door slides open. One white eye, open too wide. *"Password."*\n-# \`${P}underground <password>\` (it's out there somewhere tonight)`);
         return shopView(ctx, g, n, done);
       }
 
@@ -243,12 +260,12 @@ export const underground: Command = {
         return { embeds: [embed('underground', `${emojiOr('snitch', '🐀')} You made a call`, [`TODD checked it out. Nothing. Now he's looking at **you**.`, `-# +${UG.snitchMiss} Heat: ${heatBar(heatNow(ctx.db, g, ctx.user.id, ctx.now))}`, ...more])] };
       }
 
-      // Everything else is dealing with the Connector himself
+      // Everything else is dealing with Mr. Glaz himself
       const known = ['buy', 'fence', 'sell', 'launder', 'smuggle', 'run'];
       if (!known.includes(verb)) {
         // a password?
         const n = tonight(ctx.db, g, ctx.now);
-        if (!n) throw new GameError('ug.closed', `The lot's empty. The Connector comes back ${discordTime(nextOpen(ctx.now))}.`);
+        if (!n) throw new GameError('ug.closed', `The lot's empty. Mr. Glaz comes back ${discordTime(nextOpen(ctx.now))}.`);
         if (!n.password) throw new GameError('ug.nopw', `*"No password tonight. Just come in."* \`${P}underground\``);
         if (verb !== n.password) throw new GameError('ug.wrongpw', 'The slot slams shut.');
         const r = row(ctx.db, g, ctx.user.id, ctx.now);

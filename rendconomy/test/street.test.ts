@@ -198,12 +198,12 @@ test('player stores: stock a Corner Shop at any price, others buy, the owner kee
   done();
 });
 
-test('the panel: Main Street hub, dropdowns, item detail, Barnaby\'s', async () => {
+test('the panel: Main Street hub, dropdowns, item detail, Chuck\'s', async () => {
   const { db, run, fund, ctx } = setup(friday);
   await run('balance');
   fund(A, 5_000);
   const hub = await run('shop');
-  assert.match(text(hub), /Main Street[\s\S]*Daily deal[\s\S]*Black Friday[\s\S]*Barnaby[\s\S]*Player stores/);
+  assert.match(text(hub), /Main Street[\s\S]*Daily deal[\s\S]*Black Friday[\s\S]*Chuck[\s\S]*Player stores/);
   const shelf = press(ctx(), sessions.buttonId(hub.session!, 'go:shelf'));
   assert.ok(shelf.update?.buttons?.[0]?.[0]?.options, 'a shelf dropdown');
   const market = press(ctx(), `${sessions.buttonId(hub.session!, 'shelf')}:market`);   // a dropdown pick
@@ -215,7 +215,7 @@ test('the panel: Main Street hub, dropdowns, item detail, Barnaby\'s', async () 
   const w = press(ctx(), sessions.buttonId(hub.session!, 'wish:coffee'));
   assert.match(text(w.update), /On your wishlist/);
   const docks = await run('fish', { action: 'shop' });
-  assert.match(text(docks), /Barnaby's Bait & Tackle[\s\S]*Lure[\s\S]*Fiberglass Rod/);
+  assert.match(text(docks), /Chuck Alfrey's Bait & Tackle[\s\S]*Lure[\s\S]*Fiberglass Rod/);
   assert.match(text(await run('fish', { action: 'buy lure' })), /Lure/);
   assert.equal(count(db, G, A, 'lure'), 1);
   done();
@@ -226,7 +226,7 @@ test('no two buttons in a Main Street view share an id (Discord refuses the mess
   await run('balance');
   fund(A, 100);   // can afford exactly one, so "Buy max" would be 1
   const hub = await run('shop');
-  for (const v of ['go:shelf', 'go:barnaby', 'go:stores', 'go:card', 'go:hub']) {
+  for (const v of ['go:shelf', 'go:chuck', 'go:stores', 'go:card', 'go:hub']) {
     const r = press(ctx(), sessions.buttonId(hub.session!, v));
     const ids = (r.update?.buttons ?? []).flat().map((b) => b.id);
     assert.equal(new Set(ids).size, ids.length, v);

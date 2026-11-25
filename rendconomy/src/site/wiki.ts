@@ -14,7 +14,7 @@ import { LANDMARKS } from '../estate/landmarks';
 import { EVENTS } from '../events/world';
 import { CROPS, FARMING, GRADES, MARKET, MUTATIONS, PRICE_SWING } from '../farming/farming';
 import { FISHING, PLACES, RODS, SIZE_NAMES, SPECIES, odds } from '../fishing/fishing';
-import { BARNABY, TOURNEY } from '../fishing/docks';
+import { CHUCK, TOURNEY } from '../fishing/docks';
 import { ITEMS as GEAR } from '../shop/items';
 import { HEIST, ROLES, TARGETS } from '../heists/heists';
 import { LOANS } from '../loans/loans';
@@ -88,10 +88,10 @@ export function wikiData(): Record<string, unknown> {
     heists: { roles: Object.values(ROLES).map((r) => ({ label: r.label, emoji: r.emoji, odds: r.odds, haul: r.haul })), targets: Object.entries(TARGETS).map(([id, t]) => ({ id, label: t.label, emoji: t.emoji, odds: t.odds, stake: p(t.stake), haul: t.haul.map(p), needs: t.needs })), rules: { minCrew: HEIST.minCrew, maxCrew: HEIST.maxCrew, playerGapHours: hours(HEIST.playerGapMs), serverGapHours: hours(HEIST.serverGapMs), fine: HEIST.fine, getaway: HEIST.getaway } },
     fishing: {
       cooldownMinutes: FISHING.cooldownMs / 60_000, bait: p(FISHING.bait), lureCasts: FISHING.lureCasts, bagMax: FISHING.bagMax, coolerMax: FISHING.coolerMax, sizes: SIZE_NAMES,
-      giantChance: FISHING.giantChance, giant: FISHING.giant, wormsPerJunk: FISHING.wormsPerJunk, barnaby: BARNABY.name,
+      giantChance: FISHING.giantChance, giant: FISHING.giant, wormsPerJunk: FISHING.wormsPerJunk, chuck: CHUCK.name,
       places: Object.values(PLACES).map((x) => ({ id: x.id, name: x.name, emoji: x.emoji, desc: x.desc, needs: x.needs, dexReward: p(x.dexReward) })),
       catch: Object.values(SPECIES).map((c) => ({ id: c.id, emoji: c.emoji, name: c.name, place: c.place, size: SIZE_NAMES[c.size], lb: c.lb, value: c.value, when: c.when })),
-      gear: BARNABY.gear.map((id) => ({ id, name: GEAR[id]!.name, price: p(GEAR[id]!.price!), desc: GEAR[id]!.desc })),
+      gear: CHUCK.gear.map((id) => ({ id, name: GEAR[id]!.name, price: p(GEAR[id]!.price!), desc: GEAR[id]!.desc })),
       rods: RODS.map((r) => ({ id: r.id, name: r.name, tension: r.tension })),
       tables: Object.fromEntries(Object.keys(PLACES).map((pl) => [pl, odds(pl as keyof typeof PLACES, 'bait', { rodTier: 0, hour: 12, rain: false, storm: false, luck: 0 })])),
       tourney: { entry: p(TOURNEY.entry), seed: p(TOURNEY.seed), split: TOURNEY.split }

@@ -1,4 +1,4 @@
-// The Fishy Deep: Old Barnaby's bait and tackle at the docks, the Fishdex, server records, trophies, and the
+// The Fishy Deep: Chuck Alfrey's bait and tackle at the docks, the Fishdex, server records, trophies, and the
 // Saturday fishing tournament.
 import { award } from '../achievements/achievements';
 import { economy } from '../config';
@@ -15,7 +15,33 @@ import { addItem, count } from '../shop/inventory';
 import { ITEMS } from '../shop/items';
 import { FISHING, PLACES, RODS, SPECIES, speciesAt, type Place } from './fishing';
 
-export const BARNABY = { name: 'Old Barnaby', gear: ['rod_fiberglass', 'rod_carbon', 'rod_polygon', 'cooler', 'boat'] };
+export const CHUCK = { name: 'Chuck Alfrey', gear: ['rod_fiberglass', 'rod_carbon', 'rod_polygon', 'cooler', 'boat'] };
+
+// Chuck Alfrey: a weathered old fisherman in a yellow raincoat. Talkative, warm, rambling, superstitious. Has a story
+// for everything (maybe a third are true), swears he saw the White Whale, keeps the records board in chalk, and
+// talks to the fish. Marquez's opposite: he never stops talking. He and Marquez are friends; that's all he says.
+export const CHUCK_LINES = {
+  greet: [
+    'Biting today! Always biting, for the patient.',
+    'Saw the White Whale once. Big as a church. It winked at me! Nobody believes me.',
+    'Rod\'s only half of it. The other half is you. The third half is luck. Don\'t do the math.',
+    'Don\'t fish the sewer. I mean it. ...You\'re going to fish the sewer.',
+    'Marquez sends his regards. He always does. Good man. Terrible fisherman.',
+    'Never rename a boat. Never whistle on the pier. Never trust a fish that looks happy.',
+    'Knock on the dock before you cast. Go on. ...Louder. The fish need to know you\'re polite.',
+    'Rain\'s coming. I can feel it in my knee. Rain means the big ones come up to see what the fuss is.',
+    'Caught a pike this long once. No, LONGER. Hold your arms out. Longer than that.',
+    'You hear that? That\'s the lake. She\'s in a mood today. Use worms.',
+    'Ah, you again! Come in, come in. Mind the bucket. Don\'t mind what\'s in it.',
+    'I talk to the fish, you know. Sometimes I apologize to them. Sometimes they deserve it.'
+  ],
+  saturday: ['Saturday! Tournament day! Heaviest fish wins! I\'d enter, but it wouldn\'t be fair to you.', 'Chalkboard\'s wiped and ready. Tournament\'s on! Go get me something heavy.'],
+  heat: ['You\'ve been down the alley. I can smell it on you. The fish can too.', 'Whatever you\'ve been up to after dark, wash it off before you cast. Fish are honest folk.'],
+  night: ['Up late? Catfish are up too. Eels, worse. Bring a light.', 'Night fishing! Now we\'re talking. Keep your voice down, they\'re listening.'],
+  handover: ['Treat it right and it\'ll treat you right!', 'There she is. Don\'t leave her in the sun.', 'That\'ll outlast you if you\'re kind to it. Ha!', 'Now you\'re a real angler. Well. Closer.'],
+  boat: ['A boat! Now you\'re talking. Mind the Deep. The Deep minds you back.'],
+  dex: ['Knew you had it in you!', 'Look at that! A whole page! I\'m putting it on the board.', 'Every last one. You\'ve got the patience. Or nothing better to do. Either way!']
+};
 
 // ---------------------------------------------------------------- gear
 
@@ -31,7 +57,7 @@ export const bagMax = (db: Db, g: string, u: string): number => (count(db, g, u,
 export function cantFish(db: Db, g: string, u: string, place: Place, now = Date.now()): string | null {
   const tier = rodTier(db, g, u);
   if (tier < 0) return 'You need a rod. Marquez sells Bamboo Rods: `shop tackle`.';
-  if (place === 'river' && tier < 1) return `The River needs a Fiberglass Rod or better. ${BARNABY.name} sells them: \`fish shop\`.`;
+  if (place === 'river' && tier < 1) return `The River needs a Fiberglass Rod or better. ${CHUCK.name} sells them: \`fish shop\`.`;
   if (place === 'pier' && tier < 2 && !hasPerk(db, g, u, 'lighthouse')) return `The Pier needs a Carbon Rod or better, or your own Lighthouse. \`fish shop\``;
   if (place === 'deep' && !count(db, g, u, 'boat')) return `The Deep is too far out to cast from shore. You need a Boat: \`fish shop\`.`;
   if (place === 'ice' && new Date(now - 5 * 3600_000).getUTCMonth() !== 11) return 'The lake only freezes in December.';
@@ -40,7 +66,7 @@ export function cantFish(db: Db, g: string, u: string, place: Place, now = Date.
 
 export function buyGear(db: Db, g: string, u: string, id: string, now = Date.now()): { name: string; price: Cents } {
   const it = ITEMS[id];
-  if (!it || !BARNABY.gear.includes(id)) throw new GameError('docks.none', `${BARNABY.name} doesn't sell that. \`fish shop\` shows what he has.`);
+  if (!it || !CHUCK.gear.includes(id)) throw new GameError('docks.none', `${CHUCK.name} doesn't sell that. \`fish shop\` shows what he has.`);
   if (count(db, g, u, id) > 0) throw new GameError('docks.have', `You already have a ${it.name}.`);
   const price = it.price!;
   if (balance(db, wallet(g, u)) < price) throw new GameError('funds.short', `A ${it.name} is ${format(price)}. You have ${format(balance(db, wallet(g, u)))}.`);

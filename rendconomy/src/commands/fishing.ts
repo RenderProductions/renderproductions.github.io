@@ -1,5 +1,5 @@
 // The Fishy Deep: r!fish. Cast at one of six places, reel in the big ones, fill the Fishdex, chase records, mount
-// a trophy, enter the Saturday tournament, and shop at Old Barnaby's. See src/fishing/.
+// a trophy, enter the Saturday tournament, and shop at Chuck Alfrey's. See src/fishing/.
 import { awardHere, bump, sameDay } from '../achievements/achievements';
 import { workBonus } from '../city/state';
 import { economy } from '../config';
@@ -17,7 +17,7 @@ import { hasPerk, perkLevel } from '../estate/estate';
 import { isEvent } from '../events/world';
 import { BOTTLES } from '../fishing/bottles';
 import {
-  BARNABY, TOURNEY, bagMax, buyGear, cantFish, dexOf, enter, logCatch, potOf, recordsOf, rodTier, standings, tourneyDay, trophyOf
+  CHUCK, TOURNEY, bagMax, buyGear, cantFish, dexOf, enter, logCatch, potOf, recordsOf, rodTier, standings, tourneyDay, trophyOf
 } from '../fishing/docks';
 import {
   FISHING, PLACES, RODS, SIZE_NAMES, SPECIES, addToBag, bagCount, bagOf, cast, dailyPrice, fmtLb, itemId, partOfDay, speciesAt, takeFromBag,
@@ -28,7 +28,7 @@ import { addItem, charges, count, items, takeItem, useEffect } from '../shop/inv
 import { ITEMS, marquez } from '../shop/items';
 import { addHeat, row as ugRow } from '../underground/underground';
 import { me } from './shared';
-import { barnaby, purchase } from './shop';
+import { chuck, purchase } from './shop';
 import type { Command, Ctx, ReplyObject, SessionReply } from './types';
 
 const BLUE = 0x3ba7f2;
@@ -54,7 +54,7 @@ export const fish: Command = {
     switch (words[0]) {
       case 'sell': return sellAll(ctx, g);
       case 'bag': case 'catch': case 'inv': case 'inventory': return bagView(ctx, g);
-      case 'shop': case 'docks': case 'barnaby': return barnaby(ctx, g);
+      case 'shop': case 'docks': case 'chuck': return chuck(ctx, g);
       case 'buy': return buy(ctx, g, words.slice(1).join(' '));
       case 'dex': case 'fishdex': case 'collection': return dex(ctx, g, words[1]);
       case 'records': case 'record': return records(ctx, g);
@@ -80,7 +80,7 @@ function castLine(ctx: Ctx, g: string, words: string[]): ReplyObject {
   if (words[0] && PLACE_WORDS[words[0]]) place = PLACE_WORDS[words.shift()!]!;
   const why = cantFish(ctx.db, g, ctx.user.id, place, ctx.now);
   if (why) throw new GameError('fish.place', why.replace(/`([a-z])/g, `\`${P}$1`));
-  if (inBag(ctx, g) >= bagMax(ctx.db, g, ctx.user.id)) throw new GameError('fish.full', `Your bag is full (${bagMax(ctx.db, g, ctx.user.id)}). Sell your catch with \`${P}fish sell\`${count(ctx.db, g, ctx.user.id, 'cooler') ? '' : `, or get a Cooler from ${BARNABY.name}`}.`);
+  if (inBag(ctx, g) >= bagMax(ctx.db, g, ctx.user.id)) throw new GameError('fish.full', `Your bag is full (${bagMax(ctx.db, g, ctx.user.id)}). Sell your catch with \`${P}fish sell\`${count(ctx.db, g, ctx.user.id, 'cooler') ? '' : `, or get a Cooler from ${CHUCK.name}`}.`);
   if (sessions.active(ctx.db, 'reel', g, ctx.user.id, ctx.now)) throw new GameError('fish.reeling', 'You\'ve already got one on the line! Reel it in first.');
   // the bait
   const want = words.join(' ');
@@ -187,7 +187,7 @@ function land(ctx: Ctx, g: string, id: string, lb: number, giant: boolean, place
     giant ? '😲 That is *not* a normal size for one of those.' : null,
     log.first ? `📖 **New in your Fishdex!**` : null,
     log.record ? `🏆 **Server record!** The heaviest ${f.name} anyone here has caught${log.prevRecord ? ` (the old one was ${fmtLb(log.prevRecord)})` : ''}.` : null,
-    log.placeDone ? `🎉 **${PLACES[log.placeDone].name} is complete in your Fishdex!** ${format(PLACES[log.placeDone].dexReward)} from ${BARNABY.name}: "Knew you had it in you."` : null,
+    log.placeDone ? `🎉 **${PLACES[log.placeDone].name} is complete in your Fishdex!** ${format(PLACES[log.placeDone].dexReward)} from ${CHUCK.name}: "Knew you had it in you."` : null,
     log.dexDone ? '🌟 **You caught every fish there is.** The whole Fishdex.' : null,
     f.size === 4 ? `-# Word travels fast. *${marquez(id === 'whale' ? 'whale' : 'koi', ctx.rng)}*` : null,
     tourneyDay(ctx.now) && ctx.db.get('SELECT 1 FROM fish_tourney WHERE guild_id = ? AND day = ? AND user_id = ?', g, tourneyDay(ctx.now), ctx.user.id) ? `-# 🏆 Tournament: your best today is ${fmtLb(ctx.db.get<{ lb: number }>('SELECT lb FROM fish_tourney WHERE guild_id = ? AND day = ? AND user_id = ?', g, tourneyDay(ctx.now), ctx.user.id)!.lb)}. \`${P}fish tournament\`` : null
@@ -307,10 +307,10 @@ function buy(ctx: Ctx, g: string, want: string): ReplyObject {
   // bait and the Bamboo Rod come off the truck like Marquez's stock
   const tackle = Object.values(ITEMS).find((i) => i.shelf === 'tackle' && i.ready && (i.id === want || i.name.toLowerCase() === want || i.name.toLowerCase().startsWith(want) || (want === 'bamboo' && i.id === 'rod')));
   if (want && tackle) return purchase.run(ctx, { item: tackle.id }) as ReplyObject;
-  const id = BARNABY.gear.find((x) => x === want || ITEMS[x]!.name.toLowerCase() === want || ITEMS[x]!.name.toLowerCase().startsWith(want) || x.replace('rod_', '') === want);
-  if (!want || !id) throw new GameError('docks.none', `Buy what? \`${ctx.config.prefix}fish shop\` shows ${BARNABY.name}'s gear.`);
+  const id = CHUCK.gear.find((x) => x === want || ITEMS[x]!.name.toLowerCase() === want || ITEMS[x]!.name.toLowerCase().startsWith(want) || x.replace('rod_', '') === want);
+  if (!want || !id) throw new GameError('docks.none', `Buy what? \`${ctx.config.prefix}fish shop\` shows ${CHUCK.name}'s gear.`);
   const r = ctx.db.tx(() => buyGear(ctx.db, g, ctx.user.id, id, ctx.now));
-  return { embeds: [embed('wallet', `⚓ ${r.name}`, [`${BARNABY.name} hands it over. *"Treat it right and it'll treat you right."*`, `-# −${format(r.price)}. ${id === 'boat' ? `Head out with \`${ctx.config.prefix}fish deep\`.` : id === 'rod_fiberglass' ? `The River's open: \`${ctx.config.prefix}fish river\`.` : id === 'rod_carbon' ? `The Pier's open: \`${ctx.config.prefix}fish pier\`.` : ''}`])] };
+  return { embeds: [embed('wallet', `⚓ ${r.name}`, [`${CHUCK.name} hands it over. *"Treat it right and it'll treat you right."*`, `-# −${format(r.price)}. ${id === 'boat' ? `Head out with \`${ctx.config.prefix}fish deep\`.` : id === 'rod_fiberglass' ? `The River's open: \`${ctx.config.prefix}fish river\`.` : id === 'rod_carbon' ? `The Pier's open: \`${ctx.config.prefix}fish pier\`.` : ''}`])] };
 }
 function places(ctx: Ctx, g: string): ReplyObject {
   const P = ctx.config.prefix;

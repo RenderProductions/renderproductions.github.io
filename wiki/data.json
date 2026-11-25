@@ -56,7 +56,7 @@
   },
   "underground": {
    "label": "The Underground",
-   "emoji": "🎩",
+   "emoji": "👁️",
    "count": 1
   },
   "general": {
@@ -301,7 +301,7 @@
     "mainstreet",
     "street"
    ],
-   "description": "Main Street: Marquez's shop, Barnaby's tackle and player stores; buy, sell, wishlist, stock your store",
+   "description": "Main Street: Marquez's shop, Chuck's tackle and player stores; buy, sell, wishlist, stock your store",
    "section": "wallet",
    "slash": "/shop",
    "options": [
@@ -798,12 +798,14 @@
    "name": "underground",
    "aliases": [
     "ug",
+    "glaz",
+    "mrglaz",
     "connector",
     "blackmarket",
     "bm",
     "nqa"
    ],
-   "description": "No Questions Asked: the Connector's black market (10 PM to 4 AM Eastern)",
+   "description": "No Questions Asked: Mr. Glaz's black market (10 PM to 4 AM Eastern)",
    "section": "underground",
    "slash": "/underground",
    "options": [
@@ -2147,7 +2149,7 @@
    "price": 300,
    "stock": 5,
    "shelf": "Bait & Tackle",
-   "desc": "Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait. Better rods: Old Barnaby at the docks.",
+   "desc": "Lets you fish the Lake and the Sewer. Yours for good. Each cast costs ⬡5 of bait. Better rods: Chuck Alfrey at the docks.",
    "passive": true,
    "unlock": false
   },
@@ -3842,7 +3844,7 @@
   {
    "id": "not_on_my_watch",
    "name": "Not on My Watch",
-   "desc": "Keep the Connector off your block for 7 nights",
+   "desc": "Keep Mr. Glaz off your block for 7 nights",
    "category": "No Questions Asked",
    "rarity": "rare",
    "secret": false
@@ -4587,7 +4589,7 @@
    12
   ],
   "wormsPerJunk": 2,
-  "barnaby": "Old Barnaby",
+  "chuck": "Chuck Alfrey",
   "places": [
    {
     "id": "lake",
@@ -5548,7 +5550,7 @@
     "hours": 6,
     "maxLevel": 1,
     "perk": "Neighborhood Watch",
-    "perkText": "the Connector can't set up within 1 tile, and no squatters within 1 tile"
+    "perkText": "Mr. Glaz can't set up within 1 tile, and no squatters within 1 tile"
    }
   ],
   "landmarks": [

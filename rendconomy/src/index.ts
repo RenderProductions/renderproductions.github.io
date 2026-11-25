@@ -117,7 +117,7 @@ async function main(): Promise<void> {
       const ch = msg.channel;
       const everyone = msg.guild?.roles.everyone;
       const open = !!everyone && 'permissionsFor' in ch && !!ch.permissionsFor(everyone)?.has(['ViewChannel', 'SendMessages']);
-      // No Questions Asked: on a password night, the Connector hijacks TODD's next drop-in to leave it
+      // No Questions Asked: on a password night, Mr. Glaz hijacks TODD's next drop-in to leave it
       if (open && ctx.guildId && ch.isSendable()) {
         const hijack = db.tx(() => connectorHijack(db, ctx.guildId!, ctx.now));
         if (hijack) { await ch.send({ ...hijack, allowedMentions: { parse: [] } }); return; }

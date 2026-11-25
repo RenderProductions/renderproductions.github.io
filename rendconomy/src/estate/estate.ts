@@ -1,7 +1,7 @@
 // Oh My God, 2 in 1!: the city. Each server's map is an empty 8×8 grid of land (tiles A1–H8). Players claim a
 // tile and build on it: construction takes real time, buildings level up, and every building does something.
 // Neighbors matter: Parks lift the rent around them, Factories drag it down, Stations bring trade within two
-// tiles, Corner Shops love homes next door, and a Police Station keeps the Connector (and squatters) away.
+// tiles, Corner Shops love homes next door, and a Police Station keeps Mr. Glaz (and squatters) away.
 //
 // Holding a lot of the map is still hard, as in Room to Grow:
 //   - property tax climbs with how many buildings you own,
@@ -41,7 +41,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   bank: kind('bank', 'Bank Branch', 'Bank Branches', '🏦', 60_000, 600, 200, 8, 3, 'Branch Manager', 'your savings earn 25% more interest per level'),
   warehouse: kind('warehouse', 'Warehouse', 'Warehouses', '📦', 18_000, 100, 60, 4, 3, 'Cold Storage & Wholesale', 'sell crops at the best price of the last 3 days (5 at level 2, 7 at level 3), and order seeds wholesale with your own daily allowance', { industrial: true }),
   park: kind('park', 'Park', 'Parks', '🌳', 5_000, 0, 10, 1, 1, 'Green Space', 'no rent, but +15% rent for every building next to it'),
-  police: kind('police', 'Police Station', 'Police Stations', '🚓', 25_000, 100, 100, 6, 1, 'Neighborhood Watch', 'the Connector can\'t set up within 1 tile, and no squatters within 1 tile')
+  police: kind('police', 'Police Station', 'Police Stations', '🚓', 25_000, 100, 100, 6, 1, 'Neighborhood Watch', 'Mr. Glaz can\'t set up within 1 tile, and no squatters within 1 tile')
 };
 export const KIND_ORDER: Kind[] = ['shack', 'apartment', 'shop', 'mansion', 'lighthouse', 'station', 'factory', 'warehouse', 'barn', 'bank', 'park', 'police'];
 
@@ -214,7 +214,7 @@ export function settle(db: Db, guildId: string, now: number): EstateNews[] {
     const lots = lotsOf(db, guildId, now);
     const storms = weatherLog(db).filter((w) => w.kind === 'storm');
     const bonus = landmarkRent(db, guildId) + workBonus(db, guildId, 'rent', now);   // landmarks, and the city's public works
-    // No Questions Asked: nights the Connector squatted in an owned place (its rent is halved that day)
+    // No Questions Asked: nights Mr. Glaz squatted in an owned place (its rent is halved that day)
     let hosts: { lot: number; from: number; until: number }[] = [];
     try { hosts = JSON.parse(db.meta(`ug.hosts:${guildId}`) ?? '[]'); } catch { /* none */ }
     const owners = new Map<string, { n: number; beacon: boolean }>();
@@ -252,7 +252,7 @@ function settleLot(db: Db, lots: Lot[], l: Lot, owners: Map<string, { n: number;
     const fx = effects(lots, l, to);
     // the day's rent, at the condition it started with
     let r = dayRent(l, fx, bonus);
-    if (hosts.some((h) => h.lot === l.lot && h.from < to && h.until > from)) r = Math.floor(r / 2);   // the Connector squatted here
+    if (hosts.some((h) => h.lot === l.lot && h.from < to && h.until > from)) r = Math.floor(r / 2);   // Mr. Glaz squatted here
     if (r > 0) {
       const paid = payFromReserve(db, economy.reserveStart, { to: w, cents: r, reason: 'estate.rent', guildId: l.guild_id, actorId: owner, now: to, note: { lot: l.lot } });
       rent += paid;

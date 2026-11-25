@@ -337,7 +337,7 @@ test('landmarks: the server funds them together; the TODD Statue adds rent every
   assert.match(text(await execute(find('landmark')!, ctx(), {})), new RegExp(LANDMARKS[1]!.name));
 });
 
-test('the Connector won\'t set up next to a Police Station; with nowhere left, he takes the alley', async () => {
+test('Mr. Glaz won\'t set up next to a Police Station; with nowhere left, he takes the alley', async () => {
   const { db, run, fund, ctx } = setup();
   fund(A, 100_000);
   await run('build', 'D4', 'police');

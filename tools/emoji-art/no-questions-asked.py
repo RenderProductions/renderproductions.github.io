@@ -26,24 +26,23 @@ I = {}
 FLAME = ["..O.", ".OO.", "OxOO", "OxxO", ".OO."]   # the 'hot' mark on stolen goods
 CUBE = [".QQQQQQ.", "QVVVVVVQ", "QqqVVqqQ", "QqqQQqqQ", ".QQQQQQ."]
 P['V2'] = (255, 242, 122)
-# ---- the Connector: a red suit and a wide red hat, eyes in shadow (one red, one blue)
-P.update({'e1': (255, 70, 70), 'e2': (90, 170, 255), 'r1': (205, 40, 48), 'r2': (140, 22, 30), 'r3': (238, 84, 84)})
+# ---- Mr. Glaz: a red robe with the hood pulled over his face; in the shadow, one white eye (his left)
+P.update({'e1': (255, 255, 255), 'e2': (190, 200, 225), 'r1': (205, 40, 48), 'r2': (140, 22, 30), 'r3': (238, 84, 84), 'hd': (14, 10, 18)})
 c = C()
-c.r(5, 19, 26, 27, 'r1'); c.r(5, 19, 6, 27, 'r2'); c.r(25, 19, 26, 27, 'r2')      # the suit
-c.r(13, 19, 18, 27, 'K'); c.r(15, 20, 16, 26, 'h'); c.r(15, 21, 16, 25, 'r2')      # black shirt, a tie
-for i in range(7): c.p(12 - i // 2, 19 + i, 'r3'); c.p(19 + i // 2, 19 + i, 'r3')   # lapels
-c.r(9, 15, 22, 19, 'r1'); c.r(9, 15, 10, 19, 'r2'); c.r(21, 15, 22, 19, 'r2')      # the collar, turned up
-c.r(11, 11, 20, 18, 'F')                                                          # the face
-c.r(11, 11, 20, 13, 'E'); c.r(11, 14, 20, 14, 'K')                                # the hat's shadow over the eyes
-c.p(13, 13, 'e1'); c.p(18, 13, 'e2')                                              # one red eye, one blue
-c.r(13, 16, 18, 16, 'A'); c.p(18, 15, 'A')                                        # a crooked mouth
-c.r(10, 17, 21, 18, 'r1')                                                          # collar hides the chin
-c.r(11, 4, 20, 9, 'r1'); c.r(11, 4, 20, 4, 'r3'); c.r(11, 8, 20, 9, 'K')           # the crown and a black band
-c.r(13, 4, 18, 5, 'r3')
-c.r(3, 10, 28, 11, 'r1'); c.r(3, 10, 28, 10, 'r3')                                 # the wide brim
-for (x, y) in ((3, 11), (28, 11)): c.im.putpixel((x, y), (13, 19, 34, 255))
-c.r(4, 12, 6, 12, 'r2'); c.r(25, 12, 27, 12, 'r2')                                 # the brim dips at the edges
-c.r(21, 23, 27, 27, 'K'); c.r(22, 24, 26, 26, 'E'); c.r(23, 22, 25, 22, 'K')      # briefcase
+for y in range(19, 28):                                                            # the robe, wider toward the hem
+    w = 9 + (y - 19) // 2 + 2
+    c.r(16 - w, y, 15 + w, y, 'r1'); c.p(16 - w, y, 'r2'); c.p(15 + w, y, 'r2')
+for x in (8, 12, 19, 23): c.r(x, 23, x, 27, 'r2')                                  # folds
+for y in range(3, 21):                                                             # the hood: a pointed cowl
+    half = min(9, 2 + (y - 3) * 0.75) if y < 12 else 9 - max(0, y - 18)
+    c.r(int(16 - half), y, int(15 + half), y, 'r1')
+    c.p(int(16 - half), y, 'r2'); c.p(int(15 + half), y, 'r3')
+for y in range(8, 20):                                                             # the opening, all shadow
+    half = 5 if 10 <= y <= 17 else 3 if y in (8, 9, 18) else 2
+    c.r(16 - half, y, 15 + half, y, 'hd')
+c.r(10, 7, 21, 7, 'r3'); c.r(9, 19, 22, 20, 'r2')                                  # the hood's edge, the drape at the neck
+c.r(17, 12, 19, 13, 'e1'); c.p(18, 13, 'K'); c.p(16, 12, 'e2'); c.p(20, 13, 'e2')  # one white eye, wide open (his left)
+c.p(18, 11, 'e2')
 I['connector'] = c
 # ---- the Underground: a steel door with an eye slot
 c = C()

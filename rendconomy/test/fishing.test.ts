@@ -70,7 +70,7 @@ test('gear opens places; the sewer adds Heat; worms come from compost', async ()
   await run('balance'); fund(A, 60_000);
   addItem(db, G, A, 'rod');
   assert.match(text(await run('fish', { action: 'river' })), /Fiberglass Rod/);
-  assert.match(text(await run('fish', { action: 'shop' })), /Old Barnaby's Bait & Tackle[\s\S]*Fiberglass Rod[\s\S]*Boat/);
+  assert.match(text(await run('fish', { action: 'shop' })), /Chuck Alfrey's Bait & Tackle[\s\S]*Fiberglass Rod[\s\S]*Boat/);
   assert.match(text(await run('fish', { action: 'buy fiberglass' })), /Fiberglass Rod/);
   assert.match(text(await run('fish', { action: 'buy fiberglass' })), /already have/);
   assert.match(text(await run('fish', { action: 'river' })), /The River/);

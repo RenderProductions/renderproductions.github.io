@@ -479,6 +479,117 @@
           "text": "I don't KNOW anybody by that name. nobody does. what does he WEAR, even??"
         }
       ]
+    },
+    "MR GLAZ": {
+      "actions": [
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "WHO TOLD YOU THAT NAME?!"
+        },
+        {
+          "type": "wait",
+          "ms": 1400
+        },
+        {
+          "type": "glitch",
+          "ms": 80
+        },
+        {
+          "type": "text",
+          "text": "...fine. FINE. Down the alley. Third door. DON'T knock."
+        },
+        {
+          "type": "flag",
+          "name": "connector"
+        },
+        {
+          "type": "wait",
+          "ms": 1800
+        },
+        {
+          "type": "redirect",
+          "to": "/backstage/underground/"
+        }
+      ]
+    },
+    "MR. GLAZ": {
+      "actions": [
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "WHO TOLD YOU THAT NAME?!"
+        },
+        {
+          "type": "wait",
+          "ms": 1400
+        },
+        {
+          "type": "glitch",
+          "ms": 80
+        },
+        {
+          "type": "text",
+          "text": "...fine. FINE. Down the alley. Third door. DON'T knock."
+        },
+        {
+          "type": "flag",
+          "name": "connector"
+        },
+        {
+          "type": "wait",
+          "ms": 1800
+        },
+        {
+          "type": "redirect",
+          "to": "/backstage/underground/"
+        }
+      ]
+    },
+    "RED ROBE": {
+      "actions": [
+        {
+          "type": "glitch",
+          "ms": 400
+        },
+        {
+          "type": "text",
+          "theme": "rare",
+          "text": "WHO TOLD YOU THAT NAME?!"
+        },
+        {
+          "type": "wait",
+          "ms": 1400
+        },
+        {
+          "type": "glitch",
+          "ms": 80
+        },
+        {
+          "type": "text",
+          "text": "...fine. FINE. Down the alley. Third door. DON'T knock."
+        },
+        {
+          "type": "flag",
+          "name": "connector"
+        },
+        {
+          "type": "wait",
+          "ms": 1800
+        },
+        {
+          "type": "redirect",
+          "to": "/backstage/underground/"
+        }
+      ]
     }
   }
 }

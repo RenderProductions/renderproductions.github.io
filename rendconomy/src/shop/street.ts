@@ -12,7 +12,7 @@ export const STREET = {
   factor: { min: 0.8, max: 1.3, up: 0.05, down: 0.05, drift: 0.02, slowBelow: 0.25 },
   dailyDeal: 0.3,
   friday: { featured: 0.4, rest: 0.15 },
-  /** Marquez's shelves, in the order Black Friday features them (one a week). Barnaby's tackle isn't one. */
+  /** Marquez's shelves, in the order Black Friday features them (one a week). Chuck's tackle isn't one. */
   fridayShelves: ['work', 'market', 'casino', 'fun', 'garden', 'style', 'chess'] as Shelf[],
   /** Never discounted and never moved by demand. */
   fixed: ['title', 'mystery'],

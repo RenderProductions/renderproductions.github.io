@@ -46,7 +46,7 @@ def topbar(current):
 # A pixel emoji (the bot's own art, from bot/emojis) in front of each section heading: 'page#heading': 'name'.
 HEAD_ICONS = {
     'achievements#rarity': 'rarity_legendary', 'achievements#all': 'achievement',
-    'characters#marquez': 'shop', 'characters#todd': 'todd', 'characters#connector': 'connector',
+    'characters#marquez': 'shop', 'characters#chuck': 'rod_carbon', 'characters#todd': 'todd', 'characters#connector': 'connector',
     'city#building': 'construction', 'city#buildings': 'property', 'city#neighbors': 'tile', 'city#money': 'polygon', 'city#perks': 'promoted',
     'city#freight': 'freight', 'city#landmarks': 'landmark_statue', 'city#trouble': 'squatter',
     'commands#all': 'reference', 'emojis#all': 'rainbow_carrot',
@@ -62,7 +62,7 @@ HEAD_ICONS = {
     'glossary#terms': 'reference',
     'heists#targets': 'heist', 'heists#roles': 'password', 'heists#trains': 'freight', 'heists#loot': 'hot_gem',
     'main-street#shopping': 'shop', 'main-street#truck': 'truck', 'main-street#prices': 'up', 'main-street#sales': 'black_friday', 'main-street#loyalty': 'loyalty_card',
-    'main-street#wishlist': 'wishlist', 'main-street#barnaby': 'rod_carbon', 'main-street#stores': 'stall',
+    'main-street#wishlist': 'wishlist', 'main-street#chuck': 'rod_carbon', 'main-street#stores': 'stall',
     'market#hours': 'time', 'market#trading': 'stonks', 'market#news': 'megaphone', 'market#dividends': 'polygon', 'market#orders': 'receipt',
     'market#brokers': 'broker', 'market#shorts': 'down',
     'odds#casino': 'slots', 'odds#vip': 'vip', 'odds#heists': 'heist', 'odds#fishing': 'fishing', 'odds#crops': 'farm',

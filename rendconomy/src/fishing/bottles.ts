@@ -3,7 +3,7 @@
 export const BOTTLES: string[] = [
   'TODD, a machine. Cold, calculated. Thirsty for money.',
   'Marquez, is that really his name?',
-  'Connector... Suspicious.',
+  'Mr. Glaz... Suspicious.',
   'TODD, truly a marvel of design.',
   "I don't like the shopkeep's glare.",
   'The contraband man reeks of sewage.',
@@ -11,6 +11,6 @@ export const BOTTLES: string[] = [
   'The Reserve is not as full as they say.',
   'Ask TODD where the Polygons go at night.',
   'I saw the White Whale once. It looked at me like it knew my name.',
-  'The red suit was dry. He came up out of the water and the suit was dry.',
+  'The red robe was dry. He came up out of the water and the robe was dry.',
   'Do not trust a koi that glows.'
 ];

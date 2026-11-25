@@ -54,7 +54,7 @@ test('buying from the shop: stock is per server, the delivery truck refills it; 
 test('the shop view switches shelves and buys with buttons', async () => {
   const { db, run, ctx } = setup();
   const hub = await run('shop');
-  assert.match(text(hub), /Main Street[\s\S]*Marquez's Shop[\s\S]*Barnaby/);
+  assert.match(text(hub), /Main Street[\s\S]*Marquez's Shop[\s\S]*Chuck/);
   const r = await run('shop', { shelf: 'work' });
   assert.match(text(r), /Marquez's Shop · 💼 Work[\s\S]*Coffee/);
   const market = press(ctx(), sessions.buttonId(r.session!, 'shelf:market'));

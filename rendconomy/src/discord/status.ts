@@ -38,7 +38,7 @@ export function happenings(db: Db, now: number, servers: number): string[] {
   if (pot >= 100_000) out.push(`🎟️ A lottery pot is up to ${compact(pot)}. Drawn Sunday`);
   const party = db.get<{ v: string }>("SELECT MAX(CAST(value AS INTEGER)) AS v FROM meta WHERE key LIKE 'estate.party:%'")?.v;
   if (party && Number(party) > now) out.push('🎉 There\'s a party at a Mansion. Chat pay is doubled there');
-  if (nightKey(now)) out.push('🎩 The Connector is open for business. Somewhere condemned');
+  if (nightKey(now)) out.push('👁️ Mr. Glaz is open for business. Somewhere condemned');
   const day = holidayDay(now);
   if (day >= 1 && day <= HOLIDAY.doors) out.push(`🎄 Advent door ${day} is open. /advent`);
   const reserve = balance(db, RESERVE);

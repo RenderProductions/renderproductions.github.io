@@ -2,7 +2,7 @@
 // with its own fish; rods that open them up; every catch with its own weight (and the odd giant); fish that bite
 // by time of day and weather; daily prices; the Fishdex, server records and trophies; treasure and messages in
 // bottles. Real fish live in the fish bag (table fish_bag, one row per fish with its weight); junk stays in the
-// inventory as fish_<id> (it composts). Reeling in, the tournament and Old Barnaby's shop are in their own files.
+// inventory as fish_<id> (it composts). Reeling in, the tournament and Chuck Alfrey's shop are in their own files.
 import type { Db } from '../core/db';
 import { polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';

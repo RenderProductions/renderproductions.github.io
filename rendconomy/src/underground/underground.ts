@@ -1,4 +1,4 @@
-// No Questions Asked: the Underground. The Connector (a red suit, a wide red hat, one red eye and one blue)
+// No Questions Asked: the Underground. Mr. Glaz (a red robe, the hood over his face, one white eye: his left)
 // squats in one of the server's condemned lots every night from 10 PM to 4 AM Eastern, or in the most run-down
 // place on the map if nothing's condemned (its owner loses half that day's rent). Some nights there's a password,
 // which he leaves by hijacking one of TODD's drop-ins.
@@ -60,8 +60,8 @@ export const LOOT: Record<LootKind, { name: string; emoji: string; value: [numbe
   crate: { name: 'a crate of something', emoji: 'hot_crate', value: [500, 4_000] }
 };
 
-export const PASSWORDS = ['velvet', 'deadbolt', 'redeye', 'blueeye', 'sidedoor', 'cellar', 'crowbar', 'lowtide', 'stray', 'lamplight', 'hushhush', 'ashcan',
-  'blackcat', 'tincan', 'nightjar', 'backroom', 'redhat', 'gutterball', 'quietcoin', 'smokestack', 'bricklayer', 'coldcase', 'redsuit', 'neonrat'];
+export const PASSWORDS = ['velvet', 'deadbolt', 'whiteeye', 'hooded', 'sidedoor', 'cellar', 'crowbar', 'lowtide', 'stray', 'lamplight', 'hushhush', 'ashcan',
+  'blackcat', 'tincan', 'nightjar', 'backroom', 'redrobe', 'gutterball', 'quietcoin', 'smokestack', 'bricklayer', 'coldcase', 'oneeye', 'neonrat'];
 
 // ---------------------------------------------------------------- the night
 /** The night this instant belongs to (the date it started on), or null between 4 AM and 10 PM. */
@@ -138,7 +138,7 @@ export const heatFor = (n: Night | null, heat: number): number => Math.round(hea
 export function hostsOf(db: Db, guildId: string): { lot: number; from: number; until: number }[] {
   try { return JSON.parse(db.meta(`ug.hosts:${guildId}`) ?? '[]'); } catch { return []; }
 }
-/** For a password night: the Connector's message has gone out. */
+/** For a password night: Mr. Glaz's message has gone out. */
 export function markPosted(db: Db, guildId: string, n: Night): void {
   db.setMeta(`ug.night:${guildId}`, JSON.stringify({ ...n, posted: true }));
 }
@@ -191,7 +191,7 @@ export function addHeat(db: Db, g: string, u: string, amount: number, now: numbe
     for (let i = 1; i < UG.lockoutNights; i++) n = nextDay(n);
     const until = nightCloses(n);
     db.run('UPDATE underground SET locked_until = ? WHERE guild_id = ? AND user_id = ?', until, g, u);
-    out.push('**You\'re too hot.** The Connector won\'t deal with you for two nights.');
+    out.push('**You\'re too hot.** Mr. Glaz won\'t deal with you for two nights.');
   }
   return out;
 }
@@ -238,7 +238,7 @@ export function dropLoot(db: Db, g: string, u: string, now: number, rand: () => 
   row(db, g, u, now);
   return db.get<Loot>('SELECT * FROM hot_loot WHERE id = last_insert_rowid()')!;
 }
-/** What the Connector pays for a piece: 50% fresh, rising to 90% after three days. */
+/** What Mr. Glaz pays for a piece: 50% fresh, rising to 90% after three days. */
 export const fencePrice = (l: Loot, now: number): Cents => Math.floor(l.value * (UG.fenceFresh + (UG.fenceCool - UG.fenceFresh) * Math.min(1, (now - l.got_at) / (UG.coolDays * DAY))));
 
 export type Settled = { kind: 'laundered'; cents: Cents; what: string } | { kind: 'smuggled'; cents: Cents; mult: number } | { kind: 'caught'; stake: Cents };

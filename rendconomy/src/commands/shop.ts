@@ -1,5 +1,5 @@
 // Main Street: Marquez's shop (shelves filled by the delivery truck, prices that move, the daily deal, Black
-// Friday every Friday, his loyalty card and back room), Old Barnaby's Bait & Tackle, and player stores in Corner
+// Friday every Friday, his loyalty card and back room), Chuck Alfrey's Bait & Tackle, and player stores in Corner
 // Shops. The hub, every view and the r!shop words live here; the engines are in src/shop/.
 import { itemE } from '../discord/icons';
 import { emojiOr } from '../discord/emoji';
@@ -17,7 +17,9 @@ import { SELL_BACK, SHOP_RULES, ShopError, backOf, buy, collectibleOfWeek, price
 import { LOYALTY, STREET, dailyDeal, featuredShelf, isFriday, levelIndex, levelOf, nextDelivery, nextLevel, onWishlist, regular, saleLabel, spentWith, unwish, wish, wishlist } from '../shop/street';
 import { STORES, buyFrom, isOpen, listings, slotsOf, stock as stockShelf, storesOf, sweepStores, unstock as unstockShelf, type Listing } from '../shop/stores';
 import { shopTax } from '../city/state';
-import { BARNABY, buyGear } from '../fishing/docks';
+import { CHUCK, CHUCK_LINES, buyGear } from '../fishing/docks';
+import { heatNow } from '../underground/underground';
+import { dayKey as dayKeyOf, easternHour } from '../core/time';
 import { parseTile, tileName } from '../estate/estate';
 import { tonight } from '../underground/underground';
 import { BULK_MAX, useItem, useMany } from '../shop/use';
@@ -34,7 +36,7 @@ const shelfItems = (shelf: Shelf, now: number) =>
   shelf === 'rare' ? [COLLECTIBLES[collectibleOfWeek(now)]!]
     : shelf === 'holiday' ? (isHoliday(now) ? [...Object.values(HOLIDAY_COLLECTIBLES).filter((i) => i.stock > 0), ...Object.values(ITEMS).filter((i) => i.shelf === 'holiday')] : [])
     : Object.values(ITEMS).filter((i) => i.shelf === shelf && i.ready);
-/** Marquez's shelves (the tackle moved to Barnaby's on Main Street). */
+/** Marquez's shelves (the tackle moved to Chuck's on Main Street). */
 const shelves = (now: number) => (Object.keys(SHELVES) as Shelf[]).filter((s) => s !== 'tackle' && shelfItems(s, now).length);
 const TACKLE = () => Object.values(ITEMS).filter((i) => i.shelf === 'tackle' && i.ready);
 const findShelf = (want: string, now: number): Shelf | undefined => {
@@ -102,11 +104,11 @@ function refusal(e: unknown, ctx: Ctx): string {
 
 // ---------------------------------------------------------------- the views
 
-type View = { v: 'hub' } | { v: 'shelf'; shelf: Shelf } | { v: 'item'; shelf: Shelf; item: string } | { v: 'stores' } | { v: 'store'; owner: string } | { v: 'barnaby' } | { v: 'card' };
+type View = { v: 'hub' } | { v: 'shelf'; shelf: Shelf } | { v: 'item'; shelf: Shelf; item: string } | { v: 'stores' } | { v: 'store'; owner: string } | { v: 'chuck' } | { v: 'card' };
 const navRow = (sid: string, here: View['v']): Button[] => [
   { label: 'Main Street', emoji: emojiOr('main_street', '🏙️'), id: sessions.buttonId(sid, 'go:hub'), style: 'secondary', disabled: here === 'hub' },
   { label: "Marquez's", emoji: '🏪', id: sessions.buttonId(sid, 'go:shelf'), style: 'secondary', disabled: here === 'shelf' },
-  { label: "Barnaby's", emoji: '⚓', id: sessions.buttonId(sid, 'go:barnaby'), style: 'secondary', disabled: here === 'barnaby' },
+  { label: "Chuck's", emoji: '⚓', id: sessions.buttonId(sid, 'go:chuck'), style: 'secondary', disabled: here === 'chuck' },
   { label: 'Player stores', emoji: emojiOr('stall', '🛒'), id: sessions.buttonId(sid, 'go:stores'), style: 'secondary', disabled: here === 'stores' },
   { label: 'My card', emoji: emojiOr('loyalty_card', '🪪'), id: sessions.buttonId(sid, 'go:card'), style: 'secondary', disabled: here === 'card' }
 ];
@@ -115,7 +117,7 @@ const chunk = (bs: Button[], rows: Button[][], max = 5) => bs.forEach((b, i) => 
 function render(ctx: Ctx, g: string, sid: string, view: View, line?: string): ReplyObject {
   sweepStores(ctx.db, g, ctx.now, itemName);
   const r = view.v === 'hub' ? hubView(ctx, g, sid, line) : view.v === 'shelf' ? shelfView(ctx, g, sid, view.shelf, line) : view.v === 'item' ? itemView(ctx, g, sid, view.shelf, view.item, line)
-    : view.v === 'stores' ? storesView(ctx, g, sid, line) : view.v === 'store' ? storeView(ctx, g, sid, view.owner, line) : view.v === 'barnaby' ? barnabyView(ctx, g, sid, line) : cardView(ctx, g, sid, line);
+    : view.v === 'stores' ? storesView(ctx, g, sid, line) : view.v === 'store' ? storeView(ctx, g, sid, view.owner, line) : view.v === 'chuck' ? chuckView(ctx, g, sid, line) : cardView(ctx, g, sid, line);
   return { ...r, session: sid };
 }
 
@@ -127,13 +129,13 @@ function hubView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   const night = tonight(ctx.db, g, ctx.now);
   return {
     embeds: [embed('wallet', '🏙️ Main Street', [
-      line ? `${line}\n` : `*${ctx.rng.pick(['Marquez sweeps his front step. Down by the water, Old Barnaby is untangling line.', 'A delivery truck rattles past. Shop bells jingle up and down the street.', 'The street smells like coffee and lake water. Somebody\'s haggling at a Corner Shop.', 'Hand-lettered signs in every window. Main Street is open for business.'])}*\n`,
+      line ? `${line}\n` : `*${ctx.rng.pick(['Marquez sweeps his front step. Down by the water, Chuck Alfrey is untangling line.', 'A delivery truck rattles past. Shop bells jingle up and down the street.', 'The street smells like coffee and lake water. Somebody\'s haggling at a Corner Shop.', 'Hand-lettered signs in every window. Main Street is open for business.'])}*\n`,
       `🏪 **Marquez's Shop** · ${emojiOr('truck', '🚚')} next delivery ${discordTime(nextDelivery(ctx.now))}`,
       ...dealLines(ctx, g).map((l) => `-# ${l}`),
-      `⚓ **${BARNABY.name}'s Bait & Tackle** · rods, lures, a cooler, a boat`,
+      `⚓ **${CHUCK.name}'s Bait & Tackle** · rods, lures, a cooler, a boat`,
       `${emojiOr('stall', '🛒')} **Player stores** · ${owners.length ? `${owners.length} on the street` : `none yet: any Corner Shop owner can open one with \`${P}shop stock\``}`,
       ...owners.slice(0, 5).map((o) => `-# ${nameOf(ctx.db, o)}: ${all.filter((l) => l.owner_id === o).length} item${all.filter((l) => l.owner_id === o).length === 1 ? '' : 's'}`),
-      `🎩 **The alley** · ${night ? `someone in a red suit is lurking. \`${P}underground\`` : 'empty. Come back after dark.'}`,
+      `${emojiOr('connector', '👁️')} **The alley** · ${night ? `Mr. Glaz is down there, muttering. \`${P}underground\`` : 'empty. Come back after dark.'}`,
       '',
       `${emojiOr('loyalty_card', '🪪')} Your card at Marquez's: **${lvl.name}**${lvl.off ? ` · ${Math.round(lvl.off * 100)}% off` : ''}`
     ], { footer: { text: `${P}shop <shelf> · ${P}shop buy <item> · ${P}shop sell <item> · ${P}shop want <item> · ${P}shop @player` } })],
@@ -199,22 +201,30 @@ function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, li
   };
 }
 
-function barnabyView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
+/** What Chuck says when you come by: the tournament on Saturdays, the alley on you, the night, or a story. */
+function chuckSays(ctx: Ctx, g: string): string {
+  const L = CHUCK_LINES, h = easternHour(ctx.now);
+  if (new Date(`${dayKeyOf(ctx.now)}T12:00:00Z`).getUTCDay() === 6 && ctx.rng.chance(0.5)) return ctx.rng.pick(L.saturday);
+  if (heatNow(ctx.db, g, ctx.user.id, ctx.now) >= 40 && ctx.rng.chance(0.5)) return ctx.rng.pick(L.heat);
+  if ((h >= 21 || h < 5) && ctx.rng.chance(0.4)) return ctx.rng.pick(L.night);
+  return ctx.rng.pick(L.greet);
+}
+function chuckView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
   const P = ctx.config.prefix;
   const tackle = TACKLE();
   const rows: Button[][] = [];
   chunk([
     ...tackle.map((i) => ({ label: `Buy ${i.name}`, emoji: itemE(i.id, i.emoji), id: sessions.buttonId(sid, `buy:${i.id}:1`), style: 'success' as const, disabled: stockOf(ctx.db, g, i.id) === 0 })),
-    ...BARNABY.gear.map((id) => ({ label: `Buy ${ITEMS[id]!.name}`, emoji: itemE(id, ITEMS[id]!.emoji), id: sessions.buttonId(sid, `gear:${id}`), style: 'success' as const, disabled: count(ctx.db, g, ctx.user.id, id) > 0 }))
+    ...CHUCK.gear.map((id) => ({ label: `Buy ${ITEMS[id]!.name}`, emoji: itemE(id, ITEMS[id]!.emoji), id: sessions.buttonId(sid, `gear:${id}`), style: 'success' as const, disabled: count(ctx.db, g, ctx.user.id, id) > 0 }))
   ], rows);
-  rows.push(navRow(sid, 'barnaby'));
+  rows.push(navRow(sid, 'chuck'));
   return {
-    embeds: [embed('wallet', `⚓ ${BARNABY.name}'s Bait & Tackle`, [
-      line ?? `*An old man in a yellow raincoat looks up from a tangle of line. "${ctx.rng.pick(['Biting today. Always biting, for the patient.', 'Saw the White Whale once. Nobody believes me.', 'Rod\'s only half of it. The other half is you.', 'Don\'t fish the sewer. I mean it. ...You\'re going to fish the sewer.', 'Marquez sends his regards. He always does.'])}"*`, '',
+    embeds: [embed('wallet', `⚓ ${CHUCK.name}'s Bait & Tackle`, [
+      line ?? `*An old man in a yellow raincoat looks up from a tangle of line.* "${chuckSays(ctx, g)}"`,
       '**Bait and starter rods** (restocked by the truck)',
       ...tackle.map((i) => `${itemE(i.id, i.emoji)} **${i.name}** · ${priceText(quote(ctx.db, g, i.id, ctx.user.id, ctx.now))} · ${stockOf(ctx.db, g, i.id) ? `${stockOf(ctx.db, g, i.id)} in stock` : 'sold out'}\n-# ${i.desc}`),
       '', '**Gear** (one each, yours for good)',
-      ...BARNABY.gear.map((id) => `${itemE(id, ITEMS[id]!.emoji)} **${ITEMS[id]!.name}** · ${format(ITEMS[id]!.price!)} · ${ITEMS[id]!.desc}${count(ctx.db, g, ctx.user.id, id) ? ' ✅' : ''}`),
+      ...CHUCK.gear.map((id) => `${itemE(id, ITEMS[id]!.emoji)} **${ITEMS[id]!.name}** · ${format(ITEMS[id]!.price!)} · ${ITEMS[id]!.desc}${count(ctx.db, g, ctx.user.id, id) ? ' ✅' : ''}`),
       '', `-# Or \`${P}fish buy <gear>\`. Worms come from composting junk: \`${P}farm compost\`.`
     ])],
     buttons: rows.slice(-5)
@@ -297,7 +307,7 @@ export function onShopButton(ctx: Ctx, s: sessions.Session<{ view: View }>, valu
   switch (kind) {
     case 'go':
       if (a === 'shelf') return go({ v: 'shelf', shelf: lastShelf() });
-      if (a === 'hub' || a === 'stores' || a === 'barnaby' || a === 'card') return go({ v: a });
+      if (a === 'hub' || a === 'stores' || a === 'chuck' || a === 'card') return go({ v: a });
       return {};
     case 'shelf': return a && a in SHELVES ? go({ v: 'shelf', shelf: a as Shelf }) : {};
     case 'look': return a && anyItem(a) ? go({ v: 'item', shelf: lastShelf(), item: a }) : {};
@@ -316,7 +326,7 @@ export function onShopButton(ctx: Ctx, s: sessions.Session<{ view: View }>, valu
     case 'gear': {
       if (!a) return {};
       let line: string;
-      try { const r = ctx.db.tx(() => buyGear(ctx.db, g, ctx.user.id, a, ctx.now)); line = `${BARNABY.name} hands it over. *"Treat it right and it'll treat you right."*\n-# −${format(r.price)}.`; } catch (e) { line = refusal(e, ctx); }
+      try { const r = ctx.db.tx(() => buyGear(ctx.db, g, ctx.user.id, a, ctx.now)); line = `${CHUCK.name} hands it over. "${ctx.rng.pick(a === 'boat' ? CHUCK_LINES.boat : CHUCK_LINES.handover)}"\n-# −${format(r.price)}.`; } catch (e) { line = refusal(e, ctx); }
       return go(view, line);
     }
     case 'sbuy': {
@@ -359,8 +369,8 @@ function open(ctx: Ctx, g: string, view: View, line?: string): ReplyObject {
   const s = sessions.create(ctx.db, { kind: 'shop', guildId: g, channelId: ctx.channelId, userId: ctx.user.id, state: { view }, ttlMs: 10 * 60_000, now: ctx.now });
   return render(ctx, g, s.id, view, line);
 }
-/** Old Barnaby's, opened from r!fish shop too. */
-export const barnaby = (ctx: Ctx, g: string): ReplyObject => { restock(ctx.db, ctx.rng, g, ctx.now); return open(ctx, g, { v: 'barnaby' }); };
+/** Chuck Alfrey's, opened from r!fish shop too. */
+export const chuck = (ctx: Ctx, g: string): ReplyObject => { restock(ctx.db, ctx.rng, g, ctx.now); return open(ctx, g, { v: 'chuck' }); };
 
 /** An item in your inventory by name ("golden nacho", "prime corn"). */
 function invItem(ctx: Ctx, g: string, name: string): string | null {
@@ -411,7 +421,7 @@ function wantCmd(ctx: Ctx, g: string, text: string): ReplyObject {
 export const shop: Command = {
   name: 'shop',
   aliases: ['store', 'marquez', 'mainstreet', 'street'],
-  description: 'Main Street: Marquez\'s shop, Barnaby\'s tackle and player stores; buy, sell, wishlist, stock your store',
+  description: 'Main Street: Marquez\'s shop, Chuck\'s tackle and player stores; buy, sell, wishlist, stock your store',
   system: 'wallet',
   guildOnly: true,
   options: [
@@ -438,7 +448,7 @@ export const shop: Command = {
     switch (w) {
       case '': case 'street': case 'main': case 'hub': case 'deals': case 'deal': case 'sale': case 'friday': return open(ctx, g, { v: 'hub' });
       case 'marquez': return open(ctx, g, { v: 'shelf', shelf: findShelf(rest, ctx.now) ?? 'work' });
-      case 'barnaby': case 'docks': case 'tackle': case 'bait': return open(ctx, g, { v: 'barnaby' });
+      case 'chuck': case 'docks': case 'tackle': case 'bait': return open(ctx, g, { v: 'chuck' });
       case 'card': case 'loyalty': case 'wishlist': return open(ctx, g, { v: 'card' });
       case 'want': case 'wish': return wantCmd(ctx, g, rest);
       case 'stores': return open(ctx, g, { v: 'stores' });
@@ -469,7 +479,7 @@ export const purchase: Command = {
     if (!amount && m) { name = m[1]!; amount = m[2]!; }
     const id = findItem(name);
     if (!id) throw new GameError('shop.unknown', `Marquez does not stock "${name}". See \`${ctx.config.prefix}shop\`.`);
-    if (BARNABY.gear.includes(id)) throw new GameError('shop.barnaby', `That's ${BARNABY.name}'s. \`${ctx.config.prefix}fish buy ${ITEMS[id]!.name.toLowerCase()}\`.`);
+    if (CHUCK.gear.includes(id)) throw new GameError('shop.chuck', `That's ${CHUCK.name}'s. \`${ctx.config.prefix}fish buy ${ITEMS[id]!.name.toLowerCase()}\`.`);
     const qty = parseCount(amount || '1', { max: 10 });
     try {
       const r = buy(ctx.db, ctx.rng, guildId, ctx.user.id, id, qty, ctx.now);

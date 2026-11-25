@@ -248,7 +248,7 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
 }
 /** The servers the site shows: every server with players (an empty map is still a map). */
 const mapGuilds = (db: Db): string[] => db.all<{ guild_id: string }>('SELECT DISTINCT guild_id FROM players WHERE guild_id IS NOT NULL').map((r) => r.guild_id);
-/** No Questions Asked: where the Connector is tonight in each server (for /backstage/underground/). Never the password. */
+/** No Questions Asked: where Mr. Glaz is tonight in each server (for /backstage/underground/). Never the password. */
 function undergroundSnapshot(db: Db): Record<string, { open: boolean; lot?: number; tile?: string; kind?: string; where?: string; passwordNight?: boolean; until?: number; opens?: number }> {
   const now = Date.now(), out: ReturnType<typeof undergroundSnapshot> = {};
   for (const g of mapGuilds(db)) {

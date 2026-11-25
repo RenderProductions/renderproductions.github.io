@@ -1,6 +1,6 @@
-<!--{"title": "Main Street", "section": "Systems", "icon": "main_street", "summary": "Main Street: Marquez's delivery truck and each server's own stock, prices that move with demand, the daily deal, Black Friday every Friday, Marquez's loyalty card and back room, wishlists, Old Barnaby's Bait & Tackle, and player stores in Corner Shops.", "prev": "city-hall", "next": "underground", "also": ["items", "city", "characters"], "meta": "Added in Main Street", "command": "r!shop"}-->
+<!--{"title": "Main Street", "section": "Systems", "icon": "main_street", "summary": "Main Street: Marquez's delivery truck and each server's own stock, prices that move with demand, the daily deal, Black Friday every Friday, Marquez's loyalty card and back room, wishlists, Chuck Alfrey's Bait & Tackle, and player stores in Corner Shops.", "prev": "city-hall", "next": "underground", "also": ["items", "city", "characters"], "meta": "Added in Main Street", "command": "r!shop"}-->
 <div class="lede">
-<p><code>r!shop</code> opens <strong>Main Street</strong>: Marquez's Shop, Old Barnaby's Bait &amp; Tackle, the stores players run out of their Corner Shops, and the alley (at night). Each server has its own shelves, filled by Marquez's delivery truck. Prices move with what people buy, there's a deal every day and a sale every Friday, and the more you spend at Marquez's, the better he treats you.</p>
+<p><code>r!shop</code> opens <strong>Main Street</strong>: Marquez's Shop, Chuck Alfrey's Bait &amp; Tackle, the stores players run out of their Corner Shops, and the alley (at night). Each server has its own shelves, filled by Marquez's delivery truck. Prices move with what people buy, there's a deal every day and a sale every Friday, and the more you spend at Marquez's, the better he treats you.</p>
 <div class="glance"><div class="lbl">At a glance</div>
 <div><span>Deliveries</span><span><span data-v="shop.deliveries" data-f="list">8 AM, 2 PM, 8 PM</span> ET</span></div>
 <div><span>Daily deal</span><span><span data-v="street.dailyDeal" data-f="pct">30%</span> off</span></div>
@@ -12,7 +12,7 @@
 
 <h2 id="shopping">Shopping</h2>
 <ul>
-<li><code>r!shop</code> opens the street. Buttons take you to Marquez's, Barnaby's, the player stores and your loyalty card.</li>
+<li><code>r!shop</code> opens the street. Buttons take you to Marquez's, Chuck's, the player stores and your loyalty card.</li>
 <li>At Marquez's, pick a shelf from the dropdown and an item from the second one to look closer: its price (and why), how many are left, and Buy 1, Buy 5 or Buy max.</li>
 <li>By name: <code>r!shop buy coffee 3</code> and <code>r!shop sell coffee all</code>. <code>r!shop casino</code> opens a shelf directly.</li>
 <li>Selling back: Marquez pays <span data-v="street.sellBack" data-f="pct">?</span> of his <em>list</em> price, whatever the sale. Buying on sale and selling back never pays.</li>
@@ -46,8 +46,8 @@
 <h2 id="wishlist">Wishlists</h2>
 <p><code>r!shop want coffee</code> puts an item on your wishlist (up to <span data-v="street.wishMax" data-f="raw">?</span>); the same again takes it off, and <code>r!shop want clear</code> empties it. When a delivery brings something on it, you get a DM. Good Friends hear <span data-v="street.headStartMin" data-f="raw">?</span> minutes before everyone else, and before the truck announces itself. Buying the item takes it off your list.</p>
 
-<h2 id="barnaby">Old Barnaby's Bait &amp; Tackle</h2>
-<p>Barnaby has the Bamboo Rod and Lures (restocked by the same truck) and the better gear: rods, the Cooler and the Boat. Open it from Main Street or with <code>r!fish shop</code>, and buy with the buttons or <code>r!fish buy carbon</code>. See <a href="/wiki/fishing/#gear">Fishing</a>.</p>
+<h2 id="chuck">Chuck Alfrey's Bait &amp; Tackle</h2>
+<p>Chuck has the Bamboo Rod and Lures (restocked by the same truck) and the better gear: rods, the Cooler and the Boat. Open it from Main Street or with <code>r!fish shop</code>, and buy with the buttons or <code>r!fish buy carbon</code>. See <a href="/wiki/fishing/#gear">Fishing</a>.</p>
 
 <h2 id="stores">Player stores</h2>
 <p>Every finished <strong>Corner Shop</strong> on the map is a store. Stock it from your inventory and set your own price. There's no cap: if you want to beat Marquez, you'll have to be smart about it.</p>

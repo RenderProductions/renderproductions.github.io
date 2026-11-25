@@ -37,8 +37,7 @@
   .slot .lid { position: absolute; inset: 0; background: linear-gradient(#4a505c, #2e323b); transition: transform .5s cubic-bezier(.7,0,.3,1); }
   .door.open .slot .lid { transform: translateX(100%); }
   .eye { position: absolute; top: 15px; width: 12px; height: 8px; border-radius: 0; transition: height .08s; }
-  .eye.r { left: 36px; background: var(--red); box-shadow: 0 0 12px var(--red), 0 0 3px #fff inset; }
-  .eye.b { right: 36px; background: var(--blue); box-shadow: 0 0 12px var(--blue), 0 0 3px #fff inset; }
+  .eye.w { right: 36px; width: 14px; height: 10px; background: #fff; box-shadow: 0 0 14px #fff, 0 0 4px #aab inset; }   /* one white eye: his left */
   .door.blink .eye { height: 1px; top: 19px; }
   .whisper { min-height: 2.6em; max-width: 520px; text-align: center; margin: 22px 0 6px; font: 26px/1.1 VT323, monospace; color: #efe6ff; text-shadow: 0 0 10px rgba(142,68,173,.8); }
 
@@ -71,10 +70,10 @@
   <p class="sub">10 PM to 4 AM, Eastern. Somewhere condemned.</p>
 
   <div class="door" id="door" aria-label="A steel door with a slot">
-    <div class="slot"><span class="eye r"></span><span class="eye b"></span><div class="lid"></div></div>
+    <div class="slot"><span class="eye w"></span><div class="lid"></div></div>
   </div>
   <p class="whisper" id="whisper" aria-live="polite"></p>
-  <img class="him" src="/bot/emojis/rc_connector.png" alt="A man in a red suit and a wide red hat. One red eye, one blue." id="him" hidden>
+  <img class="him" src="/bot/emojis/rc_connector.png" alt="A figure in a red robe, the hood over his face. One white eye." id="him" hidden>
 
   <section class="board" aria-labelledby="tn">
     <h2 id="tn">TONIGHT</h2>
@@ -95,7 +94,7 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var LINES = ['Keep your voice down.', 'You weren\'t followed? Good.', 'Don\'t say my name.', 'I wasn\'t here. Neither were you.', 'What do you want.', 'Make it quick.', 'Marquez doesn\'t know you\'re here. Keep it that way.', 'TODD\'s been sniffing around.', 'Nice hat? Thanks. It\'s red.'];
+  var LINES = ['Keep your voice down. The bricks listen.', 'You weren\'t followed. I checked. I checked twice.', 'Don\'t say my name. I can hear you thinking it.', 'I wasn\'t here. Neither were you.', 'Over here. NO. Look at the wall.', 'Make it quick. They change shifts on the hour.', 'The coat at the counter knows. The coat lets it slide.', 'The screen can\'t see in here. It CAN\'T.', 'Ha. HA. ...Sorry.', 'Shh. SHH. ...Okay. It\'s gone.'];
   var door = $('door'), w = $('whisper');
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   function say(t) {

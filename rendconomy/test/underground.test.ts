@@ -182,7 +182,7 @@ test('snitching: a hot target gets raided and you get paid; a cold one turns TOD
   assert.equal(row(db2, G, A, Date.now()).heat, UG.snitchMiss);
 });
 
-test('password nights: the Connector hijacks a drop-in once, from 8 PM; you need the word to get in', async () => {
+test('password nights: Mr. Glaz hijacks a drop-in once, from 8 PM; you need the word to get in', async () => {
   const t = passwordNight();
   const { db, run, later } = setup(t);
   await run();
@@ -199,7 +199,7 @@ test('password nights: the Connector hijacks a drop-in once, from 8 PM; you need
   const seven = t - 3.5 * HOUR, eightThirty = t - 2 * HOUR;
   assert.equal(connectorHijack(db2, G, seven), null);
   const h = connectorHijack(db2, G, eightThirty)!;
-  assert.match(h.embeds![0]!.description!, /THE CONNECTOR HAS TAKEN CONTROL OF THIS INFERNAL MACHINE/);
+  assert.match(h.embeds![0]!.description!, /MR. GLAZ HAS TAKEN CONTROL OF THIS INFERNAL MACHINE/);
   assert.match(h.embeds![0]!.description!, new RegExp(pw));
   assert.equal(connectorHijack(db2, G, eightThirty + 60_000), null, 'once a night');
   later(0);
