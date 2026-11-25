@@ -85,10 +85,10 @@ def head_icons(p):
         return f'{m.group(0)}<img class="hi" src="/bot/emojis/rc_{name}.png" alt="">'
     return re.sub(r'<h2 id="([^"]+)"[^>]*>', add, p['body'])
 
-FOOT = '''<footer class="foot"><span>Render Productions · the Rend-Conomy Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>'''
+FOOT = '''<footer class="foot"><span>Render Productions · the Wiki</span><span>The tables on these pages are built from the bot's own code on every release.</span></footer>'''
 
 def head(p):
-    title = 'The Rend-Conomy Wiki | Render Productions' if p['slug'] == 'index' else f"{p['title']} | Rend-Conomy Wiki"
+    title = 'The Wiki | Render Productions' if p['slug'] == 'index' else f"{p['title']} | Render Productions Wiki"
     desc = html.escape(p.get('summary', ''), quote=True)
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -153,7 +153,7 @@ def main():
         os.makedirs(os.path.dirname(out), exist_ok=True)
         open(out, 'w', encoding='utf-8').write(home(p) if p['slug'] == 'index' else article(p, pages))
         if p['slug'] != 'index':
-            index.append({'title': p['title'], 'section': p.get('section', ''), 'url': p['url'], 'summary': p.get('summary', ''),
+            index.append({'title': p['title'], 'section': p.get('section', ''), 'url': p['url'], 'summary': p.get('summary', ''), 'icon': p.get('icon', ''),
                           'heads': [re.sub(r'<[^>]+>', '', re.sub(r'<span[^>]*>.*?</span>', '', h)).strip() for h in re.findall(r'<h[23][^>]*>(.*?)</h[23]>', p['body'], re.S)],
                           'text': text_of(p['body'])[:6000]})
             # every section gets its own search entry too

@@ -242,3 +242,32 @@
     $$('[data-table]').forEach(function (el) { el.innerHTML = '<p class="note warn"><b>OOPS</b><span>The numbers didn\'t load. Refresh to try again.</span></p>'; });
   });
 })();
+
+// The home page's Featured page: the players vote for it in Discord (r!wiki vote <page>); the bot puts this
+// week's pick and next week's race in the live feed. The page's own details come from search.json.
+(function () {
+  var box = document.getElementById('featured');
+  if (!box) return;
+  var pages = null, feed = null;
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function draw() {
+    if (!pages) return;
+    var w = feed && feed.wiki, f = w && w.featured;
+    var page = f && pages[f.slug];
+    if (!page) { document.getElementById('feat-title').textContent = 'Nothing featured yet'; document.getElementById('feat-sum').textContent = 'Be the first to vote: r!wiki vote <page> in Discord.'; document.getElementById('feat-by').textContent = ''; return; }
+    document.getElementById('feat-link').href = page.url;
+    document.getElementById('feat-title').textContent = page.title;
+    document.getElementById('feat-sum').textContent = page.summary;
+    if (page.icon) document.getElementById('feat-icon').src = '/bot/emojis/rc_' + page.icon + '.png';
+    document.getElementById('feat-by').textContent = f.by === 'vote' ? 'picked by ' + f.votes + ' vote' + (f.votes === 1 ? '' : 's') : 'held over: nobody voted last week';
+    var race = (w.race || []).slice(0, 3);
+    document.getElementById('feat-race').innerHTML = race.length ? 'Next week so far:<ol>' + race.map(function (r) { return '<li><b>' + esc(r.title) + '</b> · ' + r.votes + ' vote' + (r.votes === 1 ? '' : 's') + '</li>'; }).join('') + '</ol>' : 'No votes for next week yet.';
+  }
+  fetch('/wiki/search.json').then(function (r) { return r.json(); }).then(function (list) {
+    pages = {};
+    list.forEach(function (e) { var m = /^\/wiki\/([a-z0-9-]+)\/$/.exec(e.url); if (m) pages[m[1]] = e; });
+    draw();
+  }).catch(function () {});
+  function hook() { if (window.RV && RV.live) RV.live(function (f) { feed = f; draw(); }); else setTimeout(hook, 300); }
+  hook();
+})();
