@@ -239,3 +239,18 @@ test('no two buttons in a Main Street view share an id (Discord refuses the mess
   }
   done();
 });
+
+test('Chuck calls you by your rank: Greenhorn, Deckhand after one Fishdex page, Skipper after three', async () => {
+  const { chuckRank } = await import('../src/fishing/docks.js');
+  const { speciesAt } = await import('../src/fishing/fishing.js');
+  const { db, run } = setup(tuesday, false);
+  await run('balance');
+  assert.equal(chuckRank(db, G, A).id, 'greenhorn');
+  const fill = (place: Parameters<typeof speciesAt>[0]) => { for (const s of speciesAt(place)) db.run('INSERT OR IGNORE INTO fishdex (guild_id, user_id, species, caught, best_lb, first_at) VALUES (?, ?, ?, 1, 1, 0)', G, A, s.id); };
+  fill('lake');
+  assert.equal(chuckRank(db, G, A).id, 'deckhand');
+  fill('river'); fill('pier');
+  assert.equal(chuckRank(db, G, A).id, 'skipper');
+  assert.match(text(await run('fish', { action: 'shop' })), /Chuck calls you \*\*Skipper\*\* \(3 of \d Fishdex pages done; all of them for Old Salt\)/);
+  done();
+});

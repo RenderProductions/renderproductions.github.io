@@ -17,7 +17,7 @@ import { SELL_BACK, SHOP_RULES, ShopError, backOf, buy, collectibleOfWeek, price
 import { LOYALTY, STREET, dailyDeal, featuredShelf, isFriday, levelIndex, levelOf, nextDelivery, nextLevel, onWishlist, regular, saleLabel, spentWith, unwish, wish, wishlist } from '../shop/street';
 import { STORES, buyFrom, isOpen, listings, slotsOf, stock as stockShelf, storesOf, sweepStores, unstock as unstockShelf, type Listing } from '../shop/stores';
 import { shopTax } from '../city/state';
-import { CHUCK, CHUCK_LINES, buyGear } from '../fishing/docks';
+import { CHUCK, CHUCK_LINES, CHUCK_RANKS, buyGear, chuckRank, pagesDone } from '../fishing/docks';
 import { heatNow } from '../underground/underground';
 import { dayKey as dayKeyOf, easternHour } from '../core/time';
 import { parseTile, tileName } from '../estate/estate';
@@ -207,6 +207,7 @@ function chuckSays(ctx: Ctx, g: string): string {
   if (new Date(`${dayKeyOf(ctx.now)}T12:00:00Z`).getUTCDay() === 6 && ctx.rng.chance(0.5)) return ctx.rng.pick(L.saturday);
   if (heatNow(ctx.db, g, ctx.user.id, ctx.now) >= 40 && ctx.rng.chance(0.5)) return ctx.rng.pick(L.heat);
   if ((h >= 21 || h < 5) && ctx.rng.chance(0.4)) return ctx.rng.pick(L.night);
+  if (ctx.rng.chance(0.4)) return ctx.rng.pick(L.rank[chuckRank(ctx.db, g, ctx.user.id).id]!);
   return ctx.rng.pick(L.greet);
 }
 function chuckView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject {
@@ -225,7 +226,9 @@ function chuckView(ctx: Ctx, g: string, sid: string, line?: string): ReplyObject
       ...tackle.map((i) => `${itemE(i.id, i.emoji)} **${i.name}** · ${priceText(quote(ctx.db, g, i.id, ctx.user.id, ctx.now))} · ${stockOf(ctx.db, g, i.id) ? `${stockOf(ctx.db, g, i.id)} in stock` : 'sold out'}\n-# ${i.desc}`),
       '', '**Gear** (one each, yours for good)',
       ...CHUCK.gear.map((id) => `${itemE(id, ITEMS[id]!.emoji)} **${ITEMS[id]!.name}** · ${format(ITEMS[id]!.price!)} · ${ITEMS[id]!.desc}${count(ctx.db, g, ctx.user.id, id) ? ' ✅' : ''}`),
-      '', `-# Or \`${P}fish buy <gear>\`. Worms come from composting junk: \`${P}farm compost\`.`
+      '', (() => { const r = chuckRank(ctx.db, g, ctx.user.id), d = pagesDone(ctx.db, g, ctx.user.id), next = CHUCK_RANKS[CHUCK_RANKS.indexOf(r) + 1];
+        return `⚓ Chuck calls you **${r.name}** (${d.done} of ${d.of} Fishdex pages done${next ? `; ${next.pages === Infinity ? 'all of them' : next.pages} for ${next.name}` : ''}).`; })(),
+      `-# Or \`${P}fish buy <gear>\`. Worms come from composting junk: \`${P}farm compost\`.`
     ])],
     buttons: rows.slice(-5)
   };

@@ -40,8 +40,35 @@ export const CHUCK_LINES = {
   night: ['Up late? Catfish are up too. Eels, worse. Bring a light.', 'Night fishing! Now we\'re talking. Keep your voice down, they\'re listening.'],
   handover: ['Treat it right and it\'ll treat you right!', 'There she is. Don\'t leave her in the sun.', 'That\'ll outlast you if you\'re kind to it. Ha!', 'Now you\'re a real angler. Well. Closer.'],
   boat: ['A boat! Now you\'re talking. Mind the Deep. The Deep minds you back.'],
+  /** He greets you by your rank. */
+  rank: {
+    greenhorn: ['Fresh off the bus, greenhorn? Hold the rod by the OTHER end.', 'Greenhorn! Welcome, welcome. Don\'t fall in. Everybody falls in.'],
+    deckhand: ['Ah, a Deckhand! Come, come. Tell me what got away.', 'There\'s my Deckhand! One page done. The rest won\'t fill themselves.'],
+    skipper: ['Skipper! Pull up a crate. The good crate. Not that one.', 'Morning, Skipper. The fish have been talking about you.'],
+    oldsalt: ['Old Salt! Sit, sit. You\'ve caught everything I have. Twice, probably.', 'Well, if it isn\'t an Old Salt. I\'ve got nothing left to teach you. I\'ll teach you anyway.']
+  } as Record<string, string[]>,
   dex: ['Knew you had it in you!', 'Look at that! A whole page! I\'m putting it on the board.', 'Every last one. You\'ve got the patience. Or nothing better to do. Either way!']
 };
+
+// ---------------------------------------------------------------- Chuck's ranks: what he calls you, by Fishdex pages done
+
+export const CHUCK_RANKS = [
+  { id: 'greenhorn', name: 'Greenhorn', pages: 0 },
+  { id: 'deckhand', name: 'Deckhand', pages: 1 },
+  { id: 'skipper', name: 'Skipper', pages: 3 },
+  { id: 'oldsalt', name: 'Old Salt', pages: Infinity }   // the whole Fishdex
+];
+/** How many places' Fishdex pages are complete, out of how many. */
+export function pagesDone(db: Db, g: string, u: string): { done: number; of: number } {
+  const caught = new Set(db.all<{ species: string }>('SELECT species FROM fishdex WHERE guild_id = ? AND user_id = ?', g, u).map((r) => r.species));
+  const places = Object.keys(PLACES) as Place[];
+  return { done: places.filter((p) => speciesAt(p).every((s) => caught.has(s.id))).length, of: places.length };
+}
+export function chuckRank(db: Db, g: string, u: string): (typeof CHUCK_RANKS)[number] {
+  const { done, of } = pagesDone(db, g, u);
+  if (done >= of) return CHUCK_RANKS[3]!;
+  return [...CHUCK_RANKS].reverse().find((r) => done >= r.pages)!;
+}
 
 // ---------------------------------------------------------------- gear
 
