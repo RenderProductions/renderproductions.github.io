@@ -73,7 +73,7 @@ function embed(p) {
 }
 
 // Posts a list of engine posts to every webhook. Used by this script and by the bot when it runs the market.
-async function send(posts, hooks, { dryRun = false, log = console.log } = {}) {
+async function send(posts, hooks, { dryRun = false, log = console.log, onPosted = null } = {}) {
   // Discord takes up to 10 embeds per message.
   const embeds = posts.map(embed);
   const batches = [];
@@ -85,8 +85,10 @@ async function send(posts, hooks, { dryRun = false, log = console.log } = {}) {
     if (dryRun) { log(JSON.stringify(JSON.parse(body), null, 2)); continue; }
     for (const url of hooks) {
       try {
-        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+        // wait=true makes Discord answer with the message, so the bot can publish it in announcement channels
+        const res = await fetch(url + (onPosted ? (url.includes('?') ? '&' : '?') + 'wait=true' : ''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
         if (!res.ok) { failed++; log('Webhook replied ' + res.status + ': ' + (await res.text()).slice(0, 200)); }
+        else if (onPosted) { const m = await res.json().catch(() => null); if (m && m.id && m.channel_id) onPosted(m); }
       } catch (e) {
         failed++;
         log('Webhook request failed: ' + e.message);

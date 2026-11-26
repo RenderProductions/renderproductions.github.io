@@ -1,4 +1,5 @@
 // RendConomy: starts the bot.
+import { postHook, publish, setPublisher } from './discord/publish';
 import { loadAppEmojis, syncAppEmojis } from './discord/emoji';
 import { COLORS } from './discord/style';
 import { receiptView, setReceiptSender } from './social/receipts';
@@ -75,27 +76,28 @@ async function main(): Promise<void> {
   const rng = cryptoRng();
   // The market runs in the bot. News posts (to the market news channel) come back with the news module.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const news: { send: (posts: unknown[], hooks: string[], o: { log: (m: string) => void }) => Promise<unknown> } = require('./market/engine/post-news.js');
+  const news: { send: (posts: unknown[], hooks: string[], o: { log: (m: string) => void; onPosted?: (m: { id: string; channel_id: string }) => void }) => Promise<unknown> } = require('./market/engine/post-news.js');
   // World events are announced in the market news feed
   setEventAnnouncer((e) => {
     if (!config.newsWebhook) return;
     for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
-      fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Rend-Conomy News', embeds: [{ title: 'World event', description: `${describeEvent(e)}\nFor the next hour.`, color: 0x3498db }] }) })
+      postHook(hook, { username: 'Rend-Conomy News', embeds: [{ title: 'World event', description: `${describeEvent(e)}\nFor the next hour.`, color: 0x3498db }] })
         .catch((err: unknown) => console.error('[event]', err));
     }
   });
   setAdPoster((text) => {
     for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
-      fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'Rend-Conomy News', embeds: [{ title: 'Advertisement', description: text, color: 0xff9f1c }] }) }).catch(() => {});
+      postHook(hook, { username: 'Rend-Conomy News', embeds: [{ title: 'Advertisement', description: text, color: 0xff9f1c }] }).catch(() => {});
     }
   });
   market.start(db, rng, (posts) => {
     if (!config.newsWebhook) return;
-    news.send(posts, config.newsWebhook.split(/[\s,]+/).filter(Boolean), { log: (m) => console.log('[news]', m) }).catch((e: unknown) => console.error('[news]', e));
+    news.send(posts, config.newsWebhook.split(/[\s,]+/).filter(Boolean), { log: (m) => console.log('[news]', m), onPosted: (m) => { void publish(m.channel_id, m.id); } }).catch((e: unknown) => console.error('[news]', e));
   });
   console.log(`[${config.name}] market running (${market.TICKERS.join(', ')})`);
 
   const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages], partials: [Partials.Channel] });
+  setPublisher(client);
   // TODD drops into a channel with a quick question (from chat, or from the console)
   const toddDrop = async (ch: SendableChannels, guildId: string, now = Date.now()) => {
     const drop = startDrop(market.load(db), guildId, ch.id, now, rng);
@@ -167,12 +169,13 @@ async function main(): Promise<void> {
       if (!config.updatesChannelId) return false;
       const ch = await c.channels.fetch(config.updatesChannelId).catch(() => null);
       if (!ch || !ch.isSendable()) { console.error('[updates] cannot post in UPDATES_CHANNEL_ID'); return false; }
-      await ch.send({
+      const posted = await ch.send({
         content: config.updatesRoleId ? `<@&${config.updatesRoleId}>` : undefined,
         embeds: [updateEmbed(u)],
         components: config.updatesRoleId ? [{ type: ComponentType.ActionRow, components: [{ type: ComponentType.Button, style: ButtonStyle.Secondary, label: 'Get update pings', emoji: { name: '🔔' }, custom_id: ROLE_BUTTON_ID }] }] : [],
         allowedMentions: { roles: config.updatesRoleId ? [config.updatesRoleId] : [] }
       });
+      void publish(posted.channelId, posted.id); // announcement channel: send it to following servers too
       return true;
     });
     // every entry added since the last post, oldest first; read after the emojis are in, so posts show them
