@@ -19,7 +19,7 @@ import { MINUTE } from '../core/time';
 import { format } from '../core/money';
 import { load as loadMarket } from '../market/market';
 import { netWorth } from '../social/worth';
-import { execute, parsePrefix, press } from './router';
+import { didYouMean, execute, parsePrefix, press } from './router';
 import * as sessions from '../core/sessions';
 import type { ReplyObject } from '../commands/types';
 import { CROPS, FARMING, plotsOf, simulate, weatherLog } from '../farming/farming';
@@ -371,7 +371,7 @@ export function startActivity(db: Db, config: BotConfig, rng: Rng, client: Clien
       return { update: r.update ? toRelay(r.update, now) : undefined, followUp: r.followUp ? toRelay(r.followUp, now) : undefined, notice: r.notice };
     }
     const parsed = parsePrefix(config.prefix + line.replace(/^\S*?!/, ''), config.prefix);
-    if (!parsed || 'unknown' in parsed) return { content: 'Unknown command.' };
+    if (!parsed || 'unknown' in parsed) return { content: didYouMean(config.prefix + line.replace(/^\S*?!/, ''), config.prefix) ?? 'Unknown command.' };
     if (!ALLOWED.has(parsed.cmd.name)) return { content: `\`${parsed.cmd.name}\` does not work from the Trading Floor. Use it in chat.` };
     const out = await execute(find(parsed.cmd.name)!, ctx, parsed.args);
     return { content: '', ...toRelay(out, now) };

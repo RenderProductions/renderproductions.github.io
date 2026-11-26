@@ -5,7 +5,7 @@ import {
   ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, type StringSelectMenuInteraction, MessageFlags, PermissionFlagsBits, type PermissionsBitField,
   type ButtonInteraction, type ChatInputCommandInteraction, type Message, type RESTPostAPIChatInputApplicationCommandsJSONBody
 } from 'discord.js';
-import { commands, find } from '../commands';
+import { commands, find, suggest } from '../commands';
 import { checkMillionaire } from '../achievements/listeners';
 import { handlers } from '../commands/sessions';
 import type { Args, Button, Command, Ctx, Reply, ReplyObject, SessionReply } from '../commands/types';
@@ -135,6 +135,15 @@ export function parsePrefix(content: string, prefix: string): { cmd: Command; ar
   return { cmd, args };
 }
 
+/** "Did you mean `r!vip spin`?" for a mistyped command, or null when nothing is close. */
+export function didYouMean(content: string, prefix: string): string | null {
+  const [name, ...rest] = content.slice(prefix.length).trim().split(/\s+/);
+  const word = name ? suggest(name) : undefined;
+  if (!word) return null;
+  const line = [word, ...rest].join(' ').slice(0, 120).replace(/`/g, "'");
+  return `Did you mean \`${prefix}${line}\`?`;
+}
+
 // ---------------------------------------------------------------- Discord payloads
 
 const STYLES = { primary: ButtonStyle.Primary, secondary: ButtonStyle.Secondary, success: ButtonStyle.Success, danger: ButtonStyle.Danger } as const;
@@ -227,7 +236,12 @@ export async function onMessage(deps: Deps, msg: Message): Promise<void> {
     afterSend(deps, t.reply, sent, (p) => sent.edit(payload(p)));
     return;
   }
-  if ('unknown' in parsed) return; // stay quiet about unknown commands in chat
+  if ('unknown' in parsed) {
+    // a typo of a real command gets a nudge; anything else stays quiet
+    const hint = didYouMean(msg.content, deps.config.prefix);
+    if (hint) await msg.reply({ content: hint, allowedMentions: { parse: [], repliedUser: false } }).catch(() => { /* can't post here */ });
+    return;
+  }
   const reply = await execute(parsed.cmd, ctx, parsed.args);
   if (reply.deleteTrigger) msg.delete().catch(() => { /* no Manage Messages */ });
   if (reply.dm) msg.author.send({ content: reply.dm, allowedMentions: { parse: [] } }).catch(() => { /* DMs closed */ });

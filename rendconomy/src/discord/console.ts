@@ -13,7 +13,7 @@ import { payFromReserve } from '../core/economy';
 import { balance } from '../core/ledger';
 import { me } from '../commands/shared';
 import type { Ctx, ReplyObject } from '../commands/types';
-import { execute, parsePrefix } from './router';
+import { didYouMean, execute, parsePrefix } from './router';
 import { COLORS } from './style';
 
 export interface ConsoleDeps {
@@ -200,7 +200,7 @@ async function run(d: ConsoleDeps, text: string): Promise<string | null> {
       if (!line) return 'Usage: run <server> <command and arguments>   e.g. run 1234 give <@5678> 500 contest prize';
       const g = guildFrom(c, server);
       const parsed = parsePrefix(d.config.prefix + line, d.config.prefix);
-      if (!parsed || 'unknown' in parsed) return `Unknown command "${line.split(/\s+/)[0]}".`;
+      if (!parsed || 'unknown' in parsed) return didYouMean(d.config.prefix + line, d.config.prefix) ?? `Unknown command "${line.split(/\s+/)[0]}".`;
       const owner = d.config.ownerIds[0] ?? c.user!.id;
       const ctx: Ctx = { db: d.db, config: d.config, rng: d.rng, now: Date.now(), guildId: g.id, channelId: `console:${g.id}`, user: { id: owner, name: 'Console' }, isOwner: true, isMod: true, notes: [] };
       return plain(await execute(parsed.cmd, ctx, parsed.args)) || 'Done.';
