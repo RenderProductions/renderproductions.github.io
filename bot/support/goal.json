@@ -1,0 +1,9 @@
+{
+  "_help": "The goal bar on /bot/support/. Change 'raised' when tips come in (and 'target' if the goal changes), then commit. Amounts in US dollars. Set target to 0 to hide the bar. 'per' adds 'a month' after the target; remove it for a one-off goal.",
+  "title": "Keep RendConomy online",
+  "note": "Hosting the bot and the site's servers, every month.",
+  "raised": 0,
+  "target": 10,
+  "per": "month",
+  "updated": "2026-11-26"
+}
