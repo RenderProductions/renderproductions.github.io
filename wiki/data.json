@@ -62,7 +62,7 @@
   "general": {
    "label": "General",
    "emoji": "ℹ️",
-   "count": 7
+   "count": 8
   },
   "admin": {
    "label": "Moderators",
@@ -91,6 +91,18 @@
      "required": false
     }
    ]
+  },
+  {
+   "name": "support",
+   "aliases": [
+    "donate",
+    "kofi",
+    "tipjar"
+   ],
+   "description": "Help keep the bot running (a tip jar; it buys nothing in the game)",
+   "section": "general",
+   "slash": "/support",
+   "options": []
   },
   {
    "name": "daily",
