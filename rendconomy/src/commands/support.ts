@@ -11,11 +11,11 @@ export const support: Command = {
   system: 'general',
   run() {
     return { embeds: [embed('general', '☕ Support RendConomy', [
-      'RendConomy is free, and it stays that way. Running it costs real money every month (hosting the bot and the servers behind the site), so there\'s a tip jar if you\'d like to help.',
+      'RendConomy is free, and it stays that way. Running it costs real money every month (hosting the bot and the servers behind the site), so if you\'d like to help there\'s a tip jar, or a $5/month membership, on Ko-fi.',
       '',
-      `**[Tip on Ko-fi](${KOFI})** · [what it pays for](${SUPPORT_PAGE})`,
+      `**[Support on Ko-fi](${KOFI})** · [what it pays for](${SUPPORT_PAGE})`,
       '',
-      '-# Tips don\'t buy anything in the bot: no Polygons, items, perks or advantages. Everyone plays the same game.'
+      '-# Tips and memberships don\'t buy anything in the bot: no Polygons, items, perks or advantages. Everyone plays the same game.'
     ])] };
   }
 };
