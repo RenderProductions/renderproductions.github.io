@@ -4,6 +4,7 @@ import { loadAppEmojis, syncAppEmojis } from './discord/emoji';
 import { COLORS } from './discord/style';
 import { receiptView, setReceiptSender } from './social/receipts';
 import { Client, Events, GatewayIntentBits, Partials } from 'discord.js';
+import { welcome } from './discord/welcome';
 import { botConfig, economy, loadEnv } from './config';
 import { dailyBackup } from './core/backups';
 import { open } from './core/db';
@@ -245,6 +246,12 @@ async function main(): Promise<void> {
     client.channels.fetch(config.modLogChannelId)
       .then(async (ch) => { if (ch && ch.isSendable()) await ch.send({ content: text, allowedMentions: { parse: [] } }); })
       .catch((err: unknown) => console.error('[mod log]', err));
+  });
+
+  // a new server: say hello once, with how to start
+  client.on(Events.GuildCreate, (guild) => {
+    console.log(`[guilds] joined ${guild.name} (${guild.id}), ${guild.memberCount} members`);
+    void welcome(db, guild, config.prefix);
   });
 
   client.on(Events.MessageCreate, (m) => {
