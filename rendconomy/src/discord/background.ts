@@ -1,5 +1,6 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
+import { museumSnapshot } from '../museum/museum';
 import { birthdaySnapshot, capsuleTick, isBotBirthday } from '../birthday/birthday';
 import { consoleFromDm } from './console';
 import { chessFinish, chessStatus } from '../games/chess';
@@ -258,6 +259,7 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     underground: undergroundSnapshot(db),
     wiki: wikiSnapshot(db, now),
     birthday: birthdaySnapshot(db, now),
+    museum: museumSnapshot(db, now),
     players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
 }

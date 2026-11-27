@@ -5,6 +5,7 @@
 //    party without the bot's own birthday things.
 // Both have a Birthday Bash day (chat pay x1.5 and a birthday bonus on dailies), a Party shelf at Marquez's,
 // cake on the Slots reels, a jackpot top-up, Chuck's Party Fish, and a cake every server fills together.
+import { museumCake } from '../museum/museum';
 import { economy } from '../config';
 import { award, has } from '../achievements/achievements';
 import type { Db } from '../core/db';
@@ -56,6 +57,14 @@ export function partyOf(now = Date.now()): Party | null {
   return null;
 }
 export const isParty = (now = Date.now()): boolean => !!partyOf(now);
+/** How many of RendConomy's birthdays have started by now (Candle No. 1 to this one exist). */
+export function birthdaysSoFar(now = Date.now()): number {
+  const k = dayKey(now), y = Number(k.slice(0, 4));
+  const n = (k.slice(5) >= `${String(BIRTHDAY.bot.month).padStart(2, '0')}-${String(BIRTHDAY.bot.from).padStart(2, '0')}` ? y : y - 1) - BIRTHDAY.born;
+  return Math.max(0, n, forced === 'bot' ? partyOf(now)!.age : 0);
+}
+/** Whether any birthday party has started yet (the Party Hat exists from the first one). */
+export const partiesStarted = (now = Date.now()): boolean => dayKey(now) >= `${BIRTHDAY.born + 1}-08-17` || !!forced;
 export const isBash = (now = Date.now()): boolean => !!partyOf(now)?.bash;
 /** The bot's own birthday week (the candle, the time capsule and the yearbook). */
 export const isBotBirthday = (now = Date.now()): boolean => partyOf(now)?.kind === 'bot';
@@ -81,7 +90,7 @@ export function cakeTarget(db: Db, g: string, p: Party, now = Date.now()): numbe
   if (saved) return Number(saved);
   const players = db.get<{ n: number }>('SELECT COUNT(DISTINCT user_id) AS n FROM activity WHERE guild_id = ? AND day > ?', g, dayKey(now - 7 * DAY))!.n;
   const C = BIRTHDAY.cake[p.kind];
-  const t = C.base + C.perPlayer * Math.max(1, players);
+  const t = Math.round((C.base + C.perPlayer * Math.max(1, players)) * museumCake(db, g, now));   // the museum's Birthday Wing: 20% fewer
   db.setMeta(cakeTargetKey(g, p.key), String(t));
   return t;
 }

@@ -1,4 +1,7 @@
 // No Questions Asked: r!underground (Mr. Glaz), and his hijack of TODD's drop-ins on password nights.
+import { COLLECTIBLES, findItem } from '../shop/items';
+import { count } from '../shop/inventory';
+import { MUSEUM, MuseumError, sellToGlaz } from '../museum/museum';
 import { award, awardHere } from '../achievements/achievements';
 import { economy } from '../config';
 import { payFromReserve } from '../core/economy';
@@ -261,7 +264,7 @@ export const underground: Command = {
       }
 
       // Everything else is dealing with Mr. Glaz himself
-      const known = ['buy', 'fence', 'sell', 'launder', 'smuggle', 'run'];
+      const known = ['buy', 'fence', 'sell', 'launder', 'smuggle', 'run', 'pawn'];
       if (!known.includes(verb)) {
         // a password?
         const n = tonight(ctx.db, g, ctx.now);
@@ -279,6 +282,21 @@ export const underground: Command = {
       if (verb === 'buy') {
         if (!target) throw new GameError('ug.buy', `\`${P}ug buy <item>\`. Tonight: ${stockFor(g, n.night).map((x) => CONTRABAND[x].name).join(', ')}.`);
         return buy(ctx, g, w, n, target, extra);
+      }
+
+      // Mr. Glaz buys collectibles: 125% of collector value, one a night, held a week or more
+      const colId = target && !/^#?\d+$|^all$/i.test(target) ? findItem(`${target} ${extra}`.trim()) : null;
+      if (verb === 'pawn' || (verb === 'sell' && colId && COLLECTIBLES[colId])) {
+        if (!colId || !COLLECTIBLES[colId]) throw new GameError('ug.pawn', `\`${P}ug sell <collectible>\`. *"Rare things. I pay more than the museum."*`);
+        if (!count(ctx.db, g, ctx.user.id, colId)) throw new GameError('ug.pawn.none', `*"You don't have a ${COLLECTIBLES[colId]!.name}. Don't waste my time."*`);
+        let paid = 0;
+        try { paid = sellToGlaz(ctx.db, g, ctx.user.id, colId, n.night, ctx.now); }
+        catch (e) {
+          if (e instanceof MuseumError && e.why === 'glaz.fresh') throw new GameError('ug.pawn.fresh', `*"Too fresh. Somebody's still looking for that."* He only buys collectibles you've had for a week${/^\d+$/.test(e.detail) ? `: this one ${discordTime(Number(e.detail))}` : ''}.`);
+          if (e instanceof MuseumError && e.why === 'glaz.tonight') throw new GameError('ug.pawn.tonight', '*"One piece a night. I have a reputation."*');
+          throw e;
+        }
+        return shady(ctx, g, MUSEUM.glazHeat, [`He holds the ${COLLECTIBLES[colId]!.name} up to his one good eye for a long time. Then it's gone, into the robe. **+${format(paid)}** (${Math.round(MUSEUM.glazShare * 100)}% of collector value).`, '-# Whatever Mr. Glaz buys is never seen again.'], `${emojiOr('connector', '🎩')} Sold`);
       }
 
       if (verb === 'fence' || verb === 'sell') {
@@ -319,7 +337,7 @@ export const underground: Command = {
         ctx.db.run('UPDATE underground SET smuggle_stake = ?, smuggle_until = ?, smuggle_mult = ?, smuggle_night = ? WHERE guild_id = ? AND user_id = ?', stake, ctx.now + UG.smuggleMs, mult, n.night, g, ctx.user.id);
         return shady(ctx, g, UG.smuggleHeat, [`${emojiOr('smuggle', '⛵')} **${format(stake)}** of something goes into a crate, and the crate goes onto a boat. It lands ${discordTime(ctx.now + UG.smuggleMs)}. Check back with \`${P}underground\`.`, beacon ? `-# ${emojiOr('prop_lighthouse', '🗼')} Your Lighthouse keeps the patrol looking the other way.` : null].filter((x): x is string => !!x), `${emojiOr('smuggle', '⛵')} Smuggling run`);
       }
-      throw new GameError('ug.action', `\`${P}ug\` · \`buy <item>\` · \`fence <#|all>\` · \`launder <#> <lot>\` · \`smuggle <amount>\` · \`snitch @player\``);
+      throw new GameError('ug.action', `\`${P}ug\` · \`buy <item>\` · \`fence <#|all>\` · \`sell <collectible>\` · \`launder <#> <lot>\` · \`smuggle <amount>\` · \`snitch @player\``);
     });
   }
 };

@@ -4,8 +4,17 @@
 <li><strong>Using lots at once:</strong> <code>r!use mystery 10</code> or <code>r!use mystery all</code> opens up to <span data-v="refined.bulkMax" data-f="num">?</span> in one message. Coffee, the Customizer Kit, the Megaphone, paints and the Rush Order go one at a time.</li>
 <li><strong>Mystery:</strong> <span data-v="refined.mystery.jackpotChance" data-f="pct">?</span> of the time it holds <span data-v="refined.mystery.jackpot">?</span>, <span data-v="refined.mystery.overtimeChance" data-f="pct">?</span> an Overtime pass, and otherwise ⬡<span data-v="refined.mystery.cash.0" data-f="raw">?</span>–<span data-v="refined.mystery.cash.1" data-f="raw">?</span>. On average that's about what it costs.</li>
 <li><strong>Rush Order:</strong> <code>r!use rush order coffee</code> has Marquez restock that one item to full, for everyone in your server. Not for collectibles, and you keep the Rush Order if the item is already full.</li>
-<li><strong>Selling back:</strong> <code>r!shop sell &lt;item&gt; [amount|all]</code>. Marquez pays <span data-v="refined.sellBack" data-f="pct">?</span> of his list price and puts it back on his shelf. He doesn't buy collectibles (trade those with <code>r!trade</code>), and fish and crops have their own buyers.</li>
+<li><strong>Selling back:</strong> <code>r!shop sell &lt;item&gt; [amount|all]</code>. Marquez pays <span data-v="refined.sellBack" data-f="pct">?</span> of his list price and puts it back on his shelf. He doesn't buy collectibles (trade those with <code>r!trade</code>, donate them to the museum, or sell them to Mr. Glaz), and fish and crops have their own buyers.</li>
 <li><strong>Throwing away:</strong> <code>r!discard &lt;item&gt; [amount|all]</code>, for nothing.</li>
 </ul>
 <h2 id="all">Every item <span class="auto">FROM THE BOT</span></h2>
 <div data-table="items"></div>
+
+<h2 id="collector">Collectibles: collector value and the museum</h2>
+<p>Every collectible has a <strong>collector value</strong>, worked out once a day from how many exist across every server: rarer than the average collectible, it's worth more (up to 5× Marquez's price); more common, less (down to half). It counts toward your net worth. <code>r!collection</code> shows yours, and <a href="/museum/">the museum page</a> has today's prices.</p>
+<ul>
+<li><strong>The museum</strong> (<code>r!museum</code>): donate a collectible with <code>r!museum donate &lt;collectible&gt;</code>. It's gone for good, you're paid 75% of its value, and the first of each kind puts your name on the plaque. Each kind on display gives the server +0.5% chat and shift pay.</li>
+<li><strong>The wings:</strong> Founders' Wing (every weekly special): +5% property rent. Winter Wing (the holiday collectibles): advent doors pay double Polygons. Birthday Wing (the Party Hat and every Candle so far): the birthday cake needs 20% fewer pieces. The Full Collection: +2% on every achievement reward.</li>
+<li><strong>Mr. Glaz</strong> buys collectibles at night for 125% of their value (<code>r!ug sell &lt;collectible&gt;</code>): one a night, only ones you've had for a week, with Heat. What he buys is gone for good.</li>
+<li>Collectibles are never loan collateral.</li>
+</ul>

@@ -758,5 +758,35 @@ export const MIGRATIONS: readonly string[] = [
     told     INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (guild_id, user_id, year)
   );
+  `,
+
+  /* v27: the museum. Collector prices (one row per collectible per day, kept for the price history), when each
+     player got each collectible (Mr. Glaz only buys ones held 7 days; what people already had counts as old),
+     and every museum donation. */ `
+  CREATE TABLE collector_prices (
+    day    TEXT NOT NULL,
+    item   TEXT NOT NULL,
+    cents  INTEGER NOT NULL,
+    copies INTEGER NOT NULL,
+    PRIMARY KEY (day, item)
+  );
+  CREATE TABLE collectible_since (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    item     TEXT NOT NULL,
+    since    INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, user_id, item)
+  );
+  INSERT OR IGNORE INTO collectible_since (guild_id, user_id, item, since)
+    SELECT guild_id, user_id, item, 0 FROM inventory WHERE item LIKE 'col_%' AND qty > 0;
+  CREATE TABLE museum_donations (
+    id       INTEGER PRIMARY KEY,
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    item     TEXT NOT NULL,
+    at       INTEGER NOT NULL
+  );
+  CREATE INDEX museum_guild ON museum_donations (guild_id, item);
+  CREATE INDEX museum_user ON museum_donations (user_id, item);
   `
 ];

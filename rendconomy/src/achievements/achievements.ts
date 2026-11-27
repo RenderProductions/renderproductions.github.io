@@ -12,6 +12,10 @@ import { currentRequest } from '../core/request';
 import { dayKey } from '../core/time';
 import { ACHIEVEMENTS, BY_ID, NO_COMPLETION, RARITY } from './list';
 
+/** Server bonuses on achievement rewards (the museum's Full Collection). */
+let awardBoost: (db: Db, guildId: string) => number = () => 1;
+export const setAwardBoost = (fn: (db: Db, guildId: string) => number): void => { awardBoost = fn; };
+
 /** Tests that check exact balances switch payouts off. */
 export const TUNING = { pay: true };
 
@@ -37,7 +41,7 @@ export function award(db: Db, guildId: string | null, userId: string, id: string
   let line = `**Achievement unlocked:** ${rarityE(a.rarity)} **${a.name}**: ${a.desc}.`;
   if (guildId && TUNING.pay) {
     player(db, guildId, userId, economy.startingCash, now);
-    const paid = payFromReserve(db, economy.reserveStart, { to: wallet(guildId, userId), cents: rarity.pay, reason: 'achievement', guildId, actorId: userId, now, note: { id } });
+    const paid = payFromReserve(db, economy.reserveStart, { to: wallet(guildId, userId), cents: Math.round(rarity.pay * awardBoost(db, guildId)), reason: 'achievement', guildId, actorId: userId, now, note: { id } });
     if (paid > 0) line += ` Reward: ${format(paid)}.`;
   }
   emit('achievement.unlocked', { guildId, userId, id });

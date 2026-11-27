@@ -1,6 +1,7 @@
 // A shift (or a gig): hand out a task, wait for the answer (buttons or typing), grade it, pay.
 // The task waits in a stored session, so a restart mid-task doesn't break its buttons, and exactly
 // one answer is ever graded (sessions.end only succeeds once).
+import { museumPay } from '../museum/museum';
 import { emoji } from '../discord/emoji';
 import { line } from '../discord/flavor';
 import type { Button, Ctx, ReplyObject, SessionReply } from '../commands/types';
@@ -144,6 +145,8 @@ export function grade(ctx: Ctx, s: sessions.Session<WorkState>, answer: string):
     if (world > 1) { pay = Math.round(pay * world); extras.push(`World event: pay ${world}x`); }
     const civic = workBonus(ctx.db, guildId, 'shifts', ctx.now);   // Under New Management: a public work
     if (civic > 0) { pay = Math.round(pay * (1 + civic)); extras.push(`City public works: +${Math.round(civic * 100)}%`); }
+    const museum = museumPay(ctx.db, guildId);   // the museum: +0.5% per kind of collectible on display
+    if (museum > 1 && pay > 0) { pay = Math.round(pay * museum); extras.push(`The museum: +${(Math.round((museum - 1) * 1000) / 10)}%`); }
     const boost = m?.boost as { tickers?: string[] } | null | undefined;
     if (boost && (!boost.tickers?.length || boost.tickers.includes(ticker))) { pay *= 2; extras.push('Market boom: pay doubled'); }
     tip = Math.round(pay * speed);

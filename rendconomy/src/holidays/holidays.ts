@@ -5,6 +5,7 @@
 //    and delivered on Christmas morning. Anyone whose Santa forgot gets a small present from Marquez.
 //  - Limited collectibles and paints at Marquez's, gone after New Year (owned ones stay).
 //  - Snow Day, a world event: no work, double chat pay.
+import { museumAdvent } from '../museum/museum';
 import { economy } from '../config';
 import type { Db } from '../core/db';
 import { payFromReserve } from '../core/economy';
@@ -48,7 +49,7 @@ export function openDoors(db: Db, guildId: string, userId: string, now: number):
     const door = DOORS[day]!;
     db.run('INSERT INTO holiday_doors (guild_id, user_id, year, day, opened_at) VALUES (?, ?, ?, ?, ?)', guildId, userId, year, day, now);
     if (door.item) addItem(db, guildId, userId, door.item, door.qty ?? 1);
-    const paid = door.cents ? payFromReserve(db, economy.reserveStart, { to: wallet(guildId, userId), cents: polygons(door.cents), reason: 'holiday.advent', guildId, actorId: userId, now }) : 0;
+    const paid = door.cents ? payFromReserve(db, economy.reserveStart, { to: wallet(guildId, userId), cents: polygons(door.cents) * museumAdvent(db, guildId, now), reason: 'holiday.advent', guildId, actorId: userId, now }) : 0;
     out.push({ day, door, paid });
   }
   return out;

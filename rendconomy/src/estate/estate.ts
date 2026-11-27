@@ -11,6 +11,7 @@
 // Nothing ticks in the background: each building's days are worked out from timestamps whenever it's looked
 // at (settle), so the bot can restart freely. A background pass settles every server now and then so
 // condemnations, auctions, buyouts and freight trains finish on time even when nobody is looking.
+import { museumRent } from '../museum/museum';
 import { addRevenue, alive, getCompany } from '../companies/companies';
 import { economy } from '../config';
 import type { Db } from '../core/db';
@@ -213,7 +214,7 @@ export function settle(db: Db, guildId: string, now: number): EstateNews[] {
   db.tx(() => {
     const lots = lotsOf(db, guildId, now);
     const storms = weatherLog(db).filter((w) => w.kind === 'storm');
-    const bonus = landmarkRent(db, guildId) + workBonus(db, guildId, 'rent', now);   // landmarks, and the city's public works
+    const bonus = landmarkRent(db, guildId) + workBonus(db, guildId, 'rent', now) + museumRent(db, guildId, now);   // landmarks, the city's public works, the museum's Founders' Wing
     // No Questions Asked: nights Mr. Glaz squatted in an owned place (its rent is halved that day)
     let hosts: { lot: number; from: number; until: number }[] = [];
     try { hosts = JSON.parse(db.meta(`ug.hosts:${guildId}`) ?? '[]'); } catch { /* none */ }

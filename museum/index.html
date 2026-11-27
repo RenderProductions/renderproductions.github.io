@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="bot">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Museum | RendConomy</title>
+<meta name="description" content="Collector values for every RendConomy collectible, updated daily, and the museum in each server.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Render Productions">
+<meta property="og:title" content="The Museum | RendConomy">
+<meta property="og:description" content="Collector values for every RendConomy collectible, updated daily, and the museum in each server.">
+<meta property="og:url" content="https://renderproductions.github.io/museum/">
+<meta property="og:image" content="https://renderproductions.github.io/og/bot.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#8c9bff">
+<link rel="icon" type="image/x-icon" href="../../favicon.ico">
+<link rel="stylesheet" href="../../style.css">
+<style>
+  table.board { width: 100%; border-collapse: collapse; font-size: 14px; margin: .6rem 0 0; }
+  table.board th, table.board td { text-align: left; padding: .5rem .5rem; border-bottom: 1px solid var(--line); }
+  table.board th { color: var(--grey); font-weight: 500; }
+  table.board td.n, table.board th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .up { color: #3ddc84; } .down { color: #ff5c61; }
+  .hall { border: 1px solid var(--line-strong); background: var(--panel); padding: 1.2rem 1.4rem; margin: 1rem 0; }
+  .hall h3 { margin: 0 0 .5rem; }
+  .plaques { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin: .6rem 0; }
+  .plaque { border: 1px solid var(--line); background: var(--panel-2); padding: .55rem .7rem; font-size: 13px; }
+  .plaque b { display: block; color: var(--bright); font-weight: 600; }
+  .wings { display: flex; flex-wrap: wrap; gap: 8px; margin-top: .4rem; font-size: 13px; }
+  .wing { border: 1px solid var(--line); padding: .3rem .6rem; color: var(--grey); }
+  .wing.done { border-color: var(--line-strong); color: var(--bright); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="/">RENDER PRODUCTIONS</a>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/rend-conomy/" aria-current="true">Rend-Conomy</a></li>
+      <li><a href="/games/">Games</a></li>
+      <li><a href="/patch-notes/">Patch Notes</a></li>
+      <li><a href="/wiki/">Wiki</a></li>
+      <li><a href="/discord/">Discord</a></li>
+    </ul>
+  </nav>
+    <nav class="subnav" aria-label="Rend-Conomy"><a href="/rend-conomy/">Market</a><a href="/rend-conomy/exchange/">Exchange</a><a href="/rend-conomy/map/">Map</a><a href="/play/">Play</a><a href="/bot/" aria-current="page">Bot</a><a href="/profile/">Players</a></nav>
+
+  <h1 class="page-title">THE MUSEUM</h1>
+  <p class="meta">What every collectible is worth to collectors today, and what's on display in your servers.</p>
+
+  <div class="prose">
+    <p>A collectible's <strong>collector value</strong> follows how many exist across every server: rarer than the average collectible, it's worth more (up to 5× Marquez's price); more common, less (down to half). It's worked out once a day and counts toward your net worth. <code>r!collection</code> shows yours.</p>
+
+    <h2>Collector values</h2>
+    <div id="board"><p class="meta">Loading today's prices…</p></div>
+
+    <h2>Your servers' museums</h2>
+    <div id="halls"><p class="meta">Log in on your <a href="/profile/">profile</a> to see the museums in your servers.</p></div>
+
+    <h2>How the museum works</h2>
+    <ul>
+      <li><strong>Donate</strong> a collectible with <code>r!museum donate &lt;collectible&gt;</code>. It's gone for good, and the museum pays you <strong>75%</strong> of its collector value. The first of each kind puts <strong>your name on the plaque</strong>.</li>
+      <li><strong>Every kind on display</strong> gives everyone in that server <strong>+0.5%</strong> chat pay and shift pay.</li>
+      <li><strong>The wings:</strong> the Founders' Wing (every weekly special) gives +5% property rent; the Winter Wing (the holiday collectibles) doubles the Polygons behind advent doors; the Birthday Wing (the Party Hat and every Candle so far) makes the birthday cake 20% smaller; The Full Collection adds +2% to every achievement reward.</li>
+      <li><strong>Mr. Glaz</strong> buys collectibles at night for <strong>125%</strong> of their value (<code>r!ug sell &lt;collectible&gt;</code>): one a night, only ones you've had for a week, and it adds Heat. Whatever he buys is never seen again.</li>
+      <li>Collectibles are never loan collateral.</li>
+      <li><strong>Museum Donor</strong> (rare): surrender your most prized possession to the museum. <strong>The Curator</strong> (mythic): surrender all of your most valued items to the Museum.</li>
+    </ul>
+  </div>
+
+  <footer class="footer">
+    <span>Render Productions</span>
+    <span><a href="/bot/">The bot</a> &nbsp;|&nbsp; <a href="/wiki/items/">Items</a></span>
+  </footer>
+
+</div>
+<script>
+addEventListener('DOMContentLoaded', function () {
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var money = function (c) { return '⬡' + (c / 100).toLocaleString('en-US', { maximumFractionDigits: 0 }); };
+  function show(feed) {
+    var m = feed && feed.museum;
+    if (!m) return;
+    var names = {}; (m.prices || []).forEach(function (p) { names[p.id] = p; });
+    document.getElementById('board').innerHTML = '<table class="board"><thead><tr><th>Collectible</th><th class="n">Value</th><th class="n">This week</th><th class="n">In existence</th></tr></thead><tbody>' +
+      (m.prices || []).map(function (p) {
+        var ch = Math.round((p.change || 0) * 100);
+        return '<tr><td>' + esc(p.emoji) + ' ' + esc(p.name) + '</td><td class="n">' + money(p.cents) + '</td><td class="n ' + (ch > 0 ? 'up' : ch < 0 ? 'down' : '') + '">' + (ch ? (ch > 0 ? '▲ ' : '▼ ') + Math.abs(ch) + '%' : '—') + '</td><td class="n">' + p.copies + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    if (!window.RV || !RV.servers) return;
+    RV.servers().then(function (list) {
+      if (!list || !list.length) return;
+      var W = { founders: "🗃️ Founders' Wing", winter: '❄️ Winter Wing', birthday: '🎂 Birthday Wing', full: '🏛️ The Full Collection' };
+      document.getElementById('halls').innerHTML = list.map(function (s) {
+        var h = (m.museums || {})[s.id] || { exhibits: [], wings: [] };
+        return '<div class="hall"><h3>🏛️ ' + esc(s.server || 'Your server') + '</h3>' +
+          (h.exhibits.length ? '<p class="meta" style="margin:0">' + h.exhibits.length + ' on display: +' + (Math.round(h.exhibits.length * 5) / 10) + '% chat and shift pay.</p><div class="plaques">' +
+            h.exhibits.map(function (e) { var p = names[e.item] || {}; return '<div class="plaque"><b>' + esc(p.emoji || '🗃️') + ' ' + esc(p.name || e.item) + '</b>Donated by ' + esc(e.donor || 'a player') + '</div>'; }).join('') + '</div>'
+            : '<p class="meta" style="margin:0">The halls are empty. Be the first: your name goes on the plaque.</p>') +
+          '<div class="wings">' + Object.keys(W).map(function (k) { return '<span class="wing' + (h.wings.indexOf(k) >= 0 ? ' done' : '') + '">' + (h.wings.indexOf(k) >= 0 ? '✓ ' : '') + W[k] + '</span>'; }).join('') + '</div></div>';
+      }).join('');
+    }).catch(function () {});
+  }
+  if (window.RV && RV.live) RV.live(show);
+});
+</script>
+<script src="/rv.js" defer></script>
+<script src="/holiday.js" defer></script>
+<script src="/birthday.js" defer></script>
+</body>
+</html>

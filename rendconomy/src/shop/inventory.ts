@@ -1,4 +1,5 @@
 // Inventories (items a player owns in a server) and effects (what an item is doing right now).
+import { currentRequest } from '../core/request';
 import type { Db } from '../core/db';
 
 export function count(db: Db, guildId: string, userId: string, item: string): number {
@@ -8,12 +9,16 @@ export function count(db: Db, guildId: string, userId: string, item: string): nu
 export function addItem(db: Db, guildId: string, userId: string, item: string, n = 1): void {
   db.run(`INSERT INTO inventory (guild_id, user_id, item, qty) VALUES (?, ?, ?, ?)
     ON CONFLICT(guild_id, user_id, item) DO UPDATE SET qty = qty + excluded.qty`, guildId, userId, item, n);
+  // the museum: when a player got a collectible (Mr. Glaz only buys ones held for a week)
+  if (item.startsWith('col_') && n > 0) db.run('INSERT OR IGNORE INTO collectible_since (guild_id, user_id, item, since) VALUES (?, ?, ?, ?)', guildId, userId, item, currentRequest()?.now ?? Date.now());
 }
 
 /** Takes one (or n) of an item. Returns false, changing nothing, if they don't have enough. */
 export function takeItem(db: Db, guildId: string, userId: string, item: string, n = 1): boolean {
   const r = db.run('UPDATE inventory SET qty = qty - ? WHERE guild_id = ? AND user_id = ? AND item = ? AND qty >= ?', n, guildId, userId, item, n);
-  if (r.changes === 1) db.run('DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item = ? AND qty = 0', guildId, userId, item);
+  if (r.changes === 1 && db.run('DELETE FROM inventory WHERE guild_id = ? AND user_id = ? AND item = ? AND qty = 0', guildId, userId, item).changes && item.startsWith('col_')) {
+    db.run('DELETE FROM collectible_since WHERE guild_id = ? AND user_id = ? AND item = ?', guildId, userId, item);
+  }
   return r.changes === 1;
 }
 

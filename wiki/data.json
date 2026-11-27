@@ -22,7 +22,7 @@
   "social": {
    "label": "Players",
    "emoji": "👥",
-   "count": 18
+   "count": 20
   },
   "work": {
    "label": "Work",
@@ -700,6 +700,39 @@
    "description": "Your RendConomy so far (RendConomy's birthday week)",
    "section": "social",
    "slash": "/yearbook",
+   "options": []
+  },
+  {
+   "name": "museum",
+   "aliases": [
+    "exhibit",
+    "exhibits"
+   ],
+   "description": "Your server's museum: see the exhibits, or donate a collectible",
+   "section": "social",
+   "slash": "/museum",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank for the museum, or: donate <collectible>",
+     "required": false
+    },
+    {
+     "name": "item",
+     "description": "For donate: the collectible",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "collection",
+   "aliases": [
+    "collectibles",
+    "cols"
+   ],
+   "description": "Your collectibles and what they're worth to collectors",
+   "section": "social",
+   "slash": "/collection",
    "options": []
   },
   {
@@ -4214,6 +4247,22 @@
    "secret": true
   },
   {
+   "id": "museum_donor",
+   "name": "Museum Donor",
+   "desc": "Surrender your most prized possession to the museum",
+   "category": "The Museum",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "the_curator",
+   "name": "The Curator",
+   "desc": "Surrender all of your most valued items to the Museum",
+   "category": "The Museum",
+   "rarity": "mythic",
+   "secret": false
+  },
+  {
    "id": "party_guest",
    "name": "Party Guest",
    "desc": "Show up for a birthday party",
@@ -6330,6 +6379,7 @@
   "mastery",
   "megaphone",
   "mines",
+  "museum",
   "mystery",
   "n0",
   "n1",

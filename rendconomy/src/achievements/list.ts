@@ -28,6 +28,7 @@ export const CATEGORIES = {
   site: { label: 'On the site', emoji: '🖥️' },
   holiday: { label: 'Polygon Holidays', emoji: '🎄' },
   birthday: { label: 'Birthdays', emoji: '🎂' },
+  museum: { label: 'The Museum', emoji: '🏛️' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
 } as const;
@@ -229,6 +230,8 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['rft_fresh_install', 'Fresh Install', 'Upgrade every piece of hardware in Render\'s File Tycoon', 'site', 'rare'],
   ['rft_contractor', 'Contractor', 'Run 50 modules at once in Render\'s File Tycoon', 'site', 'epic'],
   ['rft_backdoor', 'Backdoor', 'Find a secret upgrade in Render\'s File Tycoon', 'site', 'rare', true],
+  ['museum_donor', 'Museum Donor', 'Surrender your most prized possession to the museum', 'museum', 'rare'],
+  ['the_curator', 'The Curator', 'Surrender all of your most valued items to the Museum', 'museum', 'mythic'],
   ['party_guest', 'Party Guest', 'Show up for a birthday party', 'birthday', 'common'],
   ['blow_out_the_candles', 'Blow Out the Candles', 'Help your server finish its birthday cake', 'birthday', 'rare'],
   ['party_animal', 'Party Animal', 'Eat a cake slice, win a TODD drop-in and land a Party Fish in the same birthday party', 'birthday', 'epic'],

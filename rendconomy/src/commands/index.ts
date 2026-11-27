@@ -1,5 +1,6 @@
 import { installAchievementListeners } from '../achievements/listeners';
 // Every command. Add new ones here.
+import { installMuseum } from '../museum/install';
 import { installBirthdays } from '../birthday/install';
 import { freeze, give, giveitem, take, takeitem, unfreeze, wipe } from './admin';
 import { achievements, importAchievements } from './achievements';
@@ -11,6 +12,7 @@ import { buy, chart, dividends, market, money, sell } from './market';
 import { farmCommands } from './farming';
 import { holidayCommands } from './holidays';
 import { birthdayCommands } from './birthday';
+import { museumCommands } from './museum';
 import { connectionCommands } from './connections';
 import { funCommands } from './fun';
 import { reserve } from './reserve';
@@ -40,7 +42,7 @@ import { support } from './support';
 import type { Command } from './types';
 
 export const commands: Command[] = [];
-commands.push(wiki, support, daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, collect, mayorCmd, vote, impeachCmd, shop, purchase, inventory, use, sellitem, discard, settitle, fish, sellfish, ...farmCommands, ...holidayCommands, ...birthdayCommands, ...connectionCommands, ...funCommands, ...propertyCommands, ...undergroundCommands, achievements, gift, leaderboard, savings, work, gig, beg, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, closecompany, sellcompany, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, vip, table, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, giveitem, takeitem, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
+commands.push(wiki, support, daily, money, history, profile, bailout, repay, loan, loans, payback, forgive, collect, mayorCmd, vote, impeachCmd, shop, purchase, inventory, use, sellitem, discard, settitle, fish, sellfish, ...farmCommands, ...holidayCommands, ...birthdayCommands, ...museumCommands, ...connectionCommands, ...funCommands, ...propertyCommands, ...undergroundCommands, achievements, gift, leaderboard, savings, work, gig, beg, apply, quit, job, market, chart, compare, buy, sell, dividends, order, broker, short, cover, found, company, exchange, invest, upgrade, ipo, salary, closecompany, sellcompany, takeover, merge, event, slots, coinflip, dice, roulette, blackjack, hilo, mines, rocket, vip, table, bus, derby, lottery, gambling, heist, odds, reserve, receipts, ping, notFound, give, take, giveitem, takeitem, freeze, unfreeze, wipe, importAchievements, cleartitle, crash, boost, dropin, review, approve, reject, announce, makeHelp(() => commands));
 
 // Helpers: commands folded under a parent, to keep under Discord's 100 slash commands and keep families together.
 // r!company close runs r!closecompany (which still works); /company action:close does the same.
@@ -68,6 +70,7 @@ installExtras();
 installCompanies();
 installWorld();
 installBirthdays();
+installMuseum();
 installEstates();
 installCity();
 
