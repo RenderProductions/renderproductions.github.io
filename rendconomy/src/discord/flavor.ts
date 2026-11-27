@@ -5,11 +5,11 @@ import type { APIEmbed } from 'discord.js';
 import type { Rng } from '../core/rng';
 
 export const LINES = {
-  fishNothing: ['Nothing bites. The lake is quiet.', 'You wait... and wait. Nothing.', 'A fish nibbles, then swims off laughing at you.', 'The bobber sits perfectly still. So do the fish.', 'Something big swims past. It is not interested.'],
+  fishNothing: ['Not a single bite.', 'You wait... and wait. Nothing.', 'A fish nibbles, then swims off laughing at you.', 'The bobber never moves.', 'Something big swims past. It is not interested.'],
   fishBig: ['', '', ' Nice one!', ' **What a monster!**', ' ✨ **LEGENDARY!** The whole lake goes quiet.'],
   coinSpin: ['The coin spins through the air...', 'You flick the coin. It tumbles end over end...', 'The coin rings off your thumb...'],
   diceRoll: ['The dice tumble across the felt...', 'You shake, you throw...', 'The dice clatter against the wall...'],
-  wheelSpin: ['The ball rattles around the wheel...', 'The croupier spins the wheel. Round and round...', 'Clack, clack, clack... the wheel slows...'],
+  wheelSpin: ['The ball rattles around the wheel...', 'The croupier spins the wheel...', 'Clack, clack, clack... the wheel slows...'],
   reels: ['The reels spin...', 'Whirr... click... click...', 'Lights flash. The reels blur...'],
   win: ['Winner!', 'The house pays out.', 'Luck is on your side.', 'Nicely done.'],
   bigWin: ['**The whole floor turns to look.**', '**Jackpot energy.**', '**TODD sighs and counts out the Polygons.**'],

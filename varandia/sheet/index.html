@@ -102,7 +102,9 @@
   .portrait:hover .pHint, .portrait:focus-within .pHint { opacity: 1; }
   .portrait:focus-within { outline: 2px dashed var(--red); outline-offset: 3px; }
   .sr-only { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
-</style>
+    .dice { display: inline-flex; gap: 6px; }
+    .dice .btn { padding: 0 11px; min-width: 46px; }
+  </style>
 </head>
 <body class="tome">
 
@@ -216,8 +218,9 @@
 
         <div style="display: flex; flex-wrap: wrap; gap: 10px">
           <button type="button" class="btn ink" id="attack">Melee attack</button>
-          <button type="button" class="btn" id="d20">d20</button>
-          <button type="button" class="btn" id="d6">d6</button>
+          <span class="dice" role="group" aria-label="Roll a die">
+            <button type="button" class="btn" data-die="20">d20</button><button type="button" class="btn" data-die="12">d12</button><button type="button" class="btn" data-die="8">d8</button><button type="button" class="btn" data-die="6">d6</button><button type="button" class="btn" data-die="4">d4</button>
+          </span>
           <button type="button" class="chip" id="profNext" aria-pressed="false">+ proficiency next roll</button>
         </div>
 
@@ -590,7 +593,7 @@
     var cc = T.spellCost(sp, D, c), el = D.elements.filter(function (e) { return e.key === sp.element; })[0];
     T.$('#spellCard').innerHTML = '<div style="font:14px/1 var(--sc);letter-spacing:.12em;color:var(--faded)">' + (el ? (el.kind === 'chaotic' ? 'Chaotic magic' : T.esc(el.name)) : '') + (sp.own ? '' : ' · ' + T.levelName(sp.level)) + '</div>' +
       '<h2 style="font-style:normal;font-size:38px;margin:6px 0 10px">' + T.esc(sp.name) + '</h2>' +
-      '<p style="margin:0 0 10px;font-size:16px"><b class="sc">' + cc.stamina + ' Stamina</b>' + (cc.blood ? ' + <b class="sc">' + cc.blood + ' health</b>' : '') + ' · Need <b>' + cc.need + '</b> · on a fail: ' + T.esc(cc.fail) + '</p>' +
+      '<p style="margin:0 0 10px;font-size:16px"><b class="sc">' + cc.stamina + ' Stamina</b>' + (cc.blood ? ' + <b class="sc">' + cc.blood + ' health</b>' : '') + ' · Need <b>' + cc.need + '</b> · ' + (sp.own ? 'on a fail: ' : 'on a natural 1: ') + T.esc(cc.fail) + '</p>' +
       (sp.own ? '' : '<p class="faded" style="margin:0 0 10px;font-size:15px">' + T.esc(sp.time) + ' · ' + T.esc(sp.range) + ' · ' + T.esc(sp.duration) + (sp.damage ? ' · ' + T.esc(sp.damage) : '') + '</p>') +
       '<div class="spelltext" style="max-height:420px;overflow-y:auto;padding-right:6px">' + para(sp.text) + '</div>' +
       '<button type="button" class="btn ink" data-cast="' + sp.key + '" style="margin-top:10px"' + (cc.stamina > c.sta ? ' disabled' : '') + '>Cast ' + T.esc(sp.name) + '</button>';
@@ -603,7 +606,7 @@
       blood = x;
     }
     if (cc.stamina > c.sta) { T.$('#spellNote').textContent = 'not enough Stamina for ' + sp.name; return; }
-    var w = rollWith(sp.name, T.half(T.stat(c, D.spells.stat, D)), false), r = w.r, ok = r.total >= cc.need;
+    var w = rollWith(sp.name, T.half(T.stat(c, D.spells.stat, D)), false), r = w.r, nat1 = r.die === 1, ok = r.total >= cc.need && !nat1;
     c.sta -= cc.stamina;
     var lost = blood || 0, extra = '';
     if (!ok) {
@@ -612,7 +615,7 @@
         if (m && T.dice(m[1]) != null) { var f2 = T.dice(m[1]) * (m[3] ? +m[3] : 1); lost += f2; extra = ', lost ' + f2 + ' health'; }
         else if (/exhaustion/i.test(cc.fail)) { c.exhaustion += 1; extra = ', +1 Exhaustion'; }
         else extra = ': ' + String(cc.fail).replace(/\.$/, '');
-      } else { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', lost ' + f1 + ' health'; }
+      } else if (nat1) { var f1 = T.dice(cc.fail) || 0; lost += f1; extra = ', critical failure: lost ' + f1 + ' health'; }
     }
     if (sp.own) c.taint += 1;
     var surge = '', surgeInfo = null;
@@ -806,8 +809,11 @@
       c.initRoll = { total: w.r.total, at: Date.now() };   // the GM's initiative tracker picks this up
       logLine(lineFor(w.label, w.r), info('init', 'Initiative', w));
     };
-    T.$('#d20').onclick = function () { var r1 = T.roll(0); logLine(lineFor('d20', r1), info('die', 'd20', { r: r1 })); };
-    T.$('#d6').onclick = function () { var r2 = T.roll(0, 6); logLine(lineFor('d6', r2), info('die', 'd6', { r: r2 }, { sides: 6 })); };
+    // plain dice: d20 posts like any d20 roll (naturals count), the rest post their size
+    document.querySelectorAll('[data-die]').forEach(function (b) {
+      var n = +b.getAttribute('data-die');
+      b.onclick = function () { var r = T.roll(0, n); logLine(lineFor('d' + n, r), n === 20 ? info('die', 'd20', { r: r }) : info('die', 'd' + n, { r: r }, { sides: n })); };
+    });
     T.$('#profNext').onclick = function () { profNext = !profNext; this.setAttribute('aria-pressed', String(profNext)); };
 
     // conditions

@@ -193,7 +193,7 @@ export function offerSale(db: Db, c: Company, g: string, to: string, price: Cent
   if (!alive(c)) throw new GameError('co.sell', 'Only an approved company can be sold.');
   if (to === c.owner_id) throw new GameError('co.sell', 'You already own it.');
   if (bidOn(db, c.ticker)) throw new GameError('co.sell', 'There is a takeover bid on your company. It can\'t change hands until that\'s settled.');
-  if (ownedBy(db, to)) throw new GameError('co.sell', 'They already run a company. A player can only run one.');
+  if (ownedBy(db, to)) throw new GameError('co.sell', 'They already run a company (one per player).');
   const s: Sale = { to, guild: g, price, until: now + CLOSE.saleMs };
   db.setMeta(`sale:${c.ticker}`, JSON.stringify(s));
   return s;
@@ -205,7 +205,7 @@ export function acceptSale(db: Db, c: Company, g: string, u: string, uname: stri
   if (!s || s.to !== u || s.guild !== g) throw new GameError('co.sell', 'That offer is gone.');
   if (!alive(c)) throw new GameError('co.sell', 'That company has closed.');
   if (bidOn(db, c.ticker)) throw new GameError('co.sell', 'There is a takeover bid on it now. The sale is off until that\'s settled.');
-  if (ownedBy(db, u)) throw new GameError('co.sell', 'You already run a company. A player can only run one.');
+  if (ownedBy(db, u)) throw new GameError('co.sell', 'You already run a company (one per player).');
   const held = holding(db, g, u, c.ticker);
   if (held) throw new GameError('co.sell', `Owners can't hold their own shares. Sell your ${held} shares of ${c.ticker} first.`);
   if (balance(db, wallet(g, u)) < s.price) throw new GameError('funds.short', `It costs ${format(s.price)}. You have ${format(balance(db, wallet(g, u)))}.`);

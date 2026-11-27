@@ -87,7 +87,7 @@ const USES: Record<string, Use> = {
     if (r < 0.85) {
       const t = ctx.rng.pick(JOKE_TITLES);
       const cur = ctx.db.get<{ title: string | null }>('SELECT title FROM players WHERE guild_id = ? AND user_id = ?', g, u)?.title;
-      if (cur) return `The disk tries to rename you to *${t}*, but your title holds. Nothing happens.`;
+      if (cur) return `The disk tries to rename you to *${t}*, but your title holds.`;
       ctx.db.run('UPDATE players SET title = ? WHERE guild_id = ? AND user_id = ?', t, g, u);
       return `The disk installs **NAME.TXT**. Your title is now *${t}*.`;
     }
