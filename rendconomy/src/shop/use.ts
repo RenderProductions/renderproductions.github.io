@@ -1,4 +1,5 @@
 // What each item does when used (/use). Passive items work on their own where their system checks them.
+import { eatSlice, isParty } from '../birthday/birthday';
 import type { Ctx } from '../commands/types';
 import { economy } from '../config';
 import { payFromReserve } from '../core/economy';
@@ -50,6 +51,11 @@ const USES: Record<string, Use> = {
     if (!c || (c.status !== 'private' && c.status !== 'public')) throw new GameError('use.megaphone', 'A Megaphone advertises your player company. Found one first.');
     postAd(`**${c.name} (${c.ticker})** is open for business${c.status === 'public' ? ` at ${format(Math.round(c.price * 100))} a share` : ''}. Now hiring: \`/apply ${c.ticker}\`.`);
     return `The ad for ${c.name} is in the market news.`;
+  },
+  cake: (ctx, g) => {
+    if (!isParty(ctx.now)) return 'You eat the Cake Slice. It\'s a little stale, but it\'s still cake.';
+    const paid = eatSlice(ctx.db, g, ctx.user.id, () => ctx.rng.next(), ctx.now);
+    return `🍰 You eat the Cake Slice. There's a folded note under it: **${format(paid)}**. Happy birthday!`;
   },
   coffee: (ctx, g) => { clearCooldown(ctx.db, 'work', `${g}:${ctx.user.id}`); return 'Coffee consumed. Your work cooldown has been reset.'; },
   overtime: (ctx, g) => { addEffect(ctx.db, g, ctx.user.id, 'overtime', 1); return 'Overtime approved. Your next shift pays double.'; },

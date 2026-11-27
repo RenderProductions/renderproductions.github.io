@@ -124,7 +124,7 @@ export function logCatch(db: Db, g: string, u: string, species: string, lb: numb
       placeDone = place;
       payFromReserve(db, economy.reserveStart, { to: wallet(g, u), cents: PLACES[place].dexReward, reason: 'fish.dex', guildId: g, actorId: u, now, note: { place } });
     }
-    if (Object.values(SPECIES).filter((s) => s.size > 0).every((s) => caught.has(s.id))) { dexDone = true; award(db, g, u, 'gotta_catch_em_all', now); }
+    if (Object.values(SPECIES).filter((s) => s.size > 0 && !s.event).every((s) => caught.has(s.id))) { dexDone = true; award(db, g, u, 'gotta_catch_em_all', now); }
   }
   return { first: !had, record, prevRecord: rec?.lb ?? null, placeDone, dexDone };
 }

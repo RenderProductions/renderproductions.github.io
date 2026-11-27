@@ -112,6 +112,19 @@ export const FIXES: Fix[] = [
       const n = db.run('UPDATE chat_pay SET last_text = NULL WHERE last_text IS NOT NULL').changes;
       return `cleared ${n} stored chat messages`;
     }
+  },
+  {
+    // Happy Birthday To Me!: Founding Player for everyone who played in the bot's first week (Nov 9 to 15, 2026,
+    // Eastern), awarded in the server they first played in.
+    id: '2026-11-27-founding-players',
+    run(db, now) {
+      const END = Date.UTC(2026, 10, 16, 5, 0, 0);   // Nov 16, 00:00 Eastern
+      const rows = db.all<{ user_id: string; guild_id: string }>(`SELECT user_id, guild_id FROM players p WHERE joined_at < ?
+        AND joined_at = (SELECT MIN(joined_at) FROM players q WHERE q.user_id = p.user_id) GROUP BY user_id`, END);
+      let n = 0;
+      for (const r of rows) if (award(db, r.guild_id, r.user_id, 'founding_player', now)) n++;
+      return `${n} founding players`;
+    }
   }
 ];
 

@@ -13,7 +13,7 @@ export const FISHING = { cooldownMs: 3 * MINUTE, bait: polygons(5), lureCasts: 2
 export type Place = 'lake' | 'river' | 'pier' | 'deep' | 'sewer' | 'ice';
 export type Size = 0 | 1 | 2 | 3 | 4;
 export type When = 'any' | 'night' | 'morning' | 'day';
-export interface Species { id: string; emoji: string; name: string; place: Place | 'any'; size: Size; lb: [number, number]; value: number; when: When; strength: number }
+export interface Species { id: string; emoji: string; name: string; place: Place | 'any'; size: Size; lb: [number, number]; value: number; when: When; strength: number; /** Only during an event (not part of the Fishdex). */ event?: boolean }
 
 const sp = (id: string, emoji: string, name: string, place: Species['place'], size: Size, lb: [number, number], value: number, when: When = 'any', strength: number = size === 4 ? 5 : size): Species =>
   ({ id, emoji, name, place, size, lb, value, when, strength });
@@ -43,7 +43,9 @@ export const SPECIES: Record<string, Species> = Object.fromEntries([
   sp('eel', '🐍', 'Glowing Eel', 'sewer', 2, [1, 8], 50, 'night'), sp('gator', '🐊', 'Sewer Gator', 'sewer', 4, [50, 300], 1200),
   // Ice fishing (December)
   sp('cisco', '🐟', 'Cisco', 'ice', 1, [0.2, 1], 10), sp('whitefish', '🐟', 'Frozen Whitefish', 'ice', 1, [0.5, 3], 15),
-  sp('char', '🐠', 'Arctic Char', 'ice', 2, [2, 10], 50), sp('polarkoi', '❄️', 'Polar Koi', 'ice', 4, [5, 15], 1400)
+  sp('char', '🐠', 'Arctic Char', 'ice', 2, [2, 10], 50), sp('polarkoi', '❄️', 'Polar Koi', 'ice', 4, [5, 15], 1400),
+  // Birthdays only, anywhere (Chuck's Party Fish)
+  { ...sp('partyfish', '🎉', 'Party Fish', 'any', 2, [1, 6], 150), event: true }
 ].map((s) => [s.id, s]));
 /** The old name, for anything that still says CATCH. */
 export const CATCH = SPECIES;

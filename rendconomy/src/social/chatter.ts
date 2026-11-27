@@ -3,6 +3,7 @@
 //   minute, up to ⬡300 a day per server, only for players who have used the bot. Paid from the Reserve.
 //   Drop-ins: every so often, while a channel is busy, TODD barges in with a question; the first right
 //   answer wins the pot. Mods can switch them off or pin them to one channel (/dropin).
+import { partyDid, partyOf } from '../birthday/birthday';
 import { awardHere, bump } from '../achievements/achievements';
 import type { Ctx } from '../commands/types';
 import { economy } from '../config';
@@ -72,9 +73,35 @@ const TRIVIA: [string, string[], string][] = [
   ['Which Rend-Sino game has you guess red or black, then higher or lower, then inside or outside, then the suit?', ['ridethebus', 'bus'], 'Ride the Bus']
 ];
 
+/** Birthday drop-ins: about the bot itself on its birthday, about birthdays on Render Vision's. */
+const BOT_TRIVIA: [string, string[], string][] = [
+  ['Happy birthday, RendConomy! What day in November did it first come to The Render Room? (just the number)', ['9', '9th', 'ninth'], '9'],
+  ['What is the money in RendConomy called?', ['polygons', 'polygon'], 'Polygons'],
+  ['Who keeps the bait shop down at the docks?', ['chuck', 'chuckalfrey'], 'Chuck'],
+  ['What does the 🎂 replace on the Slots reels during Birthday Week?', ['cherry', 'cherries', 'thecherry'], 'The cherry'],
+  ['Who drops in to quiz everyone, just like now?', ['todd'], 'TODD'],
+  ['What do you call the hidden market that only opens at night?', ['theunderground', 'underground', 'blackmarket', 'theblackmarket'], 'The Underground'],
+  ['How old is RendConomy turning? (just the number)', [], '']
+];
+const PARTY_TRIVIA: [string, string[], string][] = [
+  ['What do you blow out on a birthday cake?', ['candles', 'candle', 'thecandles'], 'Candles'],
+  ['What do you make before you blow out the candles?', ['awish', 'wish'], 'A wish'],
+  ['Unscramble this: **YARPT**', ['party'], 'party'],
+  ['How many candles go on the cake for someone turning 10? (just the number)', ['10', 'ten'], '10'],
+  ['What month is the developer\'s birthday in?', ['august', 'aug'], 'August'],
+  ['Quick! What goes on your head at a party? (two words)', ['partyhat', 'apartyhat'], 'A party hat']
+];
+
 export interface Question { q: string; answers: string[]; shown: string }
 
 export function question(m: MarketData | null, rng: Rng): Question {
+  const party = partyOf();
+  if (party && rng.chance(0.5)) {
+    const pool = (party.kind === 'bot' ? BOT_TRIVIA : PARTY_TRIVIA).map(([q, a, s]): [string, string[], string] =>
+      (a.length ? [q, a, s] : [q, [String(party.age), `${party.age}th`, `${party.age}st`, `${party.age}nd`, `${party.age}rd`], String(party.age)]));
+    const [q, answers, shown] = rng.pick(pool);
+    return { q: `${party.emoji} ${q}`, answers: answers.map(norm), shown };
+  }
   const kinds = ['math', 'scramble', 'type', 'trivia', ...(m?.companies.length ? ['ticker', 'top'] : [])];
   const kind = rng.pick(kinds);
   if (kind === 'math') { const a = rng.int(3, 12), b = rng.int(3, 12), c = rng.int(1, 50); return { q: `Quick maths: **${a} × ${b} + ${c}**`, answers: [String(a * b + c)], shown: String(a * b + c) }; }
@@ -136,5 +163,6 @@ export function answerDrop(ctx: Ctx, text: string): string | null {
   const got = payFromReserve(ctx.db, economy.reserveStart, { to: wallet(ctx.guildId!, ctx.user.id), cents: drop.pot, reason: 'dropin', guildId: ctx.guildId, actorId: ctx.user.id, now: ctx.now });
   awardHere('quick_draw');
   bump(ctx.db, ctx.user.id, 'dropins_won');
+  if (ctx.guildId) partyDid(ctx.db, ctx.guildId, ctx.user.id, 'dropin', ctx.now);
   return `**${ctx.user.name}** answered first. The answer was **${drop.shown}**. **+${format(got)}**`;
 }

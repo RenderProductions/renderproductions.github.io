@@ -292,10 +292,10 @@
     var live = function (r) { return r.ok ? r.json().then(function (d) { if (d && d.users) { d._live = true; return d; } return raw(); }) : raw(); };
     return fetch(LIVE, { cache: 'no-store' }).then(live, raw).catch(function () { return null; });
   }
-  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', heists: '🦹 Heists & Schemes', fishing: '🎣 Fishing', farming: '🌾 Farming', holiday: '🎄 Polygon Holidays', mastery: '🌈 Mastery', secret: '❓ Secret' };
+  var CATS = { start: '🌱 Getting started', market: '📈 Market', jobs: '💼 Jobs', casino: '🎰 Rend-Sino', social: '🤝 Social', companies: '🏢 Companies', heists: '🦹 Heists & Schemes', fishing: '🎣 Fishing', farming: '🌾 Farming', holiday: '🎄 Polygon Holidays', birthday: '🎂 Birthdays', mastery: '🌈 Mastery', secret: '❓ Secret' };
   var RARITY = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary', mythic: 'Mythic' };
   var RC = { common: '#8e9297', rare: '#3ba7f2', epic: '#b57edc', legendary: '#ffd23f', mythic: '#ff6ad5' };
-  var ICON = { start: '🌱', market: '📈', jobs: '💼', casino: '🎰', social: '🤝', companies: '🏢', heists: '🦹', fishing: '🎣', farming: '🌾', holiday: '🎄', mastery: '🌈', secret: '❓' };
+  var ICON = { start: '🌱', market: '📈', jobs: '💼', casino: '🎰', social: '🤝', companies: '🏢', heists: '🦹', fishing: '🎣', farming: '🌾', holiday: '🎄', birthday: '🎂', mastery: '🌈', secret: '❓' };
   var filter = 'all'; // all | got | locked | a category | r:<rarity>
   var pins = null;     // on your own profile: { list: [achievement ids pinned to the showcase], guild }
   var $ = function (id) { return document.getElementById(id); };
@@ -927,6 +927,7 @@
     ['peekers', 'Peeking faces (the peepers)', 'Little Render Visions that peek in from the edge of the screen and stare.', function () { window.RenderEggs && RenderEggs.peek(1); }],
     ['comeback', '"Come back" tab titles', 'While you\'re on another tab, this one begs you to return.'],
     ['holiday', 'Holiday lights and snow', 'December only: lights along the top and falling snow.'],
+    ['birthday', 'Birthday confetti', 'Birthday weeks only: confetti and a little banner.'],
     ['motion', 'Shakes and glitches', 'Pop-ups shaking, the screen quaking, things gliding around.'],
     ['emoji', 'Pixel emojis', 'The bot\'s own pixel emojis in place of standard ones on the Rend-Conomy pages (from the next page you open).']
   ];
@@ -1015,6 +1016,7 @@
 </script>
 <script src="/face/popup.js" data-odds="10"></script>
 <script src="/holiday.js" defer></script>
+<script src="/birthday.js" defer></script>
 <script src="/rv.js" defer></script>
 </body>
 </html>

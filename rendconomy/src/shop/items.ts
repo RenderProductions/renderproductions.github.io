@@ -4,7 +4,7 @@ import { CROPS } from '../farming/farming';
 import { polygons, type Cents } from '../core/money';
 import type { Rng } from '../core/rng';
 
-export type Shelf = 'work' | 'market' | 'casino' | 'fun' | 'tackle' | 'garden' | 'style' | 'chess' | 'rare' | 'holiday';
+export type Shelf = 'work' | 'market' | 'casino' | 'fun' | 'tackle' | 'garden' | 'style' | 'chess' | 'rare' | 'holiday' | 'party';
 
 export interface Item {
   id: string;
@@ -100,7 +100,18 @@ export const HOLIDAY_COLLECTIBLES: Record<string, Item> = Object.fromEntries([
   item('col_nutcracker', '💂', 'Nutcracker', 2000, 3, 'holiday', 'Stands guard over your Polygons.'),
   item('col_startopper', '⭐', 'Star Topper', 0, 0, 'holiday', 'Only behind the last door of the advent calendar.')
 ].map((i) => [i.id, i]));
-export const COLLECTIBLES: Record<string, Item> = { ...ROTATING, ...HOLIDAY_COLLECTIBLES };
+/**
+ * Birthdays: the Party shelf, only during a birthday party. Cake Slices (a little gift when eaten), a Party Hat
+ * (one per customer per party), and on RendConomy's own birthday a numbered Candle for the age it's turning.
+ */
+const ORD = ['', '1st', '2nd', '3rd', '4th', '5th'];
+export const PARTY_ITEMS: Record<string, Item> = Object.fromEntries([
+  item('cake', '🍰', 'Cake Slice', 100, 12, 'party', 'A slice of birthday cake. Eat it (`use cake`) for a little birthday gift.'),
+  item('col_partyhat', '🥳', 'Party Hat', 750, 6, 'party', 'A cone hat with a Polygon on top. One per party.'),
+  ...[1, 2, 3, 4, 5].map((n) => item(`col_candle${n}`, '🕯️', `Candle No. ${n}`, 1000, 5, 'party', `From RendConomy's ${ORD[n]} birthday cake. Only sold that week, one per customer.`))
+].map((i) => [i.id, i]));
+export const PARTY_COLLECTIBLES: Record<string, Item> = Object.fromEntries(Object.entries(PARTY_ITEMS).filter(([id]) => id.startsWith('col_')));
+export const COLLECTIBLES: Record<string, Item> = { ...ROTATING, ...HOLIDAY_COLLECTIBLES, ...PARTY_COLLECTIBLES };
 
 export const SHELVES: Record<Shelf, { label: string; emoji: string }> = {
   work: { label: 'Work', emoji: '💼' },
@@ -112,10 +123,11 @@ export const SHELVES: Record<Shelf, { label: string; emoji: string }> = {
   style: { label: 'Profile', emoji: '🎨' },
   chess: { label: 'Iso-Chess', emoji: '♟️' },
   rare: { label: 'Collectible', emoji: '🗃️' },
-  holiday: { label: 'Holiday', emoji: '🎄' }
+  holiday: { label: 'Holiday', emoji: '🎄' },
+  party: { label: 'Party', emoji: '🎉' }
 };
 
-export const anyItem = (id: string): Item | undefined => ITEMS[id] ?? COLLECTIBLES[id];
+export const anyItem = (id: string): Item | undefined => ITEMS[id] ?? COLLECTIBLES[id] ?? PARTY_ITEMS[id];
 export const isCollectible = (id: string): boolean => id.startsWith('col_');
 
 /** Words players type for an item: "rocket fuel", "floppy", "golden nacho"... */
@@ -126,7 +138,7 @@ export function findItem(text: string): string | null {
   const t = norm(raw);
   if (!t) return null;
   if (anyItem(t)) return t;
-  const all = { ...ITEMS, ...COLLECTIBLES };
+  const all = { ...ITEMS, ...COLLECTIBLES, ...PARTY_ITEMS };
   const paint = 'paint_' + t.replace(/\s*paint$/, '');
   if (all[paint]) return paint;
   return Object.keys(all).find((id) => norm(all[id]!.name) === t || norm(all[id]!.name).split(' ').includes(t))
@@ -165,6 +177,8 @@ const LINES: Record<string, string[]> = {
   holiday: ['Marquez is wearing a Santa hat. He does not mention it. "Evening, {n}."', 'There\'s tinsel on the register. "Happy holidays, {n}," Marquez says.',
     'Marquez hums along to the radio, quietly. "Cocoa\'s on the house, {n}. Have a look around."', '"Cold one out there, {n}," Marquez says. "Warm up a minute."',
     'A string of lights blinks over the counter. Marquez looks almost cheerful. "Hello, {n}."'],
+  party: ['Marquez is wearing a paper party hat. He does not mention it. "Cake\'s by the register, {n}."', 'There\'s a banner over the counter that says HAPPY BIRTHDAY. "Help yourself to a slice, {n}."',
+    'Marquez has frosting on his sleeve. "Long day of cake, {n}. Have a look around."', '"Happy birthday to all of us, {n}," Marquez says, and almost smiles.'],
   // Main Street: he warms up as you become a regular
   familiar: ['Marquez looks up and almost smiles. "You again, {n}. Good."', '"Ah, {n}. I was hoping you\'d stop by."', 'Marquez nods like he remembers you. "Back for more, {n}?"'],
   regular: ['"The usual, {n}?" Marquez is already reaching under the counter.', 'Marquez slides a cup of coffee across the counter without asking. "Morning, {n}."', '"Saved you a spot in line, {n}," Marquez says. There is no line.'],

@@ -1,6 +1,7 @@
 // Turns /slash commands, r! messages, button presses and typed answers into the same plain calls,
 // and turns the results into Discord messages. Every interaction always gets a response, so Discord
 // never shows "This interaction failed".
+import { isParty, partyGuest } from '../birthday/birthday';
 import {
   ActionRowBuilder, ApplicationCommandOptionType, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, type StringSelectMenuInteraction, MessageFlags, PermissionFlagsBits, type PermissionsBitField,
   type ButtonInteraction, type ChatInputCommandInteraction, type Message, type RESTPostAPIChatInputApplicationCommandsJSONBody
@@ -44,7 +45,7 @@ export async function execute(cmd: Command, ctx: Ctx, args: Args): Promise<Reply
 function afterAny(ctx: Ctx): void {
   if (!ctx.guildId) return;
   try { runInRequest(requestOf(ctx), () => checkMillionaire(ctx.guildId!, ctx.user.id)); } catch { /* never break a reply over this */ }
-  try { if (ctx.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', ctx.guildId, ctx.user.id)) markActive(ctx.db, ctx.guildId, ctx.user.id, ctx.now); } catch { /* same */ }
+  try { if (ctx.db.get('SELECT 1 FROM players WHERE guild_id = ? AND user_id = ?', ctx.guildId, ctx.user.id)) markActive(ctx.db, ctx.guildId, ctx.user.id, ctx.now); if (isParty(ctx.now)) partyGuest(ctx.db, ctx.guildId, ctx.user.id, ctx.now); } catch { /* same */ }
 }
 
 const requestOf = (ctx: Ctx) => ({ db: ctx.db, guildId: ctx.guildId, userId: ctx.user.id, now: ctx.now, notes: ctx.notes });

@@ -19,6 +19,7 @@ import { on } from './core/events';
 import { startPublishing } from './site/publish';
 import { setNotifier } from './market/schemes';
 import { setEventAnnouncer } from './events/install';
+import { setBirthdayAnnouncer } from './birthday/install';
 import { describeEvent } from './events/world';
 import { setAdPoster } from './shop/use';
 import { ROLE_BUTTON_ID, pendingUpdates, postUpdate, readAllUpdates, setUpdatePoster, updateEmbed } from './site/updates';
@@ -83,6 +84,12 @@ async function main(): Promise<void> {
     for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
       postHook(hook, { username: 'Rend-Conomy News', embeds: [{ title: 'World event', description: `${describeEvent(e)}\nFor the next hour.`, color: 0x3498db }] })
         .catch((err: unknown) => console.error('[event]', err));
+    }
+  });
+  // Birthdays: the party starting and its Birthday Bash, in the market news
+  setBirthdayAnnouncer((text) => {
+    for (const hook of config.newsWebhook.split(/[\s,]+/).filter(Boolean)) {
+      postHook(hook, { username: 'Rend-Conomy News', embeds: [{ title: 'Happy birthday!', description: text, color: 0xff7eb6 }] }).catch((err: unknown) => console.error('[birthday]', err));
     }
   });
   setAdPoster((text) => {

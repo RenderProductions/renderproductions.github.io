@@ -3,6 +3,7 @@
 // mover, a fat lottery pot, a Mansion party, December), then a line about the bot itself.
 // It changes every 90 seconds, sooner for a fresh big moment, but never more than once every 20 seconds.
 // The console's "status <text>" still overrides all of it.
+import { partyOf } from '../birthday/birthday';
 import { ActivityType, type Client } from 'discord.js';
 import { economy } from '../config';
 import type { Db } from '../core/db';
@@ -20,6 +21,8 @@ const fit = (s: string): string => (s.length <= 128 ? s : s.slice(0, 127).replac
 /** What's happening right now, best first. */
 export function happenings(db: Db, now: number, servers: number): string[] {
   const out: string[] = [];
+  const bday = partyOf(now);
+  if (bday) out.push(bday.bash ? '🎉 Birthday Bash! Chat pay x1.5 and a bonus on dailies' : bday.kind === 'bot' ? `🎂 RendConomy is ${bday.age}! Happy Birthday Week · r!birthday` : `🎈 Render Vision's Big Birthday! · r!birthday`);
   const e = activeEvent(db, now);
   if (e?.id && EVENTS[e.id]) {
     const ev = EVENTS[e.id]!;

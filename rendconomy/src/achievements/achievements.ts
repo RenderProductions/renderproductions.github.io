@@ -10,7 +10,7 @@ import { wallet } from '../core/ledger';
 import { format, type Cents } from '../core/money';
 import { currentRequest } from '../core/request';
 import { dayKey } from '../core/time';
-import { ACHIEVEMENTS, BY_ID, RARITY } from './list';
+import { ACHIEVEMENTS, BY_ID, NO_COMPLETION, RARITY } from './list';
 
 /** Tests that check exact balances switch payouts off. */
 export const TUNING = { pay: true };
@@ -43,10 +43,13 @@ export function award(db: Db, guildId: string | null, userId: string, id: string
   emit('achievement.unlocked', { guildId, userId, id });
   const req = currentRequest();
   if (req && req.userId === userId) req.notes.push(line);
-  if (id !== 'completionist') {
-    const n = db.get<{ n: number }>("SELECT COUNT(*) AS n FROM achievements WHERE user_id = ? AND id != 'completionist'", userId)!.n;
-    if (n >= ACHIEVEMENTS.length - 1) {
-      const more = award(db, guildId, userId, 'completionist', now);
+  // every achievement in a category: its completion achievement
+  const done = `complete_${a.cat}`;
+  if (BY_ID[done] && !NO_COMPLETION.includes(a.cat)) {
+    const ids = ACHIEVEMENTS.filter((x) => x.cat === a.cat).map((x) => x.id);
+    const n = db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM achievements WHERE user_id = ? AND id IN (${ids.map(() => '?').join(',')})`, userId, ...ids)!.n;
+    if (n >= ids.length) {
+      const more = award(db, guildId, userId, done, now);
       if (more) line += '\n' + more;
     }
   }

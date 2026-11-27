@@ -1,5 +1,6 @@
 // The Fishy Deep: r!fish. Cast at one of six places, reel in the big ones, fill the Fishdex, chase records, mount
 // a trophy, enter the Saturday tournament, and shop at Chuck Alfrey's. See src/fishing/.
+import { BIRTHDAY, cakeHere, isParty, partyDid } from '../birthday/birthday';
 import { awardHere, bump, sameDay } from '../achievements/achievements';
 import { workBonus } from '../city/state';
 import { economy } from '../config';
@@ -20,7 +21,7 @@ import {
   CHUCK, TOURNEY, bagMax, buyGear, cantFish, dexOf, enter, logCatch, potOf, recordsOf, rodTier, standings, tourneyDay, trophyOf
 } from '../fishing/docks';
 import {
-  FISHING, PLACES, RODS, SIZE_NAMES, SPECIES, addToBag, bagCount, bagOf, cast, dailyPrice, fmtLb, itemId, partOfDay, speciesAt, takeFromBag,
+  FISHING, PLACES, RODS, SIZE_NAMES, SPECIES, addToBag, bagCount, bagOf, cast, dailyPrice, fmtLb, itemId, partOfDay, rollWeight, speciesAt, takeFromBag,
   type Bait, type Place
 } from '../fishing/fishing';
 import { REEL, bar, reelStep, startReel, type ReelState } from '../fishing/reel';
@@ -120,7 +121,9 @@ function castLine(ctx: Ctx, g: string, words: string[]): ReplyObject {
     else { takeFromBag(ctx.db, baitRow!); spent = `${fishE(using)} You used a ${SPECIES[using]!.name} as bait.`; }
     const heat = place === 'sewer' ? (ugRow(ctx.db, g, ctx.user.id, ctx.now), addHeat(ctx.db, g, ctx.user.id, 3, ctx.now)) : [];
     const cond = { rodTier: rodTier(ctx.db, g, ctx.user.id), hour: easternHour(ctx.now), rain: isEvent(ctx.db, 'rain', undefined, ctx.now), storm: isEvent(ctx.db, 'storm', undefined, ctx.now), luck: workBonus(ctx.db, g, 'fishing', ctx.now) };
-    const r = cast(place, (frenzy || beacon) && bait === 'bait' ? 'lure' : bait, cond, ctx.rng);
+    let r = cast(place, (frenzy || beacon) && bait === 'bait' ? 'lure' : bait, cond, ctx.rng);
+    // a birthday party: Chuck's Party Fish turns up anywhere, now and then
+    if (r.kind === 'fish' && isParty(ctx.now) && ctx.rng.chance(BIRTHDAY.partyFishChance)) r = { kind: 'fish', id: 'partyfish', ...rollWeight(SPECIES.partyfish!, ctx.rng) };
     sameDay(ctx.db, ctx.user.id, 'fish', ctx.now);
     const P = ctx.config.prefix;
     const pl = PLACES[place];
@@ -176,6 +179,8 @@ function land(ctx: Ctx, g: string, id: string, lb: number, giant: boolean, place
   awardHere('first_catch');
   if (bump(ctx.db, ctx.user.id, 'fish_caught') >= 200) awardHere('fish_in_the_sea');
   if (id === 'whale') awardHere('moby_dick');
+  if (id === 'partyfish') partyDid(ctx.db, g, ctx.user.id, 'fish', ctx.now);
+  cakeHere(1);
   if (id === 'catfish') awardHere('meow');
   if (place === 'sewer') awardHere('ninja_fishies');
   if (f.size === 1 && lb > 20) awardHere('big_bertha');
@@ -322,7 +327,7 @@ function places(ctx: Ctx, g: string): ReplyObject {
 function dex(ctx: Ctx, g: string, which?: string): ReplyObject {
   const P = ctx.config.prefix;
   const have = new Map(dexOf(ctx.db, g, ctx.user.id).map((r) => [r.species, r]));
-  const all = Object.values(SPECIES).filter((s) => s.size > 0);
+  const all = Object.values(SPECIES).filter((s) => s.size > 0 && !s.event);
   const place = which ? PLACE_WORDS[which] : undefined;
   const list = (place ? [place] : (Object.keys(PLACES) as Place[]));
   return { embeds: [embed('wallet', `📖 Fishdex · ${all.filter((s) => have.has(s.id)).length} of ${all.length}`, list.flatMap((p) => [

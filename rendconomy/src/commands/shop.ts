@@ -11,7 +11,8 @@ import * as sessions from '../core/sessions';
 import { embed } from '../discord/style';
 import { balance, wallet } from '../core/ledger';
 import { count, items as invItems, takeItem } from '../shop/inventory';
-import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, ROTATION, SHELVES, anyItem, findItem, isCollectible, marquez, type Item, type Shelf } from '../shop/items';
+import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, PARTY_ITEMS, ROTATION, SHELVES, anyItem, findItem, isCollectible, marquez, type Item, type Shelf } from '../shop/items';
+import { isParty, onPartyShelf } from '../birthday/birthday';
 import { isHoliday } from '../holidays/holidays';
 import { SELL_BACK, SHOP_RULES, ShopError, backOf, buy, collectibleOfWeek, priceOf, quote, restock, sellBack, sellBackPrice, stockOf, type Bought, type Quote } from '../shop/shop';
 import { LOYALTY, STREET, dailyDeal, featuredShelf, isFriday, levelIndex, levelOf, nextDelivery, nextLevel, onWishlist, regular, saleLabel, spentWith, unwish, wish, wishlist } from '../shop/street';
@@ -34,6 +35,7 @@ import type { Button, Command, Ctx, ReplyObject, SessionReply } from './types';
 
 const shelfItems = (shelf: Shelf, now: number) =>
   shelf === 'rare' ? [COLLECTIBLES[collectibleOfWeek(now)]!]
+    : shelf === 'party' ? Object.values(PARTY_ITEMS).filter((i) => onPartyShelf(i.id, now))
     : shelf === 'holiday' ? (isHoliday(now) ? [...Object.values(HOLIDAY_COLLECTIBLES).filter((i) => i.stock > 0), ...Object.values(ITEMS).filter((i) => i.shelf === 'holiday')] : [])
     : Object.values(ITEMS).filter((i) => i.shelf === shelf && i.ready);
 /** Marquez's shelves (the tackle moved to Chuck's on Main Street). */
@@ -64,6 +66,7 @@ const avail = (ctx: Ctx, g: string, id: string): number =>
 /** What Marquez says when you walk in: his loyalty greeting, the holidays, Fridays, or a price that moved. */
 function greeting(ctx: Ctx, g: string, list: Item[] = []): string {
   const lvl = levelOf(ctx.db, g, ctx.user.id);
+  if (isParty(ctx.now) && ctx.rng.chance(0.5)) return marquez('party', ctx.rng);
   if (isHoliday(ctx.now) && ctx.rng.chance(0.5)) return marquez('holiday', ctx.rng);
   if (isFriday(ctx.now) && ctx.rng.chance(0.4)) return marquez('friday', ctx.rng);
   const moved = list.filter((i) => regular(i)).map((i) => ({ i, f: quote(ctx.db, g, i.id, null, ctx.now).factor })).filter((x) => x.f >= 1.1 || x.f <= 0.9);
@@ -189,7 +192,7 @@ function itemView(ctx: Ctx, g: string, sid: string, shelf: Shelf, id: string, fr
   const q = quote(ctx.db, g, id, ctx.user.id, ctx.now);
   const left = stockOf(ctx.db, g, id), family = levelOf(ctx.db, g, ctx.user.id).id === 'family', back = family ? backOf(ctx.db, g, id) : 0;
   const tax = shopTax(ctx.db, g, ctx.now);
-  const one = isCollectible(id) || !!HOLIDAY_COLLECTIBLES[id] || !!it.unlock;
+  const one = isCollectible(id) || !!HOLIDAY_COLLECTIBLES[id] || !!it.unlock;   // (party collectibles start with col_ too)
   const afford = Math.floor(balance(ctx.db, wallet(g, ctx.user.id)) / Math.max(1, Math.ceil(q.each * (1 + tax))));
   const max = Math.max(0, Math.min(left + back, afford, one ? 1 : 10));
   const wished = onWishlist(ctx.db, g, ctx.user.id, id);

@@ -11,7 +11,8 @@ import type { Rng } from '../core/rng';
 import { DAY, discordTime } from '../core/time';
 import { STREET, TUNING, addSpent, lastDelivery, levelOf, nextDelivery, onWishlist, regular, saleOn, unwish, type Level, type Sale } from './street';
 import { addItem, count, takeItem } from './inventory';
-import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, ROTATION, anyItem, isCollectible, type Item } from './items';
+import { COLLECTIBLES, HOLIDAY_COLLECTIBLES, ITEMS, PARTY_ITEMS, ROTATION, anyItem, isCollectible, type Item } from './items';
+import { nextParty, onPartyShelf, partyOf } from '../birthday/birthday';
 import { isHoliday, season } from '../holidays/holidays';
 
 export const SHOP_RULES = { weekMs: 7 * DAY, mystery: [75, 100] as const };
@@ -21,7 +22,7 @@ export const collectibleOfWeek = (now = Date.now()): string => ROTATION[week(now
 
 interface StockRow { stock: number; back: number; factor: number; sold: number }
 const rowOf = (db: Db, g: string, id: string): StockRow | undefined => db.get<StockRow>('SELECT stock, back, factor, sold FROM shop_stock WHERE guild_id = ? AND item = ?', g, id);
-const setStock = (db: Db, g: string, id: string, n: number, extra: Partial<StockRow> = {}) => {
+export const setStock = (db: Db, g: string, id: string, n: number, extra: Partial<StockRow> = {}) => {
   const r = rowOf(db, g, id);
   db.run('INSERT INTO shop_stock (guild_id, item, stock, back, factor, sold) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (guild_id, item) DO UPDATE SET stock = excluded.stock, back = excluded.back, factor = excluded.factor, sold = excluded.sold',
     g, id, n, extra.back ?? r?.back ?? 0, extra.factor ?? r?.factor ?? 1, extra.sold ?? r?.sold ?? 0);
@@ -58,6 +59,7 @@ export function restock(db: Db, rng: Rng, g: string, now = Date.now()): { at: nu
       setStock(db, g, it.id, it.stock, { back: backStock(it), factor: regular(it) ? factor : 1, sold: 0 });
     }
     for (const it of Object.values(HOLIDAY_COLLECTIBLES)) setStock(db, g, it.id, isHoliday(now) ? it.stock : 0);
+    for (const it of Object.values(PARTY_ITEMS)) setStock(db, g, it.id, onPartyShelf(it.id, now) ? it.stock : 0);
     db.setMeta(`shop.mystery:${g}`, polygons(rng.int(SHOP_RULES.mystery[0], SHOP_RULES.mystery[1])));
     db.setMeta(`shop.delivered:${g}`, slot);
     if (!first) db.setMeta(`shop.truck:${g}`, slot);
@@ -128,11 +130,21 @@ export function buy(db: Db, rng: Rng, guildId: string, userId: string, id: strin
   if (!it) throw new ShopError('unknown', 'Marquez does not stock that.');
   if (!it.ready) throw new ShopError('unavailable', `${it.name} is not on sale yet.`);
   return db.tx(() => {
-    if (it.shelf === 'holiday') {
+    if (it.shelf === 'party') {
+      const p = partyOf(now);
+      if (!p) throw new ShopError('unavailable', `${it.name} is party stock. It's back for the next birthday (${nextParty(now).at}).`);
+      if (!onPartyShelf(id, now)) throw new ShopError('unavailable', `${it.name} isn't on the Party shelf this time.`);
+      if (id.startsWith('col_')) {
+        if (qty !== 1) throw new ShopError('once', 'Collectibles are one per customer.');
+        const period = `party-${p.key}`;
+        if (db.get('SELECT 1 FROM shop_buys WHERE guild_id = ? AND user_id = ? AND item = ? AND period = ?', guildId, userId, id, period)) throw new ShopError('once', `You already have a ${it.name} from this party.`);
+        db.run('INSERT INTO shop_buys (guild_id, user_id, item, period) VALUES (?, ?, ?, ?)', guildId, userId, id, period);
+      }
+    } else if (it.shelf === 'holiday') {
       if (!isHoliday(now)) throw new ShopError('unavailable', `${it.name} is holiday stock. It's back in December.`);
       if (!it.stock) throw new ShopError('unavailable', `${it.name} isn't for sale. It's behind the last door of the advent calendar.`);
     }
-    if (HOLIDAY_COLLECTIBLES[id]) {
+    if (it.shelf === 'party') { /* checked above */ } else if (HOLIDAY_COLLECTIBLES[id]) {
       if (qty !== 1) throw new ShopError('once', 'Collectibles are one per customer.');
       const period = `holiday-${season(now)}`;
       if (db.get('SELECT 1 FROM shop_buys WHERE guild_id = ? AND user_id = ? AND item = ? AND period = ?', guildId, userId, id, period)) throw new ShopError('once', `You already have this year's ${it.name}.`);

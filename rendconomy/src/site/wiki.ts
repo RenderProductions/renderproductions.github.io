@@ -15,7 +15,7 @@ import { EVENTS } from '../events/world';
 import { CROPS, FARMING, GRADES, MARKET, MUTATIONS, PRICE_SWING } from '../farming/farming';
 import { FISHING, PLACES, RODS, SIZE_NAMES, SPECIES, odds } from '../fishing/fishing';
 import { CHUCK, TOURNEY } from '../fishing/docks';
-import { ITEMS as GEAR } from '../shop/items';
+import { ITEMS as GEAR, PARTY_ITEMS } from '../shop/items';
 import { HEIST, ROLES, TARGETS } from '../heists/heists';
 import { LOANS } from '../loans/loans';
 import { BROKERS, ORDERS, SHORTS, TRAITS } from '../market/schemes';
@@ -51,7 +51,7 @@ export function wikiData(): Record<string, unknown> {
       slash: c.system === 'admin' ? `/${MOD_SLASH} ${c.name}` : slashFor(c, commands),
       options: (c.options ?? []).map((o) => ({ name: o.name, description: o.description, required: !!o.required }))
     })),
-    items: Object.values(ITEMS).filter((i) => i.ready !== false).map((i) => ({ id: i.id, emoji: i.emoji, name: i.name, price: i.price === null ? null : p(i.price), stock: i.stock, shelf: SHELVES[i.shelf].label, desc: i.desc, passive: !!i.passive, unlock: !!i.unlock })),
+    items: [...Object.values(ITEMS), ...Object.values(PARTY_ITEMS).filter((i) => !i.id.startsWith('col_'))].filter((i) => i.ready !== false).map((i) => ({ id: i.id, emoji: i.emoji, name: i.name, price: i.price === null ? null : p(i.price), stock: i.stock, shelf: SHELVES[i.shelf].label, desc: i.desc, passive: !!i.passive, unlock: !!i.unlock })),
     collectibles: Object.values(COLLECTIBLES).map((i) => ({ id: i.id, emoji: i.emoji, name: i.name, price: i.price === null ? null : p(i.price), stock: i.stock, shelf: SHELVES[i.shelf].label, desc: i.desc })),
     shop: { deliveries: STREET.deliveries.map((h) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`), mystery: SHOP_RULES.mystery },
     street: {

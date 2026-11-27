@@ -738,5 +738,25 @@ export const MIGRATIONS: readonly string[] = [
     at      INTEGER NOT NULL,
     PRIMARY KEY (week, user_id)
   );
+  `,
+
+  /* v26: Happy Birthday To Me! Each server's birthday cake (pieces per player, per party) and the time capsule
+     (one line per player per server per year, opened at the next birthday). */ `
+  CREATE TABLE birthday_cake (
+    guild_id TEXT NOT NULL,
+    party    TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    pieces   INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, party, user_id)
+  );
+  CREATE TABLE birthday_capsule (
+    guild_id TEXT NOT NULL,
+    user_id  TEXT NOT NULL,
+    year     INTEGER NOT NULL,
+    text     TEXT NOT NULL,
+    at       INTEGER NOT NULL,
+    told     INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id, year)
+  );
   `
 ];

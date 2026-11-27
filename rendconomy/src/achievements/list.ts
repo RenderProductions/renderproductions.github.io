@@ -27,6 +27,7 @@ export const CATEGORIES = {
   shop: { label: 'Main Street', emoji: '🛍️' },
   site: { label: 'On the site', emoji: '🖥️' },
   holiday: { label: 'Polygon Holidays', emoji: '🎄' },
+  birthday: { label: 'Birthdays', emoji: '🎂' },
   mastery: { label: 'Mastery', emoji: '🌈' },
   secret: { label: 'Secret', emoji: '❓' }
 } as const;
@@ -228,8 +229,32 @@ const RAW: [string, string, string, Category, Rarity, boolean?][] = [
   ['rft_fresh_install', 'Fresh Install', 'Upgrade every piece of hardware in Render\'s File Tycoon', 'site', 'rare'],
   ['rft_contractor', 'Contractor', 'Run 50 modules at once in Render\'s File Tycoon', 'site', 'epic'],
   ['rft_backdoor', 'Backdoor', 'Find a secret upgrade in Render\'s File Tycoon', 'site', 'rare', true],
-  ['completionist', 'Completionist', 'Unlock every other achievement', 'mastery', 'mythic']
+  ['party_guest', 'Party Guest', 'Show up for a birthday party', 'birthday', 'common'],
+  ['blow_out_the_candles', 'Blow Out the Candles', 'Help your server finish its birthday cake', 'birthday', 'rare'],
+  ['party_animal', 'Party Animal', 'Eat a cake slice, win a TODD drop-in and land a Party Fish in the same birthday party', 'birthday', 'epic'],
+  ['sealed_with_care', 'Sealed with Care', 'Write a line for the time capsule on RendConomy\'s birthday', 'birthday', 'common'],
+  ['founding_player', 'Founding Player', 'Play in RendConomy\'s very first week (November 9 to 15, 2026)', 'birthday', 'legendary'],
+  ['year_1', 'Year One', 'Be there for RendConomy\'s 1st birthday', 'birthday', 'rare'],
+  ['year_2', 'Year Two', 'Be there for RendConomy\'s 2nd birthday', 'birthday', 'rare'],
+  ['year_3', 'Year Three', 'Be there for RendConomy\'s 3rd birthday', 'birthday', 'epic'],
+  ['year_4', 'Year Four', 'Be there for RendConomy\'s 4th birthday', 'birthday', 'epic'],
+  ['year_5', 'Year Five', 'Be there for RendConomy\'s 5th birthday', 'birthday', 'legendary']
 ];
+
+/**
+ * Completion achievements (they replaced Completionist, which every new event made harder to reach): one for
+ * unlocking every achievement in a category. Birthdays (a new year every year) and Secret don't get one.
+ */
+export const NO_COMPLETION: readonly Category[] = ['birthday', 'secret', 'mastery'];
+const completions = (): [string, string, string, Category, Rarity][] => {
+  const n: Partial<Record<Category, number>> = {};
+  for (const r of RAW) n[r[3]] = (n[r[3]] ?? 0) + 1;
+  return (Object.keys(CATEGORIES) as Category[]).filter((c) => !NO_COMPLETION.includes(c) && (n[c] ?? 0) >= 3)
+    .map((c) => [`complete_${c}`, `${CATEGORIES[c].label}: Complete`, `Unlock every ${CATEGORIES[c].label} achievement`, 'mastery', (n[c] ?? 0) >= 12 ? 'legendary' : 'epic']);
+};
+RAW.push(...completions());
+/** The category a completion achievement stands for ('complete_fishing' -> 'fishing'). */
+export const completionOf = (id: string): Category | null => (id.startsWith('complete_') ? id.slice(9) as Category : null);
 
 export const ACHIEVEMENTS: readonly Achievement[] = RAW.map(([id, name, desc, cat, rarity, secret = false]) => ({ id, name, desc, cat, rarity, secret }));
 export const BY_ID: Readonly<Record<string, Achievement>> = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));

@@ -1,3 +1,4 @@
+import { BIRTHDAY, isBash } from '../birthday/birthday';
 import { line } from '../discord/flavor';
 import { economy } from '../config';
 import { GameError } from '../core/errors';
@@ -34,11 +35,13 @@ export const daily: Command = {
 
       const twice = useEffect(ctx.db, guildId, ctx.user.id, 'dailyDouble') || decreeOn(ctx.db, guildId, 'doubledaily', ctx.now); // TODD's Floppy Disk, or the mayor's decree
       const paid = payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: economy.dailyAmount * (twice ? 2 : 1), reason: 'daily', guildId, actorId: ctx.user.id, now: ctx.now });
+      const bday = isBash(ctx.now) ? payFromReserve(ctx.db, economy.reserveStart, { to: wallet, cents: BIRTHDAY.bashDaily, reason: 'birthday.daily', guildId, actorId: ctx.user.id, now: ctx.now }) : 0;
       emit('daily.claimed', { guildId, userId: ctx.user.id, streak: check.streak, cents: paid });
       return {
         embeds: [embed('wallet', '🌅 Daily allowance', [
           `*${line(ctx.rng, 'dailyHello')}* **${format(paid)}** has been deposited.`,
           twice && 'DAILY_X2.BAT: this allowance is doubled.',
+          bday > 0 && `🎉 Birthday Bash: **+${format(bday)}** birthday bonus.`,
           paid < economy.dailyAmount * (twice ? 2 : 1) && 'The Polygon Reserve is low. Payouts are reduced.',
           `Balance: **${format(balance(ctx.db, wallet))}**`,
           `${check.streak >= 7 ? '🔥' : '📅'} Streak: **${check.streak} ${check.streak === 1 ? 'day' : 'days'}**${check.streak >= 7 ? '. Keep it going!' : ''}`,

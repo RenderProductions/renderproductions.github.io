@@ -1,5 +1,6 @@
 // The bot's console: type into the host panel (Bot-Hosting's Console tab) to make the bot do things.
 // Only whoever can reach the host can use it, so nothing here asks Discord who you are.
+import { forceParty, forcedParty } from '../birthday/birthday';
 import readline from 'node:readline';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -35,6 +36,7 @@ const HELP = `Console commands (type them in the host console as "rc <command>",
   rain <channel> <amount> [people]   Polygons rain down: the first few to press Grab split it (default 5 people)
   haunt <channel>              something small and unsettling happens
   status <text> | status clear the bot's status line
+  birthday bot|dev|off         start a birthday party early to try it (until restart or off)
   run <server> <command>       any bot command as the owner, e.g. run 1234 give @123 500 thanks
   leave <server>               make the bot leave a server (asks you to confirm)
   additem <server> <player> <item>      put items in someone's inventory, fish bag or basket
@@ -186,6 +188,13 @@ async function run(d: ConsoleDeps, text: string): Promise<string | null> {
       const m = await ch.send({ content: d.rng.pick(['...', 'hello?', 'did you hear that', '█▓▒░ 104.7 ░▒▓█', 'TODD is watching']), allowedMentions: { parse: [] } });
       setTimeout(() => { m.delete().catch(() => {}); }, 2500).unref();
       return 'Posted something and deleted it a moment later.';
+    }
+
+    case 'birthday': {
+      const w = rest.trim().toLowerCase();
+      if (w === 'bot' || w === 'dev') { forceParty(w); return `${w === 'bot' ? 'RendConomy Big Birthday Blowout!' : 'Render Vision\'s Big Birthday!'} is on (as its Birthday Bash day) until "birthday off" or a restart.`; }
+      if (w === 'off') { forceParty(null); return 'Back to the calendar: no forced party.'; }
+      return `Usage: birthday bot|dev|off. Forced now: ${forcedParty() ?? 'nothing'}.`;
     }
 
     case 'status': {

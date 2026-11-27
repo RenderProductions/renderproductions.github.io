@@ -1,4 +1,5 @@
 // Farming commands: /farm, /plant, /water, /harvest, /sellcrops, /fertilize, /compost, /buyplot.
+import { cakeHere } from '../birthday/birthday';
 import { addRevenue, alive, getCompany } from '../companies/companies';
 import { awardHere, bump, getProgress, sameDay, setProgress } from '../achievements/achievements';
 import { economy } from '../config';
@@ -59,6 +60,7 @@ function creditHarvest(ctx: Ctx, item: string, qty: number): void {
   if (!c || qty <= 0) return;
   awardHere('green_thumb');
   if (bump(ctx.db, ctx.user.id, 'harvests', qty) >= 500) awardHere('bumper_crop');
+  cakeHere(qty);
   if (c.crop.id === 'carrot' && bump(ctx.db, ctx.user.id, 'carrots', qty) >= 100) awardHere('whats_up_doc');
   if (c.crop.id === 'pumpkin' && bump(ctx.db, ctx.user.id, 'pumpkins', qty) >= 25) awardHere('great_pumpkin');
   if (c.crop.id === 'polyfruit') awardHere('forbidden_fruit');
@@ -121,6 +123,7 @@ function harvestPlots(ctx: Ctx, guildId: string, plots: Plot[], auto: boolean): 
     lines.push(`${emojiOr(parsed.emojiKey, parsed.emoji)} ${mut ? `**${parsed.name}!** ${MUTATIONS[mut].emoji} Worth about ${format(parsed.value)}.` : `${c.name}${badge}`} · plot ${p.slot + 1}`);
     awardHere('green_thumb');
     if (bump(ctx.db, ctx.user.id, 'harvests') >= 500) awardHere('bumper_crop');
+    cakeHere(1);
     if (p.crop === 'carrot' && bump(ctx.db, ctx.user.id, 'carrots') >= 100) awardHere('whats_up_doc');
     if (p.crop === 'pumpkin' && bump(ctx.db, ctx.user.id, 'pumpkins') >= 25) awardHere('great_pumpkin');
     if (p.crop === 'polyfruit') { awardHere('forbidden_fruit'); if (p.dry_ms === 0) awardHere('patience'); }

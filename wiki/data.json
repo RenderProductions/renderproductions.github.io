@@ -22,7 +22,7 @@
   "social": {
    "label": "Players",
    "emoji": "👥",
-   "count": 16
+   "count": 18
   },
   "work": {
    "label": "Work",
@@ -667,6 +667,40 @@
      "required": false
     }
    ]
+  },
+  {
+   "name": "birthday",
+   "aliases": [
+    "bday",
+    "party",
+    "cake"
+   ],
+   "description": "The birthday party: your server's cake, the Party shelf, and the time capsule",
+   "section": "social",
+   "slash": "/birthday",
+   "options": [
+    {
+     "name": "action",
+     "description": "Blank for the party, or: capsule",
+     "required": false
+    },
+    {
+     "name": "text",
+     "description": "For capsule: your line for next year (140 characters)",
+     "required": false
+    }
+   ]
+  },
+  {
+   "name": "yearbook",
+   "aliases": [
+    "wrapped",
+    "myyear"
+   ],
+   "description": "Your RendConomy so far (RendConomy's birthday week)",
+   "section": "social",
+   "slash": "/yearbook",
+   "options": []
   },
   {
    "name": "inbox",
@@ -2449,6 +2483,17 @@
    "desc": "Ice blue, with snow on the banner. Only in December.",
    "passive": false,
    "unlock": false
+  },
+  {
+   "id": "cake",
+   "emoji": "🍰",
+   "name": "Cake Slice",
+   "price": 100,
+   "stock": 12,
+   "shelf": "Party",
+   "desc": "A slice of birthday cake. Eat it (`use cake`) for a little birthday gift.",
+   "passive": false,
+   "unlock": false
   }
  ],
  "collectibles": [
@@ -2568,6 +2613,60 @@
    "stock": 0,
    "shelf": "Holiday",
    "desc": "Only behind the last door of the advent calendar."
+  },
+  {
+   "id": "col_partyhat",
+   "emoji": "🥳",
+   "name": "Party Hat",
+   "price": 750,
+   "stock": 6,
+   "shelf": "Party",
+   "desc": "A cone hat with a Polygon on top. One per party."
+  },
+  {
+   "id": "col_candle1",
+   "emoji": "🕯️",
+   "name": "Candle No. 1",
+   "price": 1000,
+   "stock": 5,
+   "shelf": "Party",
+   "desc": "From RendConomy's 1st birthday cake. Only sold that week, one per customer."
+  },
+  {
+   "id": "col_candle2",
+   "emoji": "🕯️",
+   "name": "Candle No. 2",
+   "price": 1000,
+   "stock": 5,
+   "shelf": "Party",
+   "desc": "From RendConomy's 2nd birthday cake. Only sold that week, one per customer."
+  },
+  {
+   "id": "col_candle3",
+   "emoji": "🕯️",
+   "name": "Candle No. 3",
+   "price": 1000,
+   "stock": 5,
+   "shelf": "Party",
+   "desc": "From RendConomy's 3rd birthday cake. Only sold that week, one per customer."
+  },
+  {
+   "id": "col_candle4",
+   "emoji": "🕯️",
+   "name": "Candle No. 4",
+   "price": 1000,
+   "stock": 5,
+   "shelf": "Party",
+   "desc": "From RendConomy's 4th birthday cake. Only sold that week, one per customer."
+  },
+  {
+   "id": "col_candle5",
+   "emoji": "🕯️",
+   "name": "Candle No. 5",
+   "price": 1000,
+   "stock": 5,
+   "shelf": "Party",
+   "desc": "From RendConomy's 5th birthday cake. Only sold that week, one per customer."
   }
  ],
  "shop": {
@@ -4115,11 +4214,203 @@
    "secret": true
   },
   {
-   "id": "completionist",
-   "name": "Completionist",
-   "desc": "Unlock every other achievement",
+   "id": "party_guest",
+   "name": "Party Guest",
+   "desc": "Show up for a birthday party",
+   "category": "Birthdays",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "blow_out_the_candles",
+   "name": "Blow Out the Candles",
+   "desc": "Help your server finish its birthday cake",
+   "category": "Birthdays",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "party_animal",
+   "name": "Party Animal",
+   "desc": "Eat a cake slice, win a TODD drop-in and land a Party Fish in the same birthday party",
+   "category": "Birthdays",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "sealed_with_care",
+   "name": "Sealed with Care",
+   "desc": "Write a line for the time capsule on RendConomy's birthday",
+   "category": "Birthdays",
+   "rarity": "common",
+   "secret": false
+  },
+  {
+   "id": "founding_player",
+   "name": "Founding Player",
+   "desc": "Play in RendConomy's very first week (November 9 to 15, 2026)",
+   "category": "Birthdays",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "year_1",
+   "name": "Year One",
+   "desc": "Be there for RendConomy's 1st birthday",
+   "category": "Birthdays",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "year_2",
+   "name": "Year Two",
+   "desc": "Be there for RendConomy's 2nd birthday",
+   "category": "Birthdays",
+   "rarity": "rare",
+   "secret": false
+  },
+  {
+   "id": "year_3",
+   "name": "Year Three",
+   "desc": "Be there for RendConomy's 3rd birthday",
+   "category": "Birthdays",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "year_4",
+   "name": "Year Four",
+   "desc": "Be there for RendConomy's 4th birthday",
+   "category": "Birthdays",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "year_5",
+   "name": "Year Five",
+   "desc": "Be there for RendConomy's 5th birthday",
+   "category": "Birthdays",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "complete_start",
+   "name": "Getting started: Complete",
+   "desc": "Unlock every Getting started achievement",
    "category": "Mastery",
-   "rarity": "mythic",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_market",
+   "name": "Market: Complete",
+   "desc": "Unlock every Market achievement",
+   "category": "Mastery",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "complete_jobs",
+   "name": "Jobs: Complete",
+   "desc": "Unlock every Jobs achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_casino",
+   "name": "Rend-Sino: Complete",
+   "desc": "Unlock every Rend-Sino achievement",
+   "category": "Mastery",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "complete_social",
+   "name": "Social: Complete",
+   "desc": "Unlock every Social achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_companies",
+   "name": "Companies: Complete",
+   "desc": "Unlock every Companies achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_heists",
+   "name": "Heists & Schemes: Complete",
+   "desc": "Unlock every Heists & Schemes achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_fishing",
+   "name": "Fishing: Complete",
+   "desc": "Unlock every Fishing achievement",
+   "category": "Mastery",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "complete_farming",
+   "name": "Farming: Complete",
+   "desc": "Unlock every Farming achievement",
+   "category": "Mastery",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "complete_property",
+   "name": "Real estate: Complete",
+   "desc": "Unlock every Real estate achievement",
+   "category": "Mastery",
+   "rarity": "legendary",
+   "secret": false
+  },
+  {
+   "id": "complete_underground",
+   "name": "No Questions Asked: Complete",
+   "desc": "Unlock every No Questions Asked achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_city",
+   "name": "City Hall: Complete",
+   "desc": "Unlock every City Hall achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_shop",
+   "name": "Main Street: Complete",
+   "desc": "Unlock every Main Street achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_site",
+   "name": "On the site: Complete",
+   "desc": "Unlock every On the site achievement",
+   "category": "Mastery",
+   "rarity": "epic",
+   "secret": false
+  },
+  {
+   "id": "complete_holiday",
+   "name": "Polygon Holidays: Complete",
+   "desc": "Unlock every Polygon Holidays achievement",
+   "category": "Mastery",
+   "rarity": "epic",
    "secret": false
   }
  ],
@@ -5189,6 +5480,19 @@
     ],
     "value": 1400,
     "when": "any"
+   },
+   {
+    "id": "partyfish",
+    "emoji": "🎉",
+    "name": "Party Fish",
+    "place": "any",
+    "size": "Medium",
+    "lb": [
+     1,
+     6
+    ],
+    "value": 150,
+    "when": "any"
    }
   ],
   "gear": [
@@ -5828,6 +6132,7 @@
   "ballot",
   "bell",
   "bid",
+  "birthday",
   "black_friday",
   "blackjack",
   "boat",
@@ -5873,6 +6178,7 @@
   "cac",
   "cad",
   "cah",
+  "cake",
   "candycane",
   "cardback",
   "carrot",
@@ -5894,6 +6200,11 @@
   "coinflip",
   "col_abacus",
   "col_brick",
+  "col_candle1",
+  "col_candle2",
+  "col_candle3",
+  "col_candle4",
+  "col_candle5",
   "col_cart",
   "col_coin",
   "col_gavel",
@@ -5901,6 +6212,7 @@
   "col_nacho",
   "col_nutcracker",
   "col_ornament",
+  "col_partyhat",
   "col_polygon",
   "col_snowglobe",
   "col_startopper",
@@ -5946,6 +6258,7 @@
   "fish_mackerel",
   "fish_minnow",
   "fish_oarfish",
+  "fish_partyfish",
   "fish_perch",
   "fish_pike",
   "fish_polarkoi",

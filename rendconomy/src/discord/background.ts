@@ -1,5 +1,6 @@
 // Things the bot does on its own while connected: shift reminder DMs, the Trading Floor relay, the
 // little web API for the site, and a status that reacts to the market.
+import { birthdaySnapshot, capsuleTick, isBotBirthday } from '../birthday/birthday';
 import { consoleFromDm } from './console';
 import { chessFinish, chessStatus } from '../games/chess';
 import { rftAchieve, rftCashout, rftStatus } from '../games/rft';
@@ -122,8 +123,18 @@ export function startHolidays(db: Db, client: Client, prefix: string): void {
       client.users.fetch(userId).then((u) => u.send({ content: text(server), allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
     }, (id) => anyItem(id)?.name ?? id, prefix);
   };
-  setInterval(tick, 5 * MINUTE).unref();
-  setTimeout(tick, 30_000).unref();
+  // Birthdays: last year's time capsule lines, DMed on the bot's birthday
+  const capsules = () => {
+    if (!isBotBirthday()) return;
+    try {
+      capsuleTick(db, Date.now(), (userId, guildId, text) => {
+        const server = client.guilds.cache.get(guildId)?.name ?? 'your server';
+        client.users.fetch(userId).then((u) => u.send({ content: text(server), allowedMentions: { parse: [] } })).catch(() => { /* DMs closed */ });
+      });
+    } catch (e) { console.error('[birthday]', e); }
+  };
+  setInterval(() => { tick(); capsules(); }, 5 * MINUTE).unref();
+  setTimeout(() => { tick(); capsules(); }, 30_000).unref();
 }
 
 /** Room to Grow: settles every server with property every 15 minutes, so buyouts, auctions and condemnations
@@ -246,6 +257,7 @@ export function liveSnapshot(db: Db, now = Date.now()): Record<string, unknown> 
     estates: estatesSnapshot(db),
     underground: undergroundSnapshot(db),
     wiki: wikiSnapshot(db, now),
+    birthday: birthdaySnapshot(db, now),
     players: Object.fromEntries(listCompanies(db, ['public', 'private']).map((c) => [c.ticker, { price: c.status === 'public' ? c.price : null, change: c.status === 'public' ? Math.round(change(c) * 100) / 100 : null, treasury: treasury(db, c) / 100, status: c.status }]))
   };
 }

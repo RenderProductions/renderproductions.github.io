@@ -1,5 +1,6 @@
 // The Rend-Sino's games. Instant games settle in one step; interactive ones keep their state in a stored
 // session (kind "casino.<game>"), so their buttons survive restarts and each press is handled once.
+import { isParty } from '../birthday/birthday';
 import { bigNumber } from '../discord/icons';
 import type { APIEmbed } from 'discord.js';
 import { award, awardHere } from '../achievements/achievements';
@@ -42,7 +43,7 @@ const SYMBOLS = ['🍒', '🍋', '🔔', '🔺', '💎'];
 const TRIPLE: Record<string, number> = { '💎': 25, '🔺': 10, '🔔': 8, '🍋': 5, '🍒': 3 };
 /** How a reel symbol is shown: the bot's own emoji once uploaded (the game itself works on the plain ones). */
 const REEL: Record<string, EmojiKey> = { '🍒': 'cherry', '🍋': 'lemon', '🔔': 'bell', '🔺': 'triangle', '💎': 'diamond' };
-const show = (sym: string): string => emoji(REEL[sym]!);
+const show = (sym: string): string => (sym === '🍒' && isParty() ? emojiOr('cake', '🎂') : emoji(REEL[sym]!));
 /** Any text with reel symbols in it, shown with the bot's emojis. */
 const showAll = (text: string): string => text.replace(/🍒|🍋|🔔|🔺|💎/gu, (s) => show(s));
 
