@@ -77,6 +77,10 @@
   .saves .chip.pro::before { border-color: var(--red); border-width: 2.4px; }
   .satchel li.ench::before { content: "◈"; color: var(--el); }
   .satchel li .rune { font: 13px/1 var(--sc); font-style: normal; color: var(--el); border: 1.5px solid var(--el); border-radius: 999px; padding: 4px 9px; white-space: nowrap; }
+  .satchel li .rune.temp { border-style: dashed; }
+  .satchel li .cracks { color: var(--red); letter-spacing: 1px; }
+  #forgePanel { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; margin: 6px 0; }
+  #forgePanel select { font: 20px/1.2 var(--hand); background: transparent; border: 0; border-bottom: 1.6px solid var(--ink); padding: 4px 2px; }
   .satchel li .rtext { display: block; font: 17px/1.2 var(--hand); color: var(--pencil); }
   .x.en { font-size: 19px; }
   .x.en:hover, .x.en.on { color: var(--el, var(--red)); }
@@ -286,6 +290,10 @@
         <form class="adder" data-list="items"><label class="sr" for="addItem">Add to the satchel</label><input id="addItem" list="itemNames" maxlength="60" placeholder="add something…" autocomplete="off"><datalist id="itemNames"></datalist><button class="btn small" type="submit">Add</button></form>
         <form class="inked dashed" id="runePanel" hidden>
           <h3 id="runeT">Enchant</h3>
+          <div><span class="sc faded" style="font-size: 14px">How</span><div class="chips" id="runeHow" role="group" aria-label="Rune or infusion" style="margin-top: 6px">
+            <button type="button" class="chip" data-how="rune" aria-pressed="true">A rune (lasting, from the GM)</button>
+            <button type="button" class="chip" data-how="infuse" aria-pressed="false">Infuse it yourself</button>
+          </div><p class="pencil" id="infCost" style="margin: 6px 0 0; font-size: 17px" hidden></p></div>
           <div><span class="sc faded" style="font-size: 14px">Element</span><div class="chips" id="runeEls" role="group" aria-label="Element of the rune" style="margin-top: 6px"></div></div>
           <label class="field"><span>What it does</span><input id="runeText" maxlength="120" autocomplete="off" placeholder="glows near goblins, burns on a hit…"></label>
           <div><span class="sc faded" style="font-size: 14px">Bonus (weapons and armor)</span><div class="chips" id="runePlus" role="group" aria-label="Rune bonus" style="margin-top: 6px"></div></div>
@@ -295,7 +303,24 @@
             <button type="button" class="linkish" id="runeNo">never mind</button>
           </div>
         </form>
-        <p class="pencil" style="margin: 0">anything from <a href="/varandia/items/">the Armory</a> comes alive here: weapons get an attack button on The Fight, armor can be worn · tap ✧ to enchant something with a rune</p>
+        <form class="inked dashed" id="forgePanel" hidden>
+          <h3 id="forgeT">Use it as a weapon</h3>
+          <div><span class="sc faded" style="font-size: 14px">Damage</span><div class="chips" id="forgeDice" role="group" aria-label="Damage dice" style="margin-top: 6px"></div></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+            <label class="field"><span>Kind of damage</span><select id="forgeType"></select></label>
+            <div><span class="sc faded" style="font-size: 14px">Swung or shot</span><div class="chips" id="forgeStyle" role="group" aria-label="How it's used" style="margin-top: 6px">
+              <button type="button" class="chip" data-style="melee" aria-pressed="true">Melee (Strength)</button>
+              <button type="button" class="chip" data-style="finesse" aria-pressed="false">Finesse (Str or Speed)</button>
+              <button type="button" class="chip" data-style="ranged" aria-pressed="false">Ranged (Speed)</button>
+            </div></div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+            <button type="submit" class="btn small ink">Make it a weapon</button>
+            <button type="button" class="btn small" id="forgeOff">Not a weapon</button>
+            <button type="button" class="linkish" id="forgeNo">never mind</button>
+          </div>
+        </form>
+        <p class="pencil" style="margin: 0">anything from <a href="/varandia/items/">the Armory</a> comes alive here: weapons get an attack button on The Fight, armor can be worn · tap ✧ to enchant or infuse something, ⚒ to fight with anything else</p>
       </div>
       <span class="folio">— 5 —</span>
     </section>
@@ -642,10 +667,28 @@
     return a;
   }
   function runeAt(k, i) { return runeList(k)[i] || null; }
+  // home-made weapons: c.forge.items[i] = { dice, type, style } turns any Satchel line into a weapon
+  function forgeList(k) {
+    if (!c.forge || typeof c.forge !== 'object') c.forge = {};
+    if (!Array.isArray(c.forge[k])) c.forge[k] = [];
+    var a = c.forge[k]; while (a.length < c[k].length) a.push(null); a.length = c[k].length;
+    return a;
+  }
+  function forgeAt(k, i) { return forgeList(k)[i] || null; }
+  function dropLine(k, i) { runeList(k); forgeList(k); c[k].splice(i, 1); c.runes[k].splice(i, 1); c.forge[k].splice(i, 1); }
+  var INF = { controlled: { stamina: 2, need: 11 }, chaotic: { stamina: 4, need: 13 } };
+  function infuseNeed(el) {   // chaos gets easier with levels, like Chaotic spells
+    if (el !== 'chaotic') return INF.controlled.need;
+    return Math.max(INF.controlled.need, INF.chaotic.need - Math.floor(((c.level || 1) - 1) / 2));
+  }
+  function infuseDie() { var lv = c.level || 1; return lv >= 11 ? '1d8' : lv >= 5 ? '1d6' : '1d4'; }
   function elOf(key) { return D.elements.filter(function (e) { return e.key === key; })[0] || D.elements[0]; }
   /** The item on a Satchel line with its rune worked in: a rune's bonus counts if it beats the one in the name. */
   function gearAt(k, i) {
-    var it = itemFor(c[k][i]), r = runeAt(k, i);
+    var it = itemFor(c[k][i]), r = runeAt(k, i), f = forgeAt(k, i);
+    if (f && (!it || !(it.group === 'weapon' || it.group === 'armor'))) {
+      it = { key: '', name: c[k][i], group: 'weapon', made: true, dice: f.dice, type: f.type, ranged: f.style === 'ranged', props: f.style === 'finesse' ? ['Finesse'] : [] };
+    }
     if (!it || !r || !r.plus || !(it.group === 'weapon' || it.group === 'armor') || r.plus <= (it.plus || 0)) return it;
     var g = Object.assign({}, it);
     if (it.group === 'armor') g.defense = it.defense - (it.plus || 0) + r.plus;
@@ -653,19 +696,21 @@
     return g;
   }
   function runeTag(r) {
-    var e = elOf(r.el);
-    return '<i class="rune" title="' + T.esc(e.name + ' rune' + (r.text ? ': ' + r.text : '')) + '">' + T.esc(e.name) + ' rune' + (r.plus ? ' +' + r.plus : '') + '</i>';
+    var e = elOf(r.el), what = r.temp ? 'infused' : 'rune';
+    return '<i class="rune' + (r.temp ? ' temp' : '') + '" title="' + T.esc(e.name + ' ' + what + (r.text ? ': ' + r.text : '') + (r.cracks ? ' · ' + r.cracks + ' of 3 cracks' : '')) + '">' + T.esc(e.name) + ' ' + what + (r.plus ? ' +' + r.plus : '') +
+      (r.cracks ? ' <span class="cracks" aria-label="' + r.cracks + ' cracks">' + '✕'.repeat(r.cracks) + '</span>' : '') + '</i>';
   }
   function drawList(key) {
     T.$('#' + key).innerHTML = c[key].map(function (t, i) {
       var it = gearAt(key, i), extra = '', rn = runeAt(key, i), el = rn ? elOf(rn.el) : null;
       if (it && it.group === 'armor') extra = '<span class="tag">+' + it.defense + ' Defense</span><button type="button" class="btn small" data-wear="' + i + '">' + (isWorn(it) ? 'Take off' : 'Wear') + '</button>';
-      else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + (it.plus ? ' +' + it.plus : '') + '</span>';
+      else if (it && it.dice) extra = '<span class="tag">' + T.esc(it.dice) + (it.plus ? ' +' + it.plus : '') + (it.made ? ' ' + T.esc((it.type || '').toLowerCase()) : '') + '</span>';
       else if (it && it.group === 'healing') extra = '<span class="tag">' + T.esc(it.heal || it.stamina) + '</span><button type="button" class="btn small" data-use="' + i + '">' + (it.kind === 'Kit' ? 'Use' : 'Drink') + '</button>';
       var label = it ? '<a href="/varandia/items/?i=' + it.key + '" style="color:var(--ink);text-decoration:none">' + T.esc(t) + '</a>' : T.esc(t);
       if (rn && rn.text) label += '<small class="rtext">' + T.esc(rn.text) + '</small>';
       var on = runeOpen && runeOpen.k === key && runeOpen.i === i;
       return '<li' + (el ? ' class="ench" style="--el:' + el.color + '"' : '') + '><span>' + label + '</span>' + (rn ? runeTag(rn) : '') + extra +
+        (key === 'items' && (!it || it.made || !(it.group === 'weapon' || it.group === 'armor' || it.group === 'healing')) ? '<button type="button" class="x en" data-forge="' + i + '" aria-label="' + (it && it.made ? 'Change how ' + T.esc(t) + ' fights' : 'Use ' + T.esc(t) + ' as a weapon') + '" title="' + (it && it.made ? 'change the weapon' : 'use it as a weapon') + '">⚒</button>' : '') +
         '<button type="button" class="x en' + (on ? ' on' : '') + '" data-ench="' + i + '" aria-label="' + (rn ? 'Change the rune on ' : 'Enchant ') + T.esc(t) + '" title="' + (rn ? 'change the rune' : 'enchant') + '">✧</button>' +
         '<button type="button" class="x" data-rm="' + i + '" aria-label="Remove ' + T.esc(t) + '">×</button></li>';
     }).join('');
@@ -673,8 +718,9 @@
   }
   var runeOpen = null;   // { k, i, el, plus } while the enchanting panel is open
   function openRune(k, i) {
+    closeForge();
     var r = runeAt(k, i), it = itemFor(c[k][i]);
-    runeOpen = { k: k, i: i, el: r ? r.el : D.elements[0].key, plus: r ? r.plus || 0 : 0 };
+    runeOpen = { k: k, i: i, el: r ? r.el : D.elements[0].key, plus: r ? r.plus || 0 : 0, how: r && r.temp ? 'infuse' : 'rune' };
     var p = T.$('#runePanel'); T.$('#' + k).after(p); p.hidden = false;
     T.$('#runeT').textContent = (r ? 'The rune on ' : 'Enchant ') + c[k][i];
     T.$('#runeText').value = r ? r.text || '' : '';
@@ -684,11 +730,36 @@
     T.$('#runeText').focus();
   }
   function paintRune() {
+    var inf = runeOpen.how === 'infuse';
+    T.$$('#runeHow [data-how]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.how === runeOpen.how)); });
+    var cost = runeOpen.el === 'chaotic' ? INF.chaotic.stamina : INF.controlled.stamina;
+    T.$('#infCost').hidden = !inf;
+    T.$('#infCost').textContent = runeOpen.el === 'chaotic'
+      ? 'Raw chaos: ' + cost + ' Stamina, roll d20 + half Intelligence against ' + infuseNeed('chaotic') + '. Its damage dice are doubled on every hit, but a natural 1–3 on an attack surges and cracks it. Three cracks and it shatters.'
+      : 'Costs ' + cost + ' Stamina, roll d20 + half Intelligence against ' + infuseNeed(runeOpen.el) + '. Lasts until your next long rest: weapons deal +' + infuseDie() + ' ' + elOf(runeOpen.el).name + ' damage.';
+    T.$('#runePlus').parentNode.style.display = inf ? 'none' : '';
+    T.$('#runeGo').textContent = inf ? 'Infuse (' + cost + ' Stamina)' : 'Enchant';
     T.$$('#runeEls [data-el]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.el === runeOpen.el)); });
     T.$$('#runePlus [data-plus]').forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.plus === (runeOpen.plus || 0))); });
     T.$('#runePanel').style.setProperty('--el', elOf(runeOpen.el).color);
   }
   function closeRune() { runeOpen = null; T.$('#runePanel').hidden = true; }
+  var forgeOpen = null;   // { k, i, dice, type, style } while "use it as a weapon" is open
+  function openForge(k, i) {
+    closeRune();
+    var f = forgeAt(k, i);
+    forgeOpen = { k: k, i: i, dice: f ? f.dice : '1d6', type: f ? f.type : 'Bludgeoning', style: f ? f.style : 'melee' };
+    var p = T.$('#forgePanel'); T.$('#' + k).after(p); p.hidden = false;
+    T.$('#forgeT').textContent = 'Fight with ' + c[k][i];
+    T.$('#forgeOff').hidden = !f;
+    T.$('#forgeType').value = forgeOpen.type;
+    paintForge(); T.$('#forgeDice [aria-pressed="true"]').focus();
+  }
+  function paintForge() {
+    T.$$('#forgeDice [data-dice]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.dice === forgeOpen.dice)); });
+    T.$$('#forgeStyle [data-style]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.style === forgeOpen.style)); });
+  }
+  function closeForge() { forgeOpen = null; T.$('#forgePanel').hidden = true; }
   function drawWeapons() {
     if (!X || !D) return;
     var ws = c.items.map(function (t, i) { var g = gearAt('items', i); return g && g.dice ? { w: g, i: i, r: runeAt('items', i) } : null; }).filter(Boolean);
@@ -761,10 +832,39 @@
     T.$('#runePlus').innerHTML = [0, 1, 2, 3].map(function (n) { return '<button type="button" class="chip" data-plus="' + n + '" aria-pressed="false">' + (n ? '+' + n : 'none') + '</button>'; }).join('');
     T.$('#runeEls').addEventListener('click', function (e) { var b = e.target.closest('[data-el]'); if (!b || !runeOpen) return; runeOpen.el = b.dataset.el; paintRune(); });
     T.$('#runePlus').addEventListener('click', function (e) { var b = e.target.closest('[data-plus]'); if (!b || !runeOpen) return; runeOpen.plus = +b.dataset.plus; paintRune(); });
+    T.$('#forgeDice').innerHTML = ['1d4', '1d6', '1d8', '1d10', '1d12', '2d6'].map(function (d) { return '<button type="button" class="chip" data-dice="' + d + '" aria-pressed="false">' + d + '</button>'; }).join('');
+    T.$('#forgeType').innerHTML = ['Bludgeoning', 'Piercing', 'Slashing'].concat(D.elements.filter(function (e) { return e.key !== 'chaotic'; }).map(function (e) { return e.name; })).map(function (t) { return '<option>' + T.esc(t) + '</option>'; }).join('');
+    T.$('#forgeDice').addEventListener('click', function (e) { var b = e.target.closest('[data-dice]'); if (!b || !forgeOpen) return; forgeOpen.dice = b.dataset.dice; paintForge(); });
+    T.$('#forgeStyle').addEventListener('click', function (e) { var b = e.target.closest('[data-style]'); if (!b || !forgeOpen) return; forgeOpen.style = b.dataset.style; paintForge(); });
+    T.$('#forgePanel').addEventListener('submit', function (e) {
+      e.preventDefault(); if (!forgeOpen) return;
+      var k = forgeOpen.k, i = forgeOpen.i;
+      forgeList(k)[i] = { dice: forgeOpen.dice, type: T.$('#forgeType').value, style: forgeOpen.style };
+      T.$('#status').textContent = c[k][i] + ' can be swung in a fight now (' + forgeOpen.dice + ')';
+      closeForge(); drawList(k); save();
+    });
+    T.$('#forgeOff').onclick = function () { if (!forgeOpen) return; var k = forgeOpen.k; forgeList(k)[forgeOpen.i] = null; closeForge(); drawList(k); save(); };
+    T.$('#forgeNo').onclick = function () { closeForge(); };
+    T.$('#runeHow').addEventListener('click', function (e) { var b = e.target.closest('[data-how]'); if (!b || !runeOpen) return; runeOpen.how = b.dataset.how; paintRune(); });
     T.$('#runePanel').addEventListener('submit', function (e) {
       e.preventDefault(); if (!runeOpen) return;
       var k = runeOpen.k, i = runeOpen.i, txt = T.$('#runeText').value.trim().slice(0, 120);
-      runeList(k)[i] = { el: runeOpen.el, text: txt, plus: runeOpen.plus || 0 };
+      if (runeOpen.how === 'infuse') {
+        var el = runeOpen.el, chaos = el === 'chaotic', cost = chaos ? INF.chaotic.stamina : INF.controlled.stamina, need = infuseNeed(el), dvi = T.derive(c, D);
+        if (c.sta == null) c.sta = dvi.stamina;
+        if (c.sta < cost) { T.$('#status').textContent = 'not enough Stamina to infuse (' + cost + ' needed)'; return; }
+        c.sta -= cost;
+        var w = rollWith('Infusing ' + c[k][i] + ' with ' + elOf(el).name, Math.floor(T.stat(c, 'int', D) / 2), false);
+        var ok = w.r.die !== 1 && w.r.total >= need, hurt = 0;
+        if (w.r.die === 1) { hurt = T.dice('1d4'); c.hp = Math.max(0, (c.hp == null ? dvi.hp : c.hp) - hurt); }
+        if (ok) runeList(k)[i] = { el: el, text: txt, plus: 0, temp: true, cracks: 0 };
+        T.$('#status').textContent = ok ? c[k][i] + (chaos ? ' runs wild with chaos' : ' is infused with ' + elOf(el).name) : 'the infusion didn\u2019t take' + (hurt ? ', and it bit back for ' + hurt : '');
+        logLine(lineFor(w.label, w.r) + ' vs ' + need + (ok ? ' — infused!' : ' — it didn\u2019t take' + (hurt ? ': lost ' + hurt + ' health' : '')),
+          info('spell', 'an infusion: ' + c[k][i], w, { element: el, need: need, ok: ok, fail: ok ? '' : (hurt ? 'lost ' + hurt + ' health' : 'it didn\u2019t take'), stamina: cost, damage: ok ? (chaos ? 'doubled dice, runs wild' : '+' + infuseDie() + ' ' + elOf(el).name) : '' }));
+        closeRune(); drawList(k); drawVitals(); save(); return;
+      }
+      var was = runeAt(k, i);
+      runeList(k)[i] = { el: runeOpen.el, text: txt, plus: runeOpen.plus || 0, cracks: was && was.el === runeOpen.el ? was.cracks || 0 : 0 };
       var g = gearAt(k, i);
       if (g && g.group === 'armor') c.worn.forEach(function (w) { if (w.name === g.name) w.defense = g.defense; });
       var e2 = elOf(runeOpen.el);
@@ -800,7 +900,8 @@
     T.$('#heal').onclick = function () { c.hp = Math.min(dv.hp, c.hp + amount('#hpAmt')); after(); };
     T.$('#spend').onclick = function () { c.sta = Math.max(0, c.sta - amount('#staAmt')); after(); };
     T.$('#restore').onclick = function () { c.sta = Math.min(dv.stamina, c.sta + amount('#staAmt')); after(); };
-    T.$('#rest').onclick = function () { c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared', info('rest', 'Long rest', null, { text: 'Health and Stamina full, Exhaustion cleared' })); };
+    T.$('#rest').onclick = function () {
+      ['items', 'cardinal'].forEach(function (k) { var a = runeList(k); a.forEach(function (r, j) { if (r && r.temp) a[j] = null; }); drawList(k); }); c.hp = dv.hp; c.sta = dv.stamina; c.exhaustion = 0; drawConds(); after(); logLine('Long rest: Health and Stamina full, Exhaustion cleared', info('rest', 'Long rest', null, { text: 'Health and Stamina full, Exhaustion cleared' })); };
 
     // rolls
     T.$('#attack').onclick = function () { var w = rollWith('Melee attack', dv.attack, true); logLine(lineFor(w.label, w.r), info('attack', 'Melee attack', w, { what: 'to hit' })); };
@@ -848,6 +949,8 @@
     // satchel
     ['items', 'cardinal'].forEach(function (k) {
       T.$('#' + k).addEventListener('click', function (e) {
+        var fb = e.target.closest('[data-forge]');
+        if (fb) { var fi = +fb.dataset.forge; if (forgeOpen && forgeOpen.i === fi) closeForge(); else openForge(k, fi); return; }
         var eb = e.target.closest('[data-ench]');
         if (eb) { var ei = +eb.dataset.ench; if (runeOpen && runeOpen.k === k && runeOpen.i === ei) closeRune(); else openRune(k, ei); return; }
         var wb = e.target.closest('[data-wear]');
@@ -866,12 +969,12 @@
           var idx = +ub.dataset.use, h = itemFor(c[k][idx]);
           if (h.heal) { var n1 = T.dice(h.heal.replace(/\s/g, '')); c.hp = Math.min(T.derive(c, D).hp, c.hp + n1); logLine(h.name + ': +' + n1 + ' Health', info('heal', h.name, null, { total: n1, what: 'Health', dice: h.heal })); }
           if (h.stamina) { var n2 = T.dice(h.stamina.replace(/\s/g, '')); c.sta = Math.min(T.derive(c, D).stamina, c.sta + n2); logLine(h.name + ': +' + n2 + ' Stamina', info('tonic', h.name, null, { total: n2, what: 'Stamina', dice: h.stamina })); }
-          if (h.kind !== 'Kit') { c[k].splice(idx, 1); runeList(k).splice(idx, 1); closeRune(); }
+          if (h.kind !== 'Kit') { dropLine(k, idx); closeRune(); }
           drawList(k); drawVitals(); drawKnown(); drawSpellCard(); save(); return;
         }
         var b = e.target.closest('[data-rm]'); if (!b) return;
         var gone = itemFor(c[k][+b.dataset.rm]);
-        runeList(k); c[k].splice(+b.dataset.rm, 1); c.runes[k].splice(+b.dataset.rm, 1); closeRune();
+        dropLine(k, +b.dataset.rm); closeRune(); closeForge();
         if (gone && isWorn(gone) && !c[k].some(function (t) { var o = itemFor(t); return o && o.name === gone.name; })) c.worn = c.worn.filter(function (w) { return w.name !== gone.name; });
         drawList(k); drawVitals(); save();
       });
@@ -881,17 +984,35 @@
       var wi = +b.dataset.attack, w = gearAt('items', wi), rn = runeAt('items', wi), re = rn ? elOf(rn.el) : null;
       if (!w) return;
       var a = rollWith(w.name, T.weaponBonus(c, D, w) + (w.plus || 0), true);
-      var crit = a.r.die === 20, dmg = T.dice(w.dice) + (crit ? T.dice(w.dice) : 0) + (w.plus || 0);
+      var chaos = rn && rn.el === 'chaotic', crit = a.r.die === 20;
+      var sets = (chaos ? 2 : 1) * (crit ? 2 : 1), dmg = w.plus || 0;   // chaos doubles the dice on every hit; a natural 20 doubles them again
+      for (var n = 0; n < sets; n++) dmg += T.dice(w.dice);
+      var extraDie = rn && rn.temp && !chaos ? infuseDie() : '', extra = 0;
+      if (extraDie) { extra = T.dice(extraDie) + (crit ? T.dice(extraDie) : 0); dmg += extra; }
       var dtype = (w.type || '').toLowerCase() + (re ? ' + ' + re.name.toLowerCase() : '');
-      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + dtype + ' damage' + (rn && rn.text ? ' — ' + re.name + ' rune: ' + rn.text : ''),
-        info('weapon', w.name, a, { what: 'to hit', dmg: dmg, dmgType: dtype, dice: (crit ? '2×' : '') + w.dice + (w.plus ? ' + ' + w.plus : ''), crit: crit, ranged: /ranged/i.test(w.kind || w.cat || ''),
-          rune: re ? { el: re.key, name: re.name, text: rn.text || '' } : null }));
+      // raw chaos in a weapon runs wild: a natural 1-3 surges and cracks it
+      var surge = null, broke = false;
+      if (chaos && a.r.die <= D.spells.chaotic.surgeOn) {
+        var table = D.spells.chaotic.surge, sn = 1 + Math.floor(Math.random() * table.length);
+        surge = { n: sn, text: table[sn - 1] };
+        rn.cracks = (rn.cracks || 0) + 1;
+        if (rn.cracks >= 3) {
+          broke = true;
+          runeList('items')[wi] = null; forgeList('items')[wi] = null;
+          c.items[wi] = c.items[wi].replace(/\s*\(shattered\)$/, '') + ' (shattered)';
+        }
+      }
+      logLine(lineFor(a.label, a.r) + ' to hit' + (crit ? ' (critical!)' : '') + ', ' + dmg + ' ' + dtype + ' damage' + (chaos ? ' (chaos doubles the dice)' : '') + (rn && rn.text ? ' — ' + re.name + ' rune: ' + rn.text : '') +
+        (surge ? ' — SURGE (' + surge.n + ') ' + surge.text + (broke ? ' — and it SHATTERS' : ' — it cracks (' + rn.cracks + '/3)') : ''),
+        info('weapon', w.name, a, { what: 'to hit', dmg: dmg, dmgType: dtype, dice: (sets > 1 ? sets + '×' : '') + w.dice + (extraDie ? ' + ' + (crit ? '2×' : '') + extraDie + ' ' + re.name.toLowerCase() : '') + (w.plus ? ' + ' + w.plus : ''), crit: crit, ranged: /ranged/i.test(w.kind || w.cat || ''),
+          rune: re ? { el: re.key, name: re.name, text: rn.text || '', temp: !!rn.temp } : null, surge: surge, cracks: rn && !broke ? rn.cracks || 0 : 0, shattered: broke }));
+      if (surge) { drawList('items'); save(); }
     });
     T.$$('form.adder[data-list]').forEach(function (f) {
       f.addEventListener('submit', function (e) {
         e.preventDefault();
         var inp = f.querySelector('input'), v = inp.value.trim(); if (!v) return;
-        runeList(f.dataset.list); c[f.dataset.list].push(v); c.runes[f.dataset.list].push(null); inp.value = ''; drawList(f.dataset.list); save();
+        runeList(f.dataset.list); forgeList(f.dataset.list); c[f.dataset.list].push(v); c.runes[f.dataset.list].push(null); c.forge[f.dataset.list].push(null); inp.value = ''; drawList(f.dataset.list); save();
       });
     });
 

@@ -417,8 +417,12 @@ function vEmbed(i, line, campName, pic) {
   if (kind === 'heal' || kind === 'tonic') { lines.push('# ' + lead + '+' + (total ?? '?') + ' ' + vClean(i.what, 20)); if (i.dice) lines.push('-# rolled ' + vClean(i.dice, 30)); }
   if (kind === 'level' || kind === 'rest' || kind === 'note') lines.push(vClean(i.text || (kind === 'note' ? line : ''), 300));
   // the details
-  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: 'Damage', value: '🗡️ **' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 30) + (i.dice ? '\n-# ' + vClean(i.dice, 30) : ''), inline: true });
-  if (kind === 'weapon' && i.rune && typeof i.rune === 'object') { const rk = vClean(i.rune.el, 12); e.fields.push({ name: (vClean(i.rune.name, 20) || 'A') + ' rune', value: (vSeal(rk) || vIcon[rk] || '✧') + ' ' + (vClean(i.rune.text, 120) || 'It hums with ' + rk + '.'), inline: true }); }
+  if (kind === 'weapon' && vNum(i.dmg) != null) e.fields.push({ name: 'Damage', value: '🗡️ **' + vNum(i.dmg) + '** ' + vClean(i.dmgType, 30) + (i.dice ? '\n-# ' + vClean(i.dice, 60) : ''), inline: true });
+  // a weapon running wild with chaos: surges, cracks, and in the end shatters
+  if (kind === 'weapon' && i.surge && typeof i.surge === 'object') {
+    e.fields.push({ name: 'CHAOS SURGE (' + (vNum(i.surge.n) ?? '?') + ')', value: vSeal('surge') + ' ' + (vClean(i.surge.text, 200) || '…') + '\n' + (i.shattered ? '💥 **The weapon shatters.**' : '-# it cracks (' + (vNum(i.cracks) ?? '?') + ' of 3)'), inline: false });
+  }
+  if (kind === 'weapon' && i.rune && typeof i.rune === 'object') { const rk = vClean(i.rune.el, 12); e.fields.push({ name: (vClean(i.rune.name, 20) || 'A') + (i.rune.temp ? ' infusion' : ' rune'), value: (vSeal(rk) || vIcon[rk] || '✧') + ' ' + (vClean(i.rune.text, 120) || (rk === 'chaotic' ? 'Running wild.' : 'It hums with ' + rk + '.')), inline: true }); }
   if (kind === 'spell') {
     e.fields.push(i.ok ? { name: 'Cast!', value: '✅ ' + (i.damage ? 'Damage: ' + vClean(i.damage, 40) : 'It works.'), inline: true }
                        : { name: 'Fizzled', value: '💨 ' + (vClean(i.fail, 80) || 'The magic slips away.'), inline: true });
@@ -426,7 +430,7 @@ function vEmbed(i, line, campName, pic) {
     if (i.surge && typeof i.surge === 'object') { e.fields.push({ name: 'CHAOS SURGE (' + (vNum(i.surge.n) ?? '?') + ')', value: vSeal('surge') + ' ' + (vClean(i.surge.text, 200) || '…'), inline: false }); }
   }
   // the big portrait for the big moments
-  if (pic && (nat20 || (i.surge && kind === 'spell'))) e.thumbnail = { url: pic };
+  if (pic && (nat20 || (i.surge && (kind === 'spell' || kind === 'weapon')))) e.thumbnail = { url: pic };
   // the state of things, at the bottom of the post (footers can't show custom emoji)
   const st = [];
   if (vNum(i.hp) != null) st.push(vSeal('health') + ' ' + vNum(i.hp) + '/' + (vNum(i.maxHp) ?? '?'));
